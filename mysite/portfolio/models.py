@@ -5,3 +5,5 @@ class Stock(models.Model):
     shares_integer = models.DecimalField(decimal_places=5, max_digits=10)
     costbasis_price = models.DecimalField(decimal_places=2, max_digits=10)
     buy_date = models.DateTimeField('date bought')
+    def __str__(self):
+        return self.ticker_text
