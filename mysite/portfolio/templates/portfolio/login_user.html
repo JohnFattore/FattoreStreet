@@ -2,10 +2,11 @@
 
 {% block content %}
     <h1>Login</h1>
-    <form action="/portfolio/login" method="post">
+    <form action="/portfolio/login_user" method="post">
         {% csrf_token %}
         {{ form }}
         <input type="submit" value="Submit">
     </form>
+    <p>Don't have an account? Go to Register Page</p>
     <h2><a href="/portfolio/register">Register</a></h2>
 {% endblock %}

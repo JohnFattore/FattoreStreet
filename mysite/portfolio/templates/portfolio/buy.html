@@ -2,13 +2,13 @@
 
 {% block content %}
     <h1>Register</h1>
-    <form action="/portfolio/register" method="post">
+    <form action="/portfolio/buy" method="post">
         {% csrf_token %}
         {{ form }}
-        <input type="submit" value="Submit">
+        <input type="submit" value="Buy">
     </form>
-    <p>Already have an account? Go to Login Page</p>
-    <h2><a href="/portfolio/login_user">Login</a></h2>
+    <p>See Overall Portfolio</p>
+    <h2><a href="/portfolio/portfolio">Portfolio</a></h2>
 
     {% if error %}
     <p>{{ error }}</p>

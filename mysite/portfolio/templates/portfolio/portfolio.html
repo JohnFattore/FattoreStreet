@@ -1,5 +1,10 @@
 {% extends "portfolio/base.html" %}
 
 {% block content %}
+
+    {% if username %}
+    <p>Welcome {{ username }}</p>
+    {% endif %}
+
     <p>Here is where a user's portfolio will be shown</p>
 {% endblock %}
