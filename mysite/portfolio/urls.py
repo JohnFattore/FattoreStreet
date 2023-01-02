@@ -5,8 +5,8 @@ from . import views
 app_name = 'portfolio'
 urlpatterns = [
     path('', views.index, name='index'),
-    path('portfolio', views.portfolio, name='portfolio'),
-    path('register', views.register, name='register'),
-    path('login_user', views.login_user, name='login_user'),
-    path('buy', views.buy, name='buy')
+    path('register', views.register_view, name='register'),
+    path('login_user', views.login_user_view, name='login_user'),
+    path('<int:user_id>/', views.portfolio_view, name='portfolio'),
+    path('<int:user_id>/buy/', views.buy_view, name='buy')
 ]

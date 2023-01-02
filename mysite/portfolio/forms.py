@@ -12,7 +12,7 @@ class Login_user(forms.Form):
     username = forms.CharField(label='Username', max_length=100)
     password = forms.CharField(label='Password', max_length=100)
 
-class Stock(forms.Form):
+class Stock_buy(forms.Form):
     ticker_text = forms.CharField(label='Stock', max_length=4)
     shares_integer = forms.DecimalField(label='Shares', decimal_places=5, max_digits=10)
     costbasis_price = forms.DecimalField(label='Cost Basis', decimal_places=2, max_digits=10)

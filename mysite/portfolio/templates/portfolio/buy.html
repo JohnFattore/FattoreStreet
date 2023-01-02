@@ -2,7 +2,7 @@
 
 {% block content %}
     <h1>Register</h1>
-    <form action="/portfolio/buy" method="post">
+    <form action="{% url 'portfolio:buy' user.id %}" method="post">
         {% csrf_token %}
         {{ form }}
         <input type="submit" value="Buy">

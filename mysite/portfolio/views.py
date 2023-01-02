@@ -1,17 +1,16 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
-from .forms import Register, Login_user, Stock
+from .forms import Register, Login_user, Stock_buy
+from django.db import models
+from .models import Asset as Asset
 
 # Create your views here.
 def index(request):
     return render(request, 'portfolio/index.html')
 
-def portfolio(request):
-    return render(request, 'portfolio/portfolio.html')
-
-def register(request):
+def register_view(request):
     # route for post, when the form is submitted
     if request.method == 'POST':
         # create form object from submission
@@ -38,7 +37,7 @@ def register(request):
         form = Register()
     return render(request, 'portfolio/register.html', {'form': form})
 
-def login_user(request):
+def login_user_view(request):
     # route for post, when the form is submitted
     if request.method == 'POST':
         # create form object from submission
@@ -50,8 +49,7 @@ def login_user(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                username = user.get_username
-                return render(request, 'portfolio/portfolio.html', {'username': username})
+                return render(request, 'portfolio/portfolio.html', {'user': user})
             else:
                 return render(request, 'portfolio/index.html')
     # if GET request, create blank Login form
@@ -59,22 +57,31 @@ def login_user(request):
         form = Login_user()
     return render(request, 'portfolio/login_user.html', {'form': form})
 
-def buy(request):
+def buy_view(request, user_id):
     # route for post, when the form is submitted
     if request.method == 'POST':
         # create form object from submission
-        form = Stock(request.POST)
+        form = Stock_buy(request.POST)
         # if valid form, collect all data in variables
         if form.is_valid():
             ticker_text = form.cleaned_data['ticker_text']
             shares_integer = form.cleaned_data['shares_integer']
             costbasis_price = form.cleaned_data['costbasis_price']
             buy_date = form.cleaned_data['buy_date']
-            user = request.user
-            new_stock = Stock(ticker_text=ticker_text, shares_integer=shares_integer, costbasis_price=costbasis_price, buy_date=buy_date, user=user)
+            user = get_object_or_404(User, pk=user_id)
+            new_stock = Asset(ticker_text=ticker_text,
+                                    shares_integer=shares_integer,
+                                    costbasis_price=costbasis_price,
+                                    buy_date=buy_date,
+                                    user=user)
+            #new_stock = Asset.objects.create(ticker_text=ticker_text, shares_integer=shares_integer, costbasis_price=costbasis_price, buy_date=buy_date, user=user)
             new_stock.save()
-            return render(request, 'portfolio/portfolio.html')
+            return render(request, 'portfolio/portfolio.html', {'user': user})
     # if GET request, create blank Login form
     else:
-        form = Stock()
+        form = Stock_buy()
     return render(request, 'portfolio/buy.html', {'form': form})
+
+def portfolio_view(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+    return render(request, 'portfolio/portfolio.html', {'user': user})

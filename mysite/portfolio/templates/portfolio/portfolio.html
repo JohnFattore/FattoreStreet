@@ -2,9 +2,11 @@
 
 {% block content %}
 
-    {% if username %}
-    <p>Welcome {{ username }}</p>
+    {% if user %}
+    <p>Welcome {{ user.username }}</p>
     {% endif %}
-
+    <div>
+       <a href="{% url 'portfolio:buy' user.id %}">Buy</a>
+    </div>
     <p>Here is where a user's portfolio will be shown</p>
 {% endblock %}
