@@ -1,0 +1,10 @@
+{% extends "portfolio/base.html" %}
+
+{% block content %}
+<h1>Logout</h1>
+<form action="{% url 'portfolio:logout' user.id %}" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Logout">
+</form>
+{% endblock %}

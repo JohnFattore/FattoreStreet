@@ -20,3 +20,7 @@ class Stock_buy(forms.Form):
 
 class Stock_sell(forms.Form):
     buy_date = forms.DateField(label='Date Bought')
+
+
+class Logout_user(forms.Form):
+    username = forms.CharField(label='Username', max_length=100)

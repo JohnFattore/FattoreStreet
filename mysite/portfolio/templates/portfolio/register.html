@@ -1,15 +1,33 @@
-{% extends "portfolio/base.html" %}
-
-{% block content %}
-    <h1>Register</h1>
-    <form action="/portfolio/register" method="post">
-        {% csrf_token %}
-        {{ form }}
-        <input type="submit" value="Submit">
-    </form>
-    
-    {% if error %}
-    <p>{{ error }}</p>
-    {% endif %}
-
-{% endblock %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>portfolio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    </head>
+  <body>
+    <header>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'portfolio:login_user' %}">Login</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'portfolio:register' %}">Register</a>
+      </li>
+    </div>
+  </ul>
+  </nav>
+    <div>
+        <h1>Register</h1>
+        <form action="/portfolio/register" method="post">
+            {% csrf_token %}
+            {{ form }}
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+  </body>
+</html>

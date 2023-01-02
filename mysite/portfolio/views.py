@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from .forms import Register, Login_user, Stock_buy, Stock_sell
+from .forms import Register, Login_user, Stock_buy, Stock_sell, Logout_user
 from django.db import models
 from .models import Asset as Asset
 
@@ -118,3 +118,22 @@ def portfolio_view(request, user_id):
     # pull all assets associated with logged in user
     portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
     return render(request, 'portfolio/portfolio.html', {'user': user, 'portfolio': portfolio})
+
+def logout_view(request, user_id):
+    # route for post, when the form is submitted
+    if request.method == 'POST':
+        user = get_object_or_404(User, pk=user_id)
+        # create form object from submission
+        form = Logout_user(request.POST)
+        # if valid form, collect all data in variables
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            # Logout User
+            logout(request)
+            # the user object is directly linked in this model and automatically inputted
+            return render(request, 'portfolio/login_user.html')
+    # if GET request, create blank Login form
+    else:
+        user = get_object_or_404(User, pk=user_id)
+        form = Logout_user()
+    return render(request, 'portfolio/logout.html', {'user': user, 'form': form})
