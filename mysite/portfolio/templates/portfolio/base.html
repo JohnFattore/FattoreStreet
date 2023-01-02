@@ -3,12 +3,33 @@
 <html>
   <head>
     <title>portfolio</title>
-    <link rel="stylesheet" href="{% static 'portfolio/style.css' %}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    </head>
   <body>
     <header>
     </header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'portfolio:login_user' %}">Login</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'portfolio:register' %}">Register</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'portfolio:portfolio' user.id %}">Portfolio</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'portfolio:buy' user.id %}">Buy</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'portfolio:sell' user.id %}">Sell</a>
+      </li>
+    </div>
+  </ul>
+  </nav>
     <div>
       {% block content %}
       {% endblock %}

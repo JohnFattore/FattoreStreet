@@ -17,3 +17,6 @@ class Stock_buy(forms.Form):
     shares_integer = forms.DecimalField(label='Shares', decimal_places=5, max_digits=10)
     costbasis_price = forms.DecimalField(label='Cost Basis', decimal_places=2, max_digits=10)
     buy_date = forms.DateField(label='Date Bought')
+
+class Stock_sell(forms.Form):
+    buy_date = forms.DateField(label='Date Bought')

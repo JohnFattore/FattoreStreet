@@ -1,15 +1,19 @@
 {% extends "portfolio/base.html" %}
 
 {% block content %}
-    <h1>Register</h1>
+    <h1>Buy</h1>
     <form action="{% url 'portfolio:buy' user.id %}" method="post">
         {% csrf_token %}
         {{ form }}
         <input type="submit" value="Buy">
     </form>
-    <p>See Overall Portfolio</p>
-    <h2><a href="/portfolio/portfolio">Portfolio</a></h2>
-
+    {% if portfolio %}
+    <ul>
+    {% for stock in portfolio %}
+        <li>{{ stock }} {{ stock.shares_integer }} {{ stock.buy_date }} {{ stock.costbasis_price }}</li>
+    {% endfor %}
+    </ul>   
+    {% endif %}
     {% if error %}
     <p>{{ error }}</p>
     {% endif %}

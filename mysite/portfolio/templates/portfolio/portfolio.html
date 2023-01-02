@@ -5,8 +5,12 @@
     {% if user %}
     <p>Welcome {{ user.username }}</p>
     {% endif %}
-    <div>
-       <a href="{% url 'portfolio:buy' user.id %}">Buy</a>
-    </div>
     <p>Here is where a user's portfolio will be shown</p>
+    {% if portfolio %}
+        <ul>
+        {% for stock in portfolio %}
+            <li>{{ stock }} {{ stock.shares_integer }} {{ stock.buy_date }} {{ stock.costbasis_price }}</li>
+        {% endfor %}
+        </ul>   
+    {% endif %}
 {% endblock %}
