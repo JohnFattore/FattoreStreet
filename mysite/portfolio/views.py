@@ -2,9 +2,10 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from .forms import Register, Login_user, Stock_buy, Stock_sell, Logout_user
+from .forms import Register, Login_user, Stock_buy, Stock_CSV_buy, Stock_sell, Logout_user
 from django.db import models
 from .models import Asset as Asset
+import csv
 
 # Create your views here.
 def index(request):
@@ -65,6 +66,8 @@ def login_user_view(request):
 def buy_view(request, user_id):
     # route for post, when the form is submitted
     if request.method == 'POST':
+        # Get user first
+        user = get_object_or_404(User, pk=user_id)
         # create form object from submission
         form = Stock_buy(request.POST)
         # if valid form, collect all data in variables
@@ -73,23 +76,54 @@ def buy_view(request, user_id):
             shares_integer = form.cleaned_data['shares_integer']
             costbasis_price = form.cleaned_data['costbasis_price']
             buy_date = form.cleaned_data['buy_date']
-            user = get_object_or_404(User, pk=user_id)
+            account = form.cleaned_data['account']
             # collect all the data and then create a new stock entry
             # the user object is directly linked in this model and automatically inputted
             new_stock = Asset(ticker_text=ticker_text,
                                     shares_integer=shares_integer,
                                     costbasis_price=costbasis_price,
                                     buy_date=buy_date,
+                                    account=account,
                                     user=user)
             # new_stock = Asset.objects.create(ticker_text=ticker_text, shares_integer=shares_integer, costbasis_price=costbasis_price, buy_date=buy_date, user=user)
             new_stock.save()
             return render(request, 'portfolio/portfolio.html', {'user': user})
+        else:
+            error = 'Form Not Valid, Try Again'
+            return render(request, 'portfolio/apology.html', {'error': error})
     # if GET request, create blank Login form
     else:
         user = get_object_or_404(User, pk=user_id)
         portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
         form = Stock_buy()
-    return render(request, 'portfolio/buy.html', {'form': form, 'portfolio': portfolio})
+        return render(request, 'portfolio/buy.html', {'form': form, 'portfolio': portfolio})
+
+def buy_CSV_view(request, user_id):
+    # route for post, when the form is submitted
+    if request.method == 'POST':
+        # Get user first
+        user = get_object_or_404(User, pk=user_id)
+        # create form object from submission
+        form = Stock_CSV_buy(request.POST, request.FILES)
+        # if valid form, collect all data in variables
+        if form.is_valid():
+            # collect all the data and then create a new stock entry
+            # the user object is directly linked in this model and automatically inputted
+            file = open(request.FILES['file'])
+            stocks = request.FILES['file'].read()
+            #for stock in stocks:
+            #    ticker_text = stock[0]
+             #   new_stock = Asset.objects.create(ticker_text=ticker_text, shares_integer=shares_integer, costbasis_price=costbasis_price, buy_date=buy_date, user=user)
+            return render(request, 'portfolio/portfolio.html', {'user': user, 'stocks': stocks})
+        else:
+            error = 'Form Not Valid, Try Again'
+            return render(request, 'portfolio/apology.html', {'error': error})
+    # if GET request, create blank Login form
+    else:
+        user = get_object_or_404(User, pk=user_id)
+        portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
+        form = Stock_CSV_buy()
+        return render(request, 'portfolio/buy_CSV.html', {'form': form, 'portfolio': portfolio})
 
 def sell_view(request, user_id):
     # route for post, when the form is submitted
@@ -105,12 +139,15 @@ def sell_view(request, user_id):
             portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
             # the user object is directly linked in this model and automatically inputted
             return render(request, 'portfolio/portfolio.html', {'user': user, 'portfolio': portfolio})
+        else:
+            error = 'Form Not Valid, Try Again'
+            return render(request, 'portfolio/apology.html', {'error': error})
     # if GET request, create blank Login form
     else:
         user = get_object_or_404(User, pk=user_id)
         portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
         form = Stock_sell()
-    return render(request, 'portfolio/sell.html', {'form': form, 'portfolio': portfolio})
+        return render(request, 'portfolio/sell.html', {'form': form, 'portfolio': portfolio})
 
 def portfolio_view(request, user_id):
     # pull current user or return an error page
@@ -132,8 +169,11 @@ def logout_view(request, user_id):
             logout(request)
             # the user object is directly linked in this model and automatically inputted
             return render(request, 'portfolio/login_user.html')
+        else:
+            error = 'Form Not Valid, Try Again'
+            return render(request, 'portfolio/apology.html', {'error': error})
     # if GET request, create blank Login form
     else:
         user = get_object_or_404(User, pk=user_id)
         form = Logout_user()
-    return render(request, 'portfolio/logout.html', {'user': user, 'form': form})
+        return render(request, 'portfolio/logout.html', {'user': user, 'form': form})

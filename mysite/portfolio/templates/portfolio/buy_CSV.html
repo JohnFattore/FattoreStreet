@@ -1,0 +1,27 @@
+{% extends "portfolio/base.html" %}
+
+{% block content %}
+    <h1>Buy From CSV</h1>
+    <form action="{% url 'portfolio:buy_CSV' user.id %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form }}
+        <input type="submit" value="Buy">
+    </form>
+    
+    {% if portfolio %}
+    <ul>
+    {% for stock in portfolio %}
+        <li>{{ stock }} {{ stock.shares_integer }} {{ stock.buy_date }} {{ stock.costbasis_price }}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if error %}
+    <p>{{ error }}</p>
+    {% endif %}
+
+    {% if etf %}
+    <p>{{ etf }}</p>
+    {% endif %}
+
+{% endblock %}

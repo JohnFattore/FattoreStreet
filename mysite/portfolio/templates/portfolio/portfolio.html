@@ -5,6 +5,7 @@
     {% if user %}
     <p>Welcome {{ user.username }}</p>
     {% endif %}
+
     <p>Here is where a user's portfolio will be shown</p>
     {% if portfolio %}
         <ul>
@@ -13,4 +14,9 @@
         {% endfor %}
         </ul>   
     {% endif %}
+
+    {% if stocks %}
+    <p>{{ stocks }}</p>
+    {% endif %}
+
 {% endblock %}
