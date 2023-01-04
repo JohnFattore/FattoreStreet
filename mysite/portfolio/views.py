@@ -109,12 +109,18 @@ def buy_CSV_view(request, user_id):
         if form.is_valid():
             # collect all the data and then create a new stock entry
             # the user object is directly linked in this model and automatically inputted
-            file = open(request.FILES['file'])
-            stocks = request.FILES['file'].read()
-            #for stock in stocks:
-            #    ticker_text = stock[0]
-             #   new_stock = Asset.objects.create(ticker_text=ticker_text, shares_integer=shares_integer, costbasis_price=costbasis_price, buy_date=buy_date, user=user)
-            return render(request, 'portfolio/portfolio.html', {'user': user, 'stocks': stocks})
+            csvfile = request.FILES['file'].read().decode("utf-8")	
+            stocks = csvfile.split('\r\n')
+            for stock in stocks:
+                fields = stock.split(",")
+                ticker_text = fields[0]
+                shares_integer = fields[1]
+                costbasis_price = fields[2]
+                buydata = fields[3].split("/")
+                buy_date = buydata[2] + "-" + buydata[0] + "-" + buydata[1]
+                account = fields[4]
+                new_stock = Asset.objects.create(ticker_text=ticker_text, shares_integer=shares_integer, costbasis_price=costbasis_price, buy_date=buy_date, user=user)
+            return render(request, 'portfolio/portfolio.html', {'user': user, 'stocks': buy_date})
         else:
             error = 'Form Not Valid, Try Again'
             return render(request, 'portfolio/apology.html', {'error': error})
