@@ -193,18 +193,31 @@ def schedule_view(request, user_id):
         individual_prices = {}
         roth_ira_allocation = []
         individual_allocation = []
-        # create allocation models for roth ira assets
+        # get price for each allocation roth ira
+        roth_ira_total = 0
+        individual_total = 0
         for key in roth_ira_keys:
             price = yf.Ticker(key).info['regularMarketPrice'] * float(roth_ira[key])
-            roth_ira_allocation.append(Allocation(ticker_text = key, shares_integer = roth_ira[key], currentPrice = price))
+            roth_ira_total = roth_ira_total + price
+            roth_ira_prices[key] = price
+        
+        # get price for each allocation roth ira
+        for key in individual_keys:
+            price = yf.Ticker(key).info['regularMarketPrice'] * float(individual[key])
+            individual_total = individual_total + price
+            individual_prices[key] = price
+
+        # create allocation models for roth ira assets
+        for key in roth_ira_keys:
+            allocated = 100.0 * (roth_ira_prices[key] / roth_ira_total)
+            roth_ira_allocation.append(Allocation(ticker_text = key, shares_integer = ('{:.2f}'.format(roth_ira[key])), currentPrice = ('{:.2f}'.format(roth_ira_prices[key])), percent_allocated = '{:.2f}%'.format(allocated)))
         
         # create allocation models for individual assets
         for key in individual_keys:
-            price = yf.Ticker(key).info['regularMarketPrice'] * float(individual[key])
-            individual_allocation.append(Allocation(ticker_text = key, shares_integer = individual[key], currentPrice = price))
-        
-        return render(request, 'portfolio/schedule.html', {'user': user, 'roth_ira': roth_ira, 'individual': individual,
-                                                            'roth_ira_allocation': roth_ira_allocation, 'individual_allocation': individual_allocation})
+            allocated = 100.0 * (individual_prices[key] / individual_total)
+            individual_allocation.append(Allocation(ticker_text = key, shares_integer = ('{:.2f}'.format(individual[key])), currentPrice = ('{:.2f}'.format(individual_prices[key])), percent_allocated = '{:.2f}%'.format(allocated)))
+
+        return render(request, 'portfolio/schedule.html', {'user': user, 'roth_ira_allocation': roth_ira_allocation, 'individual_allocation': individual_allocation})
 
 def logout_view(request, user_id):
     # route for post, when the form is submitted
