@@ -11,5 +11,6 @@ urlpatterns = [
     path('<int:user_id>/buy/', views.buy_view, name='buy'),
     path('<int:user_id>/buy_CSV/', views.buy_CSV_view, name='buy_CSV'),
     path('<int:user_id>/sell/', views.sell_view, name='sell'),
+    path('<int:user_id>/schedule/', views.schedule_view, name='schedule'),
     path('<int:user_id>/logout/', views.logout_view, name='logout')
 ]

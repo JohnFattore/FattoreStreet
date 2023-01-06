@@ -4,7 +4,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from .forms import Register, Login_user, Stock_buy, Stock_CSV_buy, Stock_sell, Logout_user
 from django.db import models
-from .models import Asset as Asset
+from .models import Asset, Allocation
+from .helper import seperate_accounts, allocate
+import yfinance as yf
 import csv
 
 # Create your views here.
@@ -72,7 +74,7 @@ def buy_view(request, user_id):
         form = Stock_buy(request.POST)
         # if valid form, collect all data in variables
         if form.is_valid():
-            ticker_text = form.cleaned_data['ticker_text']
+            ticker_text = form.cleaned_data['ticker_text'] #.upper()
             shares_integer = form.cleaned_data['shares_integer']
             costbasis_price = form.cleaned_data['costbasis_price']
             buy_date = form.cleaned_data['buy_date']
@@ -119,8 +121,8 @@ def buy_CSV_view(request, user_id):
                 buydata = fields[3].split("/")
                 buy_date = buydata[2] + "-" + buydata[0] + "-" + buydata[1]
                 account = fields[4]
-                new_stock = Asset.objects.create(ticker_text=ticker_text, shares_integer=shares_integer, costbasis_price=costbasis_price, buy_date=buy_date, user=user)
-            return render(request, 'portfolio/portfolio.html', {'user': user, 'stocks': buy_date})
+                new_stock = Asset.objects.create(ticker_text=ticker_text, shares_integer=shares_integer, costbasis_price=costbasis_price, buy_date=buy_date, account=account, user=user)
+            return render(request, 'portfolio/portfolio.html', {'user': user})
         else:
             error = 'Form Not Valid, Try Again'
             return render(request, 'portfolio/apology.html', {'error': error})
@@ -142,6 +144,8 @@ def sell_view(request, user_id):
             buy_date = form.cleaned_data['buy_date']
             # collect all the data and then delete stock entry
             Asset.objects.filter(buy_date=buy_date, user=user).delete()
+            # The next line should not be commented out unless deleting all stocks
+            #Asset.objects.filter().delete()
             portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
             # the user object is directly linked in this model and automatically inputted
             return render(request, 'portfolio/portfolio.html', {'user': user, 'portfolio': portfolio})
@@ -160,7 +164,47 @@ def portfolio_view(request, user_id):
     user = get_object_or_404(User, pk=user_id)
     # pull all assets associated with logged in user
     portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
-    return render(request, 'portfolio/portfolio.html', {'user': user, 'portfolio': portfolio})
+    accounts, keysList = seperate_accounts(portfolio)
+    roth_ira = accounts[keysList[0]]
+    individual = accounts[keysList[1]]
+    return render(request, 'portfolio/portfolio.html', {'user': user, 'roth_ira': roth_ira, 'individual': individual})
+
+def schedule_view(request, user_id):
+    # route for post, when the form is submitted
+    if request.method == 'POST':
+        user = get_object_or_404(User, pk=user_id)
+        return render(request, 'portfolio/schedule.html', {'user': user})
+    # if GET request, create blank Login form
+    else:
+        user = get_object_or_404(User, pk=user_id)
+        portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
+        # seperate_accounts returns dictonary of lists containing the stocks of each accont
+        # accountkeys is a list of account names or keys for the dictonary
+        accounts, accountkeys = seperate_accounts(portfolio)
+        roth_ira = accounts[accountkeys[0]]
+        individual = accounts[accountkeys[1]]
+        # account0 is roth_ira
+        # allocation returns a dictonary with keys of tickers and value the quality of shares
+        # roth_ira_keys is a list of keys for the dictonary
+        roth_ira, roth_ira_keys = allocate(accounts[accountkeys[0]])
+        # account1 is individual, not iteriable let, but function is iterable
+        individual, individual_keys = allocate(accounts[accountkeys[1]])
+        roth_ira_prices = {}
+        individual_prices = {}
+        roth_ira_allocation = []
+        individual_allocation = []
+        # create allocation models for roth ira assets
+        for key in roth_ira_keys:
+            price = yf.Ticker(key).info['regularMarketPrice'] * float(roth_ira[key])
+            roth_ira_allocation.append(Allocation(ticker_text = key, shares_integer = roth_ira[key], currentPrice = price))
+        
+        # create allocation models for individual assets
+        for key in individual_keys:
+            price = yf.Ticker(key).info['regularMarketPrice'] * float(individual[key])
+            individual_allocation.append(Allocation(ticker_text = key, shares_integer = individual[key], currentPrice = price))
+        
+        return render(request, 'portfolio/schedule.html', {'user': user, 'roth_ira': roth_ira, 'individual': individual,
+                                                            'roth_ira_allocation': roth_ira_allocation, 'individual_allocation': individual_allocation})
 
 def logout_view(request, user_id):
     # route for post, when the form is submitted

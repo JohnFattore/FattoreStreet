@@ -8,15 +8,29 @@
 
     <p>Here is where a user's portfolio will be shown</p>
     {% if portfolio %}
-        <ul>
+        <ul class="list-group">
         {% for stock in portfolio %}
-            <li>{{ stock }} {{ stock.shares_integer }} {{ stock.buy_date }} {{ stock.costbasis_price }}</li>
+            <li class="list-group-item">{{ stock }} {{ stock.shares_integer }} {{ stock.buy_date }} {{ stock.costbasis_price }}</li>
         {% endfor %}
         </ul>   
     {% endif %}
 
-    {% if stocks %}
-    <p>{{ stocks }}</p>
+    {% if individual %}
+    <h2>Individual</h2>
+        <ul class="list-group">
+        {% for stock in individual %}
+            <li class="list-group-item">{{ stock }} {{ stock.shares_integer }} {{ stock.buy_date }} {{ stock.costbasis_price }}</li>
+        {% endfor %}
+        </ul>   
+    {% endif %}
+
+    {% if roth_ira %}
+    <h2>Roth Ira</h2>
+    <ul class="list-group">
+        {% for stock in roth_ira %}
+            <li class="list-group-item">{{ stock }} {{ stock.shares_integer }} {{ stock.buy_date }} {{ stock.costbasis_price }}</li>
+        {% endfor %}
+    </ul>   
     {% endif %}
 
 {% endblock %}
