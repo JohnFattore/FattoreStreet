@@ -43,7 +43,7 @@ def register_view(request):
         form = Register()
     return render(request, 'portfolio/register.html', {'form': form})
 
-def login_user_view(request):
+def login_view(request):
     # route for post, when the form is submitted
     if request.method == 'POST':
         # create form object from submission
@@ -63,7 +63,7 @@ def login_user_view(request):
     # if GET request, create blank Login form
     else:
         form = Login_user()
-    return render(request, 'portfolio/login_user.html', {'form': form})
+    return render(request, 'portfolio/login.html', {'form': form})
 
 def buy_view(request, user_id):
     # route for post, when the form is submitted
@@ -169,55 +169,58 @@ def portfolio_view(request, user_id):
     individual = accounts[keysList[1]]
     return render(request, 'portfolio/portfolio.html', {'user': user, 'roth_ira': roth_ira, 'individual': individual})
 
-def schedule_view(request, user_id):
+def allocation_view(request, user_id):
     # route for post, when the form is submitted
+    user = get_object_or_404(User, pk=user_id)
+    portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
+    # seperate_accounts returns dictonary of lists containing the stocks of each accont
+    # accountkeys is a list of account names or keys for the dictonary
+    accounts, accountkeys = seperate_accounts(portfolio)
+    roth_ira = accounts[accountkeys[0]]
+    individual = accounts[accountkeys[1]]
+    # account0 is roth_ira
+    # allocation returns a dictonary with keys of tickers and value the quality of shares
+    # roth_ira_keys is a list of keys for the dictonary
+    roth_ira, roth_ira_keys = allocate(accounts[accountkeys[0]])
+    # account1 is individual, not iteriable let, but function is iterable
+    individual, individual_keys = allocate(accounts[accountkeys[1]])
+    roth_ira_prices = {}
+    individual_prices = {}
+    roth_ira_allocation = []
+    individual_allocation = []
+    # get price for each allocation roth ira
+    roth_ira_total = 0
+    individual_total = 0
+    for key in roth_ira_keys:
+        price = yf.Ticker(key).info['regularMarketPrice'] * float(roth_ira[key])
+        roth_ira_total = roth_ira_total + price
+        roth_ira_prices[key] = price
+    
+    # get price for each allocation roth ira
+    for key in individual_keys:
+        price = yf.Ticker(key).info['regularMarketPrice'] * float(individual[key])
+        individual_total = individual_total + price
+        individual_prices[key] = price
+
+    # create allocation models for roth ira assets
+    for key in roth_ira_keys:
+        allocated = 100.0 * (roth_ira_prices[key] / roth_ira_total)
+        roth_ira_allocation.append(Allocation(ticker_text = key, shares_integer = ('{:.2f}'.format(roth_ira[key])), currentPrice = ('{:.2f}'.format(roth_ira_prices[key])), percent_allocated = '{:.2f}%'.format(allocated)))
+    
+    # create allocation models for individual assets
+    for key in individual_keys:
+        allocated = 100.0 * (individual_prices[key] / individual_total)
+        individual_allocation.append(Allocation(ticker_text = key, shares_integer = ('{:.2f}'.format(individual[key])), currentPrice = ('{:.2f}'.format(individual_prices[key])), percent_allocated = '{:.2f}%'.format(allocated)))
+
+    return render(request, 'portfolio/allocation.html', {'user': user, 'roth_ira_allocation': roth_ira_allocation, 'individual_allocation': individual_allocation})
+
+def schedule_view(request, user_id):
     if request.method == 'POST':
         user = get_object_or_404(User, pk=user_id)
         return render(request, 'portfolio/schedule.html', {'user': user})
-    # if GET request, create blank Login form
     else:
         user = get_object_or_404(User, pk=user_id)
-        portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
-        # seperate_accounts returns dictonary of lists containing the stocks of each accont
-        # accountkeys is a list of account names or keys for the dictonary
-        accounts, accountkeys = seperate_accounts(portfolio)
-        roth_ira = accounts[accountkeys[0]]
-        individual = accounts[accountkeys[1]]
-        # account0 is roth_ira
-        # allocation returns a dictonary with keys of tickers and value the quality of shares
-        # roth_ira_keys is a list of keys for the dictonary
-        roth_ira, roth_ira_keys = allocate(accounts[accountkeys[0]])
-        # account1 is individual, not iteriable let, but function is iterable
-        individual, individual_keys = allocate(accounts[accountkeys[1]])
-        roth_ira_prices = {}
-        individual_prices = {}
-        roth_ira_allocation = []
-        individual_allocation = []
-        # get price for each allocation roth ira
-        roth_ira_total = 0
-        individual_total = 0
-        for key in roth_ira_keys:
-            price = yf.Ticker(key).info['regularMarketPrice'] * float(roth_ira[key])
-            roth_ira_total = roth_ira_total + price
-            roth_ira_prices[key] = price
-        
-        # get price for each allocation roth ira
-        for key in individual_keys:
-            price = yf.Ticker(key).info['regularMarketPrice'] * float(individual[key])
-            individual_total = individual_total + price
-            individual_prices[key] = price
-
-        # create allocation models for roth ira assets
-        for key in roth_ira_keys:
-            allocated = 100.0 * (roth_ira_prices[key] / roth_ira_total)
-            roth_ira_allocation.append(Allocation(ticker_text = key, shares_integer = ('{:.2f}'.format(roth_ira[key])), currentPrice = ('{:.2f}'.format(roth_ira_prices[key])), percent_allocated = '{:.2f}%'.format(allocated)))
-        
-        # create allocation models for individual assets
-        for key in individual_keys:
-            allocated = 100.0 * (individual_prices[key] / individual_total)
-            individual_allocation.append(Allocation(ticker_text = key, shares_integer = ('{:.2f}'.format(individual[key])), currentPrice = ('{:.2f}'.format(individual_prices[key])), percent_allocated = '{:.2f}%'.format(allocated)))
-
-        return render(request, 'portfolio/schedule.html', {'user': user, 'roth_ira_allocation': roth_ira_allocation, 'individual_allocation': individual_allocation})
+        return render(request, 'portfolio/schedule.html', {'user': user})
 
 def logout_view(request, user_id):
     # route for post, when the form is submitted
@@ -231,7 +234,7 @@ def logout_view(request, user_id):
             # Logout User
             logout(request)
             # the user object is directly linked in this model and automatically inputted
-            return render(request, 'portfolio/login_user.html')
+            return render(request, 'portfolio/login.html')
         else:
             error = 'Form Not Valid, Try Again'
             return render(request, 'portfolio/apology.html', {'error': error})

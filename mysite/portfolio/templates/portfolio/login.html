@@ -13,7 +13,7 @@
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav mr-auto">
       <li class="nav-item">
-        <a class="nav-link" href="{% url 'portfolio:login_user' %}">Login</a>
+        <a class="nav-link" href="{% url 'portfolio:login' %}">Login</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="{% url 'portfolio:register' %}">Register</a>
@@ -23,7 +23,7 @@
   </nav>
     <div>
         <h1>Login</h1>
-        <form action="/portfolio/login_user" method="post">
+        <form action="/portfolio/login" method="post">
             {% csrf_token %}
             {{ form }}
             <input type="submit" value="Submit">

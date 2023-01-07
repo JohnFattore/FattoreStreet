@@ -1,0 +1,23 @@
+{% extends "portfolio/base.html" %}
+
+{% block content %}
+    {% if individual_allocation %}
+    <h2>Roth Ira</h2>
+    <ul class="list-group">
+        {% for group in roth_ira_allocation %}
+            <li class="list-group-item">{{ group.ticker_text }} {{ group.shares_integer }} ${{ group.currentPrice }} {{ group.percent_allocated }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if individual_allocation %}
+    <h2>Individual</h2>
+    <ul class="list-group">
+        {% for group in individual_allocation %}
+            <li class="list-group-item">{{ group.ticker_text }} {{ group.shares_integer }} ${{ group.currentPrice }} {{ group.percent_allocated }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    
+
+{% endblock %}
