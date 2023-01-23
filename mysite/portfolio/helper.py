@@ -10,25 +10,25 @@ import csv
 # function to seperate portfolios
 def seperate_accounts(portfolio):
     # creates dictonary with key words of each account and value of how many stock entrys in the account
-    accounts = {}
+    shares = {}
     for stock in portfolio:
-        if stock.account not in accounts:
-            accounts[stock.account] = 1
+        if stock.account not in shares:
+            shares[stock.account] = 1
         else:
-            accounts[stock.account] = accounts[stock.account] + 1
+            shares[stock.account] = shares[stock.account] + 1
     # creates list of keys for dict
     keysList = [key for key in accounts]
     n = len(accounts)
-    dict = {}
+    accounts = {}
     for i in range(n):
-        dict[keysList[i]] = []
+        accounts[keysList[i]] = []
     for stock in portfolio:
         for i in range(n):
             if stock.account == keysList[i]:
-                dict[keysList[i]].append(stock)
+                accounts[keysList[i]].append(stock)
     # returns dictonary of lists containing each account
-    # i.e. dict = {'roth_ira': [stock1, stock2], 'individual': [stock1, stock2]}
-    return dict, keysList
+    # i.e. accounts = {'roth_ira': [stock1, stock2], 'individual': [stock1, stock2]}
+    return accounts
 
 def allocate(portfolio):
     groups = {}
