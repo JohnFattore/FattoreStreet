@@ -48,7 +48,7 @@ def allocate(account):
 
     # get prices of each asset, return prices dictonary
     for key in keys:
-        price = 100 #yf.Ticker(key).info['regularMarketPrice'] * float(groups[key])
+        price = yf.Ticker(key).fast_info['last_price'] * float(groups[key])
         total = total + price
         prices[key] = price
     
