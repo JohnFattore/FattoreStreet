@@ -164,9 +164,10 @@ def portfolio_view(request, user_id):
     user = get_object_or_404(User, pk=user_id)
     # pull all assets associated with logged in user
     portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
-    accounts, keysList = seperate_accounts(portfolio)
-    roth_ira = accounts[keysList[0]]
-    individual = accounts[keysList[1]]
+    accounts = seperate_accounts(portfolio)
+    accountkeys = [key for key in accounts]
+    roth_ira = accounts[accountkeys[0]]
+    individual = accounts[accountkeys[1]]
     return render(request, 'portfolio/portfolio.html', {'user': user, 'roth_ira': roth_ira, 'individual': individual})
 
 def allocation_view(request, user_id):
