@@ -5,7 +5,7 @@
     <h2>Roth Ira</h2>
     <ul class="list-group">
         {% for group in roth_ira_allocation %}
-            <li class="list-group-item">{{ group.ticker_text }} {{ group.shares_integer }} ${{ group.currentPrice }} {{ group.percent_allocated }}</li>
+            <li class="list-group-item">{{ group.ticker_text }} {{ group.shares_integer }} ${{ group.currentPrice }} {{ group.percent_allocated }} {{ group.target }}</li>
         {% endfor %}
         </ul>
     {% endif %}
@@ -14,7 +14,7 @@
     <h2>Individual</h2>
     <ul class="list-group">
         {% for group in individual_allocation %}
-            <li class="list-group-item">{{ group.ticker_text }} {{ group.shares_integer }} ${{ group.currentPrice }} {{ group.percent_allocated }}</li>
+            <li class="list-group-item">{{ group.ticker_text }} {{ group.shares_integer }} ${{ group.currentPrice }} {{ group.percent_allocated }} {{ group.target }}</li>
         {% endfor %}
         </ul>
     {% endif %}

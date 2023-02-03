@@ -190,25 +190,14 @@ def schedule_view(request, user_id):
         user = get_object_or_404(User, pk=user_id)
         portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
         allocated = allocate(portfolio)
-        #gaps = {}
-        #for asset in allocated:
-        #    temp = asset.percent_allocated
-        #    gaps[asset] = temp
-        #print(allocated)
 
-        return render(request, 'portfolio/schedule.html', {'user': user, 'gaps': allocated})
+        return render(request, 'portfolio/schedule.html', {'user': user, 'portfolio_allocation': allocated})
     else:
         user = get_object_or_404(User, pk=user_id)
         portfolio = Asset.objects.all().filter(user=user).order_by('buy_date')
-        # accounts, accountkeys = seperate_accounts(portfolio)
         allocated = allocate(portfolio)
-        gaps = {}
-        # for asset in allocated:
-            #temp = asset.percent_allocated - 0
-            #gaps[asset] = temp
-        print(allocated)
 
-        return render(request, 'portfolio/schedule.html', {'user': user, 'gaps': allocated})
+        return render(request, 'portfolio/schedule.html', {'user': user, 'portfolio_allocation': allocated})
 
 def logout_view(request, user_id):
     # route for post, when the form is submitted

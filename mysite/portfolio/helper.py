@@ -45,18 +45,29 @@ def allocate(account):
     prices = {}
     allocation = []
     total = 0
+    targets = {}
 
     # get prices of each asset, return prices dictonary
     for key in keys:
+        #print(Share(key).getPrice())
         price = yf.Ticker(key).fast_info['last_price'] * float(groups[key])
         total = total + price
         prices[key] = price
+        targets[key] = 0
+        if key == "VTI":
+            targets[key] = 50
+        if key == "VO":
+            targets[key] = 20
+        if key == "VB":
+            targets[key] = 20
+        if key == "VXUS":
+            targets[key] = 10
     
     # create allocation models, return list of allocation models
     for key in keys:
         allocated = 100.0 * (prices[key] / total)
         # list of all roth_ira allocations
-        allocation.append(Allocation(ticker_text = key, shares_integer = ('{:.2f}'.format(groups[key])), currentPrice = ('{:.2f}'.format(prices[key])), percent_allocated = '{:.2f}%'.format(allocated)))
+        allocation.append(Allocation(ticker_text = key, shares_integer = ('{:.2f}'.format(groups[key])), currentPrice = ('{:.2f}'.format(prices[key])), percent_allocated = '{:.2f}%'.format(allocated), target = '{:.2f}%'.format(targets[key])))
     return allocation
 #def scheduler():
 #    return

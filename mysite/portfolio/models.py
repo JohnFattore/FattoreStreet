@@ -16,5 +16,6 @@ class Allocation(models.Model):
     shares_integer = models.DecimalField(decimal_places=5, max_digits=10)
     currentPrice = models.DecimalField(decimal_places=2, max_digits=10)
     percent_allocated = models.DecimalField(decimal_places=2, max_digits=5)
+    target = models.DecimalField(decimal_places=2, max_digits=5)
     def __str__(self):
         return self.ticker_text

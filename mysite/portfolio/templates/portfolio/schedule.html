@@ -6,8 +6,13 @@
     {{ user }}
 {% endif %}
 
-{% if gaps %}
-    {{ gaps }}
+{% if portfolio_allocation %}
+<h2>Portfolio</h2>
+<ul class="list-group">
+    {% for group in portfolio_allocation %}
+        <li class="list-group-item">{{ group.ticker_text }} {{ group.shares_integer }} ${{ group.currentPrice }} {{ group.percent_allocated }} {{ group.target }}</li>
+    {% endfor %}
+    </ul>
 {% endif %}
 
 {% endblock %}
