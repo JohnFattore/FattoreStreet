@@ -12,5 +12,5 @@ Migrate new portfolio model
     python manage.py migrate
 
 Running the Server
-Navigate to the mysite folder and run the command
+CD into mysite folder and run the command line prompt
     python manage.py runserver

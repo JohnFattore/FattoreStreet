@@ -8,6 +8,8 @@ from .models import Asset, Allocation
 from .helper import seperate_accounts, allocate
 import yfinance as yf
 import csv
+from rest_framework import viewsets
+from .serializers import AssetSerializer
 
 # Create your views here.
 def index(request):
