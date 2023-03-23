@@ -1,6 +1,9 @@
-from django.urls import path
-
+from django.urls import include, path
+from rest_framework import routers
 from . import views
+
+router = routers.DefaultRouter()
+router.register(r'users', views.UserViewSet)
 
 app_name = 'portfolio'
 urlpatterns = [
@@ -13,5 +16,7 @@ urlpatterns = [
     path('<int:user_id>/sell/', views.sell_view, name='sell'),
     path('<int:user_id>/allocation/', views.allocation_view, name='allocation'),
     path('<int:user_id>/schedule/', views.schedule_view, name='schedule'),
-    path('<int:user_id>/logout/', views.logout_view, name='logout')
+    path('<int:user_id>/logout/', views.logout_view, name='logout'),
+    path('', include(router.urls)),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]
