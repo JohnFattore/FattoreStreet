@@ -3,7 +3,7 @@ from rest_framework import routers
 from . import views
 
 router = routers.DefaultRouter()
-router.register(r'users', views.UserViewSet)
+router.register(r'users', views.UserViewSet, 'users')
 
 app_name = 'portfolio'
 urlpatterns = [
@@ -17,6 +17,6 @@ urlpatterns = [
     path('<int:user_id>/allocation/', views.allocation_view, name='allocation'),
     path('<int:user_id>/schedule/', views.schedule_view, name='schedule'),
     path('<int:user_id>/logout/', views.logout_view, name='logout'),
-    path('', include(router.urls)),
+    path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]
