@@ -1,9 +1,10 @@
 from django.urls import include, path
-from rest_framework import routers
+from rest_framework import routers, viewsets, permissions
 from . import views
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet, 'users')
+router.register(r'assets', views.AssetViewSet, 'assets')
 
 app_name = 'portfolio'
 urlpatterns = [

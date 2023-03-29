@@ -3,8 +3,7 @@ from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db import models
-from rest_framework import viewsets
-from rest_framework import permissions
+from rest_framework import viewsets, permissions
 from .serializers import AssetSerializer, UserSerializer
 from .models import Asset, Allocation
 from .forms import Register, Login_user, Stock_buy, Stock_CSV_buy, Stock_sell, Logout_user
@@ -229,6 +228,14 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    queryset = User.objects.all().order_by('-date_joined')
+    queryset = User.objects.all()
     serializer_class = UserSerializer
+    #permission_classes = [permissions.IsAuthenticated]
+
+class AssetViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = Asset.objects.all()
+    serializer_class = AssetSerializer
     #permission_classes = [permissions.IsAuthenticated]
