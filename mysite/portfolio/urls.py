@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework import routers, viewsets, permissions
 from . import views
 
+# set up URLS for apis
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet, 'users')
 router.register(r'assets', views.AssetViewSet, 'assets')
