@@ -236,6 +236,6 @@ class AssetViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    queryset = Asset.objects.all()
+    queryset = Asset.objects.all().filter(user=1)
     serializer_class = AssetSerializer
     #permission_classes = [permissions.IsAuthenticated]
