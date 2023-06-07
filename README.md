@@ -1,11 +1,14 @@
 # Portfolio-Manager
 Django Web App
 
+# Dependencies
 Download Django
     pip install django
 Download yfinance
     pip install yfinance
     pip install yfinance --upgrade --no-cache-dir
+Download django-cors-headers
+    pip install django-cors-headers
 
 Migrate new portfolio model
     python manage.py makemigrations portfolio
