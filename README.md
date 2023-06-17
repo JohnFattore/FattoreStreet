@@ -17,3 +17,9 @@ Migrate new portfolio model
 Running the Server
 CD into mysite folder and run the command line prompt
     python manage.py runserver
+
+# Requirements for Website
+    Store users' portfolio holdings, allocation preferences
+    Display a users portfolio and allocation
+    Allow users to input new assets, new allocation preferences, and existing Schwab, Vanguard, or Fidelity portfolios
+    Automatically inputs mutual fund transcations, maybe other assets, APIs?
