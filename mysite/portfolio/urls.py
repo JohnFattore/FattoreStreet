@@ -20,5 +20,6 @@ urlpatterns = [
     path('<int:user_id>/schedule/', views.schedule_view, name='schedule'),
     path('<int:user_id>/logout/', views.logout_view, name='logout'),
     path('api/', include(router.urls)),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    path('assets/', views.asset_list)
 ]

@@ -1,5 +1,4 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db import models
@@ -10,7 +9,10 @@ from .forms import Register, Login_user, Stock_buy, Stock_CSV_buy, Stock_sell, L
 from .helper import seperate_accounts, allocate
 import yfinance as yf
 import csv
-
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse, JsonResponse
+from rest_framework.parsers import JSONParser
 
 # Create your views here.
 def index(request):
@@ -232,10 +234,29 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     #permission_classes = [permissions.IsAuthenticated]
 
+@method_decorator(csrf_exempt, name='dispatch')
 class AssetViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    queryset = Asset.objects.all().filter(user=1)
+    queryset = Asset.objects.all()
     serializer_class = AssetSerializer
     #permission_classes = [permissions.IsAuthenticated]
+
+@csrf_exempt
+def asset_list(request):
+    """
+    List all assets, or create a new asset.
+    """
+    if request.method == 'GET':
+        assets = Asset.objects.all()
+        serializer = AssetSerializer(assets, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = AssetSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
