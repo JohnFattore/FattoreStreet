@@ -249,7 +249,8 @@ def asset_list(request):
     List all assets, or create a new asset.
     """
     if request.method == 'GET':
-        assets = Asset.objects.all()
+        customerKey = request.GET.get("user")
+        assets = Asset.objects.all().filter(user = customerKey)
         serializer = AssetSerializer(assets, many=True)
         return JsonResponse(serializer.data, safe=False)
 
