@@ -9,6 +9,8 @@ Download yfinance
     pip install yfinance --upgrade --no-cache-dir
 Download django-cors-headers
     pip install django-cors-headers
+Download Django Rest JWT
+    pip install djangorestframework-jwt
 
 Migrate new portfolio model
     python manage.py makemigrations portfolio
