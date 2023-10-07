@@ -4,3 +4,4 @@ djangorestframework-jwt==1.11.0
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.0
 yfinance==0.2.28
+django-allauth==0.57.0
