@@ -1,6 +1,10 @@
+# The Django Framework
 Django==4.1.7
+# Security for communication with the react frontend
 django-cors-headers==4.2.0
-djangorestframework-jwt==1.11.0
+# API library
 djangorestframework==3.14.0
+# User authentication using tokens
 djangorestframework-simplejwt==5.3.0
-yfinance==0.2.28
+# User authentication
+dj-rest-auth==5.0.1

@@ -2,7 +2,6 @@
 from django.contrib.auth.models import User
 from django.db import models
 # API modules using drf
-from rest_framework.decorators import api_view
 from rest_framework import viewsets, permissions
 from rest_framework.parsers import JSONParser
 from .serializers import AssetSerializer, UserSerializer
@@ -22,11 +21,10 @@ class UserViewSet(viewsets.ModelViewSet):
 class AssetViewSet(viewsets.ModelViewSet):
     queryset = Asset.objects.all()
     serializer_class = AssetSerializer
-    #permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
 # List all assets, or create a new asset.
 @csrf_exempt
-#@api_view(['GET', 'POST'])
 def asset_list(request):
     # 
     if request.method == 'GET':
@@ -41,4 +39,5 @@ def asset_list(request):
         if serializer.is_valid():
             serializer.save()
             return JsonResponse(serializer.data, status=201)
+        print(serializer.errors)
         return JsonResponse(serializer.errors, status=400)

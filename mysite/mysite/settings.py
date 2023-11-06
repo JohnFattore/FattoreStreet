@@ -38,10 +38,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # for APIS
+    # Security for communicating with react frontend
     'corsheaders',
+    # API library
     'rest_framework',
+    # rest_framework authentication
+    'rest_framework.authtoken',
+    # User authentication using djangorestframework-simplejwt
     'rest_framework_simplejwt',
+    # User authentication using dj-rest-auth
+    'dj_rest_auth'
 ]
 
 MIDDLEWARE = [
@@ -52,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # for REST APIs
+    # Security for communicating with react frontend
     'corsheaders.middleware.CorsMiddleware',
 ]
 
@@ -134,11 +140,12 @@ CORS_ORIGIN_WHITELIST = [
      'http://localhost:3000'
 ]
 
+# API library
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
+        'rest_framework.permissions.AllowAny',
     ],
     # JWT authentication
     'DEFAULT_AUTHENTICATION_CLASSES': (

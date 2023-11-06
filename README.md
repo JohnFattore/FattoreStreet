@@ -20,10 +20,15 @@ CD into Portfolio-Manager and run command on CLI
     Automatically inputs mutual fund transcations, maybe other assets, APIs?
 
 # Variable Naming Conventions
-    Django backend variables are all lowercase with an underscore seperating words
+## Django backend variables are all lowercase with an underscore seperating words
     examples: ticker_text, shares_number, user_key
     common fields
     CharField: text
     DecimalField: number
     DateTimeField: date
     Foreign Key: key
+## Python local variable will follow conventional camelcase, no type
+
+DELETE LATER
+spike
+spike123
