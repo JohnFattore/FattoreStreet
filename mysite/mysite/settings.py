@@ -46,8 +46,6 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     # User authentication using djangorestframework-simplejwt
     'rest_framework_simplejwt',
-    # User authentication using dj-rest-auth
-    'dj_rest_auth'
 ]
 
 MIDDLEWARE = [
@@ -124,7 +122,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
@@ -149,6 +146,6 @@ REST_FRAMEWORK = {
     ],
     # JWT authentication
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTStatelessUserAuthentication',
     )
 }
