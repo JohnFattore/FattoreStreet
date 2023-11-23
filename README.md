@@ -10,7 +10,7 @@ CD into mysite folder and run the command line prompt
     python3 manage.py runserver
 
 Running in docker container
-CD into Portfolio-Manager and run command on CLI
+CD into (Portfolio-Manager)? and run command on CLI
     docker run -p 8000:8000 -d torkfat/django
 
 # Requirements for Website
