@@ -6,3 +6,5 @@ django-cors-headers==4.2.0
 djangorestframework==3.14.0
 # User authentication using tokens
 djangorestframework-simplejwt==5.3.0
+# Gunicorn HTTP server
+gunicorn==21.2.0

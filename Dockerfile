@@ -1,7 +1,7 @@
 FROM python:3.10
 
 # set a directory for this app
-WORKDIR /Portfolio-Manager/mysite/
+WORKDIR /Portfolio-Manager/
 # copy all the files to the container
 COPY . .
 ENV PYTHONUNBUFFERED=1
@@ -9,4 +9,7 @@ ENV PYTHONUNBUFFERED=1
 RUN pip3 install -r requirements.txt --no-cache-dir
 EXPOSE 8000
 
-CMD ["python3", "mysite/manage.py", "runserver", "0.0.0.0:8000"]
+# run development server
+# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# run Gunicorn HTTP server
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "mysite.wsgi"]

@@ -1,0 +1,6 @@
+services:
+# Django/Gunicorn web Server
+  web:
+    build: .
+    ports:
+      - "8000:8000"
