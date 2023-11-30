@@ -1,6 +1,14 @@
 services:
 # Django/Gunicorn web Server
-  web:
-    build: .
+  django:
+    build: ./django
+    #container_name: django
+    expose:
+      - "8000"
+
+  nginx:
+    build: ./nginx
     ports:
-      - "8000:8000"
+      - 1337:80
+    depends_on:
+      - django
