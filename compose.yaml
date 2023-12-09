@@ -3,12 +3,22 @@ services:
   django:
     build: ./django
     #container_name: django
-    expose:
-      - "8000"
+    ports:
+      - 8000:8000
 
   nginx:
     build: ./nginx
     ports:
-      - 1337:80
+      - 1337:1337
     depends_on:
       - django
+  
+  #postgres:
+  #  image: postgres:latest
+  #  volumes:
+  #    - database:/var/lib/postgresql/data
+  #  ports:
+  #    - 5432:5432
+
+#volumes:
+ # database:

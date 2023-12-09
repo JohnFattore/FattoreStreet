@@ -26,6 +26,7 @@ SECRET_KEY = 'django-insecure-f^jq_nh_i2bgw&c_dhmq^k-f5ohphk@9mk(_@#=z+$8vo0^v4+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Should only reverse proxy (NGINX) server as allowed host localhost:1337
 ALLOWED_HOSTS = ['*']
 
 # Application definition
@@ -91,6 +92,16 @@ DATABASES = {
     }
 }
 
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.postgresql',
+#        'NAME': 'maxwell',
+#        'USER': 'postgres',
+#        'PASSWORD': 'postgres',
+#        'HOST': 'localhost',
+#        'PORT': '5432',
+#    }
+#}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -135,7 +146,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # allow react server
 CORS_ORIGIN_WHITELIST = [
-     'http://localhost:5173'
+    'http://localhost:5173',
+    'http://localhost:1337'
 ]
 
 # API library
