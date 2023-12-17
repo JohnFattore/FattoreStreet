@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -21,6 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# SECRET_KEY = os.getenv('secretKey')
 SECRET_KEY = 'django-insecure-f^jq_nh_i2bgw&c_dhmq^k-f5ohphk@9mk(_@#=z+$8vo0^v4+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -44,7 +46,7 @@ INSTALLED_APPS = [
     # API library
     'rest_framework',
     # rest_framework authentication
-    'rest_framework.authtoken',
+    #'rest_framework.authtoken',
     # User authentication using djangorestframework-simplejwt
     'rest_framework_simplejwt',
 ]
@@ -85,6 +87,7 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+# Development Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -92,13 +95,15 @@ DATABASES = {
     }
 }
 
+# Production Database
+
 #DATABASES = {
 #    'default': {
 #        'ENGINE': 'django.db.backends.postgresql',
-#        'NAME': 'maxwell',
+#        'NAME': 'postgres',
 #        'USER': 'postgres',
 #        'PASSWORD': 'postgres',
-#        'HOST': 'localhost',
+#        'HOST': 'postgres',
 #        'PORT': '5432',
 #    }
 #}
@@ -159,6 +164,10 @@ REST_FRAMEWORK = {
     ],
     # JWT authentication
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTStatelessUserAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
 }

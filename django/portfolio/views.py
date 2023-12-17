@@ -1,43 +1,45 @@
 # only API views, see retiredViews for old django frontend views
 from django.contrib.auth.models import User
-from django.db import models
 # API modules using drf
-from rest_framework import viewsets, permissions
-from rest_framework.parsers import JSONParser
+from rest_framework import viewsets, permissions, generics
 from .serializers import AssetSerializer, UserSerializer
+from .permissions import IsOwner
 from .models import Asset
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse, JsonResponse
 
-# API endpoint that allows users to be viewed or edited.
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    #permission_classes = [permissions.IsAuthenticated]
+# API endpoint that allows users to be viewed or created.
+#class UserViewSet(viewsets.ModelViewSet):
+#    queryset = User.objects.all()
+#    serializer_class = UserSerializer
+    # permission_classes = [permissions.IsAuthenticated]
 
-# API endpoint that allows users to be viewed or edited.
-# @method_decorator(csrf_exempt, name='dispatch')
-class AssetViewSet(viewsets.ModelViewSet):
+# API endpoint that allows assets to be viewed or created.
+#class AssetViewSet(viewsets.ModelViewSet):
+#    queryset = Asset.objects.all()
+#    serializer_class = AssetSerializer
+#    permission_classes = [permissions.IsAuthenticated]
+
+# API endpoint for 'get' assets and 'post' asset
+class AssetListCreateView(generics.ListCreateAPIView):
     queryset = Asset.objects.all()
     serializer_class = AssetSerializer
     permission_classes = [permissions.IsAuthenticated]
+    # return only the assets the user owns
+    def get_queryset(self):
+        return Asset.objects.filter(user=self.request.user)
 
-# List all assets, or create a new asset.
-@csrf_exempt
-def asset_list(request):
-    # 
-    if request.method == 'GET':
-        user_key = request.GET.get("user_key")
-        assets = Asset.objects.all().filter(user_key = user_key)
-        serializer = AssetSerializer(assets, many=True)
-        return JsonResponse(serializer.data, safe=False)
+    # user comes from different part of response as other data
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
-    elif request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = AssetSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        print(serializer.errors)
-        return JsonResponse(serializer.errors, status=400)
+# API endpoint for 'post' user, allow anyone to make an account
+class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):
+    queryset = Asset.objects.all()
+    serializer_class = AssetSerializer
+    permission_classes = [IsOwner]
+
+# API endpoint for 'post' user, allow anyone to make an account
+class UserCreateView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.AllowAny]
+    

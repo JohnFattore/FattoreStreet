@@ -4,9 +4,11 @@ from . import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 # set up URLS for apis
-router = routers.DefaultRouter()
-router.register(r'users', views.UserViewSet, 'users')
-router.register(r'assets', views.AssetViewSet, 'assets')
+# router = routers.DefaultRouter()
+router = routers.SimpleRouter()
+# router.register(r'users', views.UserViewSet, 'users')
+# router.register(r'assets', views.AssetViewSet, 'assets')
+# router.register(r'assets', views.AssetListView)
 
 app_name = 'portfolio'
 urlpatterns = [
@@ -24,6 +26,10 @@ urlpatterns = [
 
     # API routes
     path('api/', include(router.urls)),
+    # the paths from views are more direct than the router (subject to change)
+    path('api/assets/', views.AssetListCreateView.as_view(), name="assets"),
+    path('api/asset/<int:pk>/', views.AssetRetrieveDestroyView.as_view(), name="asset"),
+    path('api/users/', views.UserCreateView.as_view(), name="users"),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     # routes for djangorestframework-simplejwt
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

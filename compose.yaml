@@ -3,8 +3,12 @@ services:
   django:
     build: ./django
     #container_name: django
+    environment:
+      secretKey: django-insecure-f^jq_nh_i2bgw&c_dhmq^k-f5ohphk@9mk(_@#=z+$8vo0^v4+
     ports:
       - 8000:8000
+    depends_on:
+      - postgres
 
   nginx:
     build: ./nginx
@@ -13,12 +17,15 @@ services:
     depends_on:
       - django
   
-  #postgres:
-  #  image: postgres:latest
-  #  volumes:
-  #    - database:/var/lib/postgresql/data
-  #  ports:
-  #    - 5432:5432
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
 
-#volumes:
- # database:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+volumes:
+  postgres_data:
