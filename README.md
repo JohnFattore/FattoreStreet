@@ -1,0 +1,2 @@
+### Full backend
+The web framework django runs on a Gunicorn server, connected utilizing WSGI. A postgreSQL server runs to manage the applications database. A NGINX server is exposed to the outside internet and works as a reverse proxy / load balancer / static conent deliver boy for the system.

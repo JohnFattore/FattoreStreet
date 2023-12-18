@@ -10,3 +10,5 @@ djangorestframework-simplejwt==5.3.0
 gunicorn==21.2.0
 # PostgreSQL to Python library
 psycopg2==2.9.9
+# Environment Variables
+django-environ==0.11.2

@@ -13,6 +13,11 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+import environ
+
+# Initialise environment variables
+env = environ.Env()
+environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,11 +27,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = os.getenv('secretKey')
-SECRET_KEY = 'django-insecure-f^jq_nh_i2bgw&c_dhmq^k-f5ohphk@9mk(_@#=z+$8vo0^v4+'
+SECRET_KEY = env("SECRET_KEY")
+# SECRET_KEY = 'django-insecure-f^jq_nh_i2bgw&c_dhmq^k-f5ohphk@9mk(_@#=z+$8vo0^v4+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env("DEBUG")
 
 # Should only reverse proxy (NGINX) server as allowed host localhost:1337
 ALLOWED_HOSTS = ['*']
