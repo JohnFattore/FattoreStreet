@@ -5,8 +5,8 @@ services:
     #container_name: django
     environment:
       secretKey: django-insecure-f^jq_nh_i2bgw&c_dhmq^k-f5ohphk@9mk(_@#=z+$8vo0^v4+
-    ports:
-      - 8000:8000
+    expose:
+      - "8000"
     depends_on:
       - postgres
 
@@ -24,8 +24,8 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - 5432:5432
+    expose:
+      - "5432"
 
 volumes:
   postgres_data:
