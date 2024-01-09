@@ -5,8 +5,8 @@ from django.contrib.auth.models import User
 from django.db import models
 from .serializers import AssetSerializer, UserSerializer
 from .models import Asset, Allocation
-from .forms import Register, Login_user, Stock_buy, Stock_CSV_buy, Stock_sell, Logout_user
-from .helper import seperate_accounts, allocate
+from .retiredForms import Register, Login_user, Stock_buy, Stock_CSV_buy, Stock_sell, Logout_user
+from .retiredHelper import seperate_accounts, allocate
 import yfinance as yf
 import csv
 from django.utils.decorators import method_decorator

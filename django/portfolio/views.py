@@ -6,18 +6,6 @@ from .serializers import AssetSerializer, UserSerializer
 from .permissions import IsOwner
 from .models import Asset
 
-# API endpoint that allows users to be viewed or created.
-#class UserViewSet(viewsets.ModelViewSet):
-#    queryset = User.objects.all()
-#    serializer_class = UserSerializer
-    # permission_classes = [permissions.IsAuthenticated]
-
-# API endpoint that allows assets to be viewed or created.
-#class AssetViewSet(viewsets.ModelViewSet):
-#    queryset = Asset.objects.all()
-#    serializer_class = AssetSerializer
-#    permission_classes = [permissions.IsAuthenticated]
-
 # API endpoint for 'get' assets and 'post' asset
 class AssetListCreateView(generics.ListCreateAPIView):
     queryset = Asset.objects.all()

@@ -7,11 +7,10 @@ class AssetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Asset
         fields = ['id',
-                  'ticker_string',
-                  'shares_number',
-                  'costbasis_number',
-                  'buy_date',
-                  'account_string',
+                  'ticker',
+                  'shares',
+                  'costbasis',
+                  'buy',
                   'user']
         
 # serializer for User Model

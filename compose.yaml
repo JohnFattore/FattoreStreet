@@ -3,11 +3,14 @@ services:
   django:
     build: ./django
     container_name: django
-    image: django
-    # environment:
-      # secretKey: django-insecure-f^jq_nh_i2bgw&c_dhmq^k-f5ohphk@9mk(_@#=z+$8vo0^v4+
+    image: 196185437114.dkr.ecr.us-east-1.amazonaws.com/django
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG}
     ports:
       - 8000:8000
+    #expose:
+    #  - 8000
 
     depends_on:
       - postgres
@@ -15,24 +18,25 @@ services:
   nginx:
     build: ./nginx
     container_name: nginx
-    image: nginx
+    image: 196185437114.dkr.ecr.us-east-1.amazonaws.com/nginx
     ports:
-      - 1337:1337
+     - 80:80
     depends_on:
       - django
   
   postgres:
+    build: ./postgres
     container_name: postgres
-    image: postgres
+    image: 196185437114.dkr.ecr.us-east-1.amazonaws.com/postgres
     environment:
       POSTGRES_PASSWORD: postgres
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports: 
-      - 5432:5432
-    # expose:
-    #  - "5432"
+    # ports: 
+    #  - 5432:5432
+    expose:
+      - 5432
 
 volumes:
   postgres_data:
