@@ -1,3 +1,5 @@
 django/mysite/.env
 AWSCommands.txt
 .env
+django/mysite/__pycache__/
+*.log

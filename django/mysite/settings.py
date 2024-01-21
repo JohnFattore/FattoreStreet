@@ -49,8 +49,6 @@ INSTALLED_APPS = [
     'corsheaders',
     # API library
     'rest_framework',
-    # rest_framework authentication
-    #'rest_framework.authtoken',
     # User authentication using djangorestframework-simplejwt
     'rest_framework_simplejwt',
 ]
@@ -69,6 +67,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'mysite.urls'
 
+# might be able to delete, idk
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -90,27 +89,38 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-if (env("DEBUG") == 'on'):
-    # Development Database
-    DATABASES = {
+# Database depends on ENV variable "DATABASE"
+if (env("DATABASE") == 'postgresRDS'):
+        DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'postgres',
+            'USER': env("USERNAME"),
+            'PASSWORD': env("PASSWORD_RDS"),
+            'HOST': env("HOST_RDS"),
+            'PORT': '5432',
+        }
+    }
+elif (env("DATABASE") == 'postgresLocal'):
+        DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'postgres',
+            'USER': env("USERNAME"),
+            'PASSWORD': env("PASSWORD_LOCAL"),
+            'HOST': env("HOST_LOCAL"),
+            'PORT': '5432',
+        }
+    }
+else: 
+        DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-else: 
 # Production Database, need env variables
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'postgres',
-            'USER': env("USER"),
-            'PASSWORD': env("PASSWORD"),
-            'HOST': env("HOST"),
-            'PORT': '5432',
-        }
-    }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -146,14 +156,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static") 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# allow react server
+# allow NGINX server
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:5173',
     'http://localhost',

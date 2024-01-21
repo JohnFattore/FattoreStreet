@@ -1,42 +1,66 @@
 services:
-# Django/Gunicorn web Server
+  # Django/Gunicorn web Server
   django:
     build: ./django
     container_name: django
-    image: 196185437114.dkr.ecr.us-east-1.amazonaws.com/django
+    image: ${DJANGO_IMAGE}
     environment:
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG}
+      USER: ${USER}
+      DATABASE: ${DATABASE}
+      USERNAME: ${USERNAME}
+      PASSWORD_LOCAL: ${PASSWORD_LOCAL}
+      HOST_LOCAL: ${HOST_LOCAL}
+      PASSWORD_RDS: ${PASSWORD_RDS}
+      HOST_RDS: ${HOST_RDS}
     ports:
       - 8000:8000
     #expose:
     #  - 8000
 
     depends_on:
-      - postgres
+      - nginx
 
   nginx:
     build: ./nginx
     container_name: nginx
-    image: 196185437114.dkr.ecr.us-east-1.amazonaws.com/nginx
+    image: ${NGINX_IMAGE}
+    # not gonna use volumes now because its not supported in AWS
+    # all "volumes" will be "baked" into image for now
+    #volumes:
+    #  - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    #  - ./nginx/index.html:/var/www/index.html:ro
+    #  - ./nginx/dist:/var/www/dist:ro
+    #  - ./certbot/www/:/var/www/certbot/:ro
+    #  - ./certbot/conf/:/etc/nginx/ssl/:ro
     ports:
-     - 80:80
-    depends_on:
-      - django
-  
-  postgres:
-    build: ./postgres
-    container_name: postgres
-    image: 196185437114.dkr.ecr.us-east-1.amazonaws.com/postgres
-    environment:
-      POSTGRES_PASSWORD: postgres
+      - 80:80
+      #- 443:443
 
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    # ports: 
-    #  - 5432:5432
-    expose:
-      - 5432
+  #certbot:
+  #  image: certbot/certbot:latest
+  #  container_name: certbot
+  #  volumes:
+  #    - ./certbot/www/:/var/www/certbot/:rw
+  #    - ./certbot/conf/:/etc/letsencrypt/:rw
+    # command: certonly --webroot --webroot-path /var/www/certbot/ -d fattorestreet.com -d www.fattorestreet.com
 
-volumes:
-  postgres_data:
+
+
+  # local postgres container, RDS postgres server is preferred... for now
+  #postgres:
+  #  container_name: postgres
+  #  image: postgres
+  #  environment:
+  #    POSTGRES_PASSWORD: ${PASSWORD_LOCAL}
+
+  #  volumes:
+  #    - postgres_data:/var/lib/postgresql/data
+  # ports: 
+  #  - 5432:5432
+  #  expose:
+  #    - 5432
+
+  #volumes:
+  #  postgres_data:

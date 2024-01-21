@@ -1,0 +1,91 @@
+// Include any default variable overrides here (though functions won't be available)
+$primary: #202c39ff;
+$secondary: #f2d492ff;
+$tertiary: #b8b08dff;
+
+//$primary: #011936ff;
+//$secondary: #f4fffdff;
+//$tertiary: #ed254eff;
+
+//$primary: #e7ebc5ff;
+//$secondary: #cdc7e5ff;
+//$tertiary: #17301cff;
+
+// Include all of bootstrap
+@import "../../node_modules/bootstrap/scss/bootstrap";
+
+// Change stripped table colors
+.table-striped>tbody>tr:nth-child(odd)>td,
+.table-striped>tbody>tr:nth-child(odd)>th {
+  background-color: $secondary;
+  color: $primary;
+}
+
+.table-striped>tbody>tr:nth-child(even)>td,
+.table-striped>tbody>tr:nth-child(even)>th {
+  background-color: $primary;
+  color: $secondary
+}
+
+// change <body> colors
+body {
+  color: $primary;
+  background-color: $secondary
+}
+
+//change nav bar text color
+.navbar {
+  --bs-navbar-color: $secondary
+}
+
+//change navbar hover colors
+.navbar-nav .nav-link:hover {
+  color: $secondary;
+  background-color: $primary;
+
+}
+
+// change general table colors
+.table {
+  --bs-table-color: $primary;
+  --bs-table-hover-color: $secondary;
+  --bs-table-hover-bg: $primary;
+  border-color: $primary;
+}
+
+.table th {
+  color: $secondary;
+  background-color: $primary;
+}
+
+tr {
+  color: $primary;
+  background-color: $secondary;
+}
+
+tr:hover {
+  color: $secondary;
+  background-color: $primary;
+}
+
+/*
+// change table row hover colors
+.table tr:hover{
+  color: $secondary;
+  background-color: $primary;
+}
+
+
+
+.table td:hover{
+  color: $secondary;
+  background-color: $primary;
+}
+
+.table td{
+  color: $primary;
+  background-color: $secondary;
+}
+
+
+*/
