@@ -27,7 +27,7 @@ function AllocationTable() {
     if (!assets) return null;
 
     if (assets.length == 0) {
-        return (<h3>You either dont own any assets, or are not logged in</h3>)
+        return (<h3>You don't own any assets</h3>)
       }
 
     interface IAllocation {

@@ -155,8 +155,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_ROOT = os.path.join(BASE_DIR, "static") 
-STATIC_URL = '/static/'
+STATIC_URL = "static/"
+# collect static files in NGINX folder for distribution
+STATIC_ROOT = os.path.join(BASE_DIR, "../nginx/static")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -184,5 +185,5 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
 }

@@ -3,6 +3,7 @@ import { Form, Button, Col, Row } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useContext } from 'react';
 import { ENVContext } from './ENVContext';
+import { useNavigate } from "react-router-dom";
 
 interface IFormInput {
     username: string,
@@ -12,6 +13,7 @@ interface IFormInput {
 function LoginForm() {
     // Django RESTFUL API base url
     const ENV = useContext(ENVContext);
+    const navigate = useNavigate();
     //useForm is fantastic for handling form state, functions such as onSubmit/onChange/onBlur, validation, and even flexibility for other UI libraries (using Controller)
     const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>()
     //console.log(watch("username"))
@@ -24,6 +26,7 @@ function LoginForm() {
             sessionStorage.setItem("token", response.data.access);
             sessionStorage.setItem("refresh", response.data.refresh);
             alert("Welcome ".concat(data.username, "!!!"));
+            navigate("/portfolio");
         }).catch(() => {
             alert("Wrong Username / Password");
         });

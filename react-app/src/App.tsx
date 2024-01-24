@@ -1,13 +1,12 @@
 import {
   Routes,
   Route,
-  BrowserRouter,
+  useNavigate
 } from "react-router-dom";
 import TopNavigation from "./components/TopNavigation";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio"
 import Allocation from "./pages/Allocation";
-import Transaction from "./pages/Transaction";
 import Watchlist from "./pages/WatchList";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -23,7 +22,7 @@ import { ENVContext } from "./components/ENVContext"
 export default function App() {
 
   const ENV = useContext(ENVContext);
-
+  const navigate = useNavigate();
   // axios interceptor that handles refreshing JWT
   // first function handles successes, second handles errors
   axios.interceptors.response.use(function (response) {
@@ -36,28 +35,22 @@ export default function App() {
         refresh: sessionStorage.getItem("refresh"),
       }).then((response) => {
         sessionStorage.setItem("token", response.data.access);
+      }).catch(() => {
+        alert("Please Login");
+        navigate("/login");
       });
-      //return axios_instance(config);
-      //return redirect("/login");
+      //return axios.request(error.config); // retries the original request
     }
-    /*
-    if (error.response.status === 400) {
-      //return redirect("/login");
-      alert("Please Login")
-    }
-    */
 
     return Promise.reject(error);
   });
 
   return (
     <ENVContext.Provider value={ENV}>
-      <BrowserRouter>
         <TopNavigation />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/transaction" element={<Transaction />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/login" element={<Login />} />
           <Route path="/allocation" element={<Allocation />} />
@@ -66,7 +59,6 @@ export default function App() {
           <Route path="/entertainment" element={<Entertainment />} />
         </Routes>
         <Footer />
-      </BrowserRouter>
     </ENVContext.Provider>
   );
 }

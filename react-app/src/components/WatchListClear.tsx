@@ -4,7 +4,7 @@ function WatchListClear({setChange}) {
 
     return (
         <>
-            <h1>Clear WatchList</h1>
+            <h3>Clear WatchList</h3>
             <Button onClick={() => {
                 localStorage.removeItem("tickers");
                 setChange(true)

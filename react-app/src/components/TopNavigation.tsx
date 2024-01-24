@@ -13,7 +13,6 @@ function TopNavigation() {
           <Nav className="me-auto">
             <Nav.Link href="portfolio">Portfolio</Nav.Link>
             <Nav.Link href="allocation">Allocation</Nav.Link>
-            <Nav.Link href="transaction">Transaction</Nav.Link>
             <Nav.Link href="watchlist">Watch List</Nav.Link>
             <Nav.Link href="login">Login</Nav.Link>
             <Nav.Link href="register">Register</Nav.Link>

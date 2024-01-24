@@ -5,6 +5,7 @@ import { useContext } from 'react';
 import { ENVContext } from './ENVContext';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useNavigate } from "react-router-dom";
 
 interface IFormInput {
     username: string,
@@ -16,6 +17,7 @@ interface IFormInput {
 function RegisterForm() {
 
     const ENV = useContext(ENVContext);
+    const navigate = useNavigate();
 
     const schema = yup.object().shape({
         username: yup.string().required(),
@@ -41,6 +43,7 @@ function RegisterForm() {
                 sessionStorage.setItem("token", response.data.access);
                 sessionStorage.setItem("refresh", response.data.refresh);
                 alert("Welcome ".concat(data.username, "!!!"));
+                navigate("/portfolio");
             });
         }).catch(() => {
             alert("Error Registering, the username is probably already taken");

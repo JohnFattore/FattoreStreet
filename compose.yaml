@@ -16,8 +16,8 @@ services:
       HOST_RDS: ${HOST_RDS}
     ports:
       - 8000:8000
-    #expose:
-    #  - 8000
+    # network_mode: "host"
+
 
     depends_on:
       - nginx
@@ -36,7 +36,7 @@ services:
     #  - ./certbot/conf/:/etc/nginx/ssl/:ro
     ports:
       - 80:80
-      #- 443:443
+    # network_mode: "host"
 
   #certbot:
   #  image: certbot/certbot:latest
@@ -57,10 +57,8 @@ services:
 
   #  volumes:
   #    - postgres_data:/var/lib/postgresql/data
-  # ports: 
-  #  - 5432:5432
-  #  expose:
-  #    - 5432
+  #ports: 
+  # - 5432:5432
 
   #volumes:
   #  postgres_data:

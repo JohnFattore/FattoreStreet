@@ -6,12 +6,12 @@ import AssetRow from './AssetRow'
 import { useContext } from 'react';
 import { ENVContext } from './ENVContext';
 
-function AssetTable() {
+function AssetTable({change, setChange}) {
   // holds data from POST to server
   // not sure why the usage of useState is needed, but it doesnt work without it
   const [assets, setAssets] = React.useState([])
   // assets is changed in useEffect, so another variable is needed to not cause the useEffect function to loop infinitly
-  const [change, setChange] = React.useState(false)
+  //const [change, setChange] = React.useState(false)
 
   const ENV = useContext(ENVContext);
 
@@ -32,7 +32,7 @@ function AssetTable() {
   if (!assets) return null;
 
   if (assets.length == 0) {
-    return (<h3>You either dont own any assets, or are not logged in</h3>)
+    return (<h3>You don't own any assets</h3>)
   }
 
   return (

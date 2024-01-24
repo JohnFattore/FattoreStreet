@@ -13,7 +13,7 @@ interface IFormInput {
     buyDate: string
 }
 
-function AssetForm() {
+function AssetForm({ setChange }) {
     const ENV = useContext(ENVContext);
 
     // yup default .date() format does not work with DRF asset api endpoint
@@ -53,6 +53,7 @@ function AssetForm() {
                     }
                 }
                 ).then(() => {
+                    setChange(true)
                     alert(data.shares + " of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate);
                 }
                 ).catch(() => {
