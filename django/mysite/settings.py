@@ -32,13 +32,15 @@ SECRET_KEY = env("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
 
-# Should only reverse proxy (NGINX) server as allowed host localhost:1337
+# Should only reverse proxy (NGINX) server as allowed host localhost:80
+# TO DO TO DO TO DO Really should do this one please!!!!!!!!
 ALLOWED_HOSTS = ['*']
 
 # Application definition
 
 INSTALLED_APPS = [
     'portfolio.apps.PortfolioConfig',
+    'wallstreet.apps.WallstreetConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

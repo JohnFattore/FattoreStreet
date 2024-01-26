@@ -16,7 +16,6 @@ import Footer from "./components/Footer";
 import axios from "axios";
 import { useContext } from "react";
 import { ENVContext } from "./components/ENVContext"
-//import { redirect } from "react-router-dom";
 
 // react router for all our routes
 export default function App() {

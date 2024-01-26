@@ -19,7 +19,7 @@ class AssetListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-# API endpoint for 'post' user, allow anyone to make an account
+# API endpoint for 'get' or 'delete' asset, only the owner should be able to do this
 class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):
     queryset = Asset.objects.all()
     serializer_class = AssetSerializer
