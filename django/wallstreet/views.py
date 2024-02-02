@@ -1,8 +1,12 @@
-from django.shortcuts import render
+# only API views, see retiredViews for old django frontend views
+from django.contrib.auth.models import User
+# API modules using drf
+from rest_framework import generics
+from .serializers import OptionSerializer
+from .models import Option
 
-# Create your views here.
-from django.http import HttpResponse
 
-
-def index(request):
-    return HttpResponse("Hello, world. You're at the polls index.")
+# API endpoint for 'get' options and 'post' option
+class OptionListCreateView(generics.ListCreateAPIView):
+    queryset = Option.objects.all()
+    serializer_class = OptionSerializer

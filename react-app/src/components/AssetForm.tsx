@@ -19,8 +19,8 @@ function AssetForm({ setChange }) {
     // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
         ticker: yup.string().required().uppercase(),
-        shares: yup.number().required(),
-        costBasis: yup.number().required(),
+        shares: yup.number().required().positive(),
+        costBasis: yup.number().required().positive(),
         buyDate: yup.string().required()
     });
 

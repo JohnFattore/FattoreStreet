@@ -5,6 +5,6 @@ import react from '@vitejs/plugin-react-swc'
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: '../nginx/dist', // Specify your desired output folder
+    outDir: '../nginx/dist',
   },
 })

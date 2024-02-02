@@ -20,7 +20,7 @@ or
     npm run dev
 
 ### Staging
-    npm run dev:staging
+    npm run staging
 
 ### Rollup, create javascript modules
     npm run build

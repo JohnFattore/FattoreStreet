@@ -1,18 +1,28 @@
-from rest_framework import routers, serializers, viewsets
+from rest_framework import serializers
 from .models import Asset
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
+from django.utils import timezone
 
 # serializer for Asset Model
 class AssetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Asset
-        fields = ['id',
-                  'ticker',
-                  'shares',
-                  'costbasis',
-                  'buy',
-                  'user']
-        
+        fields = ['id', 'ticker', 'shares', 'costbasis', 'buy', 'user']
+    def validate_shares(self, value):
+        if value < 0:
+            raise serializers.ValidationError("The number of shares must be greater than 0.")
+        return value
+    
+    def validate_costbasis(self, value):
+        if value < 0:
+            raise serializers.ValidationError("The cost basis must be greater than 0.")
+        return value
+    
+    def validate_buy(self, value):
+        if value > timezone.now().date():
+            raise serializers.ValidationError("The buy date can't be in the future.")
+        return value
+    
 # serializer for User Model
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

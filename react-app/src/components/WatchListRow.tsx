@@ -20,6 +20,8 @@ function WatchListRow({ ticker, setChange }) {
             }
         }).then((response) => {
             setQuote({ price: response.data.c, percentChange: response.data.dp });
+        }).catch((response) => {
+            console.log(response)
         });
     }, [ticker, ENV]);
 

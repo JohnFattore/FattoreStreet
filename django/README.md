@@ -27,6 +27,13 @@ python3 manage.py migrate
  - A fargate task definition with all containers enables cloud hosting
  - Database hosting TBD
 
+## Testing!!
+Tests are broken up into three rough types: Unit, Integration, and End to End (E2E).
+The app is small now so not many E2E tests exist, just heavy integration tests
+Unit Tests use APIRequestFactory to test the view directly
+Integration Tests use APIClient to more wholy test the app
+E2E tests like integration tests use APIClient, but are more of a story... idk what ill do for these
+
 ## Porfolio
 The first app I made is portfoilio which utilizes basic CRUD Restful APIs with DRF
 
