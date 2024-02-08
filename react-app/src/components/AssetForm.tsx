@@ -5,6 +5,7 @@ import { ENVContext } from './ENVContext';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
+import { getAssets } from './AxiosFunctions';
 
 interface IFormInput {
     ticker: string,
@@ -30,37 +31,33 @@ function AssetForm({ setChange }) {
     })
     console.log(watch("ticker"))
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        axios.get(ENV.finnhubURL.concat("quote/"), {
-            params: {
-                symbol: data.ticker,
-                token: ENV.finnhubKey
-            }
-        }).then((response) => {
-            // a valid ticker wont return null values
-            if (response.data.d == null)
-                alert("Ticker isnt valid");
-            else {
-                axios.post(ENV.djangoURL.concat("assets/"), {
-                    ticker: data.ticker,
-                    shares: data.shares,
-                    costbasis: data.costBasis,
-                    buy: data.buyDate,
-                    // 1 is a placeholder, this is actually set on the back end using the User object returned by the request
-                    user: 1
-                }, {
-                    headers: {
-                        'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
-                    }
+        getAssets()
+            .then((response) => {
+                // a valid ticker wont return null values
+                if (response.data.d == null)
+                    alert("Ticker isnt valid");
+                else {
+                    axios.post(ENV.djangoURL.concat("assets/"), {
+                        ticker: data.ticker,
+                        shares: data.shares,
+                        costbasis: data.costBasis,
+                        buy: data.buyDate,
+                        // 1 is a placeholder, this is actually set on the back end using the User object returned by the request
+                        user: 1
+                    }, {
+                        headers: {
+                            'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
+                        }
+                    })
+                        .then(() => {
+                            setChange(true)
+                            alert(data.shares + " of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate);
+                        })
+                        .catch(() => {
+                            alert("There was an error with the purchase")
+                        });
                 }
-                ).then(() => {
-                    setChange(true)
-                    alert(data.shares + " of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate);
-                }
-                ).catch(() => {
-                    alert("There was an error with the purchase")
-                });
-            }
-        });
+            });
 
     }
     return (

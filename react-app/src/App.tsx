@@ -10,7 +10,7 @@ import Allocation from "./pages/Allocation";
 import Watchlist from "./pages/WatchList";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Philosophy from "./pages/Philosophy";
+import WallStreet from "./pages/WallStreet";
 import Entertainment from "./pages/Entertainment";
 import Footer from "./components/Footer";
 import axios from "axios";
@@ -54,7 +54,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/allocation" element={<Allocation />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/philosophy" element={<Philosophy />} />
+          <Route path="/wallstreet" element={<WallStreet />} />
           <Route path="/entertainment" element={<Entertainment />} />
         </Routes>
         <Footer />

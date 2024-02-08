@@ -2,8 +2,10 @@ import React from 'react';
 import axios from 'axios';
 import { useContext } from 'react';
 import { ENVContext } from './ENVContext';
+import { Button } from 'react-bootstrap';
+import { getQuote } from './AxiosFunctions';
 
-function AssetRow({ asset, setChange}) {
+export default function AssetRow({ asset, setChange, index }) {
     const ENV = useContext(ENVContext);
 
     const [quote, setQuote] =
@@ -14,14 +16,13 @@ function AssetRow({ asset, setChange}) {
 
     // Get request to Finnhub for stock quote
     React.useEffect(() => {
-        axios.get(ENV.finnhubURL.concat("quote/"), {
-            params: {
-                symbol: asset.ticker,
-                token: ENV.finnhubKey
-            }
-        }).then((response) => {
-            setQuote({ price: response.data.c, percentChange: response.data.dp });
-        });
+        getQuote(asset.ticker)
+            .then((response) => {
+                setQuote({ price: response.data.c, percentChange: response.data.dp });
+            })
+            .catch(() => {
+                alert("Error Loading Quote")
+            });
     }, [asset.ticker, ENV]);
 
     if (!quote) return null;
@@ -36,7 +37,7 @@ function AssetRow({ asset, setChange}) {
     }
 
     return (
-        <tr>
+        <tr key={index}>
             <td>{asset.ticker}</td>
             <td>{asset.shares}</td>
             <td>${asset.costbasis}</td>
@@ -48,20 +49,19 @@ function AssetRow({ asset, setChange}) {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             })}</td>
-            <td style={{color: strColor}}>{(totalPercentChange).toLocaleString(undefined, {
+            <td style={{ color: strColor }}>{(totalPercentChange).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             })}%</td>
             <td>{asset.buy}</td>
-            <td  onClick={() => {
-            axios.delete(ENV.djangoURL.concat("asset/", asset.id, "/"), {
-                headers: {
-                    'Authorization': ' Bearer '.concat(sessionStorage.getItem("token") as string)
-                  }
-            });
-            setChange(true)
-        }}>DELETE</td>
+            <Button onClick={() => {
+                axios.delete(ENV.djangoURL.concat("asset/", asset.id, "/"), {
+                    headers: {
+                        'Authorization': ' Bearer '.concat(sessionStorage.getItem("token") as string)
+                    }
+                });
+                setChange(true)
+            }}>DELETE</Button>
         </tr>
-)}
-
-export default AssetRow;
+    )
+}

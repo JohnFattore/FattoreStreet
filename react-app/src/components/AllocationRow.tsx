@@ -1,11 +1,7 @@
 import React from 'react';
-import axios from 'axios';
-import { useContext } from 'react';
-import { ENVContext } from './ENVContext';
+import { getQuote } from './AxiosFunctions';
 
-function AllocationRow({allocation}) {
-    const ENV = useContext(ENVContext);
-
+export default function AllocationRow({ allocation }) {
     const [quote, setQuote] =
         React.useState<{ price: number; percentChange: number }>({
             price: 0,
@@ -14,31 +10,27 @@ function AllocationRow({allocation}) {
 
     // Get request to Finnhub for stock quote
     React.useEffect(() => {
-        axios.get(ENV.finnhubURL.concat("quote/"), {
-            params: {
-                symbol: allocation.ticker,
-                token: ENV.finnhubKey
-            }
-        }).then((response) => {
-            setQuote({ price: response.data.c, percentChange: response.data.dp });
-        });
-    }, [allocation.ticker, ENV]);
+        getQuote(allocation.ticker)
+            .then((response) => {
+                setQuote({ price: response.data.c, percentChange: response.data.dp });
+            }).catch(() =>
+                alert("Error")
+            );
+    }, [allocation.ticker]);
 
     if (!quote) return null;
-    
+
     return (
         <tr>
-            <td>{allocation.ticker}</td>
-            <td>{allocation.shares.toLocaleString(undefined, {
+            <td role='ticker'>{allocation.ticker}</td>
+            <td role='shares'>{allocation.shares.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             })}</td>
-            <td>${(allocation.shares * quote.price).toLocaleString(undefined, {
+            <td role='price'>${(allocation.shares * quote.price).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             })}</td>
         </tr>
-        );
+    );
 }
-
-export default AllocationRow;

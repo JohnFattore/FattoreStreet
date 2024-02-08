@@ -170,6 +170,7 @@ CORS_ORIGIN_WHITELIST = [
     'http://localhost:5173',
     'http://localhost',
     'http://localhost:80',
+    'http://localhost:3000',
 ]
 
 # API library

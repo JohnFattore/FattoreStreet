@@ -1,31 +1,18 @@
 import React from 'react';
-import axios from 'axios';
 import Table from 'react-bootstrap/Table';
 import AssetRow from './AssetRow'
-// import Django URL Context
-import { useContext } from 'react';
-import { ENVContext } from './ENVContext';
+import { getAssets } from './AxiosFunctions';
 
-function AssetTable({change, setChange}) {
-  // holds data from POST to server
-  // not sure why the usage of useState is needed, but it doesnt work without it
+export default function AssetTable({change, setChange}) {
   const [assets, setAssets] = React.useState([])
-  // assets is changed in useEffect, so another variable is needed to not cause the useEffect function to loop infinitly
-  //const [change, setChange] = React.useState(false)
 
-  const ENV = useContext(ENVContext);
-
-  // post to server
   React.useEffect(() => {
-    axios.get(ENV.djangoURL.concat("assets/"), {
-      headers: {
-        'Authorization': ' Bearer '.concat(sessionStorage.getItem("token") as string)
-      },
-    })
+    getAssets()
       .then((response) => {
-        // get response data
         setAssets(response.data);
         setChange(false)
+      }).catch(() => {
+        alert("Error")
       })
   }, [change]);
 
@@ -50,11 +37,10 @@ function AssetTable({change, setChange}) {
         </tr>
       </thead>
       <tbody>
-        {assets.map(asset => (
-          <AssetRow asset={asset} setChange={setChange}/>
+        {assets.map((asset, index)  => (
+          <AssetRow asset={asset} setChange={setChange} index={index}/>
         ))}
       </tbody>
     </Table>
   );
 }
-export default AssetTable;

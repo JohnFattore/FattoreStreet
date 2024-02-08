@@ -1,10 +1,8 @@
 import React from 'react';
-import axios from 'axios';
-import { ENVContext } from './ENVContext';
+import { Button } from 'react-bootstrap';
+import { getQuote } from './AxiosFunctions';
 
 function WatchListRow({ ticker, setChange }) {
-    const ENV = React.useContext(ENVContext);
-
     const [quote, setQuote] =
         React.useState<{ price: number; percentChange: number }>({
             price: 0,
@@ -13,17 +11,13 @@ function WatchListRow({ ticker, setChange }) {
 
     // Get request to Finnhub for stock quote
     React.useEffect(() => {
-        axios.get(ENV.finnhubURL.concat("quote/"), {
-            params: {
-                symbol: ticker,
-                token: ENV.finnhubKey
-            }
-        }).then((response) => {
-            setQuote({ price: response.data.c, percentChange: response.data.dp });
-        }).catch((response) => {
-            console.log(response)
-        });
-    }, [ticker, ENV]);
+        getQuote(ticker)
+            .then((response) => {
+                setQuote({ price: response.data.c, percentChange: response.data.dp });
+            }).catch((response) => {
+                console.log(response)
+            });
+    }, [ticker]);
 
     if (!quote) return null;
 
@@ -43,7 +37,7 @@ function WatchListRow({ ticker, setChange }) {
                 minimumFractionDigits: 3,
                 maximumFractionDigits: 3
             })}%</td>
-            <td onClick={() => {
+            <Button onClick={() => {
                 let tickersDB = localStorage.getItem("tickers");
                 let tickers: string[] = JSON.parse(tickersDB as string);
                 if (tickers.includes(ticker)) {
@@ -52,7 +46,7 @@ function WatchListRow({ ticker, setChange }) {
                     localStorage.setItem("tickers", tickersDB)
                     setChange(true)
                 }
-            }}>DELETE</td>
+            }}>DELETE</Button>
         </tr>)
 }
 

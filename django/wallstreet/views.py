@@ -5,7 +5,6 @@ from rest_framework import generics
 from .serializers import OptionSerializer
 from .models import Option
 
-
 # API endpoint for 'get' options and 'post' option
 class OptionListCreateView(generics.ListCreateAPIView):
     queryset = Option.objects.all()

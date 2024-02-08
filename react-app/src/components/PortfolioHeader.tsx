@@ -1,7 +1,7 @@
 function PortfolioHeader()
 {
   return (
-          <h1>User's Portfolio</h1>
+          <h1 role="assetTableHeader">User's Portfolio</h1>
   );
 }
 

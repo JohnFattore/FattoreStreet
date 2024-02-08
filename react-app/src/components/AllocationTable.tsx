@@ -1,38 +1,29 @@
 import React from 'react';
-import axios from 'axios';
+import { getAssets } from './AxiosFunctions';
 import Table from 'react-bootstrap/Table';
 import AllocationRow from './AllocationRow';
-// import Django URL Context
-import { useContext } from 'react';
-import { ENVContext } from './ENVContext';
+import { IAllocation } from '../interfaces';
 
-function AllocationTable() {
-    const ENV = useContext(ENVContext);
-
+export default function AllocationTable() {
     const [assets, setAssets] = React.useState([]);
 
     // API call for user's owned assets
     React.useEffect(() => {
-        axios.get(ENV.djangoURL.concat("assets/"), {
-            headers: {
-                'Authorization': ' Bearer '.concat(sessionStorage.getItem("token") as string)
-            },
-        })
+        getAssets()
             .then((response) => {
-                // get response data
                 setAssets(response.data);
+            })
+            .catch(() => {
+                alert("Error")
             })
     }, []);
 
     if (!assets) return null;
 
     if (assets.length == 0) {
-        return (<h3>You don't own any assets</h3>)
-      }
-
-    interface IAllocation {
-        ticker: string; shares: number;
+        return (<h3 role='noAssets'>You don't own any assets</h3>)
     }
+
     const allocations: IAllocation[] = []
 
     // iterate over all assets, return a list of allocations
@@ -62,5 +53,3 @@ function AllocationTable() {
         </Table>
     );
 }
-
-export default AllocationTable;

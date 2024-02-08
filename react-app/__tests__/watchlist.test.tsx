@@ -1,59 +1,57 @@
 // @vitest-environment jsdom
-
 import { render, screen } from '@testing-library/react';
-import { expect, test, vi } from 'vitest'
-
-
+import { expect, test, vi, afterEach } from 'vitest'
 import React from 'react';
-import About from '../src/components/About'
 import WatchList from '../src/pages/WatchList'
 import WatchListForm from '../src/components/WatchListForm'
 import WatchListClear from '../src/components/WatchListClear'
 import WatchListRow from '../src/components/WatchListRow'
-
-// Portfolio
-import Portfolio from '../src/pages/Portfolio'
-import AssetForm from '../src/components/AssetForm'
-import AssetTable from '../src/components/AssetTable'
-import AssetRow from '../src/components/AssetRow'
-import AssetFormHeader from '../src/components/AssetFormHeader'
-// Allocation
-import Allocation from "../src/pages/Allocation";
-import AllocationRow from "../src/components/AllocationRow";
-import AllocationTable from "../src/components/AllocationTable";
-
+import WatchListTable from '../src/components/WatchListTable';
 import { ENVContext } from '../src/components/ENVContext';
 
-test('renders Watchlist Components', () => {
+afterEach(() => { document.body.innerHTML = ''; });
+const ENV = {
+  finnhubURL: "https://finnhub.io/api/v1/",
+  djangoURL: "http://127.0.0.1:8000/portfolio/api/",
+  finnhubKey: "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"
+};
 
-  const ENV = {
-    finnhubURL: 'mockedFinnhubURL',
-    djangoURL: 'mockedDjangoURL',
-    finnhubKey: 'mockedVITEST'
-  };
-  render(<WatchListForm />);
-  render(<WatchListClear />);
-  render(<WatchListRow />);
+test('WatchList Page Test', () => {
   render(
     <ENVContext.Provider value={ENV}>
-      <WatchListForm />
-      <WatchListClear />
-      <WatchListRow />
       <WatchList />
     </ENVContext.Provider>
-  )
+  );
 });
 
-test('renders Portfolio Components', () => {
-  render(<Portfolio />);
-  render(<AssetForm />);
-  render(<AssetTable />);
-  render(<AssetRow />);
-  render(<AssetFormHeader />);
+test('WatchList Form Test', () => {
+  render(
+    <ENVContext.Provider value={ENV}>
+      <WatchListForm setChange={console.log}/>
+    </ENVContext.Provider>
+  );
 });
 
-test('renders Allocation Components', () => {
-  render(<Allocation />);
-  render(<AllocationRow />);
-  render(<AllocationTable />);
+test('WatchListTable Test', () => {
+  render(
+    <ENVContext.Provider value={ENV}>
+      <WatchListTable change={false} setChange={console.log}/>
+    </ENVContext.Provider>
+  );
+});
+
+test('WatchList Row Test', () => {
+  render(
+    <ENVContext.Provider value={ENV}>
+      <WatchListRow ticker={"SPY"} setChange={console.log}/>
+    </ENVContext.Provider>
+  );
+});
+
+test('WatchList Clear Test', () => {
+  render(
+    <ENVContext.Provider value={ENV}>
+      <WatchListClear setChange={console.log}/>
+    </ENVContext.Provider>
+  );
 });

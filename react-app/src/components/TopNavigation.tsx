@@ -16,7 +16,7 @@ function TopNavigation() {
             <Nav.Link href="watchlist">Watch List</Nav.Link>
             <Nav.Link href="login">Login</Nav.Link>
             <Nav.Link href="register">Register</Nav.Link>
-            <Nav.Link href="philosophy">Philosophy</Nav.Link>
+            <Nav.Link href="wallstreet">Wall Street</Nav.Link>
             <Nav.Link href="entertainment">Entertainment</Nav.Link>
             <Button
               onClick={() => {
