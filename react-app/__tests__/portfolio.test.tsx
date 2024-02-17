@@ -1,37 +1,42 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { expect, test, vi, afterEach } from 'vitest'
 import React from 'react';
 import Portfolio from '../src/pages/Portfolio'
 import AssetForm from '../src/components/AssetForm'
 import AssetTable from '../src/components/AssetTable'
 import AssetRow from '../src/components/AssetRow'
-import { ENVContext } from '../src/components/ENVContext';
 import { IAsset } from '../src/interfaces';
 
-afterEach(() => { document.body.innerHTML = ''; });
-const ENV = {
-    finnhubURL: "https://finnhub.io/api/v1/",
-    djangoURL: "http://127.0.0.1:8000/portfolio/api/",
-    finnhubKey: "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"
-};
+afterEach(() => { cleanup(); });
+
+vi.mock('../src/components/AxiosFunctions', () => ({
+    __esModule: true,
+    getAssets: vi.fn(() => new Promise((resolve) => resolve({ data: [{ ticker: "VTI", shares: 5, costbasis: 180, buy: '2023-02-14' }] }))),
+    getQuote: vi.fn(() => new Promise((resolve) => resolve({ data: [{ c: "200", dp: 1.5 }] }))),
+    postAsset: vi.fn(() => new Promise((resolve) => resolve({ data: [{ c: "200", dp: 1.5 }] }))),
+}));
 
 test('Portfolio Page Test', () => {
-    render(
-        <ENVContext.Provider value={ENV}>
-            <Portfolio />
-        </ENVContext.Provider>
-    );
-    screen.debug()
+    render(<Portfolio />);
     expect(screen.queryByRole('assetTableHeader')?.textContent).to.include("User's Portfolio");
 });
 
-test('Asset Table Test', () => {
-    render(
-        <ENVContext.Provider value={ENV}>
-            <AssetTable change={false} setChange={console.log} />
-        </ENVContext.Provider>
-    );
+//console.log is just a random function passed for the sake of testing
+test('Asset Table Test no assets', () => {
+    render(<AssetTable change={false} setChange={console.log} />);
+    expect(screen.queryByRole("noAssets")?.textContent).toBe("You don't own any assets")
+});
+
+test('Asset Table Test 1 asset', async () => {
+    render(<AssetTable change={false} setChange={console.log} />);
+    await waitFor(() => {
+        expect(screen.queryByRole("tickerHeader")?.textContent).to.include("Ticker")
+        expect(screen.queryByRole("ticker")?.textContent).to.include("VTI")
+        expect(screen.queryByRole("shares")?.textContent).to.include("5")
+        expect(screen.queryByRole("costbasis")?.textContent).to.include("180")
+        expect(screen.queryByRole("buy")?.textContent).to.include("2023-02-14")
+    });
 });
 
 const asset: IAsset = {
@@ -42,20 +47,13 @@ const asset: IAsset = {
 }
 
 test('Asset Row Test', () => {
-    render(
-        <ENVContext.Provider value={ENV}>
-            <AssetRow asset={asset} setChange={console.log}/>
-        </ENVContext.Provider>
-    );
+    render(<AssetRow asset={asset} setChange={console.log} index={1} />);
     expect(screen.queryByText('SPY')).not.toBeNull();
     expect(screen.queryByText('7')).not.toBeNull();
     expect(screen.queryByText('$210')).not.toBeNull();
 });
 
+// ideally, i could test different inputs, such as invalid tickers
 test('Asset Form Test', () => {
-    render(
-        <ENVContext.Provider value={ENV}>
-            <AssetForm setChange={console.log}/>
-        </ENVContext.Provider>
-    );
+    render(<AssetForm setChange={console.log} />);
 });

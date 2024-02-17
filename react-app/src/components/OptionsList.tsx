@@ -1,12 +1,12 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { getOptions } from './AxiosFunctions';
 import { IOption } from '../interfaces';
 
 export default function TestComponent() {
-  const [options, setOptions] = React.useState<IOption[]>([])
+  const [options, setOptions] = useState<IOption[]>([])
 
-  // Get request to Finnhub for stock quote
-  React.useEffect(() => {
+  // async / await is clunky with useEffect, promise chain is simplier
+  useEffect(() => {
     getOptions()
       .then((response) => {
         const APIOptions: IOption[] = response.data

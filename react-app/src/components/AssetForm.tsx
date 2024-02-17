@@ -1,11 +1,9 @@
-import axios from 'axios';
 import { Form, Button, Col, Row } from 'react-bootstrap';
-import { useContext } from 'react';
-import { ENVContext } from './ENVContext';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
-import { getAssets } from './AxiosFunctions';
+import { getQuote, postAsset } from './AxiosFunctions';
+import { IAsset } from '../interfaces';
 
 interface IFormInput {
     ticker: string,
@@ -15,8 +13,6 @@ interface IFormInput {
 }
 
 function AssetForm({ setChange }) {
-    const ENV = useContext(ENVContext);
-
     // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
         ticker: yup.string().required().uppercase(),
@@ -31,12 +27,13 @@ function AssetForm({ setChange }) {
     })
     console.log(watch("ticker"))
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        getAssets()
+        getQuote(data.ticker)
             .then((response) => {
                 // a valid ticker wont return null values
                 if (response.data.d == null)
                     alert("Ticker isnt valid");
                 else {
+                    /*
                     axios.post(ENV.djangoURL.concat("assets/"), {
                         ticker: data.ticker,
                         shares: data.shares,
@@ -49,6 +46,14 @@ function AssetForm({ setChange }) {
                             'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
                         }
                     })
+                    */
+                    const asset: IAsset = {
+                        ticker: data.ticker,
+                        shares: data.shares,
+                        costbasis: data.costBasis,
+                        buy: data.buyDate,
+                    }
+                    postAsset(asset)
                         .then(() => {
                             setChange(true)
                             alert(data.shares + " of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate);

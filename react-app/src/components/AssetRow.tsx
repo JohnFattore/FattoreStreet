@@ -1,29 +1,26 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useContext } from 'react';
 import { ENVContext } from './ENVContext';
-import { Button } from 'react-bootstrap';
 import { getQuote } from './AxiosFunctions';
+import { IQuote } from '../interfaces';
 
-export default function AssetRow({ asset, setChange, index }) {
+export default function AssetRow({ asset, setChange, setError,index }) {
     const ENV = useContext(ENVContext);
 
-    const [quote, setQuote] =
-        React.useState<{ price: number; percentChange: number }>({
-            price: 0,
-            percentChange: 0,
-        });
+    const [quote, setQuote] = useState<IQuote>({ price: 0, percentChange: 0, });
 
     // Get request to Finnhub for stock quote
-    React.useEffect(() => {
+    useEffect(() => {
         getQuote(asset.ticker)
             .then((response) => {
                 setQuote({ price: response.data.c, percentChange: response.data.dp });
             })
             .catch(() => {
-                alert("Error Loading Quote")
+                //alert("Error Loading Quote")
+                setError("quote")
             });
-    }, [asset.ticker, ENV]);
+    }, [asset.ticker]);
 
     if (!quote) return null;
 
@@ -38,9 +35,9 @@ export default function AssetRow({ asset, setChange, index }) {
 
     return (
         <tr key={index}>
-            <td>{asset.ticker}</td>
-            <td>{asset.shares}</td>
-            <td>${asset.costbasis}</td>
+            <td role="ticker">{asset.ticker}</td>
+            <td role="shares">{asset.shares}</td>
+            <td role="costbasis">${asset.costbasis}</td>
             <td>${totalCostBasis.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
@@ -53,15 +50,15 @@ export default function AssetRow({ asset, setChange, index }) {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             })}%</td>
-            <td>{asset.buy}</td>
-            <Button onClick={() => {
+            <td role="buy">{asset.buy}</td>
+            <td onClick={() => {
                 axios.delete(ENV.djangoURL.concat("asset/", asset.id, "/"), {
                     headers: {
                         'Authorization': ' Bearer '.concat(sessionStorage.getItem("token") as string)
                     }
                 });
                 setChange(true)
-            }}>DELETE</Button>
+            }}>DELETE</td>
         </tr>
     )
 }

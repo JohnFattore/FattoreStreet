@@ -12,7 +12,7 @@ export const getAssets = async () => {
 }
 
 export const postAsset = async (asset: IAsset) => {
-  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quote/"), {
+  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
     ticker: asset.ticker,
     shares: asset.shares,
     costbasis: asset.costbasis,
@@ -21,9 +21,9 @@ export const postAsset = async (asset: IAsset) => {
     user: 1
   }, {
     headers: {
-        'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
+      'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
     }
-});
+  });
   return response
 }
 
@@ -33,11 +33,22 @@ export const getOptions = async () => {
 }
 
 export const getQuote = async (ticker: string) => {
-    const response = await axios.get(import.meta.env.VITE_APP_FINNHUB_URL.concat("quote/"), {
-      params: {
-        symbol: ticker,
-        token: import.meta.env.VITE_APP_FINNHUB_KEY
-      }
-    });
-    return response
+  const response = await axios.get(import.meta.env.VITE_APP_FINNHUB_URL.concat("quote/"), {
+    params: {
+      symbol: ticker,
+      token: import.meta.env.VITE_APP_FINNHUB_KEY
+    }
+  });
+  return response
+}
+
+// login is postToken, but also stores the token
+export const login = async (username: string, password: string) => {
+  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("token/"), {
+    username: username,
+    password: password
+  });
+  sessionStorage.setItem("token", response.data.access);
+  sessionStorage.setItem("refresh", response.data.refresh);
+  return response
 }

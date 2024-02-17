@@ -9,10 +9,10 @@ function Portfolio() {
     const [change, setChange] = React.useState(false)
     return (
         <>
-            <PortfolioHeader />
-            <AssetTable change={change} setChange={setChange}/>
             <AssetFormHeader />
             <AssetForm setChange={setChange}/>
+            <PortfolioHeader />
+            <AssetTable change={change} setChange={setChange}/>
         </>
 
     );

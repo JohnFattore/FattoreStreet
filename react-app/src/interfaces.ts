@@ -13,3 +13,8 @@ export interface IOption {
     ticker: string,
     sunday: string
 }
+
+export interface IQuote {
+    price: number,
+    percentChange: number
+}
