@@ -27,6 +27,15 @@ export const postAsset = async (asset: IAsset) => {
   return response
 }
 
+export const deleteAsset = async (id: number) => {
+  const response = await axios.delete(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset/", id, "/"), {
+    headers: {
+      'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string)
+    },
+  });
+  return response
+}
+
 export const getOptions = async () => {
   const response = await axios.get(import.meta.env.VITE_APP_DJANGO_WALLSTREET_URL.concat("options/"));
   return response

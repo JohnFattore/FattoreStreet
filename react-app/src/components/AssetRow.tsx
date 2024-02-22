@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useContext } from 'react';
-import { ENVContext } from './ENVContext';
-import { getQuote } from './AxiosFunctions';
+import { deleteAsset, getQuote } from './AxiosFunctions';
 import { IQuote } from '../interfaces';
 
-export default function AssetRow({ asset, setChange, setError,index }) {
-    const ENV = useContext(ENVContext);
+export default function AssetRow({ asset, setChange, setMessage, index }) {
 
     const [quote, setQuote] = useState<IQuote>({ price: 0, percentChange: 0, });
 
@@ -17,8 +13,7 @@ export default function AssetRow({ asset, setChange, setError,index }) {
                 setQuote({ price: response.data.c, percentChange: response.data.dp });
             })
             .catch(() => {
-                //alert("Error Loading Quote")
-                setError("quote")
+                setMessage("error getting some stock prices")
             });
     }, [asset.ticker]);
 
@@ -52,11 +47,7 @@ export default function AssetRow({ asset, setChange, setError,index }) {
             })}%</td>
             <td role="buy">{asset.buy}</td>
             <td onClick={() => {
-                axios.delete(ENV.djangoURL.concat("asset/", asset.id, "/"), {
-                    headers: {
-                        'Authorization': ' Bearer '.concat(sessionStorage.getItem("token") as string)
-                    }
-                });
+                deleteAsset(asset.id)
                 setChange(true)
             }}>DELETE</td>
         </tr>

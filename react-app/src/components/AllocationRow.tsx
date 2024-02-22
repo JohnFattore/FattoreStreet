@@ -1,12 +1,10 @@
 import React from 'react';
+import { useState } from 'react';
 import { getQuote } from './AxiosFunctions';
 
-export default function AllocationRow({ allocation }) {
+export default function AllocationRow({ allocation, setError }) {
     const [quote, setQuote] =
-        React.useState<{ price: number; percentChange: number }>({
-            price: 0,
-            percentChange: 0,
-        });
+        useState<{ price: number; percentChange: number }>({ price: 0, percentChange: 0, });
 
     // Get request to Finnhub for stock quote
     React.useEffect(() => {
@@ -14,7 +12,7 @@ export default function AllocationRow({ allocation }) {
             .then((response) => {
                 setQuote({ price: response.data.c, percentChange: response.data.dp });
             }).catch(() =>
-                alert("Error")
+                setError("Error getting assets")
             );
     }, [allocation.ticker]);
 

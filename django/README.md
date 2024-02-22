@@ -13,10 +13,6 @@ python3 manage.py migrate
 ## Create Docker Container from Image
     docker run -d -p 8000:8000 django
 
-## Variable Naming Conventions
- - PostgreSQL database variables follow django naming conventions, all lowercase with underscores, not camelCase
- - Other Python local variable will follow conventional camelCase, no Hungarian Notation!
-
 ## Gunicorn, NGINX, PostgreSQL, and Docker
  - Django based web app is run on a WSGI Gunicorn server
  - Revere proxy NGINX Server sits infront of Gunicorn server

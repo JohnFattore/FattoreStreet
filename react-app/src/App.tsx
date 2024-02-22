@@ -46,18 +46,18 @@ export default function App() {
 
   return (
     <ENVContext.Provider value={ENV}>
-        <TopNavigation />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/watchlist" element={<Watchlist />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/allocation" element={<Allocation />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/wallstreet" element={<WallStreet />} />
-          <Route path="/entertainment" element={<Entertainment />} />
-        </Routes>
-        <Footer />
-    </ENVContext.Provider>
+      <TopNavigation />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/portfolio" element={<Portfolio />} />
+        <Route path="/watchlist" element={<Watchlist />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/allocation" element={<Allocation />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/wallstreet" element={<WallStreet />} />
+        <Route path="/entertainment" element={<Entertainment />} />
+      </Routes>
+      <p>Passive Investing is Awesome!!</p>
+u    </ENVContext.Provider>
   );
 }

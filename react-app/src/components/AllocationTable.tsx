@@ -1,22 +1,22 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { getAssets } from './AxiosFunctions';
 import Table from 'react-bootstrap/Table';
 import AllocationRow from './AllocationRow';
 import { IAllocation } from '../interfaces';
 
-export default function AllocationTable() {
-    const [assets, setAssets] = React.useState([]);
+export default function AllocationTable({ setError }) {
+    const [assets, setAssets] = useState([]);
 
     // API call for user's owned assets
-    React.useEffect(() => {
+    useEffect(() => {
         getAssets()
             .then((response) => {
                 setAssets(response.data);
             })
             .catch(() => {
-                alert("Error")
+                setError("Error getting assets")
             })
-    }, []);
+    }, []); 
 
     if (!assets) return null;
 
@@ -40,14 +40,14 @@ export default function AllocationTable() {
         <Table>
             <thead>
                 <tr>
-                    <th scope="col">Ticker</th>
-                    <th scope="col">Quantity</th>
-                    <th scope="col">Current Price</th>
+                    <th scope="col" role="tickerHeader">Ticker</th>
+                    <th scope="col" role="quantityHeader">Quantity</th>
+                    <th scope="col" role="currentPriceHeader">Current Price</th>
                 </tr>
             </thead>
             <tbody>
                 {allocations.map(allocation => (
-                    <AllocationRow allocation={allocation} />
+                    <AllocationRow allocation={allocation} setError={setError}/>
                 ))}
             </tbody>
         </Table>

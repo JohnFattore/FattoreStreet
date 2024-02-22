@@ -4,7 +4,7 @@ import WatchListClear from '../components/WatchListClear';
 import React from 'react';
 
 
-function WatchList() {
+export default function WatchList() {
     // assets is changed in useEffect, so another variable is needed to not cause the useEffect function to loop infinitly
     const [change, setChange] = React.useState(false)
     return (
@@ -16,5 +16,3 @@ function WatchList() {
 
     );
 }
-
-export default WatchList;

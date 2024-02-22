@@ -6,7 +6,6 @@ function WatchListTable({change, setChange}) {
   const [tickers, setTickers] = React.useState<String[]>([]);
   // if storage changes, update lists of tickers, doesnt work
   React.useEffect(() => {
-    
     // if no watch list yet, add a starter one
     if (localStorage.getItem("tickers") == null) {
       let tickers: string[] = (["VTI", "SPY"]);

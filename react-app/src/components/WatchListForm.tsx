@@ -1,20 +1,16 @@
-import axios from 'axios';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import { useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { ENVContext } from './ENVContext';
-import { useContext } from 'react';
+import { getQuote } from './AxiosFunctions';
+import { Alert } from 'react-bootstrap';
 
 interface IFormInput {
   ticker: string
 }
 
-function WatchListForm({ setChange }) {
-
-  const ENV = useContext(ENVContext);
-
+export default function WatchListForm({ setChange }) {
   const schema = yup.object().shape({
     ticker: yup.string().required().uppercase()
   });
@@ -25,32 +21,28 @@ function WatchListForm({ setChange }) {
   })
   // on submit, add ticker if proper
   const onSubmit: SubmitHandler<IFormInput> = (data) => {
-    axios.get(ENV.finnhubURL.concat("quote/"), {
-      params: {
-        symbol: data.ticker,
-        token: ENV.finnhubKey
-      }
-    }).then((response) => {
-      // a valid ticker wont return null values
-      if (response.data.d == null)
-        alert("Ticker isnt valid");
-      else {
-        let tickersDB = localStorage.getItem("tickers");
-        let tickers: string[] = JSON.parse(tickersDB as string);
-        // not let duplicates to be added to list
-        if (tickers.includes(data.ticker)) {
-          alert("Ticker already in watchlist")
-        }
-        // TODO: clean up tickers.txt, loop through it 
-        // for (let i = 0; ticker.txt.length > i; i++) { if (ticker in tickers.txt == ticker submitted by form){ do the regular ticker adding logic }  }
+    getQuote(data.ticker)
+      .then((response) => {
+        // a valid ticker wont return null values
+        if (response.data.d == null)
+          alert("Ticker isnt valid");
         else {
-          tickers.push(data.ticker);
-          tickersDB = JSON.stringify(tickers);
-          localStorage.setItem("tickers", tickersDB)
-          setChange(true)
+          let tickersDB = localStorage.getItem("tickers");
+          let tickers: string[] = JSON.parse(tickersDB as string);
+          // not let duplicates to be added to list
+          if (tickers.includes(data.ticker)) {
+            alert("Ticker already in watchlist")
+          }
+          // TODO: clean up tickers.txt, loop through it 
+          // for (let i = 0; ticker.txt.length > i; i++) { if (ticker in tickers.txt == ticker submitted by form){ do the regular ticker adding logic }  }
+          else {
+            tickers.push(data.ticker);
+            tickersDB = JSON.stringify(tickers);
+            localStorage.setItem("tickers", tickersDB)
+            setChange(true)
+          }
         }
-      }
-    });
+      });
 
   }
 
@@ -60,10 +52,9 @@ function WatchListForm({ setChange }) {
     <Form onSubmit={handleSubmit(onSubmit)}>
       <Form.Label>Ticker</Form.Label>
       <Form.Control {...register("ticker")} placeholder='Enter Ticker Here' />
-      <p>{errors.ticker?.message}</p>
+      <Alert variant='danger'>{errors.ticker?.message}</Alert>
       <Button type="submit" >Add to Watchlist</Button>
     </Form>
   );
 }
 //,{ required: true }
-export default WatchListForm;

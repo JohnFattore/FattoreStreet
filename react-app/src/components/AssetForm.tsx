@@ -1,4 +1,5 @@
 import { Form, Button, Col, Row } from 'react-bootstrap';
+import Alert from 'react-bootstrap/Alert';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -12,7 +13,7 @@ interface IFormInput {
     buyDate: string
 }
 
-function AssetForm({ setChange }) {
+export default function AssetForm({ setChange, setMessage }) {
     // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
         ticker: yup.string().required().uppercase(),
@@ -21,7 +22,6 @@ function AssetForm({ setChange }) {
         buyDate: yup.string().required()
     });
 
-    //useForm is fantastic for handling form state, functions such as onSubmit/onChange/onBlur, validation, and even flexibility for other UI libraries (using Controller)
     const { register, handleSubmit, watch, formState: { errors }, } = useForm<IFormInput>({
         resolver: yupResolver(schema),
     })
@@ -31,22 +31,8 @@ function AssetForm({ setChange }) {
             .then((response) => {
                 // a valid ticker wont return null values
                 if (response.data.d == null)
-                    alert("Ticker isnt valid");
+                setMessage("Error: Invalid Ticker")
                 else {
-                    /*
-                    axios.post(ENV.djangoURL.concat("assets/"), {
-                        ticker: data.ticker,
-                        shares: data.shares,
-                        costbasis: data.costBasis,
-                        buy: data.buyDate,
-                        // 1 is a placeholder, this is actually set on the back end using the User object returned by the request
-                        user: 1
-                    }, {
-                        headers: {
-                            'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
-                        }
-                    })
-                    */
                     const asset: IAsset = {
                         ticker: data.ticker,
                         shares: data.shares,
@@ -56,10 +42,10 @@ function AssetForm({ setChange }) {
                     postAsset(asset)
                         .then(() => {
                             setChange(true)
-                            alert(data.shares + " of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate);
+                            setMessage("Success: " + data.shares + " of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate)
                         })
                         .catch(() => {
-                            alert("There was an error with the purchase")
+                            setMessage("Error: problem with purchase")
                         });
                 }
             });
@@ -72,14 +58,14 @@ function AssetForm({ setChange }) {
                     <Form.Control size="lg" {...register("ticker", {
                         required: true
                     })} placeholder='Ticker' />
-                    {errors.ticker && <p>This field is required</p>}
+                    {errors.ticker && <Alert variant="danger" role="tickerError">Error: Ticker text field is required</Alert>}
 
                 </Col>
                 <Col sm={3}>
                     <Form.Control size="lg" {...register("shares", {
                         required: true
                     })} placeholder='Shares' />
-                    {errors.shares && <p>This field is required</p>}
+                    {errors.shares && <Alert variant="danger" role="sharesError">Error: Shares number field is required</Alert>}
                 </Col>
             </Row>
             <Row>
@@ -87,7 +73,7 @@ function AssetForm({ setChange }) {
                     <Form.Control size="lg" {...register("costBasis", {
                         required: true
                     })} placeholder='Cost Basis' />
-                    {errors.costBasis && <p>This field is required</p>}
+                    {errors.costBasis && <Alert variant="danger" role="costBasisError">Error: Cost Basis number field is required</Alert>}
                 </Col>
                 <Col sm={3}>
                     <Form.Control
@@ -96,13 +82,10 @@ function AssetForm({ setChange }) {
                         {...register("buyDate", {
                             required: true
                         })} placeholder='Buy Date' />
-                    {errors.buyDate && <p>This field is required</p>}
+                    {errors.buyDate && <Alert variant="danger" role="buyDateError">Error: Buy date field is required</Alert>}
                 </Col>
             </Row>
-
             <Button type="submit">Add to Portfolio</Button>
         </Form>
     );
 }
-
-export default AssetForm;

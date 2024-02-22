@@ -2,12 +2,8 @@ import React from 'react';
 import { Button } from 'react-bootstrap';
 import { getQuote } from './AxiosFunctions';
 
-function WatchListRow({ ticker, setChange }) {
-    const [quote, setQuote] =
-        React.useState<{ price: number; percentChange: number }>({
-            price: 0,
-            percentChange: 0,
-        });
+export default function WatchListRow({ ticker, setChange }) {
+    const [quote, setQuote] = React.useState<{ price: number; percentChange: number }>({ price: 0, percentChange: 0 });
 
     // Get request to Finnhub for stock quote
     React.useEffect(() => {
@@ -49,5 +45,3 @@ function WatchListRow({ ticker, setChange }) {
             }}>DELETE</Button>
         </tr>)
 }
-
-export default WatchListRow;
