@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { cleanup } from '@testing-library/react';
 import { expect, it, afterEach, beforeAll } from 'vitest'
-import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset } from '../src/components/AxiosFunctions';
+import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset } from '../src/components/AxiosFunctions';
 import { IAsset } from '../src/interfaces';
 
-beforeAll(async () => {await login("maxwell", "maxwell")});
+beforeAll(async () => {await login("django", "django")});
 
 afterEach(() => { cleanup() });
 
@@ -23,7 +23,13 @@ it('getQuote Test', async () => {
 it('getAssets Test', async () => {
     //await login("maxwell", "maxwell");
     const response = await getAssets()
-    expect(response.data[0].ticker).to.equal("SPY")
+    expect(response.data[0].ticker).to.equal("AAPL")
+    expect(response.status).to.equal(200)
+});
+
+it('getAsset Test', async () => {
+    const response = await getAsset(160)
+    expect(response.data.ticker).toBeDefined
     expect(response.status).to.equal(200)
 });
 

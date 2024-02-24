@@ -10,51 +10,46 @@ interface IFormInput {
   ticker: string
 }
 
-export default function WatchListForm({ setChange }) {
+export default function WatchListForm({ setMessage, setTickers }) {
   const schema = yup.object().shape({
     ticker: yup.string().required().uppercase()
   });
 
   //useForm is fantastic for handling form state, functions such as onSubmit/onChange/onBlur, validation, and even flexibility for other UI libraries (using Controller)
-  const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>({
+  const { register, handleSubmit, reset, formState: { errors }, } = useForm<IFormInput>({
     resolver: yupResolver(schema),
   })
-  // on submit, add ticker if proper
   const onSubmit: SubmitHandler<IFormInput> = (data) => {
     getQuote(data.ticker)
       .then((response) => {
         // a valid ticker wont return null values
         if (response.data.d == null)
-          alert("Ticker isnt valid");
+          setMessage({text: "Ticker isnt valid", type: "error"});
         else {
           let tickersDB = localStorage.getItem("tickers");
-          let tickers: string[] = JSON.parse(tickersDB as string);
+          let allTickers: string[] = JSON.parse(tickersDB as string);
           // not let duplicates to be added to list
-          if (tickers.includes(data.ticker)) {
-            alert("Ticker already in watchlist")
+          if (allTickers.includes(data.ticker)) {
+            setMessage({text: "Ticker already in watchlist", type: "error"})
           }
-          // TODO: clean up tickers.txt, loop through it 
-          // for (let i = 0; ticker.txt.length > i; i++) { if (ticker in tickers.txt == ticker submitted by form){ do the regular ticker adding logic }  }
           else {
-            tickers.push(data.ticker);
-            tickersDB = JSON.stringify(tickers);
-            localStorage.setItem("tickers", tickersDB)
-            setChange(true)
+            allTickers.push(data.ticker);
+            setTickers(allTickers)
+            tickersDB = JSON.stringify(allTickers);
+            localStorage.setItem("tickers", tickersDB);
+            setMessage({ text: data.ticker + " added to watchlist", type: "success"});
+            reset();
           }
         }
       });
-
   }
-
-  //console.log(watch("ticker"));
 
   return (
     <Form onSubmit={handleSubmit(onSubmit)}>
       <Form.Label>Ticker</Form.Label>
       <Form.Control {...register("ticker")} placeholder='Enter Ticker Here' />
-      <Alert variant='danger'>{errors.ticker?.message}</Alert>
+      {errors.ticker && <Alert variant="danger" role="tickerError">Error: Ticker text field is required</Alert>}
       <Button type="submit" >Add to Watchlist</Button>
     </Form>
   );
 }
-//,{ required: true }

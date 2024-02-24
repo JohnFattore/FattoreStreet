@@ -1,23 +1,24 @@
-import React from 'react';
+import { useEffect } from 'react';
 import Table from 'react-bootstrap/Table';
 import WatchListRow from './WatchListRow';
 
-function WatchListTable({change, setChange}) {
-  const [tickers, setTickers] = React.useState<String[]>([]);
+export default function WatchListTable({setMessage, tickers, setTickers}) {
+  //const [tickers, setTickers] = useState<String[]>([]);
   // if storage changes, update lists of tickers, doesnt work
-  React.useEffect(() => {
+  useEffect(() => {
+    /*
     // if no watch list yet, add a starter one
     if (localStorage.getItem("tickers") == null) {
-      let tickers: string[] = (["VTI", "SPY"]);
-      let tickersDB: string = (JSON.stringify(tickers));
+      let allTickers: string[] = (["VTI", "SPY"]);
+      let tickersDB: string = (JSON.stringify(allTickers));
       localStorage.setItem("tickers", tickersDB);
     };
-    
+    */
+  
     // tickers stored as string, but handled as array of strings
     var tickersDB = (localStorage.getItem("tickers") as string);
     setTickers(JSON.parse(tickersDB) as string[]);
-    setChange(false)
-  }, [change])
+  }, [])
 
   return (
     <Table>
@@ -30,12 +31,10 @@ function WatchListTable({change, setChange}) {
         </tr>
       </thead>
       <tbody>
-        {tickers.map(ticker => (
-          <WatchListRow ticker={ticker} setChange={setChange}/>
+        {tickers.map((ticker: string, index: number) => (
+          <WatchListRow ticker={ticker} setMessage={setMessage} setTickers={setTickers} index={index}/>
         ))}
       </tbody>
     </Table>
   );
 }
-
-export default WatchListTable;

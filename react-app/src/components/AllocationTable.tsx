@@ -4,7 +4,7 @@ import Table from 'react-bootstrap/Table';
 import AllocationRow from './AllocationRow';
 import { IAllocation } from '../interfaces';
 
-export default function AllocationTable({ setError }) {
+export default function AllocationTable({ setMessage }) {
     const [assets, setAssets] = useState([]);
 
     // API call for user's owned assets
@@ -14,7 +14,7 @@ export default function AllocationTable({ setError }) {
                 setAssets(response.data);
             })
             .catch(() => {
-                setError("Error getting assets")
+                setMessage({text: "There was a problem getting assets", type: "error"}) 
             })
     }, []); 
 
@@ -47,7 +47,7 @@ export default function AllocationTable({ setError }) {
             </thead>
             <tbody>
                 {allocations.map(allocation => (
-                    <AllocationRow allocation={allocation} setError={setError}/>
+                    <AllocationRow allocation={allocation} setMessage={setMessage}/>
                 ))}
             </tbody>
         </Table>

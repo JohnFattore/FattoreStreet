@@ -13,7 +13,7 @@ interface IFormInput {
     buyDate: string
 }
 
-export default function AssetForm({ setChange, setMessage }) {
+export default function AssetForm({ setMessage, assets, setAssets }) {
     // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
         ticker: yup.string().required().uppercase(),
@@ -22,30 +22,42 @@ export default function AssetForm({ setChange, setMessage }) {
         buyDate: yup.string().required()
     });
 
-    const { register, handleSubmit, watch, formState: { errors }, } = useForm<IFormInput>({
+    const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>({
         resolver: yupResolver(schema),
     })
-    console.log(watch("ticker"))
+    //console.log(watch("ticker"))
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
         getQuote(data.ticker)
             .then((response) => {
                 // a valid ticker wont return null values
                 if (response.data.d == null)
-                setMessage("Error: Invalid Ticker")
+                    setMessage({text: "Invalid Ticker", type: "error"})
                 else {
-                    const asset: IAsset = {
+                    let asset: IAsset = {
                         ticker: data.ticker,
                         shares: data.shares,
                         costbasis: data.costBasis,
                         buy: data.buyDate,
+                        // just a place holder
+                        id: 1
                     }
                     postAsset(asset)
-                        .then(() => {
-                            setChange(true)
-                            setMessage("Success: " + data.shares + " of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate)
+                        .then((response) => {
+                            setMessage({
+                                text: data.shares + " shares of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate,
+                                type: "success"
+                            })
+                            asset = {
+                                ticker: data.ticker,
+                                shares: data.shares,
+                                costbasis: data.costBasis,
+                                buy: data.buyDate,
+                                id: response.data.id
+                            }
+                            setAssets([...assets, asset])
                         })
                         .catch(() => {
-                            setMessage("Error: problem with purchase")
+                            setMessage({ text: "There was a problem with the asset purchase", type: "error" })
                         });
                 }
             });

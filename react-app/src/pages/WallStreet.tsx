@@ -1,11 +1,9 @@
 import OptionsList from '../components/OptionsList'
 
-function WallStreet() {
+export default function WallStreet() {
     return (
         <>
             <OptionsList />
         </>
     );
   }
-  
-  export default WallStreet;

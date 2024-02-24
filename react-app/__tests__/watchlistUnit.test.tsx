@@ -1,35 +1,55 @@
 // @vitest-environment jsdom
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { expect, test, vi, afterEach } from 'vitest'
 import React from 'react';
 import WatchListForm from '../src/components/WatchListForm'
-import WatchListClear from '../src/components/WatchListClear'
 import WatchListRow from '../src/components/WatchListRow'
 import WatchListTable from '../src/components/WatchListTable';
+import { IMessage } from '../src/interfaces';
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
 
+const message: IMessage = { text: "", type: "" }
+
 vi.mock('../src/components/AxiosFunctions', () => ({
   __esModule: true,
-  getAssets: vi.fn(() => new Promise((resolve) => resolve({ data: [{ ticker: "VTI", shares: 5, costbasis: 180, buy: '2023-02-14' }] }))),
   getQuote: vi.fn(() => new Promise((resolve) => resolve({ data: { c: 200, d: 3, dp: 1.5 } }))),
 }));
 
-test('WatchList Form Test', () => {
-  render(<WatchListForm setChange={console.log}/>);
-});
-
-test('WatchListTable Test', () => {
-  render(<WatchListTable change={false} setChange={console.log}/>);
-});
-
+// delete button is pushed in integration test
 test('WatchList Row Test', () => {
-  render(<WatchListRow ticker={"SPY"} setChange={console.log}/>);
+  render(<WatchListRow ticker={"SPY"} setMessage={console.log} setTickers={console.log} index={1}/>);
+  expect(screen.queryByRole("ticker")?.textContent).to.include("SPY")
+  expect(screen.queryByRole("percentChange")?.textContent).toBeDefined
+  expect(screen.queryByRole("delete")?.textContent).to.equal("delete")
 });
 
-test('WatchList Clear Test', () => {
-  render(<WatchListClear setChange={console.log}/>);
+// adding a ticker is tested in integration test
+test('WatchListTable Test', () => {
+  render(<WatchListTable setMessage={console.log} tickers={["VTI", "SPY"]} setTickers={console.log}/>);
+  expect(screen.queryAllByRole("ticker")).toHaveLength(2);
+  expect(screen.queryAllByRole("percentChange")).toHaveLength(2);
+  expect(screen.queryAllByRole("delete")).toHaveLength(2);
+});
+
+test('WatchList Form Test blank submit', async () => {
+  render(<WatchListForm setMessage={console.log} setTickers={console.log}/>);
+  fireEvent.submit(screen.getByRole("button"));
+
+    await waitFor(async () => {
+      expect(screen.queryByRole("tickerError")?.textContent).toBeDefined();
+    });
+});
+
+test('WatchList Form Test successful submit', async () => {
+  render(<WatchListForm setMessage={console.log} setTickers={console.log}/>);
+  fireEvent.input(screen.getByPlaceholderText("Enter Ticker Here"), { target: { value: "VTI", }, });
+  fireEvent.submit(screen.getByRole("button"));
+
+    await waitFor(async () => {
+      expect(screen.queryByRole("tickerError")?.textContent).not.toBeDefined();
+    });
 });

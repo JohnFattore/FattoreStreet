@@ -2,7 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import { getQuote } from './AxiosFunctions';
 
-export default function AllocationRow({ allocation, setError }) {
+export default function AllocationRow({ allocation, setMessage }) {
     const [quote, setQuote] =
         useState<{ price: number; percentChange: number }>({ price: 0, percentChange: 0, });
 
@@ -12,7 +12,7 @@ export default function AllocationRow({ allocation, setError }) {
             .then((response) => {
                 setQuote({ price: response.data.c, percentChange: response.data.dp });
             }).catch(() =>
-                setError("Error getting assets")
+                setMessage({ text: "There was a problem getting some assets quotes", type: "error" })
             );
     }, [allocation.ticker]);
 

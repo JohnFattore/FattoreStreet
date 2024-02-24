@@ -11,6 +11,15 @@ export const getAssets = async () => {
   return response
 }
 
+export const getAsset = async (id: number) => {
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset/", id, "/"), {
+    headers: {
+      'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string)
+    },
+  });
+  return response
+}
+
 export const postAsset = async (asset: IAsset) => {
   const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
     ticker: asset.ticker,

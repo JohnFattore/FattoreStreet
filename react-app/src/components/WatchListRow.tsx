@@ -1,19 +1,18 @@
-import React from 'react';
-import { Button } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
 import { getQuote } from './AxiosFunctions';
 
-export default function WatchListRow({ ticker, setChange }) {
-    const [quote, setQuote] = React.useState<{ price: number; percentChange: number }>({ price: 0, percentChange: 0 });
+export default function WatchListRow({ ticker, index, setMessage, setTickers }) {
+    const [quote, setQuote] = useState<{ price: number; percentChange: number }>({ price: 0, percentChange: 0 });
 
     // Get request to Finnhub for stock quote
-    React.useEffect(() => {
+    useEffect(() => {
         getQuote(ticker)
             .then((response) => {
                 setQuote({ price: response.data.c, percentChange: response.data.dp });
-            }).catch((response) => {
-                console.log(response)
+            }).catch(() => {
+                setMessage({ text: "We are experincing are issue getting some asset data", type: "error" })
             });
-    }, [ticker]);
+    }, []);
 
     if (!quote) return null;
 
@@ -23,25 +22,25 @@ export default function WatchListRow({ ticker, setChange }) {
     }
 
     return (
-        <tr>
-            <td>{ticker}</td>
+        <tr key={index}>
+            <td role="ticker">{ticker}</td>
             <td>${quote.price.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             })}</td>
-            <td style={{ color: color }}>{quote.percentChange.toLocaleString(undefined, {
+            <td role="percentChange" style={{ color: color }}>{quote.percentChange.toLocaleString(undefined, {
                 minimumFractionDigits: 3,
                 maximumFractionDigits: 3
             })}%</td>
-            <Button onClick={() => {
+            <td role="delete" onClick={() => {
                 let tickersDB = localStorage.getItem("tickers");
                 let tickers: string[] = JSON.parse(tickersDB as string);
-                if (tickers.includes(ticker)) {
-                    tickers = tickers.filter(e => e !== ticker); // will remove ticker from list
-                    tickersDB = JSON.stringify(tickers);
-                    localStorage.setItem("tickers", tickersDB)
-                    setChange(true)
-                }
-            }}>DELETE</Button>
+                tickers = tickers.filter(e => e !== ticker); // will remove ticker from list
+                // setting tickers so display refreshes
+                setTickers(tickers)
+                tickersDB = JSON.stringify(tickers);
+                localStorage.setItem("tickers", tickersDB);
+                setMessage({ text: ticker + " deleted from watchlist", type: "success" })
+            }}>delete</td>
         </tr>)
 }

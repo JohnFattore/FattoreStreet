@@ -12,7 +12,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import WallStreet from "./pages/WallStreet";
 import Entertainment from "./pages/Entertainment";
-import Footer from "./components/Footer";
 import axios from "axios";
 import { useContext } from "react";
 import { ENVContext } from "./components/ENVContext"
@@ -58,6 +57,6 @@ export default function App() {
         <Route path="/entertainment" element={<Entertainment />} />
       </Routes>
       <p>Passive Investing is Awesome!!</p>
-u    </ENVContext.Provider>
+    </ENVContext.Provider>
   );
 }

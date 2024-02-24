@@ -1,22 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Table from 'react-bootstrap/Table';
 import AssetRow from './AssetRow'
 import { IAsset } from '../interfaces';
 import { getAssets } from './AxiosFunctions';
 
-export default function AssetTable({ change, setChange, setMessage }) {
-  const [assets, setAssets] = useState<IAsset[]>([]);
+export default function AssetTable({ setMessage, assets, setAssets}) {
 
   useEffect(() => {
     getAssets()
       .then((response) => {
-        const APIOptions: IAsset[] = response.data
-        setAssets(APIOptions);
-        setChange(false)
+        const data: IAsset[] = response.data
+        setAssets(data);
       }).catch(() => {
-        setMessage("Error: Can't get assets")
+        setMessage({text: "Error: Can't get assets", type: "error"})
       })
-  }, [change]);
+  },[]);
 
   if (!assets) return null;
 
@@ -39,8 +37,8 @@ export default function AssetTable({ change, setChange, setMessage }) {
         </tr>
       </thead>
       <tbody>
-        {assets.map((asset, index) => (
-          <AssetRow asset={asset} setChange={setChange} setMessage={setMessage} index={index} />
+        {assets.map((asset: IAsset) => (
+          <AssetRow asset={asset} setMessage={setMessage} assets={assets} setAssets={setAssets}/>
         ))}
       </tbody>
     </Table>

@@ -17,6 +17,40 @@ vi.mock('../src/components/AxiosFunctions', () => ({
     login: vi.fn(() => new Promise((resolve) => resolve({ data: { access: "maxwellKEY", refresh: "spikeKEY" } }))),
 }));
 
-test('Login form Test Render', () => {
-    render(<Watchlist/>);
+test('Watchlist Test Render', () => {
+    render(<Watchlist/>); 
+});
+
+test('Watchlist Test existing ticker submit', async () => {
+    render(<Watchlist/>); 
+    fireEvent.input(screen.getByPlaceholderText("Enter Ticker Here"), { target: { value: "VTI", }, });
+    fireEvent.submit(screen.getByRole("button"));
+  
+      await waitFor(async () => {
+        expect(screen.queryByRole("tickerError")?.textContent).toBeDefined();
+      });
+});
+
+test('Watchlist Test failed submit', async () => {
+
+    render(<Watchlist/>); 
+    fireEvent.submit(screen.getByRole("button"));
+
+    await waitFor(async () => {
+      expect(screen.queryByRole("tickerError")?.textContent).toBeDefined();
+      });
+});
+
+test('Watchlist Test f submit', async () => {
+    render(<Watchlist/>); 
+    fireEvent.input(screen.getByPlaceholderText("Enter Ticker Here"), { target: { value: "C", }, });
+    fireEvent.submit(screen.getByRole("button"));
+  
+      await waitFor(async () => {
+        expect(screen.queryByRole("tickerError")?.textContent).not.toBeDefined();
+        expect(screen.queryAllByRole("ticker")).toHaveLength(3);
+        expect(screen.queryAllByRole("percentChange")).toHaveLength(3);
+        expect(screen.queryAllByRole("delete")).toHaveLength(3);
+      });
+
 });

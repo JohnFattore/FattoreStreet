@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { deleteAsset, getQuote } from './AxiosFunctions';
 import { IQuote } from '../interfaces';
 
-export default function AssetRow({ asset, setChange, setMessage, index }) {
+export default function AssetRow({ asset, setMessage, assets, setAssets }) {
 
     const [quote, setQuote] = useState<IQuote>({ price: 0, percentChange: 0, });
 
@@ -13,9 +13,9 @@ export default function AssetRow({ asset, setChange, setMessage, index }) {
                 setQuote({ price: response.data.c, percentChange: response.data.dp });
             })
             .catch(() => {
-                setMessage("error getting some stock prices")
+                setMessage({ text: "error getting some stock prices", type: "error" })
             });
-    }, [asset.ticker]);
+    }, []);
 
     if (!quote) return null;
 
@@ -29,7 +29,7 @@ export default function AssetRow({ asset, setChange, setMessage, index }) {
     }
 
     return (
-        <tr key={index}>
+        <tr key={asset.id}>
             <td role="ticker">{asset.ticker}</td>
             <td role="shares">{asset.shares}</td>
             <td role="costbasis">${asset.costbasis}</td>
@@ -47,8 +47,15 @@ export default function AssetRow({ asset, setChange, setMessage, index }) {
             })}%</td>
             <td role="buy">{asset.buy}</td>
             <td onClick={() => {
-                deleteAsset(asset.id)
-                setChange(true)
+                deleteAsset(asset.id).then(() => {
+                    let allAssets = assets;
+                    allAssets = allAssets.filter(e => e !== asset);
+                    setAssets(allAssets);
+                    setMessage({ text: asset.ticker + " deleted", type: "success" })
+                })
+                .catch(() => {
+                    setMessage({ text: "There was a problem deleting the asset", type: "error" })
+                })
             }}>DELETE</td>
         </tr>
     )
