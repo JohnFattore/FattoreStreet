@@ -16,7 +16,7 @@ export default function AssetTable({ setMessage, assets, setAssets}) {
       })
   },[]);
 
-  if (!assets) return null;
+  //if (!assets) return null;
 
   if (assets.length == 0) {
     return (<h3 role="noAssets">You don't own any assets</h3>)

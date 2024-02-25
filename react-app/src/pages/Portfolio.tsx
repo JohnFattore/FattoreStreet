@@ -6,6 +6,7 @@ import { IMessage, IAsset } from '../interfaces';
 import { setAlertVarient } from '../components/helperFunctions';
 
 export default function Portfolio() {
+
     const [message, setMessage] = useState<IMessage>({text: "", type: ""})
     const [assets, setAssets] = useState<IAsset[]>([]);
 
