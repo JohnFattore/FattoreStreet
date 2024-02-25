@@ -34,7 +34,7 @@ export default function WatchListForm({ setMessage, setTickers }) {
           }
           else {
             allTickers.push(data.ticker);
-            setTickers(allTickers)
+            setTickers(allTickers);
             tickersDB = JSON.stringify(allTickers);
             localStorage.setItem("tickers", tickersDB);
             setMessage({ text: data.ticker + " added to watchlist", type: "success"});

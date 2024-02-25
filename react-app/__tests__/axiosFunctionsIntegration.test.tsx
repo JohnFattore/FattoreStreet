@@ -13,7 +13,8 @@ it('postAsset, getAssets, deleteAsset Test', async () => {
         ticker: "AAPL",
         shares: 4,
         costbasis: 200,
-        buy: "2023-10-13"
+        buy: "2023-10-13",
+        id: 1
     }
     const postResponse = await postAsset(asset)
     expect(postResponse.status).to.equal(201)

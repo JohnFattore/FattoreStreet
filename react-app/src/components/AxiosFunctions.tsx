@@ -70,3 +70,13 @@ export const login = async (username: string, password: string) => {
   sessionStorage.setItem("refresh", response.data.refresh);
   return response
 }
+
+// register would conflict with the useForm hook
+export const postUser = async (username: string, password: string, email: string) => {
+  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("users/"), {
+    username: username,
+    password: password,
+    email: email,
+  })
+  return response
+}

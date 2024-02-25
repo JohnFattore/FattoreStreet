@@ -12,7 +12,7 @@ export default function AssetTable({ setMessage, assets, setAssets}) {
         const data: IAsset[] = response.data
         setAssets(data);
       }).catch(() => {
-        setMessage({text: "Error: Can't get assets", type: "error"})
+        setMessage({text: "There was a problem getting assets", type: "error"})
       })
   },[]);
 

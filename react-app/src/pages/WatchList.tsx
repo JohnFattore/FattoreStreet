@@ -6,9 +6,15 @@ import { IMessage } from '../interfaces';
 import { setAlertVarient } from '../components/helperFunctions';
 
 export default function WatchList() {
-    // assets is changed in useEffect, so another variable is needed to not cause the useEffect function to loop infinitly
-    const [message, setMessage] = useState<IMessage>({text: "", type: ""})
-    const [tickers, setTickers] = useState([]);
+    const [message, setMessage] = useState<IMessage>({text: "", type: ""});
+    if (localStorage.getItem("tickers") == null) {
+        let allTickers: string[] = (["VTI", "SPY"]);
+        let tickersDB: string = (JSON.stringify(allTickers));
+        localStorage.setItem("tickers", tickersDB);
+      };
+    const tickersDB = (localStorage.getItem("tickers") as string);
+    const [tickers, setTickers] = useState<string[]>(JSON.parse(tickersDB) as string[]);
+    // tickers stored as string, but handled as array of strings
 
     return (
         <>

@@ -19,20 +19,27 @@ vi.mock('../src/components/AxiosFunctions', () => ({
 
 test('Watchlist Test Render', () => {
     render(<Watchlist/>); 
+    expect(screen.queryAllByRole("ticker")).toHaveLength(2);
+    expect(screen.queryAllByRole("percentChange")).toHaveLength(2);
+    expect(screen.queryAllByRole("delete")).toHaveLength(2);
 });
 
-test('Watchlist Test existing ticker submit', async () => {
-    render(<Watchlist/>); 
-    fireEvent.input(screen.getByPlaceholderText("Enter Ticker Here"), { target: { value: "VTI", }, });
-    fireEvent.submit(screen.getByRole("button"));
-  
-      await waitFor(async () => {
-        expect(screen.queryByRole("tickerError")?.textContent).toBeDefined();
-      });
+// new users get VTI and SPY in their watchlist
+test('Watchlist Test successful submit', async () => {
+  render(<Watchlist/>); 
+  fireEvent.input(screen.getByPlaceholderText("Enter Ticker Here"), { target: { value: "C", }, });
+  fireEvent.submit(screen.getByRole("button"));
+
+    await waitFor(async () => {
+      expect(screen.queryAllByRole("ticker")).toHaveLength(3);
+      expect(screen.queryAllByRole("percentChange")).toHaveLength(3);
+      expect(screen.queryAllByRole("delete")).toHaveLength(3);
+      expect(screen.queryByRole("tickerError")?.textContent).not.toBeDefined();
+    });
+
 });
 
 test('Watchlist Test failed submit', async () => {
-
     render(<Watchlist/>); 
     fireEvent.submit(screen.getByRole("button"));
 
@@ -41,16 +48,13 @@ test('Watchlist Test failed submit', async () => {
       });
 });
 
-test('Watchlist Test f submit', async () => {
-    render(<Watchlist/>); 
-    fireEvent.input(screen.getByPlaceholderText("Enter Ticker Here"), { target: { value: "C", }, });
-    fireEvent.submit(screen.getByRole("button"));
-  
-      await waitFor(async () => {
-        expect(screen.queryByRole("tickerError")?.textContent).not.toBeDefined();
-        expect(screen.queryAllByRole("ticker")).toHaveLength(3);
-        expect(screen.queryAllByRole("percentChange")).toHaveLength(3);
-        expect(screen.queryAllByRole("delete")).toHaveLength(3);
-      });
+// this one needs to add "VTI" before the exisitng ticker error will appear
+test('Watchlist Test existing ticker submit', async () => {
+  render(<Watchlist/>); 
+  fireEvent.input(screen.getByPlaceholderText("Enter Ticker Here"), { target: { value: "VTI", }, });
+  fireEvent.submit(screen.getByRole("button"));
 
+    await waitFor(async () => {
+      expect(screen.queryByRole("message")?.textContent).toBeDefined();
+    });
 });

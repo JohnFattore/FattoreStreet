@@ -29,6 +29,11 @@ test('WatchList Row Test', () => {
 
 // adding a ticker is tested in integration test
 test('WatchListTable Test', () => {
+  render(<WatchListTable setMessage={console.log} tickers={[]} setTickers={console.log}/>);
+});
+
+// adding a ticker is tested in integration test
+test('WatchListTable Test', () => {
   render(<WatchListTable setMessage={console.log} tickers={["VTI", "SPY"]} setTickers={console.log}/>);
   expect(screen.queryAllByRole("ticker")).toHaveLength(2);
   expect(screen.queryAllByRole("percentChange")).toHaveLength(2);

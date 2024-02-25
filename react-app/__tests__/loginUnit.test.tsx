@@ -23,11 +23,11 @@ vi.mock("react-router-dom", () => ({
 }));
 
 test('Login form Test Render', () => {
-    render(<LoginForm setError={console.log} setSuccess={console.log}/>);
+    render(<LoginForm setMessage={console.log}/>);
 });
 
 test('Login form Test password blank', async () => {
-    render(<LoginForm setError={console.log} setSuccess={console.log}/>);
+    render(<LoginForm setMessage={console.log}/>);
     fireEvent.input(screen.getByPlaceholderText("Username"), { target: { value: "maxwell", }, })
     fireEvent.submit(screen.getByRole("button"));
     await waitFor(() => {
@@ -37,7 +37,7 @@ test('Login form Test password blank', async () => {
 });
 
 test('Login form Test full successful submit', async () => {
-    render(<LoginForm setError={console.log} setSuccess={console.log}/>);
+    render(<LoginForm setMessage={console.log}/>);
     fireEvent.input(screen.getByPlaceholderText("Username"), { target: { value: "maxwell", }, })
     fireEvent.input(screen.getByPlaceholderText("Password"), { target: { value: "secret password", }, })
     fireEvent.submit(screen.getByRole("button"));

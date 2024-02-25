@@ -6,12 +6,22 @@ export default function WatchListRow({ ticker, index, setMessage, setTickers }) 
 
     // Get request to Finnhub for stock quote
     useEffect(() => {
-        getQuote(ticker)
-            .then((response) => {
-                setQuote({ price: response.data.c, percentChange: response.data.dp });
-            }).catch(() => {
-                setMessage({ text: "We are experincing are issue getting some asset data", type: "error" })
-            });
+
+        // if ticker in localstorage and timestamp is less than 5 min ago
+        let storedQuote = localStorage.getItem(ticker);
+        if (storedQuote != null) {
+            let listQuote = JSON.parse(storedQuote);
+            setQuote({ price: listQuote[0], percentChange: listQuote[1] })
+        }
+        else {
+            getQuote(ticker).then((response) => {
+                    setQuote({ price: response.data.c, percentChange: response.data.dp });
+                    localStorage.setItem(ticker, JSON.stringify([quote.price, quote.percentChange]));
+                    // store in storage with ticker, stock data, and a time stamp
+                }).catch(() => {
+                    setMessage({ text: "We are experincing are issue getting some asset data", type: "error" })
+                });
+        }
     }, []);
 
     if (!quote) return null;
@@ -40,7 +50,7 @@ export default function WatchListRow({ ticker, index, setMessage, setTickers }) 
                 setTickers(tickers)
                 tickersDB = JSON.stringify(tickers);
                 localStorage.setItem("tickers", tickersDB);
-                setMessage({ text: ticker + " deleted from watchlist", type: "success" })
+                setMessage({ text: ticker + " deleted from watchlist", type: "success" });
             }}>delete</td>
         </tr>)
 }

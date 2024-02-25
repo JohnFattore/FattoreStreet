@@ -1,16 +1,16 @@
 import LoginForm from '../components/LoginForm';
 import { useState } from 'react';
 import Alert from 'react-bootstrap/Alert';
+import { IMessage } from '../interfaces';
+import { setAlertVarient } from '../components/helperFunctions';
 
 export default function Login() {
-    const [error, setError] = useState("noError")
-    const [success, setSuccess] = useState("noSuccess")
+    const [ message, setMessage ] = useState<IMessage>({text: "", type: ""})
     return (
         <>
             <h3>Login to your Fattore Account</h3>
-            <LoginForm setError={setError} setSuccess={setSuccess}/>
-            {error != "noError" && <Alert variant='danger' dismissible transition>{error} </Alert>}
-            {success != "noSuccess" && <Alert dismissible transition>{success} </Alert>}
+            <LoginForm setMessage={setMessage}/>
+            {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
         </>
     );
 }

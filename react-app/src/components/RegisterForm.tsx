@@ -1,22 +1,18 @@
-import axios from 'axios';
-import { Form, Button, Col, Row } from 'react-bootstrap';
+import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { useContext } from 'react';
-import { ENVContext } from './ENVContext';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate } from "react-router-dom";
+import { postUser, login } from './AxiosFunctions';
 
 interface IFormInput {
     username: string,
-    password: string,    
+    password: string,
     email: string
 
 }
 
-function RegisterForm() {
-
-    const ENV = useContext(ENVContext);
+export default function RegisterForm({ setMessage }) {
     const navigate = useNavigate();
 
     const schema = yup.object().shape({
@@ -31,23 +27,15 @@ function RegisterForm() {
     })
     //console.log(watch("username"))
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        axios.post(ENV.djangoURL.concat("users/"), {
-            username: data.username,
-            password: data.password,
-            email: data.email,
-        }).then(() => {
-            axios.post(ENV.djangoURL.concat("token/"), {
-                username: data.username,
-                password: data.password,
-            }).then((response) => {
-                sessionStorage.setItem("token", response.data.access);
-                sessionStorage.setItem("refresh", response.data.refresh);
-                alert("Welcome ".concat(data.username, "!!!"));
-                navigate("/portfolio");
+        postUser(data.username, data.password, data.email)
+            .then(() => {
+                login(data.username, data.password)
+                    .then(() => {
+                        navigate("/portfolio");
+                    });
+            }).catch(() => {
+                setMessage({text: "Error Registering, the username is probably already taken", type: "error"});
             });
-        }).catch(() => {
-            alert("Error Registering, the username is probably already taken");
-        });
     }
 
     return (
@@ -57,20 +45,20 @@ function RegisterForm() {
                     <Form.Control size="lg" {...register("username", {
                         required: true
                     })} placeholder='Username' />
-                    {errors.username && <p>This field is required</p>}
+                    {errors.username && <Alert variant='danger' role="usernameError">This field is required</Alert>}
 
                 </Col>
                 <Col sm={3}>
                     <Form.Control size="lg" {...register("password", {
                         required: true
                     })} placeholder='Password' />
-                    {errors.password && <p>This field is required</p>}
+                    {errors.password && <Alert variant='danger' role="passwordError">This field is required</Alert>}
                 </Col>
                 <Col sm={3}>
                     <Form.Control size="lg" {...register("email", {
                         required: true
                     })} placeholder='Email' />
-                    {errors.email && <p>This field is required</p>}
+                    {errors.email && <Alert variant='danger' role="emailError">This field is required</Alert>}
                 </Col>
             </Row>
 
@@ -78,5 +66,3 @@ function RegisterForm() {
         </Form>
     );
 }
-
-export default RegisterForm;

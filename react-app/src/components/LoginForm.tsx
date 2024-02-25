@@ -8,18 +8,18 @@ interface IFormInput {
     password: string
 }
 
-export default function LoginForm({ setError, setSuccess }) {
+export default function LoginForm({ setMessage }) {
     const navigate = useNavigate();
     const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>()
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
         // on submit, post to server with values in the form
         login(data.username, data.password)
             .then(() => {
-                setSuccess("Welcome ".concat(data.username, "!!!"));
+                setMessage({text: "Welcome ".concat(data.username, "!!!"), type: "success"});
                 navigate("/portfolio");
             })
             .catch(() => {
-                setError("Wrong Username / Password");
+                setMessage({text: "Wrong Username / Password", type: "error"});
             });
     }
     return (
