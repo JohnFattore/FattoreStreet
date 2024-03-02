@@ -11,6 +11,7 @@ import { getAssets, getQuote, postAsset } from '../src/components/AxiosFunctions
 afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    localStorage.clear();
 });
 
 const message: IMessage = {text: "", type: ""}
@@ -24,9 +25,18 @@ vi.mock('../src/components/AxiosFunctions', () => ({
     postAsset: vi.fn(() => new Promise((resolve) => resolve({ status: 201 }))),
 }));
 
+
+test('Asset Row Test', () => {
+    render(<AssetRow asset={asset} setMessage={console.log} dispatch={console.log} />);
+    expect(getQuote).toBeCalled()
+    expect(screen.queryByRole("ticker")?.textContent).to.equal(asset.ticker);
+    expect(screen.queryByRole("shares")?.textContent).to.equal(asset.shares.toString());
+    expect(screen.queryByRole("costbasis")?.textContent).to.equal("$" + asset.costbasis.toString());
+});
+
 //console.log is just a random function passed for the sake of testing
 test('Asset Table Test no assets', async () => {
-    render(<AssetTable setMessage={console.log} assets={[]} setAssets={console.log} />);
+    render(<AssetTable setMessage={console.log} assets={[]} dispatch={console.log} />);
     await waitFor(() => {
         expect(getAssets).toBeCalled()
         expect(screen.queryByRole("noAssets")?.textContent).to.equal("You don't own any assets")
@@ -35,27 +45,30 @@ test('Asset Table Test no assets', async () => {
 
 // setAssets being console.log sorta messes this test up, more rigirous testing in integration
 test('Asset Table Test 1 asset', async () => {
-    render(<AssetTable setMessage={console.log} assets={[asset]} setAssets={console.log}/>);
+    render(<AssetTable setMessage={console.log} assets={[asset]} dispatch={console.log}/>);
     await waitFor(() => {
         expect(screen.queryByRole("ticker")?.textContent).to.include("SPY")
         expect(screen.queryByRole("tickerHeader")?.textContent).to.include("Ticker")
-        expect(getAssets).toBeCalled()
+        expect(getAssets).not.toBeCalled()
         expect(screen.queryByRole("shares")?.textContent).to.include("7")
         expect(screen.queryByRole("costbasis")?.textContent).to.include("210")
         expect(screen.queryByRole("buy")?.textContent).to.include("2024-01-01")
     });
 });
 
-test('Asset Row Test', () => {
-    render(<AssetRow asset={asset} setMessage={console.log} assets={[asset]} setAssets={console.log} />);
-    expect(getQuote).toBeCalled()
-    expect(screen.queryByRole("ticker")?.textContent).to.equal(asset.ticker);
-    expect(screen.queryByRole("shares")?.textContent).to.equal(asset.shares.toString());
-    expect(screen.queryByRole("costbasis")?.textContent).to.equal("$" + asset.costbasis.toString());
+// setAssets being console.log sorta messes this test up, more rigirous testing in integration
+test('Asset Table Test 3 assets', async () => {
+    render(<AssetTable setMessage={console.log} assets={[asset, asset, asset]} dispatch={console.log}/>);
+        expect(await screen.findAllByRole("ticker")).toHaveLength(3);
+        expect(screen.queryByRole("tickerHeader")?.textContent).to.include("Ticker")
+        expect(getAssets).not.toBeCalled()
+        expect(await screen.findAllByRole("shares")).toHaveLength(3);
+        expect(await screen.findAllByRole("costbasis")).toHaveLength(3);
+        expect(await screen.findAllByRole("buy")).toHaveLength(3);
 });
 
 test('Asset Form Test black submit', async () => {
-    render(<AssetForm setMessage={console.log} assets={[asset]} setAssets={console.log}/>);
+    render(<AssetForm setMessage={console.log} dispatch={console.log}/>);
     fireEvent.submit(screen.getByRole("button"));
     // this line
     expect(await screen.findAllByRole("tickerError")).toHaveLength(1);
@@ -67,7 +80,7 @@ test('Asset Form Test black submit', async () => {
 });
 
 test('Asset Form Test cost basis blank submit', async () => {
-    render(<AssetForm setMessage={console.log} assets={[asset]} setAssets={console.log}/>);
+    render(<AssetForm setMessage={console.log} dispatch={console.log}/>);
     expect(screen.queryByRole("purchase")?.textContent).not.toBeDefined();
 
     fireEvent.input(screen.getByPlaceholderText("Ticker"), { target: { value: "VTI", }, })
@@ -84,7 +97,7 @@ test('Asset Form Test cost basis blank submit', async () => {
 });
 
 test('Asset Form Test full submit', async () => {
-    render(<AssetForm setMessage={console.log} assets={[asset]} setAssets={console.log}/>);
+    render(<AssetForm setMessage={console.log} dispatch={console.log}/>);
 
     fireEvent.input(screen.getByPlaceholderText("Ticker"), { target: { value: "VTI", }, });
     fireEvent.input(screen.getByPlaceholderText("Shares"), { target: { value: "5", }, });

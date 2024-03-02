@@ -1,4 +1,6 @@
 export default {
-    setupFiles: ['./setupTests.ts'],
-    // other vitest configuration...    outDir: '../nginx/dist',
-  };
+  //setupFiles: ['./setupTests.ts'],
+  tests: {
+    setupFiles: ['./__tests__/setupTests.ts'],
+  }
+};

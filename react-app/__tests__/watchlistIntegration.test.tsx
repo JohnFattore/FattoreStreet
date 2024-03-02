@@ -6,8 +6,9 @@ import React from 'react';
 import Watchlist from '../src/pages/WatchList'
 
 afterEach(() => {
-    cleanup();
-    vi.clearAllMocks();
+  cleanup();
+  vi.clearAllMocks();
+  localStorage.clear();
 });
 
 vi.mock('../src/components/AxiosFunctions', () => ({

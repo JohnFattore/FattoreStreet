@@ -10,6 +10,7 @@ import { IMessage } from '../src/interfaces';
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  localStorage.clear();
 });
 
 const message: IMessage = { text: "", type: "" }

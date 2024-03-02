@@ -1,30 +1,7 @@
-import { useState, useEffect } from 'react';
-import { getQuote } from './AxiosFunctions';
+import { useQuote } from "./helperFunctions";
 
 export default function WatchListRow({ ticker, index, setMessage, setTickers }) {
-    const [quote, setQuote] = useState<{ price: number; percentChange: number }>({ price: 0, percentChange: 0 });
-
-    // Get request to Finnhub for stock quote
-    useEffect(() => {
-
-        // if ticker in localstorage and timestamp is less than 5 min ago
-        let storedQuote = localStorage.getItem(ticker);
-        if (storedQuote != null) {
-            let listQuote = JSON.parse(storedQuote);
-            setQuote({ price: listQuote[0], percentChange: listQuote[1] })
-        }
-        else {
-            getQuote(ticker).then((response) => {
-                    setQuote({ price: response.data.c, percentChange: response.data.dp });
-                    localStorage.setItem(ticker, JSON.stringify([quote.price, quote.percentChange]));
-                    // store in storage with ticker, stock data, and a time stamp
-                }).catch(() => {
-                    setMessage({ text: "We are experincing are issue getting some asset data", type: "error" })
-                });
-        }
-    }, []);
-
-    if (!quote) return null;
+    const quote = useQuote(ticker, setMessage)
 
     var color = "red";
     if (quote.percentChange > 0) {

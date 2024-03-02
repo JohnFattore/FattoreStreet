@@ -4,8 +4,11 @@ import { expect, test, it, vi, afterEach } from 'vitest'
 import React from 'react';
 import Allocation from "../src/pages/Allocation";
 
-afterEach(() => { cleanup(); });
-
+afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    localStorage.clear();
+});
 // mocked functions override real API calls
 vi.mock('../src/components/AxiosFunctions', () => ({
     __esModule: true,

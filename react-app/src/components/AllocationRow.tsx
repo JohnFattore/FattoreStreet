@@ -1,22 +1,7 @@
-import React from 'react';
-import { useState } from 'react';
-import { getQuote } from './AxiosFunctions';
+import { useQuote } from "./helperFunctions";
 
 export default function AllocationRow({ allocation, setMessage }) {
-    const [quote, setQuote] =
-        useState<{ price: number; percentChange: number }>({ price: 0, percentChange: 0, });
-
-    // Get request to Finnhub for stock quote
-    React.useEffect(() => {
-        getQuote(allocation.ticker)
-            .then((response) => {
-                setQuote({ price: response.data.c, percentChange: response.data.dp });
-            }).catch(() =>
-                setMessage({ text: "There was a problem getting some assets quotes", type: "error" })
-            );
-    }, [allocation.ticker]);
-
-    if (!quote) return null;
+    const quote = useQuote(allocation.ticker, setMessage)
 
     return (
         <tr>

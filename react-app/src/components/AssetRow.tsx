@@ -1,23 +1,8 @@
-import { useState, useEffect } from 'react';
-import { deleteAsset, getQuote } from './AxiosFunctions';
-import { IQuote } from '../interfaces';
+import { deleteAsset } from './AxiosFunctions';
+import { useQuote } from './helperFunctions';
 
-export default function AssetRow({ asset, setMessage, assets, setAssets }) {
-
-    const [quote, setQuote] = useState<IQuote>({ price: 0, percentChange: 0, });
-
-    // Get request to Finnhub for stock quote
-    useEffect(() => {
-        getQuote(asset.ticker)
-            .then((response) => {
-                setQuote({ price: response.data.c, percentChange: response.data.dp });
-            })
-            .catch(() => {
-                setMessage({ text: "error getting some stock prices", type: "error" })
-            });
-    }, []);
-
-    if (!quote) return null;
+export default function AssetRow({ asset, setMessage, dispatch }) {
+    const quote = useQuote(asset.ticker, setMessage)
 
     const totalCostBasis = asset.costbasis * asset.shares;
     const totalMarketPrice = quote.price * asset.shares;
@@ -48,14 +33,12 @@ export default function AssetRow({ asset, setMessage, assets, setAssets }) {
             <td role="buy">{asset.buy}</td>
             <td onClick={() => {
                 deleteAsset(asset.id).then(() => {
-                    let allAssets = assets;
-                    allAssets = allAssets.filter(e => e !== asset);
-                    setAssets(allAssets);
+                    dispatch({type: "delete", asset: asset});
                     setMessage({ text: asset.ticker + " deleted", type: "success" })
                 })
-                .catch(() => {
-                    setMessage({ text: "There was a problem deleting the asset", type: "error" })
-                })
+                    .catch(() => {
+                        setMessage({ text: "There was a problem deleting the asset", type: "error" })
+                    })
             }}>DELETE</td>
         </tr>
     )

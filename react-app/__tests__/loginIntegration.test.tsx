@@ -9,6 +9,7 @@ import { login } from '../src/components/AxiosFunctions';
 afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    localStorage.clear();
 });
 
 vi.mock('../src/components/AxiosFunctions', () => ({

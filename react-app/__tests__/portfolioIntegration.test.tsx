@@ -8,6 +8,7 @@ import { getAssets, getQuote, postAsset } from '../src/components/AxiosFunctions
 afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    localStorage.clear();
 });
 
 const assets = [{ ticker: "VTI", shares: 5, costbasis: 180, buy: '2023-02-14' }];

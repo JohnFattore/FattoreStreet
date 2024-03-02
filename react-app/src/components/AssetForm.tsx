@@ -4,7 +4,6 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
 import { getQuote, postAsset } from './AxiosFunctions';
-import { IAsset } from '../interfaces';
 
 interface IFormInput {
     ticker: string,
@@ -13,7 +12,7 @@ interface IFormInput {
     buyDate: string
 }
 
-export default function AssetForm({ setMessage, assets, setAssets }) {
+export default function AssetForm({ setMessage, dispatch }) {
     // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
         ticker: yup.string().required().uppercase(),
@@ -33,28 +32,27 @@ export default function AssetForm({ setMessage, assets, setAssets }) {
                 if (response.data.d == null)
                     setMessage({text: "Invalid Ticker", type: "error"})
                 else {
-                    let asset: IAsset = {
+                    postAsset({
                         ticker: data.ticker,
                         shares: data.shares,
                         costbasis: data.costBasis,
                         buy: data.buyDate,
                         // just a place holder
                         id: 1
-                    }
-                    postAsset(asset)
+                    })
                         .then((response) => {
                             setMessage({
                                 text: data.shares + " shares of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate,
                                 type: "success"
                             })
-                            asset = {
+                            const asset = {
                                 ticker: data.ticker,
                                 shares: data.shares,
                                 costbasis: data.costBasis,
                                 buy: data.buyDate,
                                 id: response.data.id
                             }
-                            setAssets([...assets, asset])
+                            dispatch({type: "add", asset: asset})
                         })
                         .catch(() => {
                             setMessage({ text: "There was a problem with the asset purchase", type: "error" })

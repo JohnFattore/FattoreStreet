@@ -9,7 +9,7 @@ from django.urls import reverse
 import json
 
 
-class EndToEndTest1(APITestCase):
+class integration(APITestCase):
     def setUp(self):
         # self.url = reverse('asset')
         self.view = UserCreateView.as_view()
@@ -22,4 +22,4 @@ class EndToEndTest1(APITestCase):
         response = self.client.post(reverse('token_obtain_pair'), loginData, format='json')
         token = response.data['access']
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
-        self.assertEqual()
+        # self.assertEqual()

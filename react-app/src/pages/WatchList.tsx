@@ -6,15 +6,13 @@ import { IMessage } from '../interfaces';
 import { setAlertVarient } from '../components/helperFunctions';
 
 export default function WatchList() {
-    const [message, setMessage] = useState<IMessage>({text: "", type: ""});
+    const [message, setMessage] = useState<IMessage>({ text: "", type: "" });
+    // tickers stored as string, but handled as array of strings
     if (localStorage.getItem("tickers") == null) {
         let allTickers: string[] = (["VTI", "SPY"]);
-        let tickersDB: string = (JSON.stringify(allTickers));
-        localStorage.setItem("tickers", tickersDB);
-      };
-    const tickersDB = (localStorage.getItem("tickers") as string);
-    const [tickers, setTickers] = useState<string[]>(JSON.parse(tickersDB) as string[]);
-    // tickers stored as string, but handled as array of strings
+        localStorage.setItem("tickers", (JSON.stringify(allTickers)));
+    };
+    const [tickers, setTickers] = useState<string[]>(JSON.parse(localStorage.getItem("tickers") as string) as string[]);
 
     return (
         <>

@@ -1,5 +1,6 @@
 export interface IAllocation {
-    ticker: string; shares: number;
+    ticker: string; 
+    shares: number;
 }
 
 export interface IAsset {
@@ -10,11 +11,6 @@ export interface IAsset {
     id: number,
 }
 
-export interface IOption {
-    ticker: string,
-    sunday: string
-}
-
 export interface IQuote {
     price: number,
     percentChange: number
@@ -23,4 +19,17 @@ export interface IQuote {
 export interface IMessage {
     text: string,
     type: string
+}
+
+export interface IOption {
+    ticker: string,
+    sunday: string,
+    id: number
+}
+
+export interface ISelection {
+    option: number,
+    sunday: string,
+    user: number,
+    id: number
 }

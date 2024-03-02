@@ -6,7 +6,11 @@ import AllocationRow from "../src/components/AllocationRow";
 import AllocationTable from "../src/components/AllocationTable";
 import { IAllocation } from '../src/interfaces';
 
-afterEach(() => { cleanup(); });
+afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    localStorage.clear();
+});
 
 // mocked functions override real API calls
 vi.mock('../src/components/AxiosFunctions', () => ({
@@ -18,13 +22,13 @@ vi.mock('../src/components/AxiosFunctions', () => ({
 // without waitFor, component renders with empty API calls
 
 test('Allocation Table Test, No Assets', () => {
-    render(<AllocationTable setError={console.log} />);
+    render(<AllocationTable setMessage={console.log} />);
     expect(screen.queryByRole('noAssets')?.textContent).to.include("You don't own any assets");
 });
 
 
 test('Allocation Table Test, 1 Asset', async () => {
-    render(<AllocationTable setError={console.log} />);
+    render(<AllocationTable setMessage={console.log} />);
     await waitFor(() => {
         expect(screen.queryByRole('tickerHeader')?.textContent).to.equal("Ticker");
         expect(screen.queryByRole('ticker')?.textContent).to.equal("VTI");
@@ -42,7 +46,7 @@ const allocation: IAllocation = {
     shares: 5
 }
 it('Allocation Row Test', async () => {
-    render(<AllocationRow allocation={allocation} setError={console.log} />);
+    render(<AllocationRow allocation={allocation} setMessage={console.log} />);
     await waitFor(() => {
         expect(screen.queryByRole('ticker')?.textContent).to.include(allocation.ticker);
         expect(screen.queryByRole('shares')?.textContent).to.include(allocation.shares);

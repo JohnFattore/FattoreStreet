@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    localStorage.clear();
 });
 
 vi.mock('../src/components/AxiosFunctions', () => ({

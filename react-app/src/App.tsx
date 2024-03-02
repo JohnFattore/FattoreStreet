@@ -18,7 +18,6 @@ import { ENVContext } from "./components/ENVContext"
 
 // react router for all our routes
 export default function App() {
-
   const ENV = useContext(ENVContext);
   const navigate = useNavigate();
   // axios interceptor that handles refreshing JWT
@@ -44,7 +43,7 @@ export default function App() {
   });
 
   return (
-    <ENVContext.Provider value={ENV}>
+    <>
       <TopNavigation />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -57,6 +56,6 @@ export default function App() {
         <Route path="/entertainment" element={<Entertainment />} />
       </Routes>
       <p>Passive Investing is Awesome!!</p>
-    </ENVContext.Provider>
+    </>
   );
 }

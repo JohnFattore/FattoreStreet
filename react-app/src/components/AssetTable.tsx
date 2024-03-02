@@ -1,23 +1,26 @@
-import { useEffect } from 'react';
 import Table from 'react-bootstrap/Table';
 import AssetRow from './AssetRow'
 import { IAsset } from '../interfaces';
+import { useEffect } from 'react';
 import { getAssets } from './AxiosFunctions';
 
-export default function AssetTable({ setMessage, assets, setAssets}) {
+export default function AssetTable({ setMessage, assets, dispatch }) {
 
+  let data: IAsset[] = []
   useEffect(() => {
-    getAssets()
-      .then((response) => {
-        const data: IAsset[] = response.data
-        setAssets(data);
-      }).catch(() => {
-        setMessage({text: "There was a problem getting assets", type: "error"})
-      })
-  },[]);
-
-  //if (!assets) return null;
-
+    if (assets.length == 0) {
+      getAssets()
+        .then((response) => {
+          data = response.data
+          for (let i = 0; i < data.length; i++) {
+            dispatch({ type: "add", asset: data[i] })
+          }
+        }).catch(() => {
+          setMessage({ text: "There was a problem getting assets", type: "error" })
+        }) 
+    }
+  }, []);
+ 
   if (assets.length == 0) {
     return (<h3 role="noAssets">You don't own any assets</h3>)
   }
@@ -38,7 +41,7 @@ export default function AssetTable({ setMessage, assets, setAssets}) {
       </thead>
       <tbody>
         {assets.map((asset: IAsset) => (
-          <AssetRow asset={asset} setMessage={setMessage} assets={assets} setAssets={setAssets}/>
+          <AssetRow asset={asset} setMessage={setMessage} dispatch={dispatch} />
         ))}
       </tbody>
     </Table>

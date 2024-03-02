@@ -2,22 +2,6 @@ import Table from 'react-bootstrap/Table';
 import WatchListRow from './WatchListRow';
 
 export default function WatchListTable({setMessage, tickers, setTickers}) {
-  //const [tickers, setTickers] = useState<String[]>([]);
-  // if storage changes, update lists of tickers, doesnt work
-  //useEffect(() => {
-    /*
-    // if no watch list yet, add a starter one
-    if (localStorage.getItem("tickers") == null) {
-      let allTickers: string[] = (["VTI", "SPY"]);
-      let tickersDB: string = (JSON.stringify(allTickers));
-      localStorage.setItem("tickers", tickersDB);
-    };
-    */
-  
-    // tickers stored as string, but handled as array of strings
-    //const tickersDB = (localStorage.getItem("tickers") as string);
-    //setTickers(JSON.parse(tickersDB) as string[]);
-  //}, [])
 
   return (
     <Table>

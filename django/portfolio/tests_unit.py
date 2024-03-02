@@ -92,7 +92,6 @@ class AssetDeleteTest(APITestCase):
 
     # idk
     def test_delete_asset_unauthenticated(self):
-        print(self.url)
         request = self.factory.delete(self.url, format='json')
         # force_authenticate(request, user=self.user)
         response = self.view(request)

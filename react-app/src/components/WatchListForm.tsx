@@ -26,17 +26,15 @@ export default function WatchListForm({ setMessage, setTickers }) {
         if (response.data.d == null)
           setMessage({text: "Ticker isnt valid", type: "error"});
         else {
-          let tickersDB = localStorage.getItem("tickers");
-          let allTickers: string[] = JSON.parse(tickersDB as string);
+          let tickersDB: string[] = JSON.parse(localStorage.getItem("tickers") as string);
           // not let duplicates to be added to list
-          if (allTickers.includes(data.ticker)) {
+          if (tickersDB.includes(data.ticker)) {
             setMessage({text: "Ticker already in watchlist", type: "error"})
           }
           else {
-            allTickers.push(data.ticker);
-            setTickers(allTickers);
-            tickersDB = JSON.stringify(allTickers);
-            localStorage.setItem("tickers", tickersDB);
+            tickersDB.push(data.ticker);
+            setTickers(tickersDB);
+            localStorage.setItem("tickers", JSON.stringify(tickersDB));
             setMessage({ text: data.ticker + " added to watchlist", type: "success"});
             reset();
           }
