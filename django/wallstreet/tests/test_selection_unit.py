@@ -22,8 +22,3 @@ class OptionCreateTest(APITestCase):
         data = {'ticker': 'SPY', 'sunday': '2024-03-03'}
         response = self.view(self.factory.post(self.url, data, format='json'))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-    # integration test
-    def test_option_create_client(self):
-        data = {'ticker': 'SPY', 'sunday': '2024-03-03'}
-        response = self.client.post(self.url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
