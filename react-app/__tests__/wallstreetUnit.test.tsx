@@ -37,7 +37,14 @@ it('OptionRow Test Render', async () => {
     });
 });
 
-it('OptionTable Test Render', async () => {
+it('OptionTable Test 0 option', async () => {
+    render(<OptionTable setMessage={console.log} options={[]} selections={[]} optionsDispatch={console.log} selectionsDispatch={console.log} />);
+    await waitFor(() => {
+        expect(screen.queryByRole('noOptions')?.textContent).to.include("options");
+    });
+});
+
+it('OptionTable Test 1 option', async () => {
     render(<OptionTable setMessage={console.log} options={[option]} selections={[]} optionsDispatch={console.log} selectionsDispatch={console.log} />);
     await waitFor(() => {
         expect(screen.queryByRole('optionTicker')?.textContent).to.include(option.ticker);
@@ -65,7 +72,14 @@ it('SelectionRow Test Render', async () => {
     });
 });
 
-it('SelectionTable Test Render', async () => {
+it('SelectionTable Test 0 Selection', async () => {
+    render(<SelectionTable selections={[]} selectionsDispatch={console.log} setMessage={console.log} options={[option]} />);
+    await waitFor(() => {
+        expect(screen.queryByRole('noSelections')?.textContent).to.include("selections");
+    });
+});
+
+it('SelectionTable Test 1 Selection', async () => {
     render(<SelectionTable selections={[selection]} selectionsDispatch={console.log} setMessage={console.log} options={[option]} />);
     await waitFor(() => {
         expect(screen.queryByRole('selectionTicker')?.textContent).to.include(option.ticker);

@@ -44,6 +44,7 @@ it('postAsset and deleteAsset Test', async () => {
 
 it('getOptions Test', async () => {
     const response = await getOptions()
+    console.log(response.data)
     expect(response.data[0].ticker).to.equal("V")
     expect(response.status).to.equal(200)
 });
@@ -51,6 +52,6 @@ it('getOptions Test', async () => {
 it('getSelections Test', async () => {
     const response = await getSelections()
     console.log(response)
-    expect(response.data[0].sunday).to.equal("2024-03-03")
+    expect(response.data[0].user).to.equal(3)
     expect(response.status).to.equal(200)
 });

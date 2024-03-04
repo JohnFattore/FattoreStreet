@@ -6,7 +6,7 @@ import SelectionRow from './SelectionRow';
 
 export default function SelectionTable({ selections, selectionsDispatch, setMessage, options }) {
 
-    let data: ISelection[] = [] 
+    let data: ISelection[] = []
     useEffect(() => {
         if (selections.length == 0) {
             getSelections()
@@ -21,6 +21,10 @@ export default function SelectionTable({ selections, selectionsDispatch, setMess
                 })
         }
     }, []);
+
+    if (selections.length == 0) {
+        return (<tr role="noSelections">You haven't made any selections for this week</tr>)
+    }
 
     return (
         <Table>

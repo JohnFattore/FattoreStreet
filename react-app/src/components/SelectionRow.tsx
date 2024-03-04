@@ -5,7 +5,9 @@ import { deleteSelection } from './AxiosFunctions';
 export default function SelectionRow({ selection, setMessage, options, selectionsDispatch }) {
     const filterOptions: IOption[] = options.filter((option: IOption) => option.id == selection.option)
     if (filterOptions.length == 0) {
-        //const option = "mistake"
+        console.log(options)
+        console.log(selection)
+        return (<tr><td>There was been a mistake, Spike will investigate</td></tr>)
     }
     const option: IOption = filterOptions[0]
 

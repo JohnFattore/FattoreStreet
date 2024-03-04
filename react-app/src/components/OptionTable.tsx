@@ -22,6 +22,10 @@ export default function OptionTable({ setMessage, options, selections, optionsDi
     }
   }, []);
 
+  if (options.length == 0) {
+    return (<h3 role="noOptions">There are no options for this week</h3>)
+  }
+
   return (
     <Table>
       <thead>

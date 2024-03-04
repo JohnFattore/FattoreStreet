@@ -17,9 +17,4 @@ class OptionSerializer(serializers.ModelSerializer):
 class SelectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Selection
-        fields = ['id', 'option', 'sunday', 'user']
-    def validate_sunday(self, value):
-        # must be a sunday
-        if value.weekday() != 6:
-            raise serializers.ValidationError("Sunday field must be a sunday")
-        return value
+        fields = ['id', 'option', 'user']

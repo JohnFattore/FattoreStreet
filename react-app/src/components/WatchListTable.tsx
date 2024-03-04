@@ -2,7 +2,7 @@ import Table from 'react-bootstrap/Table';
 import WatchListRow from './WatchListRow';
 
 export default function WatchListTable({setMessage, tickers, setTickers}) {
-
+ 
   return (
     <Table>
       <thead>

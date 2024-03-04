@@ -3,5 +3,4 @@ AWSCommands.txt
 .env
 django/mysite/__pycache__/
 *.log
-react-app/.env.staging
 deploy.sh

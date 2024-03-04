@@ -9,21 +9,22 @@ from django.urls import reverse
 
 class OptionCreateTest(APITestCase):
     def setUp(self):
-        # Create a user for authentication
-        self.option = Option.objects.create(ticker='SPY', sunday='2024-03-03')
         self.factory = APIRequestFactory()
         self.client = APIClient()
         self.url = reverse('options')
         # self.url = '/wallstreet/api/options/'
         self.view = OptionListCreateView.as_view()
 
-    # unit test
-    def test_option_create(self):
+    def test_create_option(self):
         data = {'ticker': 'SPY', 'sunday': '2024-03-03'}
         response = self.view(self.factory.post(self.url, data, format='json'))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-    # integration test
-    def test_option_create_client(self):
-        data = {'ticker': 'SPY', 'sunday': '2024-03-03'}
-        response = self.client.post(self.url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_list_options(self):
+        request = self.factory.get(self.url)
+        response = self.view(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_list_options_client(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

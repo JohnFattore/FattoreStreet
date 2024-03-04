@@ -1,0 +1,47 @@
+from rest_framework.test import APITestCase
+from django.contrib.auth.models import User
+from rest_framework import status
+from wallstreet.models import Selection, Option
+from wallstreet.views import SelectionListCreateView
+from rest_framework.test import APIRequestFactory, force_authenticate
+from rest_framework.test import APIClient
+from django.urls import reverse
+
+class OptionCreateTest(APITestCase):
+    def setUp(self):
+        # Create a user for authentication
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        # self.selection = Selection.objects.create(option=1, sunday='2024-03-03', user=self.user.id)
+        self.option = Option.objects.create(ticker="SPY", sunday='2024-03-03')
+        self.factory = APIRequestFactory()
+        self.client = APIClient()
+        self.url = reverse('selections')
+        # self.url = '/wallstreet/api/selections/'
+        self.view = SelectionListCreateView.as_view()
+
+    def test_create_selection(self):
+        data = {'option': self.option.id, 'user': self.user.id}
+        request = self.factory.post(self.url, data, format='json')
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        response.render()
+        print("response: " + str(response.content))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_selection_invalid_option_(self):
+        data = {'option': -1, 'user': self.user.id}
+        request = self.factory.post(self.url, data, format='json')
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_list_selections(self):
+        request = self.factory.get(self.url)
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_list_selections_client(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
