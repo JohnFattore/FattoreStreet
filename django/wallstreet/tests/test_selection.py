@@ -28,6 +28,13 @@ class OptionCreateTest(APITestCase):
         print("response: " + str(response.content))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+    def test_create_selection_duplicate_option_(self):
+        data = {'option': self.option.id, 'user': self.user.id}
+        request = self.factory.post(self.url, data, format='json')
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_create_selection_invalid_option_(self):
         data = {'option': -1, 'user': self.user.id}
         request = self.factory.post(self.url, data, format='json')

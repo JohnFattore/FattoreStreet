@@ -5,7 +5,8 @@ export default function OptionRow({ option, selections, selectionsDispatch, setM
     return (
         <tr key={option.id}>
             <td role="optionTicker" onClick={() => {
-                if (selections.length < 3) {
+                const existingSelection = selections.filter((selection: ISelection) => selection.option == option.id)
+                if (selections.length < 3 && existingSelection.length == 0 ) {
                     postSelection({
                         option: option.id, 
                         sunday: option.sunday,
@@ -26,7 +27,7 @@ export default function OptionRow({ option, selections, selectionsDispatch, setM
                         })
                 }
                 else {
-                    setMessage({ text: "You can only have 3 selections per week", type: "error" })
+                    setMessage({ text: "You can only have 3 unqiue selections per week", type: "error" })
                 }
 
             }}>{option.ticker}</td>
