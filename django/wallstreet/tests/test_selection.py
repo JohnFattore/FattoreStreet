@@ -25,22 +25,34 @@ class OptionCreateTest(APITestCase):
         force_authenticate(request, user=self.user)
         response = self.view(request)
         response.render()
-        print("response: " + str(response.content))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    def test_create_selection_duplicate_option_(self):
+    def test_create_selection_duplicate_option(self):
         data = {'option': self.option.id, 'user': self.user.id}
+        requestPre = self.factory.post(self.url, data, format='json')
+        force_authenticate(requestPre, user=self.user)
+        responsePre = self.view(requestPre)
+        # submit same request again
         request = self.factory.post(self.url, data, format='json')
         force_authenticate(request, user=self.user)
         response = self.view(request)
+        # print("response: " + str(response.content))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_create_selection_invalid_option_(self):
+    def test_create_selection_invalid_option(self):
         data = {'option': -1, 'user': self.user.id}
         request = self.factory.post(self.url, data, format='json')
         force_authenticate(request, user=self.user)
         response = self.view(request)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # only 3 per week!
+    #def test_create_selection_too_many_option(self):
+    #    data = {'option': -1, 'user': self.user.id}
+    #    request = self.factory.post(self.url, data, format='json')
+    #    force_authenticate(request, user=self.user)
+    #    response = self.view(request)
+    #    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_list_selections(self):
         request = self.factory.get(self.url)

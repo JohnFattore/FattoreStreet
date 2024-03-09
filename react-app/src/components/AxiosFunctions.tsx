@@ -55,6 +55,27 @@ export const getQuote = async (ticker: string) => {
   return response
 }
 
+export const getCompanyProfile2 = async (ticker: string) => {
+  const response = await axios.get(import.meta.env.VITE_APP_FINNHUB_URL.concat("stock/profile2/"), {
+    params: {
+      symbol: ticker,
+      token: import.meta.env.VITE_APP_FINNHUB_KEY
+    }
+  });
+  return response
+}
+
+export const getFinancialsReported = async (ticker: string) => {
+  const response = await axios.get(import.meta.env.VITE_APP_FINNHUB_URL.concat("stock/financials-reported/"), {
+    params: {
+      symbol: ticker,
+      // freq: 'annual',  // which is default
+      token: import.meta.env.VITE_APP_FINNHUB_KEY
+    }
+  });
+  return response
+}
+
 // login is postToken, but also stores the token
 export const login = async (username: string, password: string) => {
   const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("token/"), {

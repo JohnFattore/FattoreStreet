@@ -10322,44 +10322,32 @@ body {
   color: #f2d492ff;
   background-color: #202c39ff; }
 
+/*
+// change general table colors
 .table {
   --bs-table-color: $primary;
   --bs-table-hover-color: $secondary;
   --bs-table-hover-bg: $primary;
+  border-color: $primary;
+}
+
+
+.table th {
+  color: $secondary;
+  background-color: $primary;
+}
+*/
+.table td {
+  color: #202c39ff;
+  background-color: #c3d898;
   border-color: #202c39ff; }
+
+.table td:hover {
+  color: #f2d492ff;
+  background-color: #202c39ff; }
 
 .table th {
   color: #f2d492ff;
   background-color: #202c39ff; }
-
-tr {
-  color: #202c39ff;
-  background-color: #f2d492ff; }
-
-tr:hover {
-  color: #f2d492ff;
-  background-color: #202c39ff; }
-
-/*
-// change table row hover colors
-.table tr:hover{
-  color: $secondary;
-  background-color: $primary;
-}
-
-
-
-.table td:hover{
-  color: $secondary;
-  background-color: $primary;
-}
-
-.table td{
-  color: $primary;
-  background-color: $secondary;
-}
-
-
-*/
 
 /*# sourceMappingURL=custom.css.map */

@@ -11,21 +11,20 @@ from .permissions import IsOwner
 class OptionListCreateView(generics.ListCreateAPIView):
     today = datetime.now()
     nextSunday = (today + timedelta((6-today.weekday()) % 7 ))
-    queryset = Option.objects.filter(sunday=nextSunday or nextSunday - 7)
+    queryset = Option.objects.filter(sunday__in = [nextSunday, nextSunday - timedelta(days=7)])
     serializer_class = OptionSerializer
 
 # API endpoint for 'get' options and 'post' option
 class SelectionListCreateView(generics.ListCreateAPIView):
-    today = datetime.now()
-    nextSunday = (today + timedelta((6-today.weekday()) % 7 ))
-    # option = select option.id from options where option.sunday IN (thisSunday, nextSunday)
-    options = Option.objects.filter(sunday=nextSunday or nextSunday - 7)
-    queryset = Selection.objects.filter(option__in=options)
     serializer_class = SelectionSerializer
     permission_classes = [permissions.IsAuthenticated]
-    # return only the assets the user owns
+    # return only the selections the user owns and that are current
     def get_queryset(self):
-        return Selection.objects.filter(user=self.request.user)
+        today = datetime.now()
+        nextSunday = (today + timedelta((6-today.weekday()) % 7 ))
+        options = Option.objects.filter(sunday__in = [nextSunday, nextSunday - timedelta(days=7)])
+        # selections = Selection.objects.filter(option__in=options)
+        return Selection.objects.filter(user=self.request.user, option__in=options)
     
     # user comes from different part of response as other data
     def perform_create(self, serializer):

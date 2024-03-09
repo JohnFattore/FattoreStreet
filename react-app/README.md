@@ -19,7 +19,7 @@ To complile the custom CSS sheet, you can run either script. Top script compiles
 
     sass src/styles/custom.scss src/styles/custom.css
 
-or
+or (preferred)
 
     sass --watch src/styles/custom.scss:src/styles/custom.css
 

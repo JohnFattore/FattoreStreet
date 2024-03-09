@@ -1,7 +1,8 @@
 // Include any default variable overrides here (though functions won't be available)
 $primary: #202c39ff;
 $secondary: #f2d492ff;
-$tertiary: #b8b08dff;
+$tertiary: #c3d898;
+//$tertiary: #b8b08dff;
 
 //$primary: #011936ff;
 //$secondary: #f4fffdff;
@@ -45,6 +46,7 @@ body {
 
 }
 
+/*
 // change general table colors
 .table {
   --bs-table-color: $primary;
@@ -53,39 +55,24 @@ body {
   border-color: $primary;
 }
 
+
 .table th {
   color: $secondary;
   background-color: $primary;
 }
-
-tr {
-  color: $primary;
-  background-color: $secondary;
-}
-
-tr:hover {
-  color: $secondary;
-  background-color: $primary;
-}
-
-/*
-// change table row hover colors
-.table tr:hover{
-  color: $secondary;
-  background-color: $primary;
-}
-
-
-
-.table td:hover{
-  color: $secondary;
-  background-color: $primary;
-}
-
-.table td{
-  color: $primary;
-  background-color: $secondary;
-}
-
-
 */
+.table td {
+  color: $primary;
+  background-color: $tertiary;
+  border-color: $primary;
+}
+
+.table td:hover {
+  color: $secondary;
+  background-color: $primary;
+}
+
+.table th {
+  color: $secondary;
+  background-color: $primary;
+}

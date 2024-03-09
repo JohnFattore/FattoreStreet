@@ -10,6 +10,8 @@ export default function WatchListTable({setMessage, tickers, setTickers}) {
           <th scope="col">Ticker</th>
           <th scope="col">Current Price</th>
           <th scope="col">Daily Percent Change</th>
+          <th scope="col">Market Cap</th>
+          <th scope="col">Net Income</th>
           <th>Delete</th>
         </tr>
       </thead>

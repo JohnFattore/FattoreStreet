@@ -3,6 +3,7 @@ from rest_framework.validators import UniqueValidator
 from .models import Option, Selection
 from django.contrib.auth.models import User
 from django.utils import timezone
+from datetime import datetime
 
 # serializer for Option Model
 class OptionSerializer(serializers.ModelSerializer):
@@ -20,7 +21,11 @@ class SelectionSerializer(serializers.ModelSerializer):
         model = Selection
         fields=['id', 'option', 'user']
     def validate(self, data):
-        queryset = Selection.objects.filter(user=data.option)
-        if data.option in queryset:
-            raise serializers.ValidationError("Selection Must be Unique")
+        # users can't make the same selection twice
+        userSelections = Selection.objects.filter(user=data['user'])
+        for selection in userSelections:
+            if data['option'].id == selection.option.id:
+                raise serializers.ValidationError("Selection Must be Unique")
+        # users can only make 3 selections a week
+        # userCurrentSelections = userSelections.objects.filter(sunday= this sunday)
         return data

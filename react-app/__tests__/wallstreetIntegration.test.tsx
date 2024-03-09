@@ -29,14 +29,17 @@ it('Wallstreet Test Render', async () => {
     });
 });
 
-it('Wallstreet Test add selection', async () => {
+// need test for adding additional selection
+it('Wallstreet Test add duplicate selection', async () => {
     render(<Wallstreet />);
-    await waitFor(async () => {
+    await waitFor(() => {
         fireEvent.click(screen.getByRole("optionTicker"));
-        expect(await screen.findAllByRole("selectionTicker")).toHaveLength(2);
-        expect(screen.queryByRole('optionTicker')?.textContent).to.include("AAPL");
-        expect(await screen.findAllByRole("selectionSunday")).toHaveLength(2);
-        expect(screen.queryByRole('optionSunday')?.textContent).to.include("2024-03-03");
+        expect(screen.queryByRole("selectionTicker")?.textContent).to.equal("AAPL");
+        //expect(screen.queryByRole('optionTicker')?.textContent).to.include("AAPL");
+        expect(screen.queryByRole("selectionSunday")?.textContent).to.equal("2024-03-03");
+        expect(screen.queryByRole("message")?.textContent).to.include("selection");
+        //expect(screen.queryByRole('optionSunday')?.textContent).to.include("2024-03-03");
+        screen.debug()
     });
 });
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup } from '@testing-library/react';
 import { expect, it, afterEach, beforeAll } from 'vitest'
-import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset, getSelections } from '../src/components/AxiosFunctions';
+import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset, getSelections, getCompanyProfile2, getFinancialsReported } from '../src/components/AxiosFunctions';
 import { IAsset } from '../src/interfaces';
 
 beforeAll(async () => {await login("django", "django")});
@@ -14,6 +14,31 @@ it('getQuote Test', async () => {
     expect(response.status).to.equal(200)
 });
 
+it('getCompanyProfile2 Test', async () => {
+    const response = await getCompanyProfile2("AAPL")
+    expect(response.data.country).to.equal("US")
+    expect(response.status).to.equal(200)
+});
+
+it('getFinancialsReported Test', async () => {
+    const response = await getFinancialsReported("AAPL")
+    expect(response.data.data[0].year).to.equal(2023)
+    console.log(response.data.data[0].report.cf.find(obj => {
+        return obj.concept == 'us-gaap_NetIncomeLoss'
+    }).value)
+    // pretty large response, this retrieves net income for 2023
+    expect(response.data.data[0].report.cf.find(obj => {
+        return obj.concept == 'us-gaap_NetIncomeLoss'
+    }).value).toBeDefined
+    expect(response.status).to.equal(200)
+});
+/*
+
+.find(obj => {
+        return obj.concept == 'us-gaap_EarningsPerShareBasic'
+    })
+
+*/
 it('getAssets Test', async () => {
     const response = await getAssets()
     expect(response.data[0].ticker).to.equal("AAPL")
@@ -44,7 +69,6 @@ it('postAsset and deleteAsset Test', async () => {
 
 it('getOptions Test', async () => {
     const response = await getOptions()
-    console.log(response.data)
     expect(response.data[0].ticker).to.equal("V")
     expect(response.status).to.equal(200)
 });

@@ -18,6 +18,8 @@ const message: IMessage = { text: "", type: "" }
 vi.mock('../src/components/AxiosFunctions', () => ({
   __esModule: true,
   getQuote: vi.fn(() => new Promise((resolve) => resolve({ data: { c: 200, d: 3, dp: 1.5 } }))),
+  getCompanyProfile2: vi.fn(() => new Promise((resolve) => resolve({ data: { marketCapitalization: 1415993 } }))),
+  getFinancialsReported: vi.fn(() => new Promise((resolve) => resolve({ data: { netIncome: 1415993 } }))),
 }));
 
 // delete button is pushed in integration test

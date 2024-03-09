@@ -13,12 +13,9 @@ import Register from "./pages/Register";
 import WallStreet from "./pages/WallStreet";
 import Entertainment from "./pages/Entertainment";
 import axios from "axios";
-import { useContext } from "react";
-import { ENVContext } from "./components/ENVContext"
 
 // react router for all our routes
 export default function App() {
-  const ENV = useContext(ENVContext);
   const navigate = useNavigate();
   // axios interceptor that handles refreshing JWT
   // first function handles successes, second handles errors
@@ -28,7 +25,7 @@ export default function App() {
     //console.log("HTTP Error Code: ", error.response.data.code)
     // handle refreshing expired access codes automatically for user
     if (error.response.data.code === "token_not_valid") {
-      axios.post(ENV.djangoURL.concat("token/refresh/"), {
+      axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("token/refresh/"), {
         refresh: sessionStorage.getItem("refresh"),
       }).then((response) => {
         sessionStorage.setItem("token", response.data.access);

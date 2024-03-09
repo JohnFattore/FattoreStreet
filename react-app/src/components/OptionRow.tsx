@@ -1,10 +1,12 @@
 import { ISelection } from '../interfaces';
 import { postSelection } from './AxiosFunctions';
+import { selectedOption } from './helperFunctions';
 
 export default function OptionRow({ option, selections, selectionsDispatch, setMessage }) {
+
     return (
         <tr key={option.id}>
-            <td role="optionTicker" onClick={() => {
+            <td role="optionTicker" style={{ backgroundColor: selectedOption(option, selections) }} onClick={() => {
                 const existingSelection = selections.filter((selection: ISelection) => selection.option == option.id)
                 if (selections.length < 3 && existingSelection.length == 0 ) {
                     postSelection({
@@ -31,7 +33,7 @@ export default function OptionRow({ option, selections, selectionsDispatch, setM
                 }
 
             }}>{option.ticker}</td>
-            <td role="optionSunday">{option.sunday}</td>
+            <td role="optionSunday" style={{ backgroundColor: selectedOption(option, selections) }}>{option.sunday}</td>
         </tr>
     )
 }

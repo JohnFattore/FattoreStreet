@@ -1,7 +1,9 @@
-import { useQuote } from "./helperFunctions";
+import { useQuote, useCompanyProfile2, useFinancialsReported } from "./helperFunctions";
 
 export default function WatchListRow({ ticker, index, setMessage, setTickers }) {
     const quote = useQuote(ticker, setMessage)
+    const marketCap = useCompanyProfile2(ticker, setMessage)
+    const netIncome = useFinancialsReported(ticker, setMessage)
 
     var color = "red";
     if (quote.percentChange > 0) {
@@ -19,6 +21,8 @@ export default function WatchListRow({ ticker, index, setMessage, setTickers }) 
                 minimumFractionDigits: 3,
                 maximumFractionDigits: 3
             })}%</td>
+            <td role="marketCap">${marketCap} million</td>
+            <td role="marketCap">${netIncome} million</td>
             <td role="delete" onClick={() => {
                 let tickersDB = localStorage.getItem("tickers");
                 let tickers: string[] = JSON.parse(tickersDB as string);

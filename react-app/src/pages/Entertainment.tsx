@@ -1,16 +1,12 @@
 import AlbumList from '../components/AlbumsList';
 import Spike from '../components/SpikeImg';
-import AlbumHeader from '../components/AlbumHeader';
 
-function Home() {
+export default function Entertainment() {
     return (
         <>
-            <AlbumHeader/>
-            <AlbumList/>
-            <Spike/>
+            <h1>10 10/10 Albums</h1>
+            <AlbumList />
+            <Spike />
         </>
-
     );
-  }
-  
-  export default Home;
+}
