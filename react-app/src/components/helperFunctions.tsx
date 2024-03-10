@@ -67,8 +67,13 @@ export function useCompanyProfile2(ticker, setMessage) {
             }
             else {
                 getCompanyProfile2(ticker).then((response) => {
-                    setMarketCap(response.data.marketCapitalization);
-                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization]));
+                    if (response.data.marketCapitalization != null) {
+                        setMarketCap(response.data.marketCapitalization / 1000);
+                        localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization]));
+                    }
+                    else {
+                        setMarketCap(0.00);
+                    }
                     // store in storage with ticker, stock data, and a time stamp
                 }).catch(() => {
                     setMessage({ text: "We are experincing are issue getting market cap data", type: "error" })
@@ -78,8 +83,13 @@ export function useCompanyProfile2(ticker, setMessage) {
         // if no stock info saved, go fetch it
         else {
             getCompanyProfile2(ticker).then((response) => {
-                setMarketCap(response.data.marketCapitalization);
-                localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization]));
+                if (response.data.marketCapitalization != null) {
+                    setMarketCap(response.data.marketCapitalization / 1000);
+                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization]));
+                }
+                else {
+                    setMarketCap(0.00);
+                }
             }).catch(() => {
                 setMessage({ text: "We are experincing are issue getting market cap data", type: "error" })
             });
@@ -105,8 +115,13 @@ export function useFinancialsReported(ticker, setMessage) {
                     const responseNetIncome = response.data.data[0].report.cf.find(obj => {
                         return obj.concept == 'us-gaap_NetIncomeLoss'
                     }).value
-                    setNetIncome(responseNetIncome);
-                    localStorage.setItem("netIncome".concat(ticker), JSON.stringify([d.getTime(), responseNetIncome]));
+                    if (responseNetIncome != null) {
+                        setNetIncome(responseNetIncome);
+                        localStorage.setItem("netIncome".concat(ticker), JSON.stringify([d.getTime(), responseNetIncome]));
+                    }
+                    else {
+                        setNetIncome(0.00);
+                    }
                     // store in storage with ticker, stock data, and a time stamp
                 }).catch(() => {
                     setMessage({ text: "We are experincing are issue getting net income data, maxwell", type: "error" })
@@ -116,16 +131,18 @@ export function useFinancialsReported(ticker, setMessage) {
         // if no stock info saved, go fetch it
         else {
             getFinancialsReported(ticker).then((response) => {
-                /*
-                const responseNetIncome = response.data.data[0].report.cf.find(obj => {
-                    return obj.concept == 'us-gaap_NetIncomeLoss'
-                }).value
-                setNetIncome(responseNetIncome);
-                console.log(responseNetIncome)
-                localStorage.setItem("netIncome".concat(ticker), JSON.stringify([d.getTime(), responseNetIncome]));
-                */
-               console.log(response.data.data)
-            }).catch(() => {
+                if (response.data.data[0] != undefined) {
+                    const responseNetIncome = response.data.data[0].report.cf.find(obj => {
+                        return obj.concept == 'us-gaap_NetIncomeLoss'
+                    }).value
+                    setNetIncome(responseNetIncome);
+                    localStorage.setItem("netIncome".concat(ticker), JSON.stringify([d.getTime(), responseNetIncome]));
+                }
+                else {
+                    setNetIncome(0.00);
+                }
+            }).catch((response) => {
+                console.log(response)
                 setMessage({ text: "We are experincing are issue getting net income data, django", type: "error" })
             });
         }

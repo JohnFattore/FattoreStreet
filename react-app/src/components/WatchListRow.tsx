@@ -10,6 +10,8 @@ export default function WatchListRow({ ticker, index, setMessage, setTickers }) 
         color = "green";
     }
 
+    //console.log(marketCap)
+
     return (
         <tr key={index}>
             <td role="ticker">{ticker}</td>
@@ -21,7 +23,7 @@ export default function WatchListRow({ ticker, index, setMessage, setTickers }) 
                 minimumFractionDigits: 3,
                 maximumFractionDigits: 3
             })}%</td>
-            <td role="marketCap">${marketCap} million</td>
+            <td role="marketCap">${marketCap.toFixed(2)} billion</td>
             <td role="marketCap">${netIncome} million</td>
             <td role="delete" onClick={() => {
                 let tickersDB = localStorage.getItem("tickers");

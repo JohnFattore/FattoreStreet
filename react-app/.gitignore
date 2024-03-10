@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 # environment varibles (really need to be secret)
+# The files/folder in your version control will not just delete themselves just because you added them to the .gitignore. They are already in the repository and you have to remove them. - https://stackoverflow.com/questions/25436312/gitignore-not-working
 .env
 .env.production
 .env.staging
