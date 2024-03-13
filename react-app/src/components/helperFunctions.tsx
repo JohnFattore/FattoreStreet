@@ -25,7 +25,7 @@ export function useQuote(ticker, setMessage) {
         if (storedQuote != null) {
             // quoteTime is a list [ price, percent change, time stamp ]
             let quoteTime = JSON.parse(storedQuote);
-            // if ticker in localstorage and timestamp is less than 5 min ago
+            // if ticker in localstorage and timestamp is less than 100 sec ago
             if ((d.getTime() - quoteTime[2]) < 100000) {
                 setQuote({ price: quoteTime[0], percentChange: quoteTime[1] })
             }
@@ -62,7 +62,7 @@ export function useCompanyProfile2(ticker, setMessage) {
             // marketCapTime is a list [ time stamp, market cap ]
             let marketCapTime = JSON.parse(storedMarketCap);
             // if ticker in localstorage and timestamp is less than 5 min ago
-            if ((d.getTime() - marketCapTime[0]) < 500000) {
+            if ((d.getTime() - marketCapTime[0]) < 100000) {
                 setMarketCap(marketCapTime[1])
             }
             else {
@@ -98,6 +98,7 @@ export function useCompanyProfile2(ticker, setMessage) {
     return marketCap
 }
 
+// perhaps remove this, i think the response varies from ticker to ticker which is not ideal
 export function useFinancialsReported(ticker, setMessage) {
     const [netIncome, setNetIncome] = useState(0);
     const d = new Date();

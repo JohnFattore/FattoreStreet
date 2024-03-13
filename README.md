@@ -54,7 +54,28 @@ To start up the react/vite server, cd into Portfolio-Manager-Backend/react-app a
 This starts up a development server on port 5173 that serves out the react app with API URLS pointing to the Docker containers.
 
 ### Production / Hosting
-This webapp is hosted for production on AWS. A task definition defines how the Gunicorn and NGINX containers are hosted using AWS fargate. A managed RDS server running postgres handles the database and persistant data.An AWS application load balancer handles HTTPS and provides extra security.
+This webapp is hosted for production on AWS. A task definition defines how the Gunicorn and NGINX containers are hosted using AWS fargate. A managed RDS server running postgres handles the database and persistant data. An AWS application load balancer handles HTTPS and provides extra security. The DNS route 53 validates the CA and resolves domain names to ip addresses.
+
+### Dev Ops System Overview 
+- All traffic is first resolved by the DNS route 53 and its list of records in the hosted zone, which includes:
+1. A CNAME record that validates the CA certificate
+2. A A record that directs traffic to the application load balancer (ALB).
+- The ALB receives HTTP/HTTPS requests and also serves a view functions:
+1. HTTPS requests recieved on port 443 is routed to port 80 of the fargate/ecs service.
+2. HTTP requests received on port 80 are routed to port 443, so all subsequent requests use SSL/TLS (HTTPS). 
+3. TOD: Requests using the wrong domain, such as fattorestreet.com, are redirect to www.fattorestreet.com.
+- The NGINX container is listening on port 80 and serves two functions:
+1. Serving out static files such as the react app, static django files, and other media.
+2. Acting as a reverse proxy for the Django/Gunicorn server on port 8000. 
+- The Gunicorn server communcates via HTTP with the PostgreSQL server running on RDS.
+
+### Domain naming
+The CA cert is *.fattore.com, so any subdomain is supported (TODO).
+The hosted zone is called fattorestreet.com so all subdomains can be easily accomidated
+One unified domain should be used for all traffic (www. or not)
+
+### CI/CD Pipeline
+The continous integration, continious deployment pipeline consists of a distinct CI and CD. The CI are automated tests for both the react and django apps. The CD is a .sh file called deploy.sh that does everything between building the production code and deploying it onto AWS.
 
 ## Future To Do
 #### The long term goal is to be cloud agnostic because I don't want to be tied to a particular cloud vender. 
