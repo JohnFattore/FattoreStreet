@@ -69,10 +69,11 @@ export function useCompanyProfile2(ticker, setMessage) {
                 getCompanyProfile2(ticker).then((response) => {
                     if (response.data.marketCapitalization != null) {
                         setMarketCap(response.data.marketCapitalization / 1000);
-                        localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization]));
+                        localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization / 1000]));
                     }
                     else {
-                        setMarketCap(0.00);
+                        setMarketCap(1);
+                        localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), 1]));
                     }
                     // store in storage with ticker, stock data, and a time stamp
                 }).catch(() => {
@@ -85,10 +86,11 @@ export function useCompanyProfile2(ticker, setMessage) {
             getCompanyProfile2(ticker).then((response) => {
                 if (response.data.marketCapitalization != null) {
                     setMarketCap(response.data.marketCapitalization / 1000);
-                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization]));
+                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization / 1000]));
                 }
                 else {
-                    setMarketCap(0.00);
+                    setMarketCap(1);
+                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), 1]));
                 }
             }).catch(() => {
                 setMessage({ text: "We are experincing are issue getting market cap data", type: "error" })

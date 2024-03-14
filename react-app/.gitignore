@@ -16,6 +16,7 @@ dist-ssr
 .env
 .env.production
 .env.staging
+.env.testing
 .env.development
 
 # Editor directories and files
