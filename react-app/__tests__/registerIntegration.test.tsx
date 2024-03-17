@@ -4,7 +4,7 @@ import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/re
 import { expect, test, vi, afterEach } from 'vitest'
 import React from 'react';
 import Register from '../src/pages/Register'
-import { postUser, login } from '../src/components/AxiosFunctions';
+import { postUser, login } from '../src/components/axiosFunctions';
 import { useNavigate } from 'react-router-dom';
 
 afterEach(() => {
@@ -13,7 +13,7 @@ afterEach(() => {
     localStorage.clear();
 });
 
-vi.mock('../src/components/AxiosFunctions', () => ({
+vi.mock('../src/components/axiosFunctions', () => ({
     __esModule: true,
     login: vi.fn(() => new Promise((resolve) => resolve({ data: { access: "maxwellKEY", refresh: "spikeKEY" } }))),
     postUser: vi.fn(() => new Promise((resolve) => resolve({ status: 201 }))),

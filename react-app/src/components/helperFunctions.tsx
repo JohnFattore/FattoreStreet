@@ -1,6 +1,4 @@
-import { IMessage, IOption, IQuote, ISelection } from "../interfaces"
-import { useState, useEffect } from "react"
-import { getQuote, getCompanyProfile2, getFinancialsReported } from "./AxiosFunctions"
+import { IMessage, IOption, ISelection } from "../interfaces"
 
 export function setAlertVarient(message: IMessage) {
     if (message.type == "error")
@@ -17,138 +15,23 @@ export function selectedOption(option: IOption, selections: ISelection[]) {
         return ""//"green"
 }
 
-export function useQuote(ticker, setMessage) {
-    const [quote, setQuote] = useState<IQuote>({ price: 0, percentChange: 0, });
-    const d = new Date();
-    useEffect(() => {
-        let storedQuote = localStorage.getItem(ticker);
-        if (storedQuote != null) {
-            // quoteTime is a list [ price, percent change, time stamp ]
-            let quoteTime = JSON.parse(storedQuote);
-            // if ticker in localstorage and timestamp is less than 100 sec ago
-            if ((d.getTime() - quoteTime[2]) < 100000) {
-                setQuote({ price: quoteTime[0], percentChange: quoteTime[1] })
-            }
-            else {
-                getQuote(ticker).then((response) => {
-                    setQuote({ price: response.data.c, percentChange: response.data.dp });
-                    localStorage.setItem(ticker, JSON.stringify([response.data.c, response.data.dp, d.getTime()]));
-                    // store in storage with ticker, stock data, and a time stamp
-                }).catch(() => {
-                    setMessage({ text: "We are experincing are issue getting some asset data", type: "error" })
-                });
-            }
-        }
-        // if no stock info saved, go fetch it
-        else {
-            getQuote(ticker).then((response) => {
-                setQuote({ price: response.data.c, percentChange: response.data.dp });
-                localStorage.setItem(ticker, JSON.stringify([response.data.c, response.data.dp, d.getTime()]));
-                // store in storage with ticker, stock data, and a time stamp
-            }).catch(() => {
-                setMessage({ text: "We are experincing are issue getting some asset data", type: "error" })
-            });
-        }
-    }, []);
-    return quote
-}
+// this weeks sunday, sunday last past, is 0
+export function getSunday(week: number) {
+    function addDays(date, days) {
+        var result = new Date(date);
+        result.setDate(result.getDate() + days);
+        return result;
+    }
 
-export function useCompanyProfile2(ticker, setMessage) {
-    const [marketCap, setMarketCap] = useState(0);
-    const d = new Date();
-    useEffect(() => {
-        let storedMarketCap = localStorage.getItem("marketcap".concat(ticker));
-        if (storedMarketCap != null) {
-            // marketCapTime is a list [ time stamp, market cap ]
-            let marketCapTime = JSON.parse(storedMarketCap);
-            // if ticker in localstorage and timestamp is less than 5 min ago
-            if ((d.getTime() - marketCapTime[0]) < 100000) {
-                setMarketCap(marketCapTime[1])
-            }
-            else {
-                getCompanyProfile2(ticker).then((response) => {
-                    if (response.data.marketCapitalization != null) {
-                        setMarketCap(response.data.marketCapitalization / 1000);
-                        localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization / 1000]));
-                    }
-                    else {
-                        setMarketCap(1);
-                        localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), 1]));
-                    }
-                    // store in storage with ticker, stock data, and a time stamp
-                }).catch(() => {
-                    setMessage({ text: "We are experincing are issue getting market cap data", type: "error" })
-                });
-            }
-        }
-        // if no stock info saved, go fetch it
-        else {
-            getCompanyProfile2(ticker).then((response) => {
-                if (response.data.marketCapitalization != null) {
-                    setMarketCap(response.data.marketCapitalization / 1000);
-                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization / 1000]));
-                }
-                else {
-                    setMarketCap(1);
-                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), 1]));
-                }
-            }).catch(() => {
-                setMessage({ text: "We are experincing are issue getting market cap data", type: "error" })
-            });
-        }
-    }, []);
-    return marketCap
-}
+    function formatDate(date) {
+        var dd = String(date.getDate()).padStart(2, '0');
+        var mm = String(date.getMonth() + 1).padStart(2, '0'); //January is 0!
+        var yyyy = date.getFullYear();
+        return yyyy + "-" + mm + "-" + dd;
+    }
 
-// perhaps remove this, i think the response varies from ticker to ticker which is not ideal
-export function useFinancialsReported(ticker, setMessage) {
-    const [netIncome, setNetIncome] = useState(0);
-    const d = new Date();
-    useEffect(() => {
-        let storedNetIncome = localStorage.getItem("netIncome".concat(ticker));
-        if (storedNetIncome != null) {
-            // netIncomeTime is a list [ time stamp, market cap ]
-            let netIncomeTime = JSON.parse(storedNetIncome);
-            // if ticker in localstorage and timestamp is less than a bunch of seconds
-            if ((d.getTime() - netIncomeTime[0]) < 5000000000) {
-                setNetIncome(netIncomeTime[1])
-            }
-            else {
-                getFinancialsReported(ticker).then((response) => {
-                    const responseNetIncome = response.data.data[0].report.cf.find(obj => {
-                        return obj.concept == 'us-gaap_NetIncomeLoss'
-                    }).value
-                    if (responseNetIncome != null) {
-                        setNetIncome(responseNetIncome);
-                        localStorage.setItem("netIncome".concat(ticker), JSON.stringify([d.getTime(), responseNetIncome]));
-                    }
-                    else {
-                        setNetIncome(0.00);
-                    }
-                    // store in storage with ticker, stock data, and a time stamp
-                }).catch(() => {
-                    setMessage({ text: "We are experincing are issue getting net income data, maxwell", type: "error" })
-                });
-            }
-        }
-        // if no stock info saved, go fetch it
-        else {
-            getFinancialsReported(ticker).then((response) => {
-                if (response.data.data[0] != undefined) {
-                    const responseNetIncome = response.data.data[0].report.cf.find(obj => {
-                        return obj.concept == 'us-gaap_NetIncomeLoss'
-                    }).value
-                    setNetIncome(responseNetIncome);
-                    localStorage.setItem("netIncome".concat(ticker), JSON.stringify([d.getTime(), responseNetIncome]));
-                }
-                else {
-                    setNetIncome(0.00);
-                }
-            }).catch((response) => {
-                console.log(response)
-                setMessage({ text: "We are experincing are issue getting net income data, django", type: "error" })
-            });
-        }
-    }, []);
-    return netIncome
+    var today = new Date();
+    var thisSunday = addDays(today, -today.getDay())
+    var sunday = addDays(thisSunday, (7 * week))
+    return formatDate(sunday)
 }

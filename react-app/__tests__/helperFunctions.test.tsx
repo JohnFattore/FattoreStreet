@@ -2,7 +2,7 @@
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { expect, test, it, vi, afterEach } from 'vitest'
 import React from 'react';
-import { useQuote } from '../src/components/helperFunctions';
+import { getSunday } from '../src/components/helperFunctions'
 
 afterEach(() => {
     cleanup();
@@ -28,4 +28,9 @@ it('useQuote Test', async () => {
 
 it('useQuote Test', async () => {
     expect(200).to.equal(200);
+});
+
+it('useQuote Test', async () => {
+    const sunday = getSunday(0);
+    expect(sunday).to.equal("2024-03-17");
 });

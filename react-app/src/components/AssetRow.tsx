@@ -1,5 +1,5 @@
-import { deleteAsset } from './AxiosFunctions';
-import { useQuote } from './helperFunctions';
+import { deleteAsset } from './axiosFunctions';
+import { useQuote } from './customHooks';
 
 export default function AssetRow({ asset, setMessage, dispatch }) {
     const quote = useQuote(asset.ticker, setMessage)

@@ -29,7 +29,6 @@ export interface IOption {
 
 export interface ISelection {
     option: number,
-    sunday: string,
     user: number,
     id: number
 }

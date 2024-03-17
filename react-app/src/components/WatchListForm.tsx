@@ -3,7 +3,7 @@ import Form from 'react-bootstrap/Form';
 import { useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { getQuote } from './AxiosFunctions';
+import { getQuote } from './axiosFunctions';
 import { Alert } from 'react-bootstrap';
 
 interface IFormInput {

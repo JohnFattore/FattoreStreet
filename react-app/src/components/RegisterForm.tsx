@@ -3,7 +3,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate } from "react-router-dom";
-import { postUser, login } from './AxiosFunctions';
+import { postUser, login } from './axiosFunctions';
 
 interface IFormInput {
     username: string,
@@ -31,7 +31,7 @@ export default function RegisterForm({ setMessage }) {
             .then(() => {
                 login(data.username, data.password)
                     .then(() => {
-                        navigate("/portfolio");
+                        navigate("/wallstreet");
                     });
             }).catch(() => {
                 setMessage({text: "Error Registering, the username is probably already taken", type: "error"});

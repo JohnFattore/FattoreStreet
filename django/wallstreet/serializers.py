@@ -16,6 +16,7 @@ class OptionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Sunday field must be a sunday")
         return value
 
+# TO DO: cant delete selections of past weeks, not sure where to implement
 class SelectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Selection

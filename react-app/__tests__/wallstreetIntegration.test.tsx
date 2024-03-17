@@ -11,7 +11,7 @@ afterEach(() => {
 });
 // mock function replaces actual functions Promise
 // removing this mock function causes the actual function to fire
-vi.mock('../src/components/AxiosFunctions', () => ({
+vi.mock('../src/components/axiosFunctions', () => ({
     __esModule: true,
     getOptions: vi.fn(() => new Promise((resolve) => resolve({ data: [{ ticker: "AAPL", sunday: "2024-03-03", id: 1 }] }))),
     getSelections: vi.fn(() => new Promise((resolve) => resolve({ data: [{ option: 1, sunday: "2024-03-03", user: 1, id: 1 }] }))),

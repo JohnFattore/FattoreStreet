@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup } from '@testing-library/react';
 import { expect, it, afterEach, beforeAll } from 'vitest'
-import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset } from '../src/components/AxiosFunctions';
+import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset } from '../src/components/axiosFunctions';
 import { IAsset } from '../src/interfaces';
 
 beforeAll(async () => {await login("maxwell", "maxwell")});

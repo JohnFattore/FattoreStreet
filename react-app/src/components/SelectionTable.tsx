@@ -1,15 +1,15 @@
 import Table from 'react-bootstrap/Table';
 import { ISelection } from '../interfaces';
 import { useEffect } from 'react';
-import { getSelections } from './AxiosFunctions';
+import { getSelections } from './axiosFunctions';
 import SelectionRow from './SelectionRow';
 
-export default function SelectionTable({ selections, selectionsDispatch, setMessage, options }) {
+export default function SelectionTable({ selections, selectionsDispatch, setMessage, options, nextSunday }) {
 
     let data: ISelection[] = []
     useEffect(() => {
         if (selections.length == 0) {
-            getSelections()
+            getSelections(nextSunday)
                 .then((response) => {
                     data = response.data
                     for (let i = 0; i < data.length; i++) {

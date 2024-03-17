@@ -1,7 +1,7 @@
 import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useNavigate } from "react-router-dom";
-import { login } from './AxiosFunctions';
+import { login } from './axiosFunctions';
 
 interface IFormInput {
     username: string,
@@ -16,7 +16,7 @@ export default function LoginForm({ setMessage }) {
         login(data.username, data.password)
             .then(() => {
                 setMessage({text: "Welcome ".concat(data.username, "!!!"), type: "success"});
-                navigate("/portfolio");
+                navigate("/wallstreet");
             })
             .catch(() => {
                 setMessage({text: "Wrong Username / Password", type: "error"});

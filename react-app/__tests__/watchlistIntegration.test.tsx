@@ -11,7 +11,7 @@ afterEach(() => {
   localStorage.clear();
 });
 
-vi.mock('../src/components/AxiosFunctions', () => ({
+vi.mock('../src/components/axiosFunctions', () => ({
     __esModule: true,
     getAssets: vi.fn(() => new Promise((resolve) => resolve({ data: [{ ticker: "VTI", shares: 5, costbasis: 180, buy: '2023-02-14' }] }))),
     getQuote: vi.fn(() => new Promise((resolve) => resolve({ data: { c: 200, d: 3, dp: 1.5 } }))),

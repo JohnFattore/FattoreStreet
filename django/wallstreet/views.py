@@ -9,10 +9,9 @@ from .permissions import IsOwner
 
 # API endpoint for 'get' options and 'post' option
 class OptionListCreateView(generics.ListCreateAPIView):
-    today = datetime.now()
-    nextSunday = (today + timedelta((6-today.weekday()) % 7 ))
-    queryset = Option.objects.filter(sunday__in = [nextSunday, nextSunday - timedelta(days=7)])
     serializer_class = OptionSerializer
+    def get_queryset(self):
+        return Option.objects.filter(sunday = self.request.GET.get('sunday', '1999-01-01'))
 
 # API endpoint for 'get' options and 'post' option
 class SelectionListCreateView(generics.ListCreateAPIView):
@@ -20,9 +19,7 @@ class SelectionListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     # return only the selections the user owns and that are current
     def get_queryset(self):
-        today = datetime.now()
-        nextSunday = (today + timedelta((6-today.weekday()) % 7 ))
-        options = Option.objects.filter(sunday__in = [nextSunday, nextSunday - timedelta(days=7)])
+        options = Option.objects.filter(sunday = self.request.GET.get('sunday', '1999-01-01'))
         # selections = Selection.objects.filter(option__in=options)
         return Selection.objects.filter(user=self.request.user, option__in=options)
     

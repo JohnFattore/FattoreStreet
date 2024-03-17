@@ -6,7 +6,7 @@ import AssetForm from '../src/components/AssetForm'
 import AssetTable from '../src/components/AssetTable'
 import AssetRow from '../src/components/AssetRow'
 import { IAsset, IMessage } from '../src/interfaces';
-import { getAssets, getQuote, postAsset } from '../src/components/AxiosFunctions';
+import { getAssets, getQuote, postAsset } from '../src/components/axiosFunctions';
 
 afterEach(() => {
     cleanup();
@@ -18,7 +18,7 @@ const message: IMessage = {text: "", type: ""}
 const asset: IAsset = { ticker: "SPY", shares: 7, costbasis: 210, buy: '2024-01-01', id: 1 }
 
 // mocked functions override real API calls
-vi.mock('../src/components/AxiosFunctions', () => ({
+vi.mock('../src/components/axiosFunctions', () => ({
     __esModule: true,
     getAssets: vi.fn(() => new Promise((resolve) => resolve({ data: [{ ticker: "VTI", shares: 5, costbasis: 180, buy: '2023-02-14' }] }))),
     getQuote: vi.fn(() => new Promise((resolve) => resolve({ data: { c: 200, d: 3, dp: 1.5 } }))),

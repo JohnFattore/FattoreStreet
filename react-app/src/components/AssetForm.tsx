@@ -3,7 +3,7 @@ import Alert from 'react-bootstrap/Alert';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
-import { getQuote, postAsset } from './AxiosFunctions';
+import { getQuote, postAsset } from './axiosFunctions';
 
 interface IFormInput {
     ticker: string,

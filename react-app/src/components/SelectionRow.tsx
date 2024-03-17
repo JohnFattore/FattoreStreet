@@ -1,12 +1,10 @@
 //import { useQuote } from './helperFunctions';
 import { IOption } from '../interfaces';
-import { deleteSelection } from './AxiosFunctions';
+import { deleteSelection } from './axiosFunctions';
 
 export default function SelectionRow({ selection, setMessage, options, selectionsDispatch }) {
     const filterOptions: IOption[] = options.filter((option: IOption) => option.id == selection.option)
     if (filterOptions.length == 0) {
-        console.log(options)
-        console.log(selection)
         return (<tr><td>There was been a mistake, Spike will investigate</td></tr>)
     }
     const option: IOption = filterOptions[0]

@@ -1,5 +1,5 @@
 import { ISelection } from '../interfaces';
-import { postSelection } from './AxiosFunctions';
+import { postSelection } from './axiosFunctions';
 import { selectedOption } from './helperFunctions';
 
 export default function OptionRow({ option, selections, selectionsDispatch, setMessage }) {
@@ -11,13 +11,11 @@ export default function OptionRow({ option, selections, selectionsDispatch, setM
                 if (selections.length < 3 && existingSelection.length == 0 ) {
                     postSelection({
                         option: option.id, 
-                        sunday: option.sunday,
                         user: 1,
                         id: 1
                     }).then((response) => {
                         const selection: ISelection = {
                             option: option.id, 
-                            sunday: option.sunday,
                             user: 1,
                             id: response.data.id
                         }

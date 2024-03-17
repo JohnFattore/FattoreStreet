@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup } from '@testing-library/react';
 import { expect, it, afterEach, beforeAll } from 'vitest'
-import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset, getSelections, getCompanyProfile2, getFinancialsReported } from '../src/components/AxiosFunctions';
-import { IAsset } from '../src/interfaces';
+import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset, getSelections, getCompanyProfile2, postSelection, deleteSelection } from '../src/components/axiosFunctions';
+import { IAsset, ISelection } from '../src/interfaces';
 
 beforeAll(async () => {await login("django", "django")});
 
@@ -20,25 +20,7 @@ it('getCompanyProfile2 Test', async () => {
     expect(response.status).to.equal(200)
 });
 
-it('getFinancialsReported Test', async () => {
-    const response = await getFinancialsReported("AAPL")
-    expect(response.data.data[0].year).to.equal(2023)
-    console.log(response.data.data[0].report.cf.find(obj => {
-        return obj.concept == 'us-gaap_NetIncomeLoss'
-    }).value)
-    // pretty large response, this retrieves net income for 2023
-    expect(response.data.data[0].report.cf.find(obj => {
-        return obj.concept == 'us-gaap_NetIncomeLoss'
-    }).value).toBeDefined
-    expect(response.status).to.equal(200)
-});
-/*
 
-.find(obj => {
-        return obj.concept == 'us-gaap_EarningsPerShareBasic'
-    })
-
-*/
 it('getAssets Test', async () => {
     const response = await getAssets()
     expect(response.data[0].ticker).to.equal("AAPL")
@@ -68,14 +50,28 @@ it('postAsset and deleteAsset Test', async () => {
 });
 
 it('getOptions Test', async () => {
-    const response = await getOptions()
-    expect(response.data[0].ticker).to.equal("V")
+    const response = await getOptions(0)
+    expect(response.data[0].ticker).to.equal("C")
     expect(response.status).to.equal(200)
 });
 
 it('getSelections Test', async () => {
-    const response = await getSelections()
+    const response = await getSelections(0)
     console.log(response)
     expect(response.data[0].user).to.equal(3)
     expect(response.status).to.equal(200)
+});
+
+// post and delete tests together because this test affects the main database
+it('postSelection and deleteSelection Test', async () => {
+    const selection: ISelection = {
+        option: 1,
+        user: 1,
+        id: 1
+    }
+    const postResponse = await postSelection(selection)
+    expect(postResponse.status).to.equal(201)
+    // DELETE TEST
+    const deleteResponse = await deleteSelection(postResponse.data.id)
+    expect(deleteResponse.status).to.equal(204)
 });

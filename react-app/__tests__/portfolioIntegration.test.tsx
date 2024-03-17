@@ -3,7 +3,7 @@ import { render, screen, cleanup, waitFor, fireEvent, getByPlaceholderText } fro
 import { expect, test, vi, afterEach } from 'vitest'
 import React from 'react';
 import Portfolio from '../src/pages/Portfolio'
-import { getAssets, getQuote, postAsset } from '../src/components/AxiosFunctions';
+import { getAssets, getQuote, postAsset } from '../src/components/axiosFunctions';
 
 afterEach(() => {
     cleanup();
@@ -15,7 +15,7 @@ const assets = [{ ticker: "VTI", shares: 5, costbasis: 180, buy: '2023-02-14' }]
 const quote = { c: 200, d: 3, dp: 1.5 };
 
 // mocked functions override real API calls
-vi.mock('../src/components/AxiosFunctions', () => ({
+vi.mock('../src/components/axiosFunctions', () => ({
     __esModule: true,
     getAssets: vi.fn(() => new Promise((resolve) => resolve({ data: assets }))),
     getQuote: vi.fn(() => new Promise((resolve) => resolve({ data: quote }))),

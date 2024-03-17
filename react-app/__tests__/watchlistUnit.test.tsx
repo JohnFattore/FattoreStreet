@@ -15,7 +15,7 @@ afterEach(() => {
 
 const message: IMessage = { text: "", type: "" }
 
-vi.mock('../src/components/AxiosFunctions', () => ({
+vi.mock('../src/components/axiosFunctions', () => ({
   __esModule: true,
   getQuote: vi.fn(() => new Promise((resolve) => resolve({ data: { c: 200, d: 3, dp: 1.5 } }))),
   getCompanyProfile2: vi.fn(() => new Promise((resolve) => resolve({ data: { marketCapitalization: 1415993 } }))),

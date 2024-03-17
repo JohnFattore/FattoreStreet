@@ -15,7 +15,7 @@ afterEach(() => {
 });
 // mock function replaces actual functions Promise
 // removing this mock function causes the actual function to fire
-vi.mock('../src/components/AxiosFunctions', () => ({
+vi.mock('../src/components/axiosFunctions', () => ({
     __esModule: true,
     getOptions: vi.fn(() => new Promise((resolve) => resolve({ data: [{ ticker: "AAPL", sunday: "2024-02-18", id: 1 }] }))),
     getSelections: vi.fn(() => new Promise((resolve) => resolve({ data: [{ option: 1, sunday: "2024-02-18", id: 2 }] }))),
@@ -60,7 +60,6 @@ it('OptionTable Test 3 options', async () => {
 
 const selection: ISelection = {
     option: 1,
-    sunday: "2024-03-03",
     user: 1,
     id: 1
 }
@@ -83,7 +82,7 @@ it('SelectionTable Test 1 Selection', async () => {
     render(<SelectionTable selections={[selection]} selectionsDispatch={console.log} setMessage={console.log} options={[option]} />);
     await waitFor(() => {
         expect(screen.queryByRole('selectionTicker')?.textContent).to.include(option.ticker);
-        expect(screen.queryByRole('selectionSunday')?.textContent).to.include(selection.sunday);
+        //expect(screen.queryByRole('selectionSunday')?.textContent).to.include(selection.sunday);
         //expect(screen.queryByRole('sunday')?.textContent).to.include(option.sunday);
     });
 });

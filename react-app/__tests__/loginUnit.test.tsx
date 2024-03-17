@@ -4,7 +4,7 @@ import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/re
 import { expect, test, vi, afterEach } from 'vitest'
 import React, { useContext } from 'react';
 import LoginForm from '../src/components/LoginForm'
-import { login } from '../src/components/AxiosFunctions';
+import { login } from '../src/components/axiosFunctions';
 
 afterEach(() => {
     cleanup();
@@ -12,7 +12,7 @@ afterEach(() => {
     localStorage.clear();
 });
 
-vi.mock('../src/components/AxiosFunctions', () => ({
+vi.mock('../src/components/axiosFunctions', () => ({
     __esModule: true,
     login: vi.fn(() => new Promise((resolve) => resolve({ data: { access: "maxwellKEY", refresh: "spikeKEY" } }))),
 }));
