@@ -17,7 +17,6 @@ vi.mock('../src/components/axiosFunctions', () => ({
     getQuote: vi.fn(() => new Promise((resolve) => resolve({ data: { c: 200, d: 3, dp: 1.5 } }))),
     login: vi.fn(() => new Promise((resolve) => resolve({ data: { access: "maxwellKEY", refresh: "spikeKEY" } }))),
     getCompanyProfile2: vi.fn(() => new Promise((resolve) => resolve({ data: { marketCapitalization: 1415993 } }))),
-    getFinancialsReported: vi.fn(() => new Promise((resolve) => resolve({ data: { netIncome: 1415993 } }))),
 }));
 
 test('Watchlist Test Render', () => {

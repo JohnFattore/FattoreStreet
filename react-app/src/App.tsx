@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import WallStreet from "./pages/WallStreet";
 import Entertainment from "./pages/Entertainment";
+import ErrorPage from "./components/ErrorPage";
 import axios from "axios";
 
 // react router for all our routes
@@ -38,19 +39,20 @@ export default function App() {
 
     return Promise.reject(error);
   });
-
+// errorElement doesnt always work, needs refactoring
   return (
     <>
       <TopNavigation />
-      <Routes>
+      <Routes >
         <Route path="/" element={<Home />} />
         <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/login" element={<Login />} />
         <Route path="/allocation" element={<Allocation />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/wallstreet" element={<WallStreet />} />
+        <Route path="/wallstreet" element={<WallStreet />}  errorElement={<ErrorPage />}/>
         <Route path="/entertainment" element={<Entertainment />} />
+        <Route path="*" element={<ErrorPage />} />
       </Routes>
       <p>Passive Investing is Awesome!!</p>
     </>

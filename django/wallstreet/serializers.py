@@ -21,12 +21,14 @@ class SelectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Selection
         fields=['id', 'option', 'user']
+    # 
     def validate(self, data):
         # users can't make the same selection twice
-        userSelections = Selection.objects.filter(user=data['user'])
+        userSelections = Selection.objects.filter(user=self.context['request'].user)
         for selection in userSelections:
             if data['option'].id == selection.option.id:
                 raise serializers.ValidationError("Selection Must be Unique")
         # users can only make 3 selections a week
         # userCurrentSelections = userSelections.objects.filter(sunday= this sunday)
+        # user cant change past selections
         return data

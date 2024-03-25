@@ -17,7 +17,7 @@ export default function WatchListTable({setMessage, tickers, setTickers}) {
       </thead>
       <tbody>
         {tickers.map((ticker: string, index: number) => (
-          <WatchListRow ticker={ticker} setMessage={setMessage} setTickers={setTickers} index={index}/>
+          <WatchListRow ticker={ticker} setMessage={setMessage} setTickers={setTickers} key={index}/>
         ))}
       </tbody>
     </Table>

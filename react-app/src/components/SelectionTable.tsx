@@ -4,12 +4,12 @@ import { useEffect } from 'react';
 import { getSelections } from './axiosFunctions';
 import SelectionRow from './SelectionRow';
 
-export default function SelectionTable({ selections, selectionsDispatch, setMessage, options, nextSunday }) {
+export default function SelectionTable({ selections, selectionsDispatch, setMessage, options, week }) {
 
     let data: ISelection[] = []
     useEffect(() => {
         if (selections.length == 0) {
-            getSelections(nextSunday)
+            getSelections(week)
                 .then((response) => {
                     data = response.data
                     for (let i = 0; i < data.length; i++) {
@@ -23,7 +23,7 @@ export default function SelectionTable({ selections, selectionsDispatch, setMess
     }, []);
 
     if (selections.length == 0) {
-        return (<tr role="noSelections">You haven't made any selections for this week</tr>)
+        return (<h3 role="noSelections">You haven't made any selections for this week</h3>)
     }
 
     return (
@@ -32,11 +32,12 @@ export default function SelectionTable({ selections, selectionsDispatch, setMess
                 <tr>
                     <th scope="col" role="tickerHeader">Ticker</th>
                     <th scope="col" role="sundayHeader">Sunday</th>
+                    <th scope="col" role="selectionPriceHeader">Current Price</th>
                 </tr>
             </thead>
             <tbody>
                 {selections.map((selection: ISelection) => (
-                    <SelectionRow selection={selection} setMessage={setMessage} options={options} selectionsDispatch={selectionsDispatch} />
+                    <SelectionRow selection={selection} setMessage={setMessage} options={options} selectionsDispatch={selectionsDispatch} key={selection.id}/>
                 ))}
             </tbody>
         </Table>

@@ -46,8 +46,8 @@ export default function AllocationTable({ setMessage }) {
                 </tr>
             </thead>
             <tbody>
-                {allocations.map(allocation => (
-                    <AllocationRow allocation={allocation} setMessage={setMessage}/>
+                {allocations.map((allocation: IAllocation, index) => (
+                    <AllocationRow allocation={allocation} setMessage={setMessage} key={index}/>
                 ))}
             </tbody>
         </Table>

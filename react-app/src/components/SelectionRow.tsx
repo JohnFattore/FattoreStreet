@@ -1,6 +1,6 @@
-//import { useQuote } from './helperFunctions';
 import { IOption } from '../interfaces';
 import { deleteSelection } from './axiosFunctions';
+import { useQuote } from './customHooks';
 
 export default function SelectionRow({ selection, setMessage, options, selectionsDispatch }) {
     const filterOptions: IOption[] = options.filter((option: IOption) => option.id == selection.option)
@@ -9,12 +9,14 @@ export default function SelectionRow({ selection, setMessage, options, selection
     }
     const option: IOption = filterOptions[0]
 
+    const quote = useQuote(option.ticker, setMessage)
+
     return (
         <tr>
             <td role="selectionTicker" onClick={() => {
                 deleteSelection(selection.id).then(() => {
                     selectionsDispatch({ type: "delete", selection: selection });
-                    setMessage({ text: option.ticker + " deleted", type: "success" })
+                    setMessage({ text: option.ticker + " deleted", type: "success" });
                 })
                     .catch((response) => {
                         console.log(response)
@@ -22,6 +24,7 @@ export default function SelectionRow({ selection, setMessage, options, selection
                     })
             }}>{option.ticker}</td>
             <td role="selectionSunday">{option.sunday}</td>
+            <td role="selectionPrice">${quote.price}</td>
         </tr>
     )
 }

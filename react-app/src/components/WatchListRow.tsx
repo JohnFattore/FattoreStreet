@@ -1,6 +1,6 @@
 import { useQuote, useCompanyProfile2 } from "./customHooks";
 
-export default function WatchListRow({ ticker, index, setMessage, setTickers }) {
+export default function WatchListRow({ ticker, setMessage, setTickers }) {
     const quote = useQuote(ticker, setMessage)
     const marketCap = useCompanyProfile2(ticker, setMessage)
     //const netIncome = useFinancialsReported(ticker, setMessage)
@@ -13,7 +13,7 @@ export default function WatchListRow({ ticker, index, setMessage, setTickers }) 
     //console.log(marketCap)
 
     return (
-        <tr key={index}>
+        <tr>
             <td role="ticker">{ticker}</td>
             <td>${quote.price.toLocaleString(undefined, {
                 minimumFractionDigits: 2,

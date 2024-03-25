@@ -12,3 +12,11 @@ gunicorn==21.2.0
 psycopg2==2.9.9
 # Environment Variables
 django-environ==0.11.2
+# Async and scheduled tasks
+celery==5.3.6
+# celery task scheduler helper
+django-celery-beat=2.6.0
+# celery save results with django
+django-celery-results=2.5.1
+# idk
+python-decouple=3.8

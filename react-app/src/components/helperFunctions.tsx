@@ -12,7 +12,7 @@ export function setAlertVarient(message: IMessage) {
 export function selectedOption(option: IOption, selections: ISelection[]) {
     const selectionsFiltered: ISelection[] = selections.filter((selection: ISelection) => selection.option == option.id)
     if (selectionsFiltered.length != 0)
-        return ""//"green"
+        return "green"
 }
 
 // this weeks sunday, sunday last past, is 0
@@ -30,7 +30,13 @@ export function getSunday(week: number) {
         return yyyy + "-" + mm + "-" + dd;
     }
 
-    var today = new Date();
+    // UTC not working as intended, manually adding hours to match UTC
+    var date = new Date();
+    var dateUTC = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(),
+                date.getUTCDate(), date.getUTCHours() + 5, // GMT is -5 UTC
+                date.getUTCMinutes(), date.getUTCSeconds());
+    var today = new Date(dateUTC)
+    console.log(today)
     var thisSunday = addDays(today, -today.getDay())
     var sunday = addDays(thisSunday, (7 * week))
     return formatDate(sunday)

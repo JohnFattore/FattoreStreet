@@ -18,7 +18,6 @@ services:
       - 8000:8000
     # network_mode: "host"
 
-
     depends_on:
       - nginx
 
@@ -37,6 +36,11 @@ services:
     ports:
       - 80:80
     # network_mode: "host"
+
+  redis:
+    container_name: redis
+    image: ${REDIS_IMAGE}
+
 
   #certbot:
   #  image: certbot/certbot:latest

@@ -41,7 +41,7 @@ export default function AssetTable({ setMessage, assets, dispatch }) {
       </thead>
       <tbody>
         {assets.map((asset: IAsset) => (
-          <AssetRow asset={asset} setMessage={setMessage} dispatch={dispatch} />
+          <AssetRow asset={asset} setMessage={setMessage} dispatch={dispatch} key={asset.id}/>
         ))}
       </tbody>
     </Table>

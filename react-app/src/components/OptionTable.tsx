@@ -4,12 +4,11 @@ import { IOption } from '../interfaces';
 import OptionRow from './OptionRow';
 import Table from 'react-bootstrap/Table';
 
-export default function OptionTable({ setMessage, options, selections, optionsDispatch, selectionsDispatch, nextSunday }) {
-
+export default function OptionTable({ setMessage, options, selections, optionsDispatch, selectionsDispatch, week }) {
   let data: IOption[] = []
   useEffect(() => {
     if (options.length == 0) {
-      getOptions(nextSunday)
+      getOptions(week)
         .then((response) => {
           data = response.data
           for (let i = 0; i < data.length; i++) {
@@ -25,18 +24,19 @@ export default function OptionTable({ setMessage, options, selections, optionsDi
   if (options.length == 0) {
     return (<h3 role="noOptions">There are no options for this week</h3>)
   }
- 
+
   return (
     <Table>
       <thead>
         <tr>
           <th scope="col" role="tickerHeader">Ticker</th>
           <th scope="col" role="sundayHeader">Beginning of Week [Sunday]</th>
+          <th scope="col" role="optionPriceHeader">Current Price</th>
         </tr>
       </thead>
       <tbody>
         {options.map((option: IOption) =>
-          <OptionRow option={option} selections={selections} selectionsDispatch={selectionsDispatch} setMessage={setMessage} />
+          <OptionRow option={option} selections={selections} selectionsDispatch={selectionsDispatch} setMessage={setMessage} key={option.id}/>
         )}
       </tbody>
     </Table>

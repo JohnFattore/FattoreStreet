@@ -1,8 +1,14 @@
+
+docker run -d -p 6379:6379 redis
+
 # Portfolio Manager, a Django RESTful API backend
 ## Changing database schema
 Stage the migrations and commit changes to database. Portfolio is the name of the app.
 ```
 python3 manage.py makemigrations portfolio
+python3 manage.py migrate
+
+python3 manage.py makemigrations wallstreet
 python3 manage.py migrate
 ```
 ## Running the development server

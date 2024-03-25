@@ -1,8 +1,11 @@
 import { ISelection } from '../interfaces';
 import { postSelection } from './axiosFunctions';
+import { useQuote } from './customHooks';
 import { selectedOption } from './helperFunctions';
 
 export default function OptionRow({ option, selections, selectionsDispatch, setMessage }) {
+
+    const quote = useQuote(option.ticker, setMessage)
 
     return (
         <tr key={option.id}>
@@ -23,7 +26,7 @@ export default function OptionRow({ option, selections, selectionsDispatch, setM
                         setMessage({ text: option.ticker + " added", type: "success" })
                     })
                         .catch(() => {
-                            setMessage({ text: "There was a problem deleting the selection", type: "error" })
+                            setMessage({ text: "There was a problem adding the selection", type: "error" })
                         })
                 }
                 else {
@@ -32,6 +35,7 @@ export default function OptionRow({ option, selections, selectionsDispatch, setM
 
             }}>{option.ticker}</td>
             <td role="optionSunday" style={{ backgroundColor: selectedOption(option, selections) }}>{option.sunday}</td>
+        <td role="optionPrice" style={{ backgroundColor: selectedOption(option, selections) }}>${quote.price}</td>
         </tr>
     )
 }
