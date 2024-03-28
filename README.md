@@ -75,7 +75,10 @@ The hosted zone is called fattorestreet.com so all subdomains can be easily acco
 One unified domain should be used for all traffic (www. or not)
 
 ### CI/CD Pipeline
-The continous integration, continious deployment pipeline consists of a distinct CI and CD. The CI are automated tests for both the react and django apps. The CD is a .sh file called deploy.sh that does everything between building the production code and deploying it onto AWS.
+The continous integration, continious deployment pipeline consists of a distinct CI and CD. The CI are automated tests for both the react and django apps. The CD is a .sh file called deploy.sh that does everything between building the production code and deploying it onto AWS. [GithubActions](https://github.com/features/actions) is considerred; however free resources are preferred. Perhaps free options are useful, but for now there are bigger items to tackle.
+
+### Kubernetes
+Kubernetes is a container orchestration largely used for container management and scaling. This project currently runs just fine with a simple container set up, no need for containers to spin up and down to meet demand. However, if this project ever gets popular enough, Kubernetes will be an excellent choice. Not to mention it doesn't really work with AWS Fargate.
 
 ## Future To Do
 #### The long term goal is to be cloud agnostic because I don't want to be tied to a particular cloud vender. 

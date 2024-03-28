@@ -2,8 +2,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from .models import Option, Selection
 from django.contrib.auth.models import User
-from django.utils import timezone
-from datetime import datetime
+from datetime import date
 
 # serializer for Option Model
 class OptionSerializer(serializers.ModelSerializer):
@@ -28,7 +27,15 @@ class SelectionSerializer(serializers.ModelSerializer):
         for selection in userSelections:
             if data['option'].id == selection.option.id:
                 raise serializers.ValidationError("Selection Must be Unique")
-        # users can only make 3 selections a week
-        # userCurrentSelections = userSelections.objects.filter(sunday= this sunday)
+        # get userSelections for sunday of option
+        option = Option.objects.get(id=data['option'].id)
+        currentOptions = Option.objects.filter(sunday=option.sunday)
+        userCurrentSelections = userSelections.filter(option_id__in=currentOptions)
+        today = date.today()
+        if (userCurrentSelections.count() >= 3):
+            raise serializers.ValidationError("Only 3 Selections per Week")
+        if (option.sunday < today):
+            raise serializers.ValidationError("Cant add selections for past weeks")
         # user cant change past selections
+        # check current date with request's sunday
         return data

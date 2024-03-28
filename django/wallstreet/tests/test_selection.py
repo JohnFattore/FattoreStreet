@@ -12,10 +12,12 @@ class SelectionCreateTest(APITestCase):
         # Create a user for authentication
         self.user = User.objects.create_user(username='testuser', password='testpassword')
         # self.selection = Selection.objects.create(option=1, sunday='2024-03-03', user=self.user.id)
-        self.option = Option.objects.create(ticker="SPY", sunday='2024-03-03')
-        self.option2 = Option.objects.create(ticker="VTI", sunday='2024-03-03')
-        self.option3 = Option.objects.create(ticker="AAPL", sunday='2024-03-03')
-        self.option4 = Option.objects.create(ticker="MSFT", sunday='2024-03-03')
+        self.option = Option.objects.create(ticker="SPY", sunday='2024-06-30')
+        self.option2 = Option.objects.create(ticker="VTI", sunday='2024-06-30')
+        self.option3 = Option.objects.create(ticker="AAPL", sunday='2024-06-30')
+        self.option4 = Option.objects.create(ticker="MSFT", sunday='2024-06-30')
+        self.option5 = Option.objects.create(ticker="LLY", sunday='2024-03-03')
+        # Selection.objects.create(option=self.option, user=self.user)
         Selection.objects.create(option=self.option2, user=self.user)
         Selection.objects.create(option=self.option3, user=self.user)
         self.factory = APIRequestFactory()
@@ -54,14 +56,29 @@ class SelectionCreateTest(APITestCase):
         self.assertIn("invalid", str(response.content).lower())
 
     # only 3 per week!
-    #def test_create_selection_too_many_options(self):
-    #    data = {'option': 4, 'user': self.user.id}
-    #    request = self.factory.post(self.url, data, format='json')
-    #    force_authenticate(request, user=self.user)
-    #    response = self.view(request)
-    #    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    #    response.render()
-    #    self.assertIn("3", str(response.content).lower())
+    def test_create_selection_too_many_options(self):
+        data = {'option': self.option.id, 'user': self.user.id}
+        request = self.factory.post(self.url, data, format='json')
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        response.render()
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = {'option': self.option4.id, 'user': self.user.id}
+        request = self.factory.post(self.url, data, format='json')
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response.render()
+        self.assertIn("3", str(response.content).lower())
+
+    def test_create_selection_past_sunday(self):
+        data = {'option': self.option5.id, 'user': self.user.id}
+        request = self.factory.post(self.url, data, format='json')
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response.render()
+        self.assertIn("past", str(response.content).lower())
 
     def test_list_selections(self):
         request = self.factory.get(self.url)

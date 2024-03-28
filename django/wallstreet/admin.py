@@ -5,7 +5,7 @@ from .models import Option, Selection
 # admin.site.register(Option)
 @admin.register(Option)
 class OptionAdmin(admin.ModelAdmin):
-    list_display = ('ticker', 'sunday', 'startPrice', 'endPrice', 'rank', 'id')
+    list_display = ('ticker', 'sunday', 'startPrice', 'endPrice', 'percentChange', 'rank', 'id')
 # admin.site.register(Selection)
 @admin.register(Selection)
 class SelectionAdmin(admin.ModelAdmin):

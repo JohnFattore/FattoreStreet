@@ -15,8 +15,8 @@ django-environ==0.11.2
 # Async and scheduled tasks
 celery==5.3.6
 # celery task scheduler helper
-django-celery-beat=2.6.0
+django-celery-beat==2.6.0
 # celery save results with django
-django-celery-results=2.5.1
-# idk
-python-decouple=3.8
+django-celery-results==2.5.1
+# HTTP requests from python
+requests==2.28.2

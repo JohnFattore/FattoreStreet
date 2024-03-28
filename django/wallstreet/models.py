@@ -8,12 +8,12 @@ class Option(models.Model):
     sunday = models.DateField()
     startPrice = models.DecimalField(decimal_places=2, max_digits=10, default = 1)
     endPrice = models.DecimalField(decimal_places=2, max_digits=10, default = 2)
-    percentChange = models.DecimalField(decimal_places=2, max_digits=5)
+    percentChange = models.DecimalField(decimal_places=2, max_digits=5, default=0)
     rank = models.IntegerField(default=0)
 
-    def save(self, *args, **kwargs):
-        self.percentChange = ((self.endPrice - self.startPrice) / self.startPrice) * 100
-        super(Option, self).save(*args, **kwargs) # Call the "real" save() method.
+    #def save(self, *args, **kwargs):
+    #    self.percentChange = ((self.endPrice - self.startPrice) / self.startPrice) * 100
+    #    super(Option, self).save(*args, **kwargs) # Call the "real" save() method.
     
     def __str__(self):
         return self.ticker

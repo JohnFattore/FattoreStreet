@@ -1,5 +1,6 @@
 from wallstreet.models import Selection, Option
 from celery import shared_task
+import requests
 
 @shared_task
 def test(sunday):
@@ -8,25 +9,28 @@ def test(sunday):
 
 @shared_task
 def startWeek(sunday):
-    Option.objects.create(ticker="VO", sunday=sunday, startPrice=200)
-    Option.objects.create(ticker="SPY", sunday=sunday, startPrice=500)
-    Option.objects.create(ticker="VB", sunday=sunday, startPrice=175)
-    # set Price
-    # gotta make an API here for price
-    #quote = 300
-    #options = Option.objects.filter(sunday=sunday)
-    #options.update(startPrice=quote)
+    tickers = ["NVDA", "MSFT", "AAPL", "C", "KO", "F", "JNJ", "META", "LLY", "V"]
+    for ticker in tickers:
+        # should be ENV, URL and key
+        response = requests.get("https://finnhub.io/api/v1/quote/", params={"symbol": ticker, "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
+        print(response.json()["c"])
+        Option.objects.create(ticker=ticker, sunday=sunday, startPrice=response.json()["c"])
     print("Creating Weekly Options")
 
 @shared_task
 def endWeek(sunday):
-    # gotta make an API here for price
-    quote = 325
-    options = Option.objects.filter(sunday=sunday)
-    options.update(endPrice=quote)
-    # rank
-    options = Option.objects.filter(sunday=sunday)
-    options.all().order_by('percentChange').values()
-    # sort options, assign rank
-    options.all().update(rank=2)
+    # set end price
+    for option in Option.objects.filter(sunday=sunday):
+        response = requests.get("https://finnhub.io/api/v1/quote/", params={"symbol": option.ticker, "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
+        quote = response.json()["c"]
+        option.endPrice = quote
+        option.percentChange = ((float(quote) - float(option.startPrice)) / float(option.startPrice))
+        option.save()
+
+    # rank weekly options
+    rank = 1
+    for option in Option.objects.filter(sunday=sunday).order_by('-percentChange'):
+        option.rank = rank
+        option.save()
+        rank = rank + 1
     print("Setting End Price and Rank")

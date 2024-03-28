@@ -17,20 +17,15 @@ lastSunday = today - (timedelta((today.weekday() + 1) % 7)) # monday is 0
 nextSunday = lastSunday + timedelta(7)
 
 app.conf.beat_schedule = {
-'Test Task': {
- 'task': 'wallstreet.tasks.test',
- 'schedule': crontab(day_of_week='sun', hour=1, minute=0),
- # not sure whats up with the comma, but it works
- 'args': (nextSunday,),
- },
 'Start Week': {
  'task': 'wallstreet.tasks.startWeek',
- 'schedule': crontab(day_of_week='sun', hour=1, minute=30),
+ 'schedule': crontab(day_of_week='sun', hour=5, minute=0),
  'args': (nextSunday,),
  },
 'End Week': {
  'task': 'wallstreet.tasks.endWeek',
- 'schedule': crontab(day_of_week='sun', hour=1, minute=30),
+ 'schedule': crontab(day_of_week='sun', hour=5, minute=0),
+ # should be lastSunday FYI
  'args': (lastSunday,),
  },
 }

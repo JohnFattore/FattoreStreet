@@ -39,7 +39,19 @@ services:
 
   redis:
     container_name: redis
-    image: ${REDIS_IMAGE}
+    #image: ${REDIS_IMAGE}
+    ports: 6379:6379
+
+  celery:
+    build: ./celery
+    container_name: celery
+  #  image: ${CELERY_IMAGE}
+
+  flower:
+    build: ./flower
+    container_name: flower
+    #image: ${FLOWER_IMAGE}
+    ports: 5555:5555
 
 
   #certbot:

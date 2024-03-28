@@ -4,7 +4,7 @@ This [react](https://react.dev/) app is developed using [Vite](https://vitejs.de
 ## HTTP requests: Axios
 Axios is used for all HTTP requests because it provides an easy to use asynchronous HTTP function. Fetch is a notable alternative to Axios that is built into Javascript. Axios is preferred because of its easy of use and support for interceptors. "src/components/AxiosFunctions.tsx contains all the HTTP requests used in the project except for the interceptors which can be found in App.tsx.
 
-## Testing
+## Testing: Vitest
 The test runner utlizied is Vitest because of its smooth integration with Vite and similarities to more popular test runner [Jest](https://jestjs.io/). React testing library includes extra tools utlized for testing. Each page has its own testing file where all components are tested. Axios functions are tested independently and then mocked for the component tests. 
 
 ## Forms: React Hook Form
@@ -13,9 +13,12 @@ The library react-hook-form includes the function useForm, which is utilitzed fo
 ## Routing: React Router
 React router is used to simplify the process of naviating to a new page, which needs to be created using javascript.
 
+## Global State: Redux
+Redux offers an easy way to manage global state and reduces prop drilling. Redux is perferred over useContext + useReducer for its ease of use, although both manage global state in a similar fashion.
+
 ## UX Design: React Boostrap
 React bootstrap contains prestyles components based on the CSS/JS library [Bootstrap](https://getbootstrap.com/). [Sass](https://sass-lang.com/) is used to customize bootstrap to use our own custom colors/designs.
-To complile the custom CSS sheet, you can run either script. Top script compiles sass into css, bottom script will continously compile new changes.
+To complile the custom CSS sheet, you can run either script. Top script compiles sass into css, bottom script will continously compile new changes. [MaterialUI](https://mui.com/material-ui/) is heavily considerred and might be phased in during the next UI redesign.
 
     sass src/styles/custom.scss src/styles/custom.css
 
