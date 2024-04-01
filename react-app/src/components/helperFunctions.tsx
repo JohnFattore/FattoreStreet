@@ -30,14 +30,11 @@ export function getSunday(week: number) {
         return yyyy + "-" + mm + "-" + dd;
     }
 
-    // UTC not working as intended, manually adding hours to match UTC
     var date = new Date();
-    var dateUTC = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(),
-                date.getUTCDate(), date.getUTCHours() + 5, // GMT is -5 UTC
-                date.getUTCMinutes(), date.getUTCSeconds());
-    var today = new Date(dateUTC)
-    console.log(today)
-    var thisSunday = addDays(today, -today.getDay())
+    var UTC = new Date(date.getTime() + (date.getTimezoneOffset()*60*1000))
+    var offsetHours = Number(import.meta.env.VITE_APP_CUTOVER_ISOWEEKDAY * 24) + Number(import.meta.env.VITE_APP_CUTOVER_HOUR)
+    var cutoff = new Date(UTC.getTime() - (offsetHours*60*60*1000))
+    var thisSunday = addDays(cutoff, -cutoff.getDay() % 7)
     var sunday = addDays(thisSunday, (7 * week))
     return formatDate(sunday)
 }

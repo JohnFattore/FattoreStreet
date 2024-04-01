@@ -1,12 +1,18 @@
 from django.contrib import admin
-from .models import Option, Selection
+from .models import Option, Selection, Result, AltBenchmark
 
-# Register your models here.
-# admin.site.register(Option)
 @admin.register(Option)
 class OptionAdmin(admin.ModelAdmin):
-    list_display = ('ticker', 'sunday', 'startPrice', 'endPrice', 'percentChange', 'rank', 'id')
-# admin.site.register(Selection)
+    list_display = ('ticker', 'sunday', 'startPrice', 'endPrice', 'percentChange', 'rank', 'benchmark', 'id')
+
 @admin.register(Selection)
 class SelectionAdmin(admin.ModelAdmin):
-    list_display = ('option', 'user', 'id')
+    list_display = ('option', 'allocation', 'user', 'id')
+
+@admin.register(Result)
+class ResultAdmin(admin.ModelAdmin):
+    list_display = ('portfolioPercentChange', 'sunday', 'user', 'id')
+
+@admin.register(AltBenchmark)
+class AltBenchmarksAdmin(admin.ModelAdmin):
+    list_display = ('benchmark', 'percentChange', 'sunday', 'id')

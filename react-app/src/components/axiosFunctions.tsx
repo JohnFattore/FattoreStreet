@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { IAsset, ISelection } from '../interfaces';
 import { getSunday } from './helperFunctions';
@@ -87,8 +86,6 @@ export const postUser = async (username: string, password: string, email: string
   return response
 }
 
-// getSundays, and this funtion, need to be able to return 
-// perhaps can make this more flexible, have the parameter be a number to indicate sunday
 // 0 would be last sunday, 1 next sunday etc. could even do -1
 export const getOptions = async (week: number) => {
   const response = await axios.get(import.meta.env.VITE_APP_DJANGO_WALLSTREET_URL.concat("options/"), {

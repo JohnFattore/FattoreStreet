@@ -80,6 +80,9 @@ The continous integration, continious deployment pipeline consists of a distinct
 ### Kubernetes
 Kubernetes is a container orchestration largely used for container management and scaling. This project currently runs just fine with a simple container set up, no need for containers to spin up and down to meet demand. However, if this project ever gets popular enough, Kubernetes will be an excellent choice. Not to mention it doesn't really work with AWS Fargate.
 
+### Stock Data
+Reliable cheap stock data delivered through APIs are hard to come by. Finnhub finaincal APIs have been utilized for stock quotes. Other options have been explored including IEX Cloud and Alpha Vantage.
+
 ## Future To Do
 #### The long term goal is to be cloud agnostic because I don't want to be tied to a particular cloud vender. 
 The RDS server and ALB are both AWS specific and can't be used on a different hosting service. 

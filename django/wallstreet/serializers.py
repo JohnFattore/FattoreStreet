@@ -2,7 +2,11 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from .models import Option, Selection
 from django.contrib.auth.models import User
-from datetime import date
+from datetime import date, timedelta
+import environ
+
+env = environ.Env()
+environ.Env.read_env()
 
 # serializer for Option Model
 class OptionSerializer(serializers.ModelSerializer):
@@ -20,7 +24,6 @@ class SelectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Selection
         fields=['id', 'option', 'user']
-    # 
     def validate(self, data):
         # users can't make the same selection twice
         userSelections = Selection.objects.filter(user=self.context['request'].user)
@@ -34,8 +37,9 @@ class SelectionSerializer(serializers.ModelSerializer):
         today = date.today()
         if (userCurrentSelections.count() >= 3):
             raise serializers.ValidationError("Only 3 Selections per Week")
-        if (option.sunday < today):
+        env("CUTOVER_WEEKDAY")
+        if (((option.sunday) + timedelta(days=int(env("CUTOVER_ISOWEEKDAY")), hours=int(env("CUTOVER_HOUR")))) < today):
             raise serializers.ValidationError("Cant add selections for past weeks")
-        # user cant change past selections
-        # check current date with request's sunday
+        if (option.benchmark == True):
+            raise serializers.ValidationError("Cant select benchmarks")
         return data
