@@ -1,6 +1,6 @@
 from rest_framework.test import APITestCase
 from django.contrib.auth.models import User
-from wallstreet.models import Selection, Option, Result, AltBenchmark
+from wallstreet.models import Selection, Option, Result
 from wallstreet.tasks import endWeek, startWeek
 from wallstreet.helperFunctions import getSunday
 
@@ -24,7 +24,7 @@ class SelectionCreateTest(APITestCase):
         optionBenchmarks = Option.objects.filter(sunday=self.sunday, benchmark=True)
         self.assertEqual(3, optionBenchmarks.count())
         endWeek(sunday=self.sunday)
-        altBenchMark = AltBenchmark.objects.filter(sunday=self.sunday)
-        self.assertEqual(1, altBenchMark.count())
+        optionBenchmarks = Option.objects.filter(sunday=self.sunday, benchmark=True)
+        self.assertEqual(4, optionBenchmarks.count())
         userWeeklyResults = Result.objects.filter(sunday=self.sunday, user=self.user)
         self.assertEqual(1, userWeeklyResults.count())

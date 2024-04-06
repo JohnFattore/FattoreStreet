@@ -1,19 +1,16 @@
-# only API views, see retiredViews for old django frontend views
-# from django.contrib.auth.models import User
-# API modules using drf
 from rest_framework import generics, permissions
-from .serializers import OptionSerializer, SelectionSerializer
+from .serializers import OptionSerializer, SelectionSerializer, ResultSerializer
 from .models import Option, Selection, Result
-from datetime import datetime, timedelta
 from .permissions import IsOwner
+from django_filters import rest_framework as filters
 
 # API endpoint for 'get' options and 'post' option
-class OptionsAPI(generics.ListCreateAPIView):
+# this route uses django-filter, which may or may not be useful
+class OptionsAPI(generics.ListAPIView):
     serializer_class = OptionSerializer
-    def get_queryset(self):
-        sunday = self.request.GET.get('sunday', '1999-01-01')
-        benchmark = self.request.GET.get('benchmark', False)
-        return Option.objects.filter(sunday=sunday, benchmark=benchmark)
+    queryset = Option.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_fields = ('sunday', 'benchmark')
 
 # API endpoint for 'get' options and 'post' option
 class SelectionsAPI(generics.ListCreateAPIView):
@@ -21,11 +18,10 @@ class SelectionsAPI(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     # return only the selections the user owns and that are current
     def get_queryset(self):
-        # return error if no sunday
-        options = Option.objects.filter(sunday = self.request.GET.get('sunday', '1999-01-01'))
+        # returns nothing if sunday is not specifed
+        options = Option.objects.filter(sunday=self.request.query_params.get('sunday'))
         return Selection.objects.filter(user=self.request.user, option__in=options)
     
-    # user comes from different part of response as other data
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
     
@@ -35,7 +31,14 @@ class SelectionAPI(generics.RetrieveDestroyAPIView):
     serializer_class = SelectionSerializer
     permission_classes = [IsOwner]
 
-class UserWeeklyResultListView(generics.ListAPIView):
-    def get_queryset(self):
-        # return error if no sunday
-        return Result.objects.filter(user=self.request.user, sunday= self.request.GET.get('sunday', '1999-01-01'))
+class ResultsAPI(generics.ListAPIView):
+    queryset = Result.objects.all()
+    serializer_class = ResultSerializer
+    permission_classes = [IsOwner]
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_fields = ('sunday', 'benchmark')
+
+class ResultAPI(generics.RetrieveAPIView):
+    queryset = Result.objects.all()
+    serializer_class = ResultSerializer
+    permission_classes = [IsOwner]

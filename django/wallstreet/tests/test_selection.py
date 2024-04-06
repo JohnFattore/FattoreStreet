@@ -6,22 +6,27 @@ from wallstreet.views import SelectionsAPI
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.test import APIClient
 from django.urls import reverse
-from datetime import date, timedelta
 from wallstreet.helperFunctions import getSunday
 
 class SelectionCreateTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.user2 = User.objects.create_user(username='testuser2', password='testpassword')
         self.lastSunday = getSunday(0)
         self.nextSunday = getSunday(1)
         self.option = Option.objects.create(ticker="V", sunday=self.nextSunday, benchmark=False)
-        self.option2 = Option.objects.create(ticker="VTI", sunday=self.nextSunday, benchmark=False)
+        self.option2 = Option.objects.create(ticker="F", sunday=self.nextSunday, benchmark=False)
         self.option3 = Option.objects.create(ticker="AAPL", sunday=self.nextSunday, benchmark=False)
         self.option4 = Option.objects.create(ticker="MSFT", sunday=self.nextSunday, benchmark=False)
         self.option5 = Option.objects.create(ticker="LLY", sunday=self.lastSunday, benchmark=False)
         self.option6 = Option.objects.create(ticker="SPY", sunday=self.nextSunday, benchmark=True)
+        self.option7 = Option.objects.create(ticker="M", sunday=self.lastSunday, benchmark=False)
         Selection.objects.create(option=self.option2, user=self.user)
         Selection.objects.create(option=self.option3, user=self.user)
+        Selection.objects.create(option=self.option7, user=self.user)
+        Selection.objects.create(option=self.option, user=self.user2)
+        Selection.objects.create(option=self.option2, user=self.user2)
+        Selection.objects.create(option=self.option3, user=self.user2)
         self.factory = APIRequestFactory()
         self.client = APIClient()
         self.url = reverse('selections')
@@ -91,13 +96,46 @@ class SelectionCreateTest(APITestCase):
         response.render()
         self.assertIn("benchmark", str(response.content).lower())
 
-    def test_list_selections(self):
-        request = self.factory.get(self.url)
+#####################################################################################3
+    # get requests
+
+    # expect no selections returned if sunday is not specified
+    def test_list_selections_no_params(self):
+        data = { }
+        request = self.factory.get(self.url, data)
         force_authenticate(request, user=self.user)
         response = self.view(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
+    def test_list_selections_sunday(self):
+        data = {'sunday': self.nextSunday}
+        request = self.factory.get(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_list_selections_unauthorized(self):
+        data = {'sunday': self.nextSunday}
+        request = self.factory.get(self.url, data)
+        #force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response.render()
+        self.assertIn("authentication", str(response.content).lower())
 
     def test_list_selections_client(self):
+        data = {'sunday': self.nextSunday}
         self.client.force_authenticate(user=self.user)
-        response = self.client.get(self.url)
+        response = self.client.get(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_list_selections_client_unauthorized(self):
+        data = {'sunday': self.nextSunday}
+        #self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url, data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response.render()
+        self.assertIn("authentication", str(response.content).lower())

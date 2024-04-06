@@ -22,12 +22,14 @@ nextSunday = getSunday(1)
 app.conf.beat_schedule = {
 'Start Week': {
  'task': 'wallstreet.tasks.startWeek',
- 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+ #'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+ 'schedule': crontab(minute=4),
  'args': (nextSunday,),
  },
 'End Week': {
  'task': 'wallstreet.tasks.endWeek',
- 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+ #'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+ 'schedule': crontab(minute=4),
  'args': (lastSunday,),
  },
 }

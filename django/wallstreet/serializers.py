@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
-from .models import Option, Selection
+from .models import Option, Selection, Result
 from django.contrib.auth.models import User
 from datetime import date, timedelta
 import environ
@@ -19,7 +18,6 @@ class OptionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Sunday field must be a sunday")
         return value
 
-# TO DO: cant delete selections of past weeks, not sure where to implement
 class SelectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Selection
@@ -43,3 +41,8 @@ class SelectionSerializer(serializers.ModelSerializer):
         if (option.benchmark == True):
             raise serializers.ValidationError("Cant select benchmarks")
         return data
+    
+class ResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Result
+        fields = ['id', 'portfolioPercentChange', 'sunday', 'user']
