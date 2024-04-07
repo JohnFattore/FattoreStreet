@@ -21,7 +21,7 @@ class OptionSerializer(serializers.ModelSerializer):
 class SelectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Selection
-        fields=['id', 'option', 'user']
+        fields=['id', 'option']
     def validate(self, data):
         # users can't make the same selection twice
         userSelections = Selection.objects.filter(user=self.context['request'].user)
@@ -45,4 +45,4 @@ class SelectionSerializer(serializers.ModelSerializer):
 class ResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = Result
-        fields = ['id', 'portfolioPercentChange', 'sunday', 'user']
+        fields = ['id', 'portfolioPercentChange', 'sunday']

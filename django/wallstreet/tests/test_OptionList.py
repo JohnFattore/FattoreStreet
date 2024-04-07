@@ -1,8 +1,8 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from wallstreet.models import Option
-from wallstreet.views import OptionsAPI
-from rest_framework.test import APIRequestFactory, force_authenticate
+from wallstreet.views import OptionListAPI
+from rest_framework.test import APIRequestFactory
 from rest_framework.test import APIClient
 from django.urls import reverse
 from wallstreet.helperFunctions import getSunday
@@ -19,9 +19,9 @@ class OptionTest(APITestCase):
         self.option6 = Option.objects.create(ticker="SPY", sunday=self.nextSunday, benchmark=True)
         self.factory = APIRequestFactory()
         self.client = APIClient()
-        self.url = reverse('options')
+        self.url = reverse('optionList')
         # self.url = '/wallstreet/api/options/'
-        self.view = OptionsAPI.as_view()
+        self.view = OptionListAPI.as_view()
 
     def test_list_options_no_params(self):
         request = self.factory.get(self.url, format='json')
