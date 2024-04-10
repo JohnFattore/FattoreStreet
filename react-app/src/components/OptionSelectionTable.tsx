@@ -23,7 +23,7 @@ export default function OptionSelectionTable({setMessage, options, selections, o
         }
 
         if (options.length == 0) {
-          getOptions(week)
+          getOptions(week, 'false')
             .then((response) => {
                 optionData = response.data
               for (let i = 0; i < optionData.length; i++) {
@@ -49,8 +49,11 @@ export default function OptionSelectionTable({setMessage, options, selections, o
       <thead>
         <tr>
           <th scope="col" role="optionSelectionTickerHeader">Ticker</th>
+          <th scope="col" role="optionSelectionNameHeader">Name</th>
           <th scope="col" role="optionSelectionSundayHeader">Beginning of Week [Sunday]</th>
+          <th scope="col" role="optionSelectionStartPriceHeader">Start Price</th>
           <th scope="col" role="optionSelectionPriceHeader">Current Price</th>
+          <th scope="col" role="optionSelectionWeeklyChange">Weekly Change</th>
         </tr>
       </thead>
       <tbody>

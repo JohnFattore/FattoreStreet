@@ -5,7 +5,7 @@ import { getSelections } from './axiosFunctions';
 import SelectionRow from './SelectionRow';
 
 export default function SelectionTable({ selections, selectionsDispatch, setMessage, options, week }) {
-
+    // this should go outside the component, so that the table can be reused
     let data: ISelection[] = []
     useEffect(() => {
         if (selections.length == 0) {
@@ -31,6 +31,7 @@ export default function SelectionTable({ selections, selectionsDispatch, setMess
             <thead>
                 <tr>
                     <th scope="col" role="tickerHeader">Ticker</th>
+                    <th scope="col" role="nameHeader">Ticker</th>
                     <th scope="col" role="sundayHeader">Sunday</th>
                     <th scope="col" role="selectionPriceHeader">Current Price</th>
                 </tr>

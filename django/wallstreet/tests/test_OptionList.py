@@ -11,7 +11,7 @@ class OptionTest(APITestCase):
     def setUp(self):
         self.lastSunday = getSunday(0)
         self.nextSunday = getSunday(1)
-        self.option = Option.objects.create(ticker="V", sunday=self.nextSunday, benchmark=False)
+        self.option = Option.objects.create(ticker="V", name="Visa",sunday=self.nextSunday, benchmark=False)
         self.option2 = Option.objects.create(ticker="VTI", sunday=self.nextSunday, benchmark=False)
         self.option3 = Option.objects.create(ticker="AAPL", sunday=self.nextSunday, benchmark=False)
         self.option4 = Option.objects.create(ticker="MSFT", sunday=self.nextSunday, benchmark=False)
@@ -29,9 +29,10 @@ class OptionTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # response.render()
         self.assertEqual(len(response.data), 6)
+        self.assertEqual(response.data[0]["name"], self.option.name)
 
     def test_list_options_sunday(self):
-        data = {'sunday': self.nextSunday}
+        data = {'sunday': self.nextSunday, 'benchmark': ""}
         request = self.factory.get(self.url, data)
         response = self.view(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

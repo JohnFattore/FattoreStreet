@@ -8,7 +8,7 @@ export default function OptionTable({ setMessage, options, selections, optionsDi
   let data: IOption[] = []
   useEffect(() => {
     if (options.length == 0) {
-      getOptions(week)
+      getOptions(week, 'false')
         .then((response) => {
           data = response.data
           for (let i = 0; i < data.length; i++) {
@@ -29,8 +29,9 @@ export default function OptionTable({ setMessage, options, selections, optionsDi
     <Table>
       <thead>
         <tr>
-          <th scope="col" role="tickerHeader">Ticker</th>
-          <th scope="col" role="sundayHeader">Beginning of Week [Sunday]</th>
+          <th scope="col" role="optionTickerHeader">Ticker</th>
+          <th scope="col" role="optionNameHeader">Name</th>
+          <th scope="col" role="optionSundayHeader">Beginning of Week [Sunday]</th>
           <th scope="col" role="optionPriceHeader">Current Price</th>
         </tr>
       </thead>

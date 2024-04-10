@@ -11,7 +11,7 @@ environ.Env.read_env()
 class OptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Option
-        fields = ['id', 'ticker', 'sunday']
+        fields = ['id', 'ticker', 'name', 'sunday', 'startPrice', 'endPrice', 'percentChange', 'rank', 'benchmark']
     def validate_sunday(self, value):
         # must be a sunday
         if value.weekday() != 6:

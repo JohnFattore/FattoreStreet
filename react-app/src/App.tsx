@@ -11,6 +11,7 @@ import Watchlist from "./pages/WatchList";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import WallStreet from "./pages/WallStreet";
+import Results from "./pages/Results";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
 import axios from "axios";
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/allocation" element={<Allocation />} />
         <Route path="/register" element={<Register />} />
         <Route path="/wallstreet" element={<WallStreet />}  errorElement={<ErrorPage />}/>
+        <Route path="/results" element={<Results />}  errorElement={<ErrorPage />}/>
         <Route path="/entertainment" element={<Entertainment />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>

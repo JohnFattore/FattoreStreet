@@ -23,12 +23,29 @@ export interface IMessage {
 
 export interface IOption {
     ticker: string,
+    name: string,
     sunday: string,
+    startPrice: number,
+    endPrice: number,
+    percentChange: number,
+    rank: number,
+    benchmark: boolean,
     id: number
 }
 
 export interface ISelection {
     option: number,
+    allocation: number,
+    user: number,
+    id: number
+}
+
+export interface IResult {
+    portfolioPercentChange: number,
+    SnP500: number,
+    Russell2000: number,
+    WorldEconomy: number,
+    sunday: string,
     user: number,
     id: number
 }

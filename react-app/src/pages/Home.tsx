@@ -1,7 +1,7 @@
 import About from '../components/About';
 import SpikeHead from '../components/SpikeHeadImg';
 
-function Home() {
+export default function Home() {
     return (
         <>
             <About/>
@@ -9,5 +9,3 @@ function Home() {
         </>
     );
   }
-  
-  export default Home;

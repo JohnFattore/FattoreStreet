@@ -14,22 +14,25 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
-# if current date is sunday, that sunday is lastSunday
-lastSunday = getSunday(0)
+lastSunday = getSunday(-1)
+thisSunday = getSunday(0)
 nextSunday = getSunday(1)
 
 # game should reset at the beginnong of before hours trading on first trading day of the week (usually monday)
 app.conf.beat_schedule = {
+'Add Options': {
+ 'task': 'wallstreet.tasks.addOptions',
+ 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+ 'args': (nextSunday,),
+ },
 'Start Week': {
  'task': 'wallstreet.tasks.startWeek',
- #'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
- 'schedule': crontab(minute=4),
- 'args': (nextSunday,),
+ 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+ 'args': (thisSunday,),
  },
 'End Week': {
  'task': 'wallstreet.tasks.endWeek',
- #'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
- 'schedule': crontab(minute=4),
+ 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
  'args': (lastSunday,),
  },
 }

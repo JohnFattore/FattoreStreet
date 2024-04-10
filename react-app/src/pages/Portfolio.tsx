@@ -5,6 +5,9 @@ import { useState } from 'react';
 import { IMessage } from '../interfaces';
 import { setAlertVarient } from '../components/helperFunctions';
 import { useReducer } from 'react';
+import DjangoTable from '../components/DjangoTable';
+import { useQuote } from '../components/customHooks';
+
 
 function assetReducer(assets, action) {
     switch (action.type) {
@@ -17,9 +20,17 @@ function assetReducer(assets, action) {
     }
 }
 
+function multipy(num1, num2) {
+    return num1 * num2
+}
+
 export default function Portfolio() {
     const [message, setMessage] = useState<IMessage>({ text: "", type: "" })
     const [assets, dispatch] = useReducer(assetReducer, []);
+
+    const totalCostBasis =  {field: "totalCostBasis", function: multipy, parameters: "shares, costbasis" }
+    const extraFields = [totalCostBasis] 
+    const excludeFields = ["id", "user"]
 
     return (
         <>
@@ -28,6 +39,8 @@ export default function Portfolio() {
             <h1 role="assetTableHeader">User's Portfolio</h1>
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
             <AssetTable setMessage={setMessage} assets={assets} dispatch={dispatch} />
+            <DjangoTable setMessage={setMessage} models={assets} dispatch={dispatch} extraFields={extraFields} excludeFields={excludeFields} />
+        
         </>
     );
 }

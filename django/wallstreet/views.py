@@ -34,7 +34,7 @@ class ResultListAPI(generics.ListAPIView):
     serializer_class = ResultSerializer
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        return Result.objects.filter(user=self.request.user, sunday=self.request.query_params.get('sunday'))
+        return Result.objects.filter(user=self.request.user)
 
 class ResultRetrieveAPI(generics.RetrieveAPIView):
     queryset = Result.objects.all()

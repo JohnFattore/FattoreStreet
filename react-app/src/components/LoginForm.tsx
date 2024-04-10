@@ -33,7 +33,7 @@ export default function LoginForm({ setMessage }) {
 
                 </Col>
                 <Col sm={3}>
-                    <Form.Control size="lg" {...register("password", {
+                    <Form.Control type="password" size="lg" {...register("password", {
                         required: true
                     })} placeholder='Password' />
                     {errors.password && <Alert variant="danger" role="passwordError">Error: password, This field is required</Alert>}

@@ -23,6 +23,7 @@ export default function SelectionRow({ selection, setMessage, options, selection
                         setMessage({ text: "There was a problem deleting the asset", type: "error" })
                     })
             }}>{option.ticker}</td>
+            <td role="selectionName">{option.name}</td>
             <td role="selectionSunday">{option.sunday}</td>
             <td role="selectionPrice">${quote.price}</td>
         </tr>

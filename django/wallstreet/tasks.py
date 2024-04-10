@@ -4,16 +4,22 @@ from celery import shared_task
 import requests
 
 @shared_task
-def startWeek(sunday):
+def addOptions(sunday):
     tickers = ["NVDA", "MSFT", "AAPL", "C", "KO", "F", "JNJ", "META", "LLY", "V"]
-    # Company Profile 2 to get name
     for ticker in tickers:
+        response = requests.get("https://finnhub.io/api/v1/stock/profile2/", 
+                                params={"symbol": ticker, "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
+        Option.objects.create(ticker=ticker, name=response.json()["name"], sunday=sunday, benchmark=False)
+    print("Creating Weekly Options")
+
+@shared_task
+def startWeek(sunday):
+    for option in Option.objects.filter(sunday=sunday):
         # should be ENV, URL and key
         response = requests.get("https://finnhub.io/api/v1/quote/", 
-                                params={"symbol": ticker, "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
-        responseName = requests.get("https://finnhub.io/api/v1/stock/profile2/", 
-                                params={"symbol": ticker, "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
-        Option.objects.create(ticker=ticker, name=responseName.json()["name"] ,sunday=sunday, startPrice=response.json()["c"], benchmark=False)
+                                params={"symbol": option.ticker, "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
+        option.startPrice = response.json()["c"]
+        option.save()
     # also make benchmark options
     benchmarks = ["SPY", "VTWO", "VT"]
     benchmarkNames = ["S&P 500", "Russell 2000", "World Economy"]
@@ -24,7 +30,7 @@ def startWeek(sunday):
                                 params={"symbol": ticker, "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
         Option.objects.create(ticker=ticker, name=benchmarkNames[index], sunday=sunday, startPrice=response.json()["c"], benchmark=True)
         index = index + 1
-    print("Creating Weekly Options")
+    print("Starting Week")
 
 @shared_task
 def endWeek(sunday):

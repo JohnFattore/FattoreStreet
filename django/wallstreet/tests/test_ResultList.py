@@ -22,17 +22,8 @@ class ResultUnitTest(APITestCase):
         # self.url = '/wallstreet/api/results/'
         self.view = ResultListAPI.as_view()
 
-    def test_list_results_no_params(self):
-        data = { }
-        request = self.factory.get(self.url, data)
-        force_authenticate(request, user=self.user)
-        response = self.view(request)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 0)
-
-    def test_list_results_sunday(self):
-        data = { 'sunday': self.sunday }
-        request = self.factory.get(self.url, data)
+    def test_list_results(self):
+        request = self.factory.get(self.url)
         force_authenticate(request, user=self.user)
         response = self.view(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

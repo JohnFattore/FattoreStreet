@@ -87,11 +87,14 @@ export const postUser = async (username: string, password: string, email: string
   return response
 }
 
+/********* Wallstreet **************************************************************/
+
 // 0 would be last sunday, 1 next sunday etc. could even do -1
-export const getOptions = async (week: number) => {
+export const getOptions = async (week: number, benchmark = "") => {
   const response = await axios.get(import.meta.env.VITE_APP_DJANGO_WALLSTREET_URL.concat("options/"), {
     params: {
-      sunday: getSunday(week)
+      sunday: getSunday(week),
+      benchmark: benchmark
     },
   });
   return response
@@ -127,6 +130,15 @@ export const deleteSelection = async (id: number) => {
     headers: {
       'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
     }
+  });
+  return response
+}
+
+export const getResults = async () => {
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_WALLSTREET_URL.concat("results/"), {
+    headers: {
+      'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string)
+    },
   });
   return response
 }
