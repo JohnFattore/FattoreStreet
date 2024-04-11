@@ -24,15 +24,15 @@ export default function Results() {
     const [message, setMessage] = useState<IMessage>({ text: "", type: "" })
     const [results, resultsDispatch] = useReducer(resultReducer, []);
 
-    let newField = {field: "MAXWELL", function: slamDunk, parameters: ["id"] }
-    let extraFields = [newField]
-
+    let extraFields = []
+    const decodes = {"sunday": "Sunday", "portfolioPercentChange": "Portfolio Percent Change"}
+    const excludeFields = ["id"]
     return (
         <>
             <h3>Wallstreet Weekly Results</h3>
             <ResultTable setMessage={setMessage} results={results} resultsDispatch={resultsDispatch}/>
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
-            <DjangoTable models={results} setMessage={setMessage} dispatch={resultsDispatch} extraFields={extraFields} excludeFields={[]}/>
+            <DjangoTable models={results} setMessage={setMessage} dispatch={resultsDispatch} extraFields={extraFields} excludeFields={excludeFields} decodes={decodes}/>
         </>
 
     );

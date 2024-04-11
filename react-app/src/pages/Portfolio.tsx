@@ -28,9 +28,15 @@ export default function Portfolio() {
     const [message, setMessage] = useState<IMessage>({ text: "", type: "" })
     const [assets, dispatch] = useReducer(assetReducer, []);
 
-    const totalCostBasis =  {field: "totalCostBasis", function: multipy, parameters: "shares, costbasis" }
-    const extraFields = [totalCostBasis] 
-    const excludeFields = ["id", "user"]
+    const fields = {
+        ticker: {name: "Ticker" },
+        shares: {name: "Shares", type: "amount" },
+        costbasis: {name: "Cost Basis", type: "money"},
+        buy: {name: "Buy Date" },
+        totalCostBasis: {name: "Total Cost Basis", function: multipy, parameters: ['shares', 'costbasis'], type: "money" },
+        quote: {name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "money" },
+        marketPrice: {name: "Market Price", function: multipy, parameters: ['shares', 'totalCostBasis'], type: "money" },
+    }
 
     return (
         <>
@@ -39,8 +45,7 @@ export default function Portfolio() {
             <h1 role="assetTableHeader">User's Portfolio</h1>
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
             <AssetTable setMessage={setMessage} assets={assets} dispatch={dispatch} />
-            <DjangoTable setMessage={setMessage} models={assets} dispatch={dispatch} extraFields={extraFields} excludeFields={excludeFields} />
-        
+            <DjangoTable setMessage={setMessage} models={assets} dispatch={dispatch} fields={fields} />
         </>
     );
 }

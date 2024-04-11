@@ -46,7 +46,7 @@ export default function App() {
       <TopNavigation />
       <Routes >
         <Route path="/" element={<Home />} />
-        <Route path="/portfolio" element={<Portfolio />} />
+        <Route path="/portfolio" element={<Portfolio />} errorElement={<ErrorPage />}/>
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/login" element={<Login />} />
         <Route path="/allocation" element={<Allocation />} />
