@@ -1,13 +1,12 @@
-import AssetTable from '../components/AssetTable';
 import AssetForm from '../components/AssetForm';
 import Alert from 'react-bootstrap/Alert';
-import { useState } from 'react';
-import { IMessage } from '../interfaces';
+import { useState, useEffect } from 'react';
+import { IMessage, IAsset } from '../interfaces';
 import { setAlertVarient } from '../components/helperFunctions';
 import { useReducer } from 'react';
 import DjangoTable from '../components/DjangoTable';
 import { useQuote } from '../components/customHooks';
-
+import { deleteAsset, getAssets } from '../components/axiosFunctions';
 
 function assetReducer(assets, action) {
     switch (action.type) {
@@ -24,18 +23,44 @@ function multipy(num1, num2) {
     return num1 * num2
 }
 
+function percentChange(start, end) {
+    return (100 * (end - start) / start)
+}
+
+
 export default function Portfolio() {
     const [message, setMessage] = useState<IMessage>({ text: "", type: "" })
     const [assets, dispatch] = useReducer(assetReducer, []);
+
+    // this could totally be included in DjangoTable
+    let data: IAsset[] = []
+    useEffect(() => {
+      if (assets.length == 0) {
+        getAssets()
+          .then((response) => {
+            data = response.data
+            for (let i = 0; i < data.length; i++) {
+              dispatch({ type: "add", asset: data[i] })
+            }
+          }).catch(() => {
+            setMessage({ text: "There was a problem getting assets", type: "error" })
+          }) 
+      }
+    }, []);
 
     const fields = {
         ticker: {name: "Ticker" },
         shares: {name: "Shares", type: "amount" },
         costbasis: {name: "Cost Basis", type: "money"},
-        buy: {name: "Buy Date" },
+        quote: {name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "hidden" },
         totalCostBasis: {name: "Total Cost Basis", function: multipy, parameters: ['shares', 'costbasis'], type: "money" },
-        quote: {name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "money" },
-        marketPrice: {name: "Market Price", function: multipy, parameters: ['shares', 'totalCostBasis'], type: "money" },
+        marketPrice: {name: "Total Market Price", function: multipy, parameters: ['shares', 'quote'], type: "money" },
+        percentChange: {name: "Percent Change", function: percentChange, parameters: ['totalCostBasis', 'marketPrice'], type: "percent" },
+        buy: {name: "Buy Date" },
+    }
+
+    const axiosFunctions = {
+        delete: deleteAsset
     }
 
     return (
@@ -44,8 +69,7 @@ export default function Portfolio() {
             <AssetForm setMessage={setMessage} dispatch={dispatch} />
             <h1 role="assetTableHeader">User's Portfolio</h1>
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
-            <AssetTable setMessage={setMessage} assets={assets} dispatch={dispatch} />
-            <DjangoTable setMessage={setMessage} models={assets} dispatch={dispatch} fields={fields} />
+            <DjangoTable setMessage={setMessage} models={assets} dispatch={dispatch} fields={fields} axiosFunctions={axiosFunctions} />
         </>
     );
 }

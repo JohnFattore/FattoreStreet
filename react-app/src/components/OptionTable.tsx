@@ -5,21 +5,6 @@ import OptionRow from './OptionRow';
 import Table from 'react-bootstrap/Table';
 
 export default function OptionTable({ setMessage, options, selections, optionsDispatch, selectionsDispatch, week }) {
-  let data: IOption[] = []
-  useEffect(() => {
-    if (options.length == 0) {
-      getOptions(week, 'false')
-        .then((response) => {
-          data = response.data
-          for (let i = 0; i < data.length; i++) {
-            optionsDispatch({ type: "add", option: data[i] })
-          }
-        })
-        .catch(() => {
-          setMessage({ text: "Error", type: "error" })
-        })
-    }
-  }, []);
 
   if (options.length == 0) {
     return (<h3 role="noOptions">There are no options for this week</h3>)

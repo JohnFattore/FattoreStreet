@@ -1,4 +1,4 @@
-import { useQuote } from "./customHooks";
+import { useQuote } from "../components/customHooks";
 
 export default function AllocationRow({ allocation, setMessage }) {
     const quote = useQuote(allocation.ticker, setMessage)

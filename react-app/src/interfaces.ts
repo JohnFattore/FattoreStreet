@@ -49,3 +49,9 @@ export interface IResult {
     user: number,
     id: number
 }
+
+export interface IAlbum {
+    name: string;
+    artist: string;
+    year: number;
+}

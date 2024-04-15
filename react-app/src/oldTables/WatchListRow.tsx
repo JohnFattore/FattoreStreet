@@ -1,4 +1,4 @@
-import { useQuote, useCompanyProfile2 } from "./customHooks";
+import { useQuote, useCompanyProfile2 } from "../components/customHooks";
 
 export default function WatchListRow({ ticker, setMessage, setTickers }) {
     const quote = useQuote(ticker, setMessage)

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { IOption, IResult } from '../interfaces';
-import { getResults } from './axiosFunctions';
+import { getResults } from '../components/axiosFunctions';
 import Table from 'react-bootstrap/Table';
 import ResultRow from './ResultRow';
 

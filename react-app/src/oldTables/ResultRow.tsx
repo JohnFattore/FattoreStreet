@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getOptions } from "./axiosFunctions";
+import { getOptions } from "../components/axiosFunctions";
 import { IOption } from "../interfaces";
 
 

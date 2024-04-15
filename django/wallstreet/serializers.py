@@ -19,9 +19,24 @@ class OptionSerializer(serializers.ModelSerializer):
         return value
 
 class SelectionSerializer(serializers.ModelSerializer):
+    ticker = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
+    sunday = serializers.SerializerMethodField()
+
     class Meta:
         model = Selection
-        fields=['id', 'option']
+        fields = ['id', 'ticker', 'name', 'sunday']
+
+    def get_ticker(self, obj):
+        selected_option = Option.objects.get(id=obj.option.id)
+        return OptionSerializer(selected_option).data["ticker"]
+    def get_name(self, obj):
+        selected_option = Option.objects.get(id=obj.option.id)
+        return OptionSerializer(selected_option).data["name"]
+    def get_sunday(self, obj):
+        selected_option = Option.objects.get(id=obj.option.id)
+        return OptionSerializer(selected_option).data["sunday"]
+    
     def validate(self, data):
         # users can't make the same selection twice
         userSelections = Selection.objects.filter(user=self.context['request'].user)
@@ -35,6 +50,7 @@ class SelectionSerializer(serializers.ModelSerializer):
         today = date.today()
         if (userCurrentSelections.count() >= 3):
             raise serializers.ValidationError("Only 3 Selections per Week")
+        # I think this can be deleted
         env("CUTOVER_WEEKDAY")
         if (((option.sunday) + timedelta(days=int(env("CUTOVER_ISOWEEKDAY")), hours=int(env("CUTOVER_HOUR")))) < today):
             raise serializers.ValidationError("Cant add selections for past weeks")

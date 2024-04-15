@@ -2,7 +2,7 @@ import Table from 'react-bootstrap/Table';
 import AssetRow from './AssetRow'
 import { IAsset } from '../interfaces';
 import { useEffect } from 'react';
-import { getAssets } from './axiosFunctions';
+import { getAssets } from '../components/axiosFunctions';
 
 export default function AssetTable({ setMessage, assets, dispatch }) {
 

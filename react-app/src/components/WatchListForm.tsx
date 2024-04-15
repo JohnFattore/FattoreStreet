@@ -33,8 +33,12 @@ export default function WatchListForm({ setMessage, setTickers }) {
           }
           else {
             tickersDB.push(data.ticker);
-            setTickers(tickersDB);
-            localStorage.setItem("tickers", JSON.stringify(tickersDB));
+            let tickerModels: any[] = []
+            for (const i in tickersDB) {
+                tickerModels.push({"ticker": tickersDB[i]})
+            }
+            setTickers(tickerModels)
+                        localStorage.setItem("tickers", JSON.stringify(tickersDB));
             setMessage({ text: data.ticker + " added to watchlist", type: "success"});
             reset();
           }

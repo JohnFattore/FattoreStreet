@@ -28,8 +28,9 @@ class SelectionUnitTest(APITestCase):
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=self.selection.id)
         response.render()
+        print(response.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(self.selection.option.id, response.data['id'])
+        self.assertEqual(str(self.selection.option.sunday), response.data['option']['sunday'])
 
     def test_retrieve_selection_unauthorized(self):
         request = self.factory.get(self.url, format='json')

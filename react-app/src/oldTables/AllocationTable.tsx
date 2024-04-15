@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAssets } from './axiosFunctions';
+import { getAssets } from '../components/axiosFunctions';
 import Table from 'react-bootstrap/Table';
 import AllocationRow from './AllocationRow';
 import { IAllocation } from '../interfaces';
