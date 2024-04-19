@@ -1,7 +1,7 @@
 import { ISelection } from '../interfaces';
-import { postSelection } from './axiosFunctions';
-import { useQuote } from './customHooks';
-import { selectedOption } from './helperFunctions';
+import { postSelection } from '../components/axiosFunctions';
+import { useQuote } from '../components/customHooks';
+import { selectedOption } from '../components/helperFunctions';
 
 export default function OptionRow({ option, selections, selectionsDispatch, setMessage }) {
 

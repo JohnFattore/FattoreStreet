@@ -1,13 +1,13 @@
-import OptionTable from '../components/OptionTable'
+import OptionTable from '../oldTables/OptionTable'
 import OptionSelectionTable from '../components/OptionSelectionTable';
 import { useState, useEffect } from 'react';
 import { IMessage, IOption, ISelection } from '../interfaces';
 import { setAlertVarient } from '../components/helperFunctions';
 import Alert from 'react-bootstrap/Alert';
-import SelectionTable from '../components/SelectionTable';
+import SelectionTable from '../oldTables/SelectionTable';
 import { useReducer } from 'react';
 import DjangoTable from '../components/DjangoTable';
-import { getOptions, getSelections } from '../components/axiosFunctions';
+import { getOptions, getSelections, postSelection } from '../components/axiosFunctions';
 import { useQuote } from '../components/customHooks';
 
 function selectionReducer(selections, action) {
@@ -56,6 +56,22 @@ export default function WallStreet() {
         }
     }, []);
 
+    data = []
+    useEffect(() => {
+        if (lastWeekOptions.length == 0) {
+            getOptions(0, 'false')
+                .then((response) => {
+                    data = response.data
+                    for (let i = 0; i < data.length; i++) {
+                        lastWeekOptionsDispatch({ type: "add", option: data[i] })
+                    }
+                })
+                .catch(() => {
+                    setMessage({ text: "Error", type: "error" })
+                })
+        }
+    }, []);
+
     let dataSel: ISelection[] = []
     useEffect(() => {
         if (nextWeekSelections.length == 0) {
@@ -64,6 +80,22 @@ export default function WallStreet() {
                     dataSel = response.data
                     for (let i = 0; i < dataSel.length; i++) {
                         nextWeekSelectionsDispatch({ type: "add", selection: dataSel[i] })
+                    }
+                })
+                .catch(() => {
+                    setMessage({ text: "Error", type: "error" })
+                })
+        }
+    }, []);
+
+    dataSel = []
+    useEffect(() => {
+        if (lastWeekOptions.length == 0) {
+            getSelections(0)
+                .then((response) => {
+                    dataSel = response.data
+                    for (let i = 0; i < dataSel.length; i++) {
+                        lastWeekSelectionsDispatch({ type: "add", selection: dataSel[i] })
                     }
                 })
                 .catch(() => {
@@ -85,12 +117,17 @@ export default function WallStreet() {
         sunday: {name: "Sunday"},
     }
 
+    const axiosFunctions = {
+        relatedModels: getSelections,
+        post: postSelection
+    }
+
     return (
         <>
             <h3>Current Stocks</h3>
             <OptionSelectionTable setMessage={setMessage} options={lastWeekOptions} selections={lastWeekSelections} optionsDispatch={lastWeekOptionsDispatch} selectionsDispatch={lastWeekSelectionsDispatch} week={0} />
             <h3>Options For Next Week</h3>
-            <DjangoTable setMessage={setMessage} models={nextWeekOptions} dispatch={nextWeekOptionsDispatch} fields={fields} axiosFunctions={{}}/>
+            <DjangoTable setMessage={setMessage} models={nextWeekOptions} dispatch={nextWeekOptionsDispatch} fields={fields} axiosFunctions={axiosFunctions}/>
             <h3>Your Next Week Selections</h3>
             <DjangoTable models={nextWeekSelections} dispatch={nextWeekSelectionsDispatch} setMessage={setMessage} fields={fieldsSel} axiosFunctions={{}}/>
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}

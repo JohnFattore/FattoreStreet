@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { getOptions } from './axiosFunctions';
+import { getOptions } from '../components/axiosFunctions';
 import { IOption } from '../interfaces';
 import OptionRow from './OptionRow';
 import Table from 'react-bootstrap/Table';

@@ -1,4 +1,16 @@
+import { useReducer, useEffect } from "react";
+import { ISelection } from "../interfaces";
 
+function selectionReducer(selections, action) {
+    switch (action.type) {
+        case 'add': {
+            return [...selections, action.selection];
+        }
+        case 'delete': {
+            return selections.filter(e => e !== action.selection)
+        }
+    }
+}
 
 // some things should move up to the table level and be passed down
 export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFunctions }) {
@@ -38,7 +50,7 @@ export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFu
     for (const item in properties) {
         // this should totally be a switch case
         if (fields[item].type == "money") {
-            result.push(<td style={ fields["style"] }>{"$" + Number(properties[item]).toFixed(2)}</td>)
+            result.push(<td style={fields["style"]}>{"$" + Number(properties[item]).toFixed(2)}</td>)
         }
         else if (fields[item].type == "amount") {
             result.push(<td>{Number(properties[item]).toFixed(2)}</td>)
@@ -58,6 +70,27 @@ export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFu
         }
         else
             result.push(<td>{properties[item]}</td>)
+    }
+
+    const [selections, selectionsDispatch] = useReducer(selectionReducer, []);
+
+
+    if (axiosFunctions['relatedModels'] != null) {
+        let data: ISelection[] = []
+        useEffect(() => {
+            if (selections.length == 0) {
+                axiosFunctions['relatedModels'](1)
+                    .then((response) => {
+                        data = response.data
+                        for (let i = 0; i < data.length; i++) {
+                            selectionsDispatch({ type: "add", selection: data[i] })
+                        }
+                    })
+                    .catch(() => {
+                        setMessage({ text: "Error", type: "error" })
+                    })
+            }
+        }, []);
     }
 
     if (axiosFunctions['delete'] != null) {
@@ -81,7 +114,7 @@ export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFu
                 // setting tickers so display refreshes
                 let tickerModels: any[] = []
                 for (const i in tickers) {
-                    tickerModels.push({"ticker": tickers[i]})
+                    tickerModels.push({ "ticker": tickers[i] })
                 }
                 axiosFunctions["watchlist"](tickerModels)
                 tickersDB = JSON.stringify(tickers);
@@ -89,6 +122,36 @@ export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFu
                 setMessage({ text: model['ticker'] + " deleted from watchlist", type: "success" });
             }}>delete</td>
         )
+    }
+
+    if (axiosFunctions["post"] != null) {
+        result.push(
+            <td role="post" onClick={() => {
+                //const existingSelection = selections.filter((selection: ISelection) => selection.option == option.id)
+                if (selections.length < 3/* && selections.length == 0*/) {
+                    axiosFunctions["post"]({
+                        option: model.id,
+                        allocation: 0,
+                        user: 1,
+                        id: 1
+                    }).then((response) => {
+                        const selection: ISelection = {
+                            option: model.id,
+                            allocation: 0,
+                            user: 1,
+                            id: response.data.id
+                        }
+                        selectionsDispatch({ type: "add", selection: selection });
+                        setMessage({ text: model.ticker + " added", type: "success" })
+                    })
+                        .catch(() => {
+                            setMessage({ text: "There was a problem adding the selection", type: "error" })
+                        })
+                }
+                else {
+                    setMessage({ text: "You can only have 3 unqiue selections per week", type: "error" })
+                }
+            }}>{model.id}</td>)
     }
 
 

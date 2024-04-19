@@ -22,10 +22,12 @@ class SelectionSerializer(serializers.ModelSerializer):
     ticker = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
     sunday = serializers.SerializerMethodField()
+    option = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Selection
-        fields = ['id', 'ticker', 'name', 'sunday']
+        fields = ['id', 'ticker', 'name', 'sunday', 'option']
 
     def get_ticker(self, obj):
         selected_option = Option.objects.get(id=obj.option.id)
@@ -36,22 +38,25 @@ class SelectionSerializer(serializers.ModelSerializer):
     def get_sunday(self, obj):
         selected_option = Option.objects.get(id=obj.option.id)
         return OptionSerializer(selected_option).data["sunday"]
+    def get_option(self, obj):
+        selected_option = Option.objects.get(id=obj.option.id)
+        return OptionSerializer(selected_option).data["id"]
     
     def validate(self, data):
         # users can't make the same selection twice
         userSelections = Selection.objects.filter(user=self.context['request'].user)
+        print(list(data))
         for selection in userSelections:
-            if data['option'].id == selection.option.id:
+            if data['option'] == selection.option.id:
                 raise serializers.ValidationError("Selection Must be Unique")
         # get userSelections for sunday of option
-        option = Option.objects.get(id=data['option'].id)
+        option = Option.objects.get(id=data['option'])
         currentOptions = Option.objects.filter(sunday=option.sunday)
         userCurrentSelections = userSelections.filter(option_id__in=currentOptions)
         today = date.today()
         if (userCurrentSelections.count() >= 3):
             raise serializers.ValidationError("Only 3 Selections per Week")
         # I think this can be deleted
-        env("CUTOVER_WEEKDAY")
         if (((option.sunday) + timedelta(days=int(env("CUTOVER_ISOWEEKDAY")), hours=int(env("CUTOVER_HOUR")))) < today):
             raise serializers.ValidationError("Cant add selections for past weeks")
         if (option.benchmark == True):

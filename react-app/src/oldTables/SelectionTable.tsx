@@ -1,7 +1,7 @@
 import Table from 'react-bootstrap/Table';
 import { ISelection } from '../interfaces';
 import { useEffect } from 'react';
-import { getSelections } from './axiosFunctions';
+import { getSelections } from '../components/axiosFunctions';
 import SelectionRow from './SelectionRow';
 
 export default function SelectionTable({ selections, selectionsDispatch, setMessage, options, week }) {

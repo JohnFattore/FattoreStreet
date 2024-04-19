@@ -1,6 +1,6 @@
 import { IOption } from '../interfaces';
-import { deleteSelection } from './axiosFunctions';
-import { useQuote } from './customHooks';
+import { deleteSelection } from '../components/axiosFunctions';
+import { useQuote } from '../components/customHooks';
 
 export default function SelectionRow({ selection, setMessage, options, selectionsDispatch }) {
     const filterOptions: IOption[] = options.filter((option: IOption) => option.id == selection.option)
