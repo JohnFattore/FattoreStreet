@@ -12,12 +12,14 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import WallStreet from "./pages/WallStreet";
 import Results from "./pages/Results";
+import Education from "./pages/Education";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
 import axios from "axios";
 
 // react router for all our routes
 export default function App() {
+    /*
   const navigate = useNavigate();
   // axios interceptor that handles refreshing JWT
   // first function handles successes, second handles errors
@@ -40,19 +42,25 @@ export default function App() {
 
     return Promise.reject(error);
   });
-// errorElement doesnt always work, needs refactoring
+  */
+  // errorElement doesnt always work, needs refactoring
   return (
     <>
       <TopNavigation />
       <Routes >
         <Route path="/" element={<Home />} />
-        <Route path="/portfolio" element={<Portfolio />} errorElement={<ErrorPage />}/>
+        <Route path="/portfolio" element={<Portfolio />} errorElement={<ErrorPage />} />
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/login" element={<Login />} />
         <Route path="/allocation" element={<Allocation />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/education" element={<Education />} />
+        {/*        
         <Route path="/wallstreet" element={<WallStreet />}  errorElement={<ErrorPage />}/>
         <Route path="/results" element={<Results />}  errorElement={<ErrorPage />}/>
+      */
+        }
+
         <Route path="/entertainment" element={<Entertainment />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
