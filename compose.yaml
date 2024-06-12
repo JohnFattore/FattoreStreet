@@ -37,21 +37,21 @@ services:
       - 80:80
     # network_mode: "host"
 
-  redis:
-    container_name: redis
+  #redis:
+  #  container_name: redis
     #image: ${REDIS_IMAGE}
-    ports: 6379:6379
+  #  ports: 6379:6379
 
-  celery:
-    build: ./celery
-    container_name: celery
+  #celery:
+  #  build: ./celery
+  #  container_name: celery
   #  image: ${CELERY_IMAGE}
 
-  flower:
-    build: ./flower
-    container_name: flower
+  #flower:
+  #  build: ./flower
+  #  container_name: flower
     #image: ${FLOWER_IMAGE}
-    ports: 5555:5555
+  #  ports: 5555:5555
 
 
   #certbot:

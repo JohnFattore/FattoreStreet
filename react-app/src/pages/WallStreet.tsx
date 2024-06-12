@@ -1,10 +1,10 @@
-import OptionTable from '../oldTables/OptionTable'
+//import OptionTable from '../oldTables/OptionTable'
 import OptionSelectionTable from '../components/OptionSelectionTable';
 import { useState, useEffect } from 'react';
 import { IMessage, IOption, ISelection } from '../interfaces';
 import { setAlertVarient } from '../components/helperFunctions';
 import Alert from 'react-bootstrap/Alert';
-import SelectionTable from '../oldTables/SelectionTable';
+//import SelectionTable from '../oldTables/SelectionTable';
 import { useReducer } from 'react';
 import DjangoTable from '../components/DjangoTable';
 import { getOptions, getSelections, postSelection } from '../components/axiosFunctions';
@@ -125,7 +125,7 @@ export default function WallStreet() {
     return (
         <>
             <h3>Current Stocks</h3>
-            <OptionSelectionTable setMessage={setMessage} options={lastWeekOptions} selections={lastWeekSelections} optionsDispatch={lastWeekOptionsDispatch} selectionsDispatch={lastWeekSelectionsDispatch} week={0} />
+            <OptionSelectionTable setMessage={setMessage} options={lastWeekOptions} selections={lastWeekSelections} />
             <h3>Options For Next Week</h3>
             <DjangoTable setMessage={setMessage} models={nextWeekOptions} dispatch={nextWeekOptionsDispatch} fields={fields} axiosFunctions={axiosFunctions}/>
             <h3>Your Next Week Selections</h3>

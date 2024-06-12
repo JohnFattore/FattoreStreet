@@ -1,7 +1,6 @@
 import {
   Routes,
-  Route,
-  useNavigate
+  Route
 } from "react-router-dom";
 import TopNavigation from "./components/TopNavigation";
 import Home from "./pages/Home";
@@ -10,12 +9,9 @@ import Allocation from "./pages/Allocation";
 import Watchlist from "./pages/WatchList";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import WallStreet from "./pages/WallStreet";
-import Results from "./pages/Results";
 import Education from "./pages/Education";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
-import axios from "axios";
 
 // react router for all our routes
 export default function App() {

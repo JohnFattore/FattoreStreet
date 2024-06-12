@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
-import { getOptions } from '../components/axiosFunctions';
+//import { useEffect } from 'react';
+//import { getOptions } from '../components/axiosFunctions';
 import { IOption } from '../interfaces';
 import OptionRow from './OptionRow';
 import Table from 'react-bootstrap/Table';
 
-export default function OptionTable({ setMessage, options, selections, optionsDispatch, selectionsDispatch, week }) {
+export default function OptionTable({ setMessage, options, selections, /*optionsDispatch,*/ selectionsDispatch/*, week */}) {
 
   if (options.length == 0) {
     return (<h3 role="noOptions">There are no options for this week</h3>)

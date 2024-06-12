@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
-import { getOptions, getSelections } from './axiosFunctions';
-import { IOption, ISelection } from '../interfaces';
+//import { useEffect } from 'react';
+//import { getOptions, getSelections } from './axiosFunctions';
+import { IOption, /*ISelection*/ } from '../interfaces';
 import OptionSelectionRow from './OptionSelectionRow';
 import Table from 'react-bootstrap/Table';
 
-export default function OptionSelectionTable({ setMessage, options, selections, optionsDispatch, selectionsDispatch, week }) {
+export default function OptionSelectionTable({ setMessage, options, selections/*, optionsDispatch, selectionsDispatch, week */}) {
 
   if (selections.length == 0) {
     return (<h3 role="noSelections">You haven't made any selections for this week</h3>)

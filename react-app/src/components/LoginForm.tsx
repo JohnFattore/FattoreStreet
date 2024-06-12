@@ -16,7 +16,7 @@ export default function LoginForm({ setMessage }) {
         login(data.username, data.password)
             .then(() => {
                 setMessage({text: "Welcome ".concat(data.username, "!!!"), type: "success"});
-                navigate("/wallstreet");
+                navigate("/portfolio");
             })
             .catch(() => {
                 setMessage({text: "Wrong Username / Password", type: "error"});
