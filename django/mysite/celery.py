@@ -20,19 +20,28 @@ nextSunday = getSunday(1)
 
 # game should reset at the beginnong of before hours trading on first trading day of the week (usually monday)
 app.conf.beat_schedule = {
-'Add Options': {
- 'task': 'wallstreet.tasks.addOptions',
- 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
- 'args': (nextSunday,),
- },
-'Start Week': {
- 'task': 'wallstreet.tasks.startWeek',
- 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
- 'args': (thisSunday,),
- },
-'End Week': {
- 'task': 'wallstreet.tasks.endWeek',
- 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
- 'args': (lastSunday,),
- },
+#'Add Options': {
+# 'task': 'wallstreet.tasks.addOptions',
+# 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+# 'args': (nextSunday,),
+# },
+#'Start Week': {
+# 'task': 'wallstreet.tasks.startWeek',
+# 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+# 'args': (thisSunday,),
+# },
+#'End Week': {
+# 'task': 'wallstreet.tasks.endWeek',
+# 'schedule': crontab(day_of_week=env("CUTOVER_WEEKDAY"), hour=int(env("CUTOVER_HOUR")), minute=int(env("CUTOVER_MINUTE")) + 1),
+# 'args': (lastSunday,),
+# },
+#'Test Kaggle': {
+# 'task': 'indexCompare.tasks.createMarketCapIndex',
+# 'schedule': crontab(hour=20, minute=24),
+# 'args': (1000,),
+#   },
+'Test Kaggle2': {
+ 'task': 'indexCompare.tasks.NASDAQFile',
+ 'schedule': crontab(hour=21, minute=31),
+   },
 }

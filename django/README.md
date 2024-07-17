@@ -1,4 +1,3 @@
-
 docker run -d -p 6379:6379 redis
 
 # Portfolio Manager, a Django RESTful API backend
@@ -9,6 +8,9 @@ python3 manage.py makemigrations portfolio
 python3 manage.py migrate
 
 python3 manage.py makemigrations wallstreet
+python3 manage.py migrate
+
+python3 manage.py makemigrations indexCompare
 python3 manage.py migrate
 ```
 ## Running the development server

@@ -18,6 +18,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fattorestreet.com']
 INSTALLED_APPS = [
     'portfolio.apps.PortfolioConfig',
     'wallstreet.apps.WallstreetConfig',
+    'indexCompare.apps.IndexcompareConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -160,3 +161,5 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_BROKER_URL = 'redis://localhost:6379'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 9999999999999

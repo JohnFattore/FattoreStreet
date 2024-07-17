@@ -21,4 +21,4 @@ django-celery-results==2.5.1
 # HTTP requests from python
 requests==2.28.2
 # Filtering querysets, used in views
-django-filter=24.2
+django-filter!=24.1
