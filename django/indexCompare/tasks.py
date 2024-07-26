@@ -32,7 +32,7 @@ def NASDAQFile():
     with open('indexCompare/NASDAQ.csv', mode ='r') as file:
         csvFile = csv.reader(file)
         for lines in csvFile:
-            if (lines[0] != "Symbol" and lines[5] != ""):
+            if (lines[0] != "Symbol" and lines[5] != "" and lines[0] > 'JNJ'):
                 yfinance = yf.Ticker(lines[0])
                 response = requests.get("https://finnhub.io/api/v1/search/", params={"q": lines[0], "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
                 for stock in response.json()["result"]:
@@ -45,11 +45,13 @@ def NASDAQFile():
 
 @shared_task
 def createMarketCapIndex(companies):
+    print("Created Index")
     i = 0
     totalMarketCap = 0
     banList = ["GOOG", "GOOGL", "BRK.A", "CCZ"]
+    inclusionList = ["Common Stock", "REIT"]
     for stock in Stock.objects.all().order_by('-marketCap'):
-        if (stock.countryHQ == "United States" and stock.ticker not in banList):
+        if (stock.countryHQ == "United States" and stock.securityType in inclusionList and stock.ticker not in banList):
             totalMarketCap = totalMarketCap + stock.marketCap
             i = i + 1
         elif (stock.ticker == "GOOG" or stock.ticker == "GOOGL"):
@@ -61,7 +63,7 @@ def createMarketCapIndex(companies):
     
     i = 0
     for stock in Stock.objects.all().order_by('-marketCap'):
-        if (stock.countryHQ == "United States" and stock.ticker not in banList):
+        if (stock.countryHQ == "United States" and stock.securityType in inclusionList and stock.ticker not in banList):
             IndexMember.objects.create(ticker=stock.ticker, percent=(100 * stock.marketCap / totalMarketCap), index="Russell 1000")
             i = i + 1
         elif (stock.ticker == "GOOG" or stock.ticker == "GOOGL"):
@@ -109,11 +111,15 @@ def compareIndexes2():
             if (lines[0] != 'Symbol' and lines[2] != 'N/A'):
                 Russell1000.append(lines[0])
 
-    NotInRussell1000 = {}
-    counter = 0
+    NotInRussell1000 = []
     for ticker in myIndex:
-        if ticker not in Russell1000 :
-            counter = counter + 1
-            NotInRussell1000.update({ticker: ""})
+        try:
+            if ticker not in Russell1000:
+                NotInRussell1000.append(ticker)
+                yfinance = yf.Ticker(ticker)
+                print(ticker, "Free Float:", yfinance.info["floatShares"] * 100 / yfinance.info["sharesOutstanding"])
+        except:
+            print(ticker)
 
-    print(NotInRussell1000.keys())
+    print(len(NotInRussell1000))
+    print(NotInRussell1000)

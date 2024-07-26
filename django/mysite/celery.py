@@ -37,11 +37,11 @@ app.conf.beat_schedule = {
 # },
 #'Test Kaggle': {
 # 'task': 'indexCompare.tasks.createMarketCapIndex',
-# 'schedule': crontab(hour=20, minute=24),
+# 'schedule': crontab(hour=00, minute=53),
 # 'args': (1000,),
 #   },
 'Test Kaggle2': {
- 'task': 'indexCompare.tasks.NASDAQFile',
- 'schedule': crontab(hour=21, minute=31),
+ 'task': 'indexCompare.tasks.compareIndexes2',
+ 'schedule': crontab(hour=00, minute=1),
    },
 }
