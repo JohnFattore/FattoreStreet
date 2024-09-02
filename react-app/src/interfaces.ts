@@ -55,3 +55,27 @@ export interface IAlbum {
     artist: string;
     year: number;
 }
+
+export interface IOutlier {
+    ticker: string;
+    name: string;
+    marketCap: number;
+    volume: number;
+    volumeUSD: number;
+    freeFloat: number;
+    freeFloatMarketCap: number;
+    countryIncorp: string;
+    countryHQ: string;
+    securityType: string;
+    yearIPO: number;
+    notes: string;
+    id: number
+}
+
+export interface IBrokerage {
+    name: string;
+    mmf: string;
+    us: string;
+    inter: string;
+    id: number
+}

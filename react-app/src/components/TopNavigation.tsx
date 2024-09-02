@@ -14,7 +14,7 @@ function TopNavigation() {
             <Nav.Link href="portfolio">Portfolio</Nav.Link>
             <Nav.Link href="allocation">Allocation</Nav.Link>
             <Nav.Link href="watchlist">Watch List</Nav.Link>
-            <Nav.Link href="education">Education</Nav.Link>
+            <Nav.Link href="education">Suggestions</Nav.Link>
             <Nav.Link href="login">Login</Nav.Link>
             <Nav.Link href="register">Register</Nav.Link>
             {
@@ -23,6 +23,7 @@ function TopNavigation() {
             <Nav.Link href="results">Results</Nav.Link>
               */
             }
+            <Nav.Link href="outliers">Outliers</Nav.Link>
             <Nav.Link href="entertainment">Entertainment</Nav.Link>
             <Button
               onClick={() => {

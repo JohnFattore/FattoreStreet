@@ -2,6 +2,7 @@ import { IQuote } from "../interfaces"
 import { useState, useEffect } from "react"
 import { getQuote, getCompanyProfile2 } from "./axiosFunctions"
 
+// could generalize these functions, a custom hook factory. They all just save to broswer database
 export function useQuote(ticker, setMessage) {
     const [quote, setQuote] = useState<IQuote>({ price: 0, percentChange: 0, });
     const d = new Date();
@@ -39,7 +40,7 @@ export function useQuote(ticker, setMessage) {
 }
 
 export function useCompanyProfile2(ticker, setMessage) {
-    const [marketCap, setMarketCap] = useState(0);
+    const [marketCap, setMarketCap] = useState("");
     const d = new Date();
     useEffect(() => {
         let storedMarketCap = localStorage.getItem("marketcap".concat(ticker));
@@ -53,12 +54,12 @@ export function useCompanyProfile2(ticker, setMessage) {
             else {
                 getCompanyProfile2(ticker).then((response) => {
                     if (response.data.marketCapitalization != null) {
-                        setMarketCap(response.data.marketCapitalization / 1000);
+                        setMarketCap(String(response.data.marketCapitalization / 1000));
                         localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization / 1000]));
                     }
                     else {
-                        setMarketCap(1);
-                        localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), 1]));
+                        setMarketCap("ETF");
+                        localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), "ETF"]));
                     }
                     // store in storage with ticker, stock data, and a time stamp
                 }).catch(() => {
@@ -70,12 +71,12 @@ export function useCompanyProfile2(ticker, setMessage) {
         else {
             getCompanyProfile2(ticker).then((response) => {
                 if (response.data.marketCapitalization != null) {
-                    setMarketCap(response.data.marketCapitalization / 1000);
+                    setMarketCap(String(response.data.marketCapitalization / 1000));
                     localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), response.data.marketCapitalization / 1000]));
                 }
                 else {
-                    setMarketCap(1);
-                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), 1]));
+                    setMarketCap("ETF");
+                    localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), "ETF"]));
                 }
             }).catch(() => {
                 setMessage({ text: "We are experincing are issue getting market cap data", type: "error" })

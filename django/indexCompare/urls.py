@@ -1,8 +1,5 @@
-from django.urls import include, path
-from rest_framework import routers
+from django.urls import path
 from . import views
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
 # router = routers.SimpleRouter()
 
 # app_name = 'portfolio'
@@ -10,5 +7,6 @@ urlpatterns = [
     # API routes
     # path('api/', include(router.urls)),
     # the paths from views are more direct than the router (subject to change)
-    path('', views.index, name="index"),
+    path('api/outliers/', views.OutlierListAPI.as_view(), name="outlierList"),
+    path('api/outliers_update/<int:pk>/', views.OutlierUpdateAPI.as_view(), name="outliersUpdate"),
 ]

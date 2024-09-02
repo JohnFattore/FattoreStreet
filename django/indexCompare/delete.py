@@ -1,26 +1,16 @@
-import yfinance as yf
-import requests
-import json
+import csv
 
-# import required module
-import os
-# assign directory
-directory = 'django/EDGAR/companyfacts'
- 
-# iterate over files in
-# that directory
-'''
-for filename in os.listdir(directory):
-    with open(os.path.join(directory, filename)) as f:
-        if (filename == 'CIK0000789019.json'):
-            data = json.load(f)
-            floatSharesEntries = data["facts"]["dei"]["EntityPublicFloat"]["units"]["USD"]
-            outstandingSharesEntries = data["facts"]["dei"]["EntityCommonStockSharesOutstanding"]["units"]["shares"]
-            floatShares = floatSharesEntries[len(floatSharesEntries) - 1]["val"]
-            outstandingShares = outstandingSharesEntries[len(outstandingSharesEntries) - 1]["val"]
-            print(data["facts"]["dei"]["EntityPublicFloat"]["units"]["USD"])
-            #print("Freefloat %", floatShares / outstandingShares)
-            #print("Float Shares:", floatShares, "Outstanding Shares", outstandingShares)
-'''
-response = requests.get('https://finnhub.io/api/v1/stock/financials-reported?cik=1551152&freq=quarterly&token=ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0')
-print(response.json()["data"][0]["endDate"])
+data = [
+    {'name': 'Nikhil', 'branch': 'COE', 'year': 2, 'cgpa': 9.0},
+    {'name': 'Sanchit', 'branch': 'COE', 'year': 2, 'cgpa': 9.1},
+    {'name': 'Aditya', 'branch': 'IT', 'year': 2, 'cgpa': 9.3},
+    {'name': 'Sagar', 'branch': 'SE', 'year': 1, 'cgpa': 9.5},
+    {'name': 'Prateek', 'branch': 'MCE', 'year': 3, 'cgpa': 7.8},
+    {'name': 'Sahil', 'branch': 'EP', 'year': 2, 'cgpa': 9.1}
+]
+
+with open('university_records.csv', 'w', newline='') as csvfile:
+    fieldnames = ['name', 'branch', 'year', 'cgpa']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(data)

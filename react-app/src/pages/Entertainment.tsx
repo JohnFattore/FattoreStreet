@@ -1,5 +1,6 @@
 import DjangoTable from '../components/DjangoTable';
 import Spike from '../components/SpikeImg';
+import ExternalLinks from '../components/ExternalLinks';
 import { IAlbum } from '../interfaces';
 
 export default function Entertainment() {
@@ -67,7 +68,9 @@ export default function Entertainment() {
     return (
         <>
             <h1>10 10/10 Albums</h1>
-            <DjangoTable setMessage={console.log} models={albums} dispatch={console.log} fields={fields} axiosFunctions={{}}/>
+            <DjangoTable setMessage={console.log} models={albums} dispatch={console.log} fields={fields} />
+            <h3>Useful Links</h3>
+            <ExternalLinks />
             <Spike />
         </>
     );

@@ -10322,21 +10322,6 @@ body {
   color: #f2d492ff;
   background-color: #202c39ff; }
 
-/*
-// change general table colors
-.table {
-  --bs-table-color: $primary;
-  --bs-table-hover-color: $secondary;
-  --bs-table-hover-bg: $primary;
-  border-color: $primary;
-}
-
-
-.table th {
-  color: $secondary;
-  background-color: $primary;
-}
-*/
 .table td {
   color: #202c39ff;
   background-color: #c3d898;
@@ -10349,5 +10334,42 @@ body {
 .table th {
   color: #f2d492ff;
   background-color: #202c39ff; }
+
+.accordion-item {
+  border-color: #202c39ff; }
+
+.accordion-button:where(.collapsed) {
+  color: #202c39ff;
+  background-color: #f2d492ff; }
+
+.accordion-button:not(.collapsed) {
+  color: #f2d492ff;
+  background-color: #202c39ff; }
+
+.accordion-body:where(.collapsed) {
+  color: #202c39ff;
+  background-color: #f2d492ff; }
+
+.accordion-body:not(.collapsed) {
+  color: #202c39ff;
+  background-color: #c3d898; }
+
+.card {
+  color: #202c39ff;
+  background-color: #c3d898;
+  padding: 10px;
+  text-align: center;
+  margin-left: 50px;
+  margin-right: 50px; }
+
+.card-title {
+  color: #202c39ff;
+  background-color: #c3d898; }
+
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 40%; }
 
 /*# sourceMappingURL=custom.css.map */

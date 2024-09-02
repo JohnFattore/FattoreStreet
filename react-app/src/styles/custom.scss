@@ -46,21 +46,6 @@ body {
 
 }
 
-/*
-// change general table colors
-.table {
-  --bs-table-color: $primary;
-  --bs-table-hover-color: $secondary;
-  --bs-table-hover-bg: $primary;
-  border-color: $primary;
-}
-
-
-.table th {
-  color: $secondary;
-  background-color: $primary;
-}
-*/
 .table td {
   color: $primary;
   background-color: $tertiary;
@@ -75,4 +60,51 @@ body {
 .table th {
   color: $secondary;
   background-color: $primary;
+}
+
+// Change accordion theming
+.accordion-item {
+  border-color: $primary;
+}
+
+.accordion-button:where(.collapsed) {
+  color: $primary;
+  background-color: $secondary;
+}
+
+.accordion-button:not(.collapsed) {
+  color: $secondary;
+  background-color: $primary;
+}
+
+.accordion-body:where(.collapsed) {
+  color: $primary;
+  background-color: $secondary;
+}
+
+.accordion-body:not(.collapsed) {
+  color: $primary;
+  background-color: $tertiary;
+}
+
+// card theming
+.card {
+  color: $primary;
+  background-color: $tertiary;
+  padding: 10px;
+  text-align: center;
+  margin-left: 50px;
+  margin-right: 50px;
+}
+
+.card-title {
+  color: $primary;
+  background-color: $tertiary;
+}
+
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 40%;
 }

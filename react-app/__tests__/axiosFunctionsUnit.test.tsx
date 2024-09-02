@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup } from '@testing-library/react';
 import { expect, it, afterEach, beforeAll } from 'vitest'
-import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset, getSelections, getCompanyProfile2, postSelection, deleteSelection } from '../src/components/axiosFunctions';
+import { getOptions, getQuote, postAsset, login, getAssets, deleteAsset, getAsset, getSelections, getCompanyProfile2, postSelection, deleteSelection, getOutliers, patchOutliers } from '../src/components/axiosFunctions';
 import { IAsset, ISelection } from '../src/interfaces';
 
 beforeAll(async () => {await login("django", "django")});
@@ -49,6 +49,21 @@ it('postAsset and deleteAsset Test', async () => {
     expect(deleteResponse.status).to.equal(204)
 });
 
+// Outlier tests
+it('getOutliers Test', async () => {
+    const response = await getOutliers()
+    expect(response.data[0].ticker).to.equal("ACLS")
+    expect(response.status).to.equal(200)
+});
+
+it('patchOutliers Test', async () => {
+    const notes = "axios function patchOutliers Test"
+    const response = await patchOutliers(notes, 1)
+    expect(response.status).to.equal(200)
+});
+
+// fantasy wallstreet never finished
+/*
 it('getOptions Test', async () => {
     const response = await getOptions(0)
     expect(response.data[0].ticker).to.equal("C")
@@ -75,3 +90,4 @@ it('postSelection and deleteSelection Test', async () => {
     const deleteResponse = await deleteSelection(postResponse.data.id)
     expect(deleteResponse.status).to.equal(204)
 });
+*/

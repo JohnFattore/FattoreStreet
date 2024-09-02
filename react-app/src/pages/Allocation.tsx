@@ -27,10 +27,6 @@ export default function Allocation() {
     
         if (!assets) return null;
     
-        if (assets.length == 0) {
-            return (<h3 role='noAssets'>You don't own any assets</h3>)
-        }
-    
         const allocations: IAllocation[] = []
     
         // iterate over all assets, return a list of allocations
@@ -54,7 +50,7 @@ export default function Allocation() {
                 <>
                         <h1 role="pageHeader">User's Allocation of Assets</h1>
                         {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
-                        <DjangoTable setMessage={setMessage} models={allocations} dispatch={console.log} fields={fields} axiosFunctions={{}}/>
+                        <DjangoTable setMessage={setMessage} models={allocations} dispatch={console.log} fields={fields} />
                 </>
 
         );

@@ -41,7 +41,7 @@ app.conf.beat_schedule = {
 # 'args': (1000,),
 #   },
 'Test Kaggle2': {
- 'task': 'indexCompare.tasks.compareIndexes2',
- 'schedule': crontab(hour=00, minute=1),
+ 'task': 'indexCompare.tasks.outlierResearch',
+ 'schedule': crontab(hour=17, minute=25),
    },
 }

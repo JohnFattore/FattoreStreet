@@ -7,7 +7,7 @@ import Alert from 'react-bootstrap/Alert';
 //import SelectionTable from '../oldTables/SelectionTable';
 import { useReducer } from 'react';
 import DjangoTable from '../components/DjangoTable';
-import { getOptions, getSelections, postSelection } from '../components/axiosFunctions';
+import { getOptions, getSelections/*, postSelection */} from '../components/axiosFunctions';
 import { useQuote } from '../components/customHooks';
 
 function selectionReducer(selections, action) {
@@ -116,20 +116,20 @@ export default function WallStreet() {
         name: {name: "Name"},
         sunday: {name: "Sunday"},
     }
-
+/*
     const axiosFunctions = {
         relatedModels: getSelections,
         post: postSelection
     }
-
+*/
     return (
         <>
             <h3>Current Stocks</h3>
             <OptionSelectionTable setMessage={setMessage} options={lastWeekOptions} selections={lastWeekSelections} />
             <h3>Options For Next Week</h3>
-            <DjangoTable setMessage={setMessage} models={nextWeekOptions} dispatch={nextWeekOptionsDispatch} fields={fields} axiosFunctions={axiosFunctions}/>
+            <DjangoTable setMessage={setMessage} models={nextWeekOptions} dispatch={nextWeekOptionsDispatch} fields={fields} />
             <h3>Your Next Week Selections</h3>
-            <DjangoTable models={nextWeekSelections} dispatch={nextWeekSelectionsDispatch} setMessage={setMessage} fields={fieldsSel} axiosFunctions={{}}/>
+            <DjangoTable models={nextWeekSelections} dispatch={nextWeekSelectionsDispatch} setMessage={setMessage} fields={fieldsSel} />
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
         </>
     );

@@ -29,17 +29,31 @@ export default function WatchList() {
     const fields = {
         ticker: { name: "Ticker" },
         quote: { name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "money" },
-        percentChange: { name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "percentChange", type: "percent" },
+        percentChange: { name: "Daily Percent Change", function: useQuote, parameters: ['ticker', setMessage], item: "percentChange", type: "percent" },
         marketCap: { name: "Market Cap", function: useCompanyProfile2, parameters: ['ticker', setMessage], type: "marketCap" },
+        delete: {name: "Delete", function2: setTickers, type: "axiosWL"}
     }
 
-    const axiosFunctions = {
-        watchlist: setTickers
+    const tickerModels2 = [{ ticker: "VTI", name: "US Market" },
+    { ticker: "VXUS", name: "Global Market Ex US" },
+    { ticker: "VTWO", name: "US Small Cap" },
+    { ticker: "BND", name: "US Investable Bond Market" },
+    { ticker: "VNQ", name: "US Real Estate" }
+    ]
+
+    const fields2 = {
+        ticker: { name: "Ticker" },
+        name: { name: "Name" },
+        quote: { name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "hidden" },
+        percentChange: { name: "Daily Percent Change", function: useQuote, parameters: ['ticker', setMessage], item: "percentChange", type: "percent" },
     }
 
     return (
         <>
-            <DjangoTable models={tickerModels} setMessage={setMessage} dispatch={console.log} fields={fields} axiosFunctions={axiosFunctions} />
+            <h3>Common Benchmarks</h3>
+            <DjangoTable models={tickerModels2} setMessage={setMessage} dispatch={console.log} fields={fields2} />
+            <h3>Watchlist</h3>
+            <DjangoTable models={tickerModels} setMessage={setMessage} dispatch={console.log} fields={fields} />
             <WatchListForm setMessage={setMessage} setTickers={setTickers} />
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
         </>

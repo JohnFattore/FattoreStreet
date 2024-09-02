@@ -142,3 +142,24 @@ export const getResults = async () => {
   });
   return response
 }
+
+/********************************* Index Compare *************************************/
+
+export const getOutliers = async () => {
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_INDEX_COMPARE_URL.concat("outliers/"));
+  return response
+}
+
+export const patchOutliers = async (notes: string, id: number) => {
+  const response = await axios.patch(import.meta.env.VITE_APP_DJANGO_INDEX_COMPARE_URL.concat("outliers_update/", id, "/"), {
+    notes: notes,
+    // 1 is a placeholder, this is actually set on the back end using the User object returned by the request
+    user: 1
+  }, {
+    headers: {
+      'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
+    }
+  });
+  return response
+}
+

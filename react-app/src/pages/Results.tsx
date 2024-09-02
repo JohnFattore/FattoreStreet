@@ -30,7 +30,7 @@ export default function Results() {
             <h3>Wallstreet Weekly Results</h3>
             <ResultTable setMessage={setMessage} results={results} resultsDispatch={resultsDispatch}/>
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
-            <DjangoTable models={results} setMessage={setMessage} dispatch={resultsDispatch} fields={fields} axiosFunctions={{}}/>
+            <DjangoTable models={results} setMessage={setMessage} dispatch={resultsDispatch} fields={fields} />
         </>
 
     );

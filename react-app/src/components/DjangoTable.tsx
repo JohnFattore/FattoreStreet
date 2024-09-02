@@ -1,33 +1,37 @@
 import Table from 'react-bootstrap/Table';
 import DjangoRow from './DjangoRow';
 
-export default function DjangoTable({ models, dispatch, setMessage, fields, axiosFunctions }) {
+export default function DjangoTable({ models, dispatch, setMessage, fields }) {
 
-    let headers: String[] = []
-    for (const i in fields) {
-        if (fields[i].type != 'hidden')
-            headers.push(fields[i].name)
+    // messed this one up changing last one to an object, should have some standard object
+    //for (const i in axiosFunctions)
+    //    headers.push(i)
+
+    let headers: any[] = []
+    for (const field in fields) {
+        if (fields[field].type != 'hidden') {
+            headers.push(<th onClick={() => {
+                models.sort((a, b) => b[field] - a[field])
+                dispatch({ type: "refresh" });
+            }}>{fields[field].name}</th>);
+        }
+
     }
 
-    for (const i in axiosFunctions)
-        headers.push(i)
-
     if (models.length == 0) {
-        return (<h3 role="noModels">There are no models for this week</h3>)
+        return (<h3 role="noModels">Please Login</h3>)
     }
 
     return (
         <Table>
             <thead>
                 <tr>
-                    {headers.map((property) => (
-                        <th>{property}</th>
-                    ))}
+                    {headers}
                 </tr>
             </thead>
             <tbody>
                 {models.map((model) => (
-                    <DjangoRow model={model} setMessage={setMessage} dispatch={dispatch} fields={fields} axiosFunctions={axiosFunctions} />
+                    <DjangoRow model={model} setMessage={setMessage} dispatch={dispatch} fields={fields} />
                 ))}
             </tbody>
         </Table>

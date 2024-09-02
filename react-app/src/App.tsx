@@ -12,6 +12,7 @@ import Register from "./pages/Register";
 import Education from "./pages/Education";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
+import Outliers from "./pages/Outliers";
 
 // react router for all our routes
 export default function App() {
@@ -56,10 +57,11 @@ export default function App() {
         <Route path="/results" element={<Results />}  errorElement={<ErrorPage />}/>
       */
         }
-
+        <Route path="/outliers" element={<Outliers />} />
         <Route path="/entertainment" element={<Entertainment />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
+      <p>This website is purely for entertainment. All investments carry risk. Consult a professional.</p>
       <p>Passive Investing is Awesome!!</p>
     </>
   );

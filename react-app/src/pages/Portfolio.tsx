@@ -57,10 +57,7 @@ export default function Portfolio() {
         marketPrice: {name: "Total Market Price", function: multipy, parameters: ['shares', 'quote'], type: "money" },
         percentChange: {name: "Percent Change", function: percentChange, parameters: ['totalCostBasis', 'marketPrice'], type: "percent" },
         buy: {name: "Buy Date" },
-    }
-
-    const axiosFunctions = {
-        delete: deleteAsset
+        delete: {name: "Delete", function2: deleteAsset, type: "delete"}
     }
 
     return (
@@ -69,7 +66,7 @@ export default function Portfolio() {
             <AssetForm setMessage={setMessage} dispatch={dispatch} />
             <h1 role="assetTableHeader">User's Portfolio</h1>
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
-            <DjangoTable setMessage={setMessage} models={assets} dispatch={dispatch} fields={fields} axiosFunctions={axiosFunctions} />
+            <DjangoTable setMessage={setMessage} models={assets} dispatch={dispatch} fields={fields} />
         </>
     );
 }

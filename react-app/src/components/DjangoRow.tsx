@@ -1,19 +1,10 @@
-import { useReducer, useEffect } from "react";
-import { ISelection } from "../interfaces";
 
-function selectionReducer(selections, action) {
-    switch (action.type) {
-        case 'add': {
-            return [...selections, action.selection];
-        }
-        case 'delete': {
-            return selections.filter(e => e !== action.selection)
-        }
-    }
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 // some things should move up to the table level and be passed down
-export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFunctions }) {
+export default function DjangoRow({ model, setMessage, dispatch, fields }) {
 
     // handle fields
     let properties = {}
@@ -39,6 +30,10 @@ export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFu
                 properties[item] = (field.function(...functionInput))
         }
 
+        else if (field.type == 'axios') {
+            properties[item] = 'delete'
+        }
+
         // if no function, field is a django model field
         else {
             properties[item] = model[item]
@@ -50,8 +45,9 @@ export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFu
     for (const item in properties) {
         // this should totally be a switch case
         if (fields[item].type == "money") {
-            result.push(<td style={fields["style"]}>{"$" + Number(properties[item]).toFixed(2)}</td>)
+            result.push(<td style={fields["style"]}>{"$" + (numberWithCommas(Number(properties[item]).toFixed(2)))}</td>)
         }
+
         else if (fields[item].type == "amount") {
             result.push(<td>{Number(properties[item]).toFixed(2)}</td>)
         }
@@ -63,97 +59,49 @@ export default function DjangoRow({ model, setMessage, dispatch, fields, axiosFu
             result.push(<td style={{ color: strColor }}>{Number(properties[item]).toFixed(2) + "%"}</td>)
         }
         else if (fields[item].type == "marketCap") {
-            result.push(<td>{"$" + Number(properties[item]).toFixed(2) + " Billion"}</td>)
+            if (properties[item] == "ETF") {
+                result.push(<td style={fields["style"]}>{properties[item]}</td>)
+            }
+            else {
+                result.push(<td>{"$" + Number(properties[item]).toFixed(2) + " Billion"}</td>)
+            }
         }
         else if (fields[item].type == "hidden") {
             continue
         }
+        else if (fields[item].type == "axiosWL") {
+            result.push(
+                <td role="delete" onClick={() => {
+                    let tickersDB = localStorage.getItem("tickers");
+                    let tickers: string[] = JSON.parse(tickersDB as string);
+                    tickers = tickers.filter(e => e !== model['ticker']); // will remove ticker from list
+                    // setting tickers so display refreshes
+                    let tickerModels: any[] = []
+                    for (const i in tickers) {
+                        tickerModels.push({ "ticker": tickers[i] })
+                    }
+                    fields[item].function2(tickerModels)
+                    tickersDB = JSON.stringify(tickers);
+                    localStorage.setItem("tickers", tickersDB);
+                    setMessage({ text: model['ticker'] + " deleted from watchlist", type: "success" });
+                }}>delete</td>
+            )
+        }
+        else if (fields[item].type == "delete") {
+            result.push(<td onClick={() => {
+                fields[item].function2(model.id).then(() => {
+                    dispatch({ type: "delete", asset: model });
+                    setMessage({ text: model.ticker + " deleted", type: "success" })
+                })
+                    .catch(() => {
+                        setMessage({ text: "There was a problem deleting the asset", type: "error" })
+                    })
+            }}>Delete</td>)
+        }
+
         else
             result.push(<td>{properties[item]}</td>)
     }
-
-    const [selections, selectionsDispatch] = useReducer(selectionReducer, []);
-
-
-    if (axiosFunctions['relatedModels'] != null) {
-        let data: ISelection[] = []
-        useEffect(() => {
-            if (selections.length == 0) {
-                axiosFunctions['relatedModels'](1)
-                    .then((response) => {
-                        data = response.data
-                        for (let i = 0; i < data.length; i++) {
-                            selectionsDispatch({ type: "add", selection: data[i] })
-                        }
-                    })
-                    .catch(() => {
-                        setMessage({ text: "Error", type: "error" })
-                    })
-            }
-        }, []);
-    }
-
-    if (axiosFunctions['delete'] != null) {
-        result.push(<td onClick={() => {
-            axiosFunctions['delete'](model.id).then(() => {
-                dispatch({ type: "delete", asset: model });
-                setMessage({ text: model.ticker + " deleted", type: "success" })
-            })
-                .catch(() => {
-                    setMessage({ text: "There was a problem deleting the asset", type: "error" })
-                })
-        }}>Delete</td>)
-    }
-
-    if (axiosFunctions["watchlist"] != null) {
-        result.push(
-            <td role="delete" onClick={() => {
-                let tickersDB = localStorage.getItem("tickers");
-                let tickers: string[] = JSON.parse(tickersDB as string);
-                tickers = tickers.filter(e => e !== model['ticker']); // will remove ticker from list
-                // setting tickers so display refreshes
-                let tickerModels: any[] = []
-                for (const i in tickers) {
-                    tickerModels.push({ "ticker": tickers[i] })
-                }
-                axiosFunctions["watchlist"](tickerModels)
-                tickersDB = JSON.stringify(tickers);
-                localStorage.setItem("tickers", tickersDB);
-                setMessage({ text: model['ticker'] + " deleted from watchlist", type: "success" });
-            }}>delete</td>
-        )
-    }
-
-    if (axiosFunctions["post"] != null) {
-        result.push(
-            <td role="post" onClick={() => {
-                //const existingSelection = selections.filter((selection: ISelection) => selection.option == option.id)
-                if (selections.length < 3/* && selections.length == 0*/) {
-                    axiosFunctions["post"]({
-                        option: model.id,
-                        allocation: 0,
-                        user: 1,
-                        id: 1
-                    }).then((response) => {
-                        const selection: ISelection = {
-                            option: model.id,
-                            allocation: 0,
-                            user: 1,
-                            id: response.data.id
-                        }
-                        selectionsDispatch({ type: "add", selection: selection });
-                        setMessage({ text: model.ticker + " added", type: "success" })
-                    })
-                        .catch(() => {
-                            setMessage({ text: "There was a problem adding the selection", type: "error" })
-                        })
-                }
-                else {
-                    setMessage({ text: "You can only have 3 unqiue selections per week", type: "error" })
-                }
-            }}>{model.id}</td>)
-    }
-
 
     return (
         <tr key={model.id}>
