@@ -4,6 +4,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
 import { getQuote, postAsset } from './axiosFunctions';
+import { handleError } from './helperFunctions';
 
 interface IFormInput {
     ticker: string,
@@ -30,7 +31,7 @@ export default function AssetForm({ setMessage, dispatch }) {
             .then((response) => {
                 // a valid ticker wont return null values
                 if (response.data.d == null)
-                    setMessage({text: "Invalid Ticker", type: "error"})
+                    setMessage({ text: "Invalid Ticker", type: "error" })
                 else {
                     postAsset({
                         ticker: data.ticker,
@@ -52,10 +53,10 @@ export default function AssetForm({ setMessage, dispatch }) {
                                 buy: data.buyDate,
                                 id: response.data.id
                             }
-                            dispatch({type: "add", asset: asset})
+                            dispatch({ type: "add", asset: asset })
                         })
-                        .catch(() => {
-                            setMessage({ text: "There was a problem with the asset purchase", type: "error" })
+                        .catch((error) => {
+                            handleError(error, setMessage);
                         });
                 }
             });

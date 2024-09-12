@@ -20,7 +20,6 @@ function outlierReducer(outliers, action) {
             return [...outliers, action.outlier]
         }
         case 'refresh': {
-            console.log("refresh")
             return [...outliers]
         }
     }
@@ -46,18 +45,18 @@ export default function Outliers() {
     }, []);
 
     const fields = {
-        ticker: { name: "Ticker" },
-        name: { name: "Name" },
+        ticker: { name: "Ticker", type: "text" },
+        name: { name: "Name", type: "text"},
         marketCap: { name: "Market Cap", type: "money" },
         volume: { name: "Volume Daily Shares", type: "amount" },
         volumeUSD: { name: "Volume Daily USD", type: "money" },
         freeFloat: { name: "Free Float Percent", type: "amount" },
         freeFloatMarketCap: { name: "Free Float Market Cap", type: "money" },
-        countryIncorp: { name: "Country of Incorporation" },
-        countryHQ: { name: "HQ Location" },
-        securityType: { name: "Security Type" },
-        yearIPO: { name: "IPO Year" },
-        notes: { name: "Notes" },
+        countryIncorp: { name: "Country of Incorporation", type: "text" },
+        countryHQ: { name: "HQ Location", type: "text" },
+        securityType: { name: "Security Type", type: "text" },
+        yearIPO: { name: "IPO Year", type: "text" },
+        notes: { name: "Notes", type: "text" },
     }
 
     return (
@@ -67,10 +66,13 @@ export default function Outliers() {
             Security types such as ETFs, and MLPs were omitted, while common stock, and REITs were included. Domiciles are decided for all companies and only US based companies are included. 
             Domicile is largely determined by HQ location, but country of incorporation also comes into consideration. 
             I know I am missing some "foreign" companies considered US companies because of revenue / assets in the US. Such as Spotify (SPOT). 
-            My bigger concern is that I am still including too many tickers. The "outliers" are tickers that are part the my calculated index, but is not actually part of the Rusell 1000.
+            My bigger concern is that I am still including too many tickers. 
+            Perhaps I am including some US based companies considered foriegn because of revenue, but for many of these companies this is not the case.
+            The "outliers" are tickers that are part the my calculated index, but is not actually part of the Rusell 1000.
             In other words, The Russell 1000 excludes companies such as Chewy (CHWY), Reddit (RDDT), and Symbotic (SYM) and I am not sure why. 
             I believe some, such as Snapchat (SNAP) are not included because of voting rights assessable to the public being below 5%, but I am not 100% sure. 
-            Some companies have more than 1 share class / restricted shares, making it not straightforward</p>
+            Some companies have more than 1 share class / restricted shares, making it not straightforward.
+            Perhaps "controlled" companies are not included in indexes? This would explain Chewy's exclusion.</p>
             <h5>Index Eligibility Critea</h5>
             <ul>
                 <li>Listed on NASDAQ/NYSE</li>
@@ -78,15 +80,13 @@ export default function Outliers() {
                 <li>US domiciled companies only, largely based on HQ location</li>
                 <li>Daily USD volume greater than $125,000</li>
                 <li>Free float percentage greater than 12.5%</li>
-                <li>Public voting rights greater than 5% *</li>
+                <li>Public voting rights greater than 5%</li>
             </ul>
-            <p>*Not totally accounted for yet</p>
+            <p>Think you know why a stock is excluded? Leave a note! Must be logged in.</p>
             <OutlierUpdateForm setMessage={setMessage} dispatch={dispatch} outliers={outliers} />
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
             <a href="https://docs.google.com/spreadsheets/d/1HbJ2-r7hCXT9IhWA9dbwBZe5utZOl502Txs1tecfYIc/edit?usp=sharing">List as a Google Sheet </a>
             <DjangoTable setMessage={setMessage} models={outliers} dispatch={dispatch} fields={fields} />
         </>
-
-
     )
 }

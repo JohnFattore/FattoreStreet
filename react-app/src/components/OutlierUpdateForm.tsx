@@ -4,6 +4,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
 import { patchOutliers } from './axiosFunctions';
+import { handleError } from './helperFunctions';
 
 interface IFormInput {
     notes: string,
@@ -11,7 +12,6 @@ interface IFormInput {
 }
 
 export default function OutlierUpdateForm({ setMessage, dispatch, outliers }) {
-    // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
         notes: yup.string().required(),
         ticker: yup.string().required(),
@@ -20,8 +20,8 @@ export default function OutlierUpdateForm({ setMessage, dispatch, outliers }) {
     const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>({
         resolver: yupResolver(schema),
     })
-    //console.log(watch("ticker"))
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
+        setMessage({ text: "Loading", type: "loading"})
         try {
             var outlier = outliers.find(obj => {
                 return obj.ticker === data.ticker
@@ -30,13 +30,13 @@ export default function OutlierUpdateForm({ setMessage, dispatch, outliers }) {
             patchOutliers(data.notes, outlier.id).then(() => {
                 dispatch({ type: "update", outlier: outlier });
                 setMessage({ text: data.ticker.concat(" notes updated"), type: "success" })
-            }).catch(() => {
-                // could have a "handleError()" function that takes in error message and produces user readable message
-                setMessage({ text: "Error setting notes, not logged in", type: "error" })
+            }).catch((error) => {
+                handleError(error, setMessage)
+                //setMessage({ text: "Error setting notes, not logged in", type: "error" })
             })
         }
         catch (error) {
-            setMessage({ text: "Error setting notes", type: "error" })
+            setMessage({ text: "Error setting notes, ticker isn't in list", type: "error" })
         }
     }
     return (

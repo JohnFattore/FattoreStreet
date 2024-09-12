@@ -60,22 +60,21 @@ This webapp is hosted for production on AWS. A task definition defines how the G
 - All traffic is first resolved by the DNS route 53 and its list of records in the hosted zone, which includes:
 1. A CNAME record that validates the CA certificate
 2. A A record that directs traffic to the application load balancer (ALB).
-- The ALB receives HTTP/HTTPS requests and also serves a view functions:
+- The ALB receives HTTP/HTTPS requests directs this traffic to a few different places:
 1. HTTPS requests recieved on port 443 is routed to port 80 of the fargate/ecs service.
 2. HTTP requests received on port 80 are routed to port 443, so all subsequent requests use SSL/TLS (HTTPS). 
-3. TOD: Requests using the wrong domain, such as fattorestreet.com, are redirect to www.fattorestreet.com.
 - The NGINX container is listening on port 80 and serves two functions:
 1. Serving out static files such as the react app, static django files, and other media.
-2. Acting as a reverse proxy for the Django/Gunicorn server on port 8000. 
+2. Acting as a reverse proxy for the Django/Gunicorn server on port 8000.
+3. Requests using the wrong domain, such as www.fattorestreet.com, are redirect to fattorestreet.com.
 - The Gunicorn server communcates via HTTP with the PostgreSQL server running on RDS.
 
 ### Domain naming
-The CA cert is *.fattore.com, so any subdomain is supported (TODO).
+The CA cert is *.fattore.com, so any subdomain is supported.
 The hosted zone is called fattorestreet.com so all subdomains can be easily accomidated
-One unified domain should be used for all traffic (www. or not)
 
 ### CI/CD Pipeline
-The continous integration, continious deployment pipeline consists of a distinct CI and CD. The CI are automated tests for both the react and django apps. The CD is a .sh file called deploy.sh that does everything between building the production code and deploying it onto AWS. [GithubActions](https://github.com/features/actions) is considerred; however free resources are preferred. Perhaps free options are useful, but for now there are bigger items to tackle.
+The continous integration, continious deployment pipeline consists of a distinct CI and CD. The CI are automated tests for both the react and django apps. The CD is a .sh file called deploy.sh that does everything between building the production code and deploying it onto AWS. [GithubActions](https://github.com/features/actions) is considerred; however free resources are preferred.
 
 ### Kubernetes
 Kubernetes is a container orchestration largely used for container management and scaling. This project currently runs just fine with a simple container set up, no need for containers to spin up and down to meet demand. However, if this project ever gets popular enough, Kubernetes will be an excellent choice. Not to mention it doesn't really work with AWS Fargate.
@@ -87,5 +86,8 @@ Reliable cheap stock data delivered through APIs are hard to come by. Finnhub fi
 #### The long term goal is to be cloud agnostic because I don't want to be tied to a particular cloud vender. 
 The RDS server and ALB are both AWS specific and can't be used on a different hosting service. 
 They are also the most expensive parts of the system and less control is had over these services compared to the DIY options.
-Fargate, an PaaS, is what limits the webapps options and should be eventually phased out by a IaaS option such as EC2.
+Fargate, an PaaS, is what limits the webapps options and should be eventually phased out by an IaaS option such as EC2.
 The application load balancer is the first priority to get rid of. I can configure my own NGINX server and use Certbot / LetsEncrpyt for SSL.
+Update: To further make this point. Using the free year of AWS, I have only had to pay $20 a month to host this site. 
+The largest cost has been public IPv4 addresses: 1 for the django/nginx containers, 1 for RDS, and 2 for the load balancer.
+IPv4 costs were $12 a month, all other hosting was $8.

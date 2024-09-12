@@ -5,6 +5,8 @@ export function setAlertVarient(message: IMessage) {
         return "danger"
     else if (message.type == "success")
         return "success"
+    else if (message.type == "loading")
+        return "primary"
     else
         return ""
 }
@@ -31,10 +33,31 @@ export function getSunday(week: number) {
     }
 
     var date = new Date();
-    var UTC = new Date(date.getTime() + (date.getTimezoneOffset()*60*1000))
+    var UTC = new Date(date.getTime() + (date.getTimezoneOffset() * 60 * 1000))
     var offsetHours = Number(import.meta.env.VITE_APP_CUTOVER_ISOWEEKDAY * 24) + Number(import.meta.env.VITE_APP_CUTOVER_HOUR)
-    var cutoff = new Date(UTC.getTime() - (offsetHours*60*60*1000))
+    var cutoff = new Date(UTC.getTime() - (offsetHours * 60 * 60 * 1000))
     var thisSunday = addDays(cutoff, -cutoff.getDay() % 7)
     var sunday = addDays(thisSunday, (7 * week))
     return formatDate(sunday)
+}
+
+export function handleError(error, setMessage) {
+    if (error.response.statusText == 'Unauthorized') {
+        if (error.response.data.detail == 'Given token not valid for any token type') {
+            setMessage({ text: "Please Login", type: "error" })
+        }
+        else if (error.response.data.detail == 'No active account found with the given credentials') {
+            setMessage({ text: "Wrong Email/Password", type: "error" })
+        }
+        else {
+            setMessage({ text: "Please Login", type: "error" })
+        }
+    }
+    else if (error.response.statusText == 'Bad Request') {
+        setMessage({ text: String(error.response.data.buy[0]), type: "error" })
+    }
+    else {
+        setMessage({ text: "Error", type: "error" })
+    }
+    // could have single setMessage at end
 }

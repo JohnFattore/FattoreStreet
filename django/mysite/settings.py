@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     'django_celery_beat',
     # celery results with django
     'django_celery_results',
+    # History
+    'simple_history',
 ]
 
 MIDDLEWARE = [
@@ -48,6 +50,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Security for communicating with react frontend
     'corsheaders.middleware.CorsMiddleware',
+    # History
+    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -162,4 +166,4 @@ CELERY_BROKER_URL = 'redis://localhost:6379'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 9999999999999
+# DATA_UPLOAD_MAX_NUMBER_FIELDS = 9999999999999

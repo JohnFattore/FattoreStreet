@@ -49,7 +49,7 @@ export default function DjangoRow({ model, setMessage, dispatch, fields }) {
         }
 
         else if (fields[item].type == "amount") {
-            result.push(<td>{Number(properties[item]).toFixed(2)}</td>)
+            result.push(<td>{numberWithCommas(Number(properties[item]).toFixed(2))}</td>)
         }
         else if (fields[item].type == "percent") {
             var strColor = "red";

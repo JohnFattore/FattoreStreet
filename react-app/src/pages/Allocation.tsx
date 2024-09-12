@@ -1,7 +1,7 @@
 import Alert from 'react-bootstrap/Alert';
 import { useState, useEffect } from "react";
 import { IMessage, IAllocation } from "../interfaces";
-import { setAlertVarient } from "../components/helperFunctions";
+import { handleError, setAlertVarient } from "../components/helperFunctions";
 import DjangoTable from "../components/DjangoTable";
 import { getAssets } from "../components/axiosFunctions";
 import { useQuote } from "../components/customHooks";
@@ -20,8 +20,8 @@ export default function Allocation() {
                 .then((response) => {
                     setAssets(response.data);
                 })
-                .catch(() => {
-                    setMessage({text: "There was a problem getting assets", type: "error"}) 
+                .catch((error) => {
+                    handleError(error, setMessage)
                 })
         }, []); 
     
@@ -40,7 +40,7 @@ export default function Allocation() {
         };
 
         const fields = {
-                ticker: {name: "Ticker"},
+                ticker: {name: "Ticker", type: "text"},
                 shares: {name: "Shares", type: "amount"},
                 quote: {name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "hidden" },
                 currentPrice: {name: "Current Price", function: multipy, parameters: ['shares', 'quote'], type: "money" },
@@ -52,6 +52,5 @@ export default function Allocation() {
                         {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
                         <DjangoTable setMessage={setMessage} models={allocations} dispatch={console.log} fields={fields} />
                 </>
-
         );
 }

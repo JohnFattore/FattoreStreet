@@ -1,9 +1,4 @@
 ticker,name,marketCap,volume,volumeUSD,freeFloat,freeFloatMarketCap,countryIncorp,countryHQ,securityType
-ABG,Asbury Automotive Group Inc Common Stock,4604111373,183320,42986707,0.78987,3636656157,United States,United States,Common Stock
-ACLS,Axcelis Technologies Inc. Common Stock,4576997144,619190,67386448,0.98760,4520240589,United States,United States,Common Stock
-ACT,Enact Holdings Inc. Common Stock,4877635029,188561,6247026,0.18359,895486838,United States,United States,Common Stock
-AIT,Applied Industrial Technologies Inc. Common Stock,7344147884,259927,50945692,0.98548,7237514044,United States,United States,Common Stock
-ALTR,Altair Engineering Inc. Class A Common Stock,8099025164,622391,54770408,0.48350,3915862640,United States,United States,Common Stock
 ANF,Abercrombie & Fitch Company Common Stock,9433532496,1825182,250141193,0.98107,9254960771,United States,United States,Common Stock
 ATKR,Atkore Inc. Common Stock,4820847668,705712,69911359,0.98827,4764303014,United States,United States,Common Stock
 AU,AngloGold Ashanti PLC Ordinary Shares,10539416684,1578300,44807937,0.82426,8687203007,South Africa,United States,Common Stock
@@ -19,20 +14,17 @@ BPMC,Blueprint Medicines Corporation Common Stock,6836513360,668943,60348693,0.9
 CADE,Cadence Bank Common Stock,5153564479,1426375,41821315,0.98473,5074853101,United States,United States,Common Stock
 CBT,Cabot Corporation Common Stock,4955551340,366445,36098497,0.98665,4889414862,United States,United States,Common Stock
 CET,Central Securities Corporation Common Stock,10617645524,26332,1130957,0.56539,6003116497,United States,United States,Common Stock
-CHWY,Chewy Inc. Class A Common Stock,11089551825,11883475,270943230,0.91141,10107100386,United States,United States,Common Stock
 CHX,ChampionX Corporation Common Stock ,6237504000,1879583,57665606,0.99115,6182281101,United States,United States,Common Stock
 CMC,Commercial Metals Company Common Stock,6154394318,795466,42473907,0.99166,6103088949,United States,United States,Common Stock
 COOP,Mr. Cooper Group Inc. Common Stock,5194504490,437853,37280994,0.96977,5037477461,United States,United States,Common Stock
 CRBG,Corebridge Financial Inc. Common Stock,17810974563,4208164,108065652,0.39964,7117971696,United States,United States,Common Stock
 CRS,Carpenter Technology Corporation Common Stock,5306596428,711222,98497846,0.98277,5215158531,United States,United States,Common Stock
-CUK,Carnival Plc ADS ADS,21328948618,2042503,27001890,0.90334,19267240284,United States,United States,Common Stock
 CVLT,Commvault Systems Inc. Common Stock,5281060085,417653,60906337,0.99085,5232743422,United States,United States,Common Stock
 CWAN,Clearwater Analytics Holdings Inc. Class A Common Stock,4506445800,1894575,44048679,0.99421,4480344567,United States,United States,Common Stock
 CWST,Casella Waste Systems Inc. Class A Common Stock,5612673839,328583,34384568,0.99006,5556882020,United States,United States,Common Stock
 CYTK,Cytokinetics Incorporated Common Stock,5735509315,2067469,108149303,0.88999,5104563645,United States,United States,Common Stock
 DRS,Leonardo DRS Inc. Common Stock,6652232339,654858,17640237,0.27912,1856769663,Israel,United States,Common Stock
 DY,Dycom Industries Inc. Common Stock,4899001254,284490,51346747,0.79130,3876577476,United States,United States,Common Stock
-EDR,Endeavor Group Holdings Inc. Class A Common Stock,18735160184,3028130,82910199,0.61867,11590886759,United States,United States,Common Stock
 ENLC,EnLink Midstream LLC Common Units representing Limited Partner Interests,6255075671,1917296,23237628,0.52518,3285062809,United States,United States,Common Stock
 ENSG,The Ensign Group Inc. Common Stock,7066423206,346538,48390566,0.95725,6764323676,United States,United States,Common Stock
 EPRT,Essential Properties Realty Trust Inc. Common Stock,4812160296,1469058,42749588,0.99511,4788637415,United States,United States,Common Stock
@@ -47,19 +39,22 @@ FIZZ,National Beverage Corp. Common Stock,4941026429,209538,9804283,0.25183,1244
 FLEX,Flex Ltd. Ordinary Shares,11912666336,3723125,106537222,0.99205,11817968694,Singapore,United States,Common Stock
 FLR,Fluor Corporation Common Stock,7402278993,1604664,76510380,0.98829,7315600704,United States,United States,Common Stock
 FORM,FormFactor Inc. FormFactor Inc. Common Stock,4701198898,704209,30703512,0.98914,4650156142,United States,United States,Common Stock
+ACT,Enact Holdings Inc. Common Stock,4877635029,188561,6247026,0.18359,895486838,United States,United States,Common Stock
+CUK,Carnival Plc ADS ADS,21328948618,2042503,27001890,0.90334,19267240284,United States,United States,Common Stock
+ALTR,Altair Engineering Inc. Class A Common Stock,8099025164,622391,54770408,0.48350,3915862640,United States,United States,Common Stock
+CHWY,Chewy Inc. Class A Common Stock,11089551825,11883475,270943230,0.91141,10107100386,United States,United States,Common Stock
+EDR,Endeavor Group Holdings Inc. Class A Common Stock,18735160184,3028130,82910199,0.61867,11590886759,United States,United States,Common Stock
 FSS,Federal Signal Corporation Common Stock,5031672538,332200,30838126,0.97655,4913680150,United States,United States,Common Stock
 FTAI,FTAI Aviation Ltd. Common Stock,10525820025,1228966,128660451,0.98756,10394919691,United States,United States,Common Stock
 GATX,GATX Corporation Common Stock,4651852000,176127,23724307,0.99369,4622492773,United States,United States,Common Stock
 GKOS,Glaukos Corporation Common Stock,5914152672,535743,64498100,0.96736,5721091731,United States,United States,Common Stock
 GTLS,Chart Industries Inc. Common Stock,5995141813,528040,61981335,0.97698,5857142349,United States,United States,Common Stock
-HALO,Halozyme Therapeutics Inc. Common Stock,6620793480,1312416,71454489,0.99284,6573395261,United States,United States,Common Stock
 HIMS,Hims & Hers Health Inc. Class A Common Stock,4600717962,11658719,183100182,0.89495,4117408993,United States,United States,Common Stock
 HLNE,Hamilton Lane Incorporated Class A Common Stock,6672203377,314883,42836683,0.83249,5554536512,United States,United States,Common Stock
 HOMB,Home BancShares Inc. Common Stock,4749615605,1071588,27786277,0.92589,4397616979,United States,United States,Common Stock
 HQY,HealthEquity Inc. Common Stock,7536854707,695050,50067927,0.98267,7406237611,United States,United States,Common Stock
 IBP,Installed Building Products Inc. Common Stock,5720412975,360516,76901668,0.82705,4731076825,United States,United States,Common Stock
 INSM,Insmed Incorporated Common Stock,9858425714,3581579,252734122,0.90213,8893558461,United States,United States,Common Stock
-IOT,Samsara Inc. Class A Common Stock,19195594606,3949653,146848099,0.94192,18080787258,United States,United States,Common Stock
 ITRI,Itron Inc. Common Stock,4503455041,642667,62820699,0.98761,4447657142,United States,United States,Common Stock
 JXN,Jackson Financial Inc. Class A Common Stock ,5719063532,721135,59078985,0.98019,5605765116,United States,United States,Common Stock
 KBH,KB Home Common Stock,5119721425,1466645,116671610,0.96307,4930648093,United States,United States,Common Stock
@@ -95,6 +90,7 @@ RBRK,Rubrik Inc. Class A Common Stock,5401939620,972041,30629012,0.99672,5384198
 RDDT,Reddit Inc. Class A Common Stock,10888081357,3427743,183795580,0.52586,5725555599,,United States,Common Stock
 RDN,Radian Group Inc. Common Stock,4696542323,847559,28918713,0.98786,4639521577,United States,United States,Common Stock
 RHP,Ryman Hospitality Properties Inc. (REIT),5880038785,485832,47271454,0.98089,5767674189,United States,United States,Common Stock
+IOT,Samsara Inc. Class A Common Stock,19195594606,3949653,146848099,0.94192,18080787258,United States,United States,Common Stock
 RMBS,Rambus Inc. Common Stock,6251283152,1464330,61970446,0.99398,6213660448,United States,United States,Common Stock
 RRR,Red Rock Resorts Inc. Class A Common Stock,5678963475,511461,27618894,0.83128,4720800154,United States,United States,Common Stock
 RVMD,Revolution Medicines Inc. Common Stock,6403115470,1535027,65576353,0.98818,6327462645,United States,United States,Common Stock
@@ -104,7 +100,6 @@ SFM,Sprouts Farmers Market Inc. Common Stock,8396884869,1398308,134391382,0.9948
 SIGI,Selective Insurance Group Inc. Common Stock,5733903704,389506,32948313,0.98433,5644057079,United States,United States,Common Stock
 SM,SM Energy Company Common Stock,5022478047,1956461,84734326,0.98095,4926805988,United States,United States,Common Stock
 SMMT,Summit Therapeutics Inc. Common Stock ,5714113911,4151651,41225894,0.10447,596953290,United States,United States,Common Stock
-SNAP,Snap Inc. Class A Common Stock,26289444620,22629350,194612410,0.75237,19779312017,United States,United States,Common Stock
 SPSC,SPS Commerce Inc. Common Stock,7002841023,184191,35582017,0.98128,6871735605,United States,United States,Common Stock
 SPXC,SPX Technologies Inc. Common Stock,6434843199,285074,40905268,0.97658,6284143561,United States,United States,Common Stock
 SQSP,Squarespace Inc. Class A Common Stock,5986636238,1313233,58058031,0.69344,4151384839,United States,United States,Common Stock
@@ -112,7 +107,6 @@ SSB,SouthState Corporation Common Stock,5775118923,592606,52744897,0.98872,57099
 STEP,StepStone Group Inc. Class A Common Stock,5059835224,817456,37656111,0.81843,4141118470,United States,United States,Common Stock
 SUM,Summit Materials Inc. Class A Common Stock,6251809933,974035,37398074,0.68235,4265933934,United States,United States,Common Stock
 SWX,Southwest Gas Holdings Inc. Common Stock (DE),4963087945,352396,25115263,0.92784,4604950005,United States,United States,Common Stock
-SYM,Symbotic Inc. Class A Common Stock,20742584835,1518564,33552672,0.76088,15782684203,United States,United States,Common Stock
 TDW,Tidewater Inc. Common Stock,4838295849,996088,85763177,0.95065,4599525997,United States,United States,Common Stock
 TEM,Tempus AI Inc. Class A Common Stock,5504576095,1403851,55431057,0.26503,1458868459,United States,United States,Common Stock
 TENB,Tenable Holdings Inc. Common Stock,5098241229,1032335,42325735,0.98201,5006522110,United States,United States,Common Stock
@@ -126,7 +120,13 @@ USM,United States Cellular Corporation Common Stock,4665650000,335687,17492650,0
 VERX,Vertex Inc. Class A Common Stock,5545314918,1016279,36245591,0.87644,4860149201,United States,United States,Common Stock
 VRNS,Varonis Systems Inc. Common Stock,5295287443,1474948,78098497,0.97758,5176549426,United States,United States,Common Stock
 VRRM,Verra Mobility Corporation Class A Common Stock,4467859740,1124377,31195840,0.99190,4431664319,United States,United States,Common Stock
-WIRE,Encore Wire Corporation Common Stock,4576259413,500397,145035066,0.94058,4304322037,United States,United States,Common Stock
 WMG,Warner Music Group Corp. Class A Common Stock,15666883375,2674654,76040413,0.94810,14853791667,United States,United States,Common Stock
 WTS,Watts Water Technologies Inc. Class A Common Stock,5988031948,169606,31500074,0.98719,5911330904,United States,United States,Common Stock
+SNAP,Snap Inc. Class A Common Stock,26289444620,22629350,194612410,0.75237,19779312017,United States,United States,Common Stock
+WIRE,Encore Wire Corporation Common Stock,4576259413,500397,145035066,0.94058,4304322037,United States,United States,Common Stock
+ABG,Asbury Automotive Group Inc Common Stock,4604111373,183320,42986707,0.78987,3636656157,United States,United States,Common Stock
+AIT,Applied Industrial Technologies Inc. Common Stock,7344147884,259927,50945692,0.98548,7237514044,United States,United States,Common Stock
+HALO,Halozyme Therapeutics Inc. Common Stock,6620793480,1312416,71454489,0.99284,6573395261,United States,United States,Common Stock
+ACLS,Axcelis Technologies Inc. Common Stock,4576997144,619190,67386448,0.98760,4520240589,United States,United States,Common Stock
+SYM,Symbotic Inc. Class A Common Stock,20742584835,1518564,33552672,0.76088,15782684203,United States,United States,Common Stock
 ZWS,Zurn Elkay Water Solutions Corporation Common Stock,4966761262,931488,28181983,0.83928,4168515456,United States,United States,Common Stock

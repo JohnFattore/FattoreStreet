@@ -27,7 +27,7 @@ export default function WatchList() {
     //input of models is a list of dictionaries
     //const tickerModels = [{"ticker": "F"}]
     const fields = {
-        ticker: { name: "Ticker" },
+        ticker: { name: "Ticker", type: "text" },
         quote: { name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "money" },
         percentChange: { name: "Daily Percent Change", function: useQuote, parameters: ['ticker', setMessage], item: "percentChange", type: "percent" },
         marketCap: { name: "Market Cap", function: useCompanyProfile2, parameters: ['ticker', setMessage], type: "marketCap" },
@@ -38,7 +38,7 @@ export default function WatchList() {
     { ticker: "VXUS", name: "Global Market Ex US" },
     { ticker: "VTWO", name: "US Small Cap" },
     { ticker: "BND", name: "US Investable Bond Market" },
-    { ticker: "VNQ", name: "US Real Estate" }
+    { ticker: "VNQ", name: "US Real Estate" },
     ]
 
     const fields2 = {

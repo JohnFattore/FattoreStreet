@@ -79,3 +79,9 @@ export interface IBrokerage {
     inter: string;
     id: number
 }
+
+export interface IRatio {
+    name: string;
+    formula: string;
+    description: string;
+}

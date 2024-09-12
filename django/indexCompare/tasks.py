@@ -29,7 +29,7 @@ def NASDAQFile():
                         freeFloat = 1
                     freeFloatMarketCap = freeFloat * float(lines[5])
                     Stock.objects.create(ticker=ticker, name=lines[1], marketCap=float(lines[5]), countryIncorp=lines[6], countryHQ=yfinance.info["country"], 
-                                         securityType=securityType, volume=yfinance.info["averageVolume"], volumeUSD=volumeUSD, freeFloat=freeFloat, freeFloatMarketCap=freeFloatMarketCap)
+                                         securityType=securityType, volume=yfinance.info["averageVolume"], volumeUSD=volumeUSD, freeFloat=freeFloat, freeFloatMarketCap=freeFloatMarketCap, yearIPO=lines[7])
                 except:
                     skippedTickers.append(ticker)
 
@@ -105,7 +105,7 @@ def createRussell1000():
     for stock in Stock.objects.filter(ticker__in=InMyIndexNotInRussell1000):
         Outlier.objects.create(ticker=stock.ticker, name=stock.name, marketCap=stock.marketCap, volume=stock.volume,
                                 volumeUSD=stock.volumeUSD, freeFloat=stock.freeFloat, freeFloatMarketCap=stock.freeFloatMarketCap,
-                                countryIncorp=stock.countryIncorp, countryHQ=stock.countryHQ, securityType=stock.securityType)
+                                countryIncorp=stock.countryIncorp, countryHQ=stock.countryHQ, yearIPO=stock.yearIPO, securityType=stock.securityType)
 
 
 @shared_task

@@ -1,5 +1,8 @@
 docker run -d -p 6379:6379 redis
 
+### Run Celery Beat Worker
+celery -A mysite worker --beat -E -n beat
+
 # Portfolio Manager, a Django RESTful API backend
 ## Changing database schema
 Stage the migrations and commit changes to database. Portfolio is the name of the app.

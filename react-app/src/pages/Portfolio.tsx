@@ -7,6 +7,7 @@ import { useReducer } from 'react';
 import DjangoTable from '../components/DjangoTable';
 import { useQuote } from '../components/customHooks';
 import { deleteAsset, getAssets } from '../components/axiosFunctions';
+import { handleError } from '../components/helperFunctions';
 
 function assetReducer(assets, action) {
     switch (action.type) {
@@ -15,6 +16,9 @@ function assetReducer(assets, action) {
         }
         case 'delete': {
             return assets.filter(e => e !== action.asset)
+        }
+        case 'refresh': {
+            return [...assets]
         }
     }
 }
@@ -35,29 +39,30 @@ export default function Portfolio() {
     // this could totally be included in DjangoTable
     let data: IAsset[] = []
     useEffect(() => {
-      if (assets.length == 0) {
-        getAssets()
-          .then((response) => {
-            data = response.data
-            for (let i = 0; i < data.length; i++) {
-              dispatch({ type: "add", asset: data[i] })
-            }
-          }).catch(() => {
-            setMessage({ text: "There was a problem getting assets", type: "error" })
-          }) 
-      }
+        if (assets.length == 0) {
+            getAssets()
+                .then((response) => {
+                    data = response.data
+                    for (let i = 0; i < data.length; i++) {
+                        dispatch({ type: "add", asset: data[i] })
+                    }
+                }).catch((error) => {
+                    handleError(error, setMessage);
+                    //setMessage({ text: "There was a problem getting assets", type: "error" })
+                })
+        }
     }, []);
 
     const fields = {
-        ticker: {name: "Ticker" },
-        shares: {name: "Shares", type: "amount" },
-        costbasis: {name: "Cost Basis", type: "money"},
-        quote: {name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "hidden" },
-        totalCostBasis: {name: "Total Cost Basis", function: multipy, parameters: ['shares', 'costbasis'], type: "money" },
-        marketPrice: {name: "Total Market Price", function: multipy, parameters: ['shares', 'quote'], type: "money" },
-        percentChange: {name: "Percent Change", function: percentChange, parameters: ['totalCostBasis', 'marketPrice'], type: "percent" },
-        buy: {name: "Buy Date" },
-        delete: {name: "Delete", function2: deleteAsset, type: "delete"}
+        ticker: { name: "Ticker", type: "text" },
+        shares: { name: "Shares", type: "amount" },
+        costbasis: { name: "Cost Basis", type: "money" },
+        quote: { name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "hidden" },
+        totalCostBasis: { name: "Total Cost Basis", function: multipy, parameters: ['shares', 'costbasis'], type: "money" },
+        marketPrice: { name: "Total Market Price", function: multipy, parameters: ['shares', 'quote'], type: "money" },
+        percentChange: { name: "Percent Change", function: percentChange, parameters: ['totalCostBasis', 'marketPrice'], type: "percent" },
+        buy: { name: "Buy Date", type: "text" },
+        delete: { name: "Delete", function2: deleteAsset, type: "delete" }
     }
 
     return (
