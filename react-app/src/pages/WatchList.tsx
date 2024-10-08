@@ -39,6 +39,7 @@ export default function WatchList() {
     { ticker: "VTWO", name: "US Small Cap" },
     { ticker: "BND", name: "US Investable Bond Market" },
     { ticker: "VNQ", name: "US Real Estate" },
+    { ticker: "UUP", name: "US Dollar vs International Currency" },
     ]
 
     const fields2 = {

@@ -26,6 +26,8 @@ export const postAsset = async (asset: IAsset) => {
     shares: asset.shares,
     costbasis: asset.costbasis,
     buy: asset.buy,
+      // 1 is a placeholder, value set in backend
+    SnP500Price: 1,
     // 1 is a placeholder, this is actually set on the back end using the User object returned by the request
     user: 1
   }, {
@@ -144,7 +146,7 @@ export const getResults = async () => {
 }
 
 /********************************* Index Compare *************************************/
-
+// old
 export const getOutliers = async () => {
   const response = await axios.get(import.meta.env.VITE_APP_DJANGO_INDEX_COMPARE_URL.concat("outliers/"));
   return response
@@ -163,3 +165,20 @@ export const patchOutliers = async (notes: string, id: number) => {
   return response
 }
 
+export const getIndexMembers = async () => {
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_INDEX_COMPARE_URL.concat("index_members/"));
+  return response
+}
+
+export const patchIndexMembers = async (notes: string, id: number) => {
+  const response = await axios.patch(import.meta.env.VITE_APP_DJANGO_INDEX_COMPARE_URL.concat("index_members_update/", id, "/"), {
+    notes: notes,
+    // 1 is a placeholder, this is actually set on the back end using the User object returned by the request
+    user: 1
+  }, {
+    headers: {
+      'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
+    }
+  });
+  return response
+}

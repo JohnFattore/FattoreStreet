@@ -8,6 +8,8 @@ import DjangoTable from '../components/DjangoTable';
 import { useQuote } from '../components/customHooks';
 import { deleteAsset, getAssets } from '../components/axiosFunctions';
 import { handleError } from '../components/helperFunctions';
+import LoginForm from '../components/LoginForm';
+import { Row, Col, Accordion } from 'react-bootstrap';
 
 function assetReducer(assets, action) {
     switch (action.type) {
@@ -42,8 +44,16 @@ export default function Portfolio() {
         if (assets.length == 0) {
             getAssets()
                 .then((response) => {
-                    data = response.data
-                    for (let i = 0; i < data.length; i++) {
+                    for (let i = 0; i < response.data.length; i++) {
+                        data.push({
+                            ticker: response.data[i].ticker,
+                            shares: response.data[i].shares,
+                            costbasis: response.data[i].costbasis,
+                            buy: response.data[i].buy,
+                            SnP500Price: response.data[i].SnP500Price.price,
+                            id: response.data[i].id
+                        })
+                    } for (let i = 0; i < data.length; i++) {
                         dispatch({ type: "add", asset: data[i] })
                     }
                 }).catch((error) => {
@@ -62,13 +72,28 @@ export default function Portfolio() {
         marketPrice: { name: "Total Market Price", function: multipy, parameters: ['shares', 'quote'], type: "money" },
         percentChange: { name: "Percent Change", function: percentChange, parameters: ['totalCostBasis', 'marketPrice'], type: "percent" },
         buy: { name: "Buy Date", type: "text" },
+        SnP500Price: { name: "S&P 500 Price On Buy Date", type: "money" },
         delete: { name: "Delete", function2: deleteAsset, type: "delete" }
     }
 
     return (
         <>
             <h3>Add Assets</h3>
-            <AssetForm setMessage={setMessage} dispatch={dispatch} />
+            <Row>
+                <Col>
+                    <AssetForm setMessage={setMessage} dispatch={dispatch} />
+                </Col>
+                <Col>
+                    <Accordion defaultActiveKey="1">
+                        <Accordion.Item eventKey="0">
+                            <Accordion.Header>Login</Accordion.Header>
+                            <Accordion.Body>
+                                <LoginForm setMessage={setMessage} />
+                            </Accordion.Body>
+                        </Accordion.Item>
+                    </Accordion>
+                </Col>
+            </Row>
             <h1 role="assetTableHeader">User's Portfolio</h1>
             {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
             <DjangoTable setMessage={setMessage} models={assets} dispatch={dispatch} fields={fields} />

@@ -38,6 +38,7 @@ export default function AssetForm({ setMessage, dispatch }) {
                         shares: data.shares,
                         costbasis: data.costBasis,
                         buy: data.buyDate,
+                        SnP500Price: 1,
                         // just a place holder
                         id: 1
                     })
@@ -65,14 +66,14 @@ export default function AssetForm({ setMessage, dispatch }) {
     return (
         <Form onSubmit={handleSubmit(onSubmit)}>
             <Row>
-                <Col sm={3}>
+                <Col>
                     <Form.Control size="lg" {...register("ticker", {
                         required: true
                     })} placeholder='Ticker' />
                     {errors.ticker && <Alert variant="danger" role="tickerError">Error: Ticker text field is required</Alert>}
 
                 </Col>
-                <Col sm={3}>
+                <Col>
                     <Form.Control size="lg" {...register("shares", {
                         required: true
                     })} placeholder='Shares' />
@@ -80,13 +81,13 @@ export default function AssetForm({ setMessage, dispatch }) {
                 </Col>
             </Row>
             <Row>
-                <Col sm={3}>
+                <Col>
                     <Form.Control size="lg" {...register("costBasis", {
                         required: true
                     })} placeholder='Cost Basis' />
                     {errors.costBasis && <Alert variant="danger" role="costBasisError">Error: Cost Basis number field is required</Alert>}
                 </Col>
-                <Col sm={3}>
+                <Col>
                     <Form.Control
                         type="date"
                         size="lg"

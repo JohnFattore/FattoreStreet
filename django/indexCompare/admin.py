@@ -4,11 +4,11 @@ from .models import Stock, IndexMember, Outlier
 
 @admin.register(Stock)
 class StockAdmin(SimpleHistoryAdmin):
-    list_display = ('ticker', 'name', 'marketCap', 'countryIncorp', 'countryHQ', 'securityType', 'volume', 'volumeUSD', 'freeFloat', 'freeFloatMarketCap')
+    list_display = ('id', 'ticker', 'name', 'marketCap', 'countryIncorp', 'countryHQ', 'securityType', 'volume', 'volumeUSD', 'freeFloat', 'freeFloatMarketCap')
 
 @admin.register(IndexMember)
 class IndexMemberAdmin(SimpleHistoryAdmin):
-    list_display = ('ticker', 'percent', 'index')
+    list_display = ('id', 'stock', 'percent', 'index', 'outlier', 'notes')
 
 @admin.register(Outlier)
 class OutlierAdmin(SimpleHistoryAdmin):

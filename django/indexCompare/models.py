@@ -16,15 +16,19 @@ class Stock(models.Model):
     history = HistoricalRecords()
     def __str__(self):
         return self.ticker
-    
+
+# One to Many Relationship with Stocks, multiple index members can associated with one stock
 class IndexMember(models.Model):
-    ticker = models.CharField(max_length=200)
+    stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
     percent = models.DecimalField(decimal_places=5, max_digits=100)
     index = models.CharField(max_length=1000)
+    outlier = models.BooleanField(default=False)
+    notes = models.CharField(max_length=100000, default='')
     history = HistoricalRecords()
     def __str__(self):
         return self.ticker
-    
+
+# redundant
 class Outlier(models.Model):
     ticker = models.CharField(max_length=200)
     name = models.CharField(max_length=1000)

@@ -19,6 +19,8 @@ export default function LoginForm({ setMessage }) {
             .then(() => {
                 setMessage({ text: "Welcome ".concat(data.username, "!!!"), type: "success" });
                 //navigate("/portfolio");
+                // handle this more elegantly please
+                window.location.reload();
             })
             .catch((error) => {
                 handleError(error, setMessage)
@@ -28,14 +30,14 @@ export default function LoginForm({ setMessage }) {
         <>
             <Form onSubmit={handleSubmit(onSubmit)}>
                 <Row>
-                    <Col sm={3}>
+                    <Col>
                         <Form.Control size="lg" {...register("username", {
                             required: true
                         })} placeholder='Username' />
                         {errors.username && <Alert variant="danger" role="usernameError">Error: Username text field is required</Alert>}
 
                     </Col>
-                    <Col sm={3}>
+                    <Col>
                         <Form.Control type="password" size="lg" {...register("password", {
                             required: true
                         })} placeholder='Password' />

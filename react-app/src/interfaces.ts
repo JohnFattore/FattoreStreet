@@ -8,6 +8,7 @@ export interface IAsset {
     shares: number,
     costbasis: number,
     buy: string,
+    SnP500Price: number,
     id: number,
 }
 
@@ -56,6 +57,7 @@ export interface IAlbum {
     year: number;
 }
 
+// outdated
 export interface IOutlier {
     ticker: string;
     name: string;
@@ -68,6 +70,25 @@ export interface IOutlier {
     countryHQ: string;
     securityType: string;
     yearIPO: number;
+    notes: string;
+    id: number
+}
+
+export interface IIndexMember {
+    ticker: string;
+    name: string;
+    marketCap: number;
+    volume: number;
+    volumeUSD: number;
+    freeFloat: number;
+    freeFloatMarketCap: number;
+    countryIncorp: string;
+    countryHQ: string;
+    securityType: string;
+    yearIPO: number;
+    percent: number;
+    index: string;
+    outlier: boolean;
     notes: string;
     id: number
 }

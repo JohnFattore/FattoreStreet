@@ -1,5 +1,9 @@
 # Full Backend
 ### Note: Django and react-app have dedicated README.md
+
+#### Deploy Project
+    ./deploy.sh
+
 ## Project Overview
 The web framework [Django](https://www.djangoproject.com/) runs on a [Gunicorn](https://gunicorn.org/) server, connected utilizing WSGI. A [postgreSQL](https://www.postgresql.org/) server runs to manage the applications database. A [NGINX](https://www.nginx.com/) server works as a reverse proxy / load balancer / static conent deliver boy for the system. [Vite](https://vitejs.dev/) handles the [react](https://react.dev/) frontend development and deployment. [Docker](https://www.docker.com/) is heavily utilized for deployment to cloud services.
 

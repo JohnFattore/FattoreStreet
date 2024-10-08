@@ -2,6 +2,7 @@ import DjangoTable from '../components/DjangoTable';
 import Spike from '../components/SpikeImg';
 import ExternalLinks from '../components/ExternalLinks';
 import { IAlbum, IRatio } from '../interfaces';
+import Fees from '../components/Fees';
 
 export default function Entertainment() {
 
@@ -73,7 +74,7 @@ export default function Entertainment() {
         {
             name: "Debt to Equity Ratio",
             formula: "Total Debt / Total Equity",
-            description: "Debt: Measures the firms 'leverage'. A high debt to equity ratio would indicate a copnay that heavily relies on debt as financing.",
+            description: "Debt: Measures the firms 'leverage'. A high debt to equity ratio would indicate a company that heavily relies on debt as financing.",
         },
         {
             name: "Current Ratio",
@@ -89,6 +90,16 @@ export default function Entertainment() {
             name: "Net Margin",
             formula: "(Revenue - (COGS + Expenses + Taxes)) / Revenue",
             description: "Profitability: % of revenue that is profit, accounting for all expenses.",
+        },
+        {
+            name: "Dividend Yield",
+            formula: "Annual Dividend Per Share / Share Price",
+            description: "Like a bond, this is the income made on the principle. A share with a $100 share price and an annual dividend of $5 would have a 5% dividend yield",
+        },
+        {
+            name: "Dividend Payout Ratio",
+            formula: "Total Dividends / Net Income",
+            description: "Percent of companies profits they give to their investors",
         },
     ]
 
@@ -111,6 +122,8 @@ export default function Entertainment() {
             <DjangoTable setMessage={console.log} models={albums} dispatch={console.log} fields={fields} />
             <h3>Useful Links</h3>
             <ExternalLinks />
+            <h3>Fees are costing me in my 401k</h3>
+            <Fees/>
             <h3>Notable Company Ratios</h3>
             <DjangoTable setMessage={console.log} models={ratios} dispatch={console.log} fields={fields2} />
             <Spike />

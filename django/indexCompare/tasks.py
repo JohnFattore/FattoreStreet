@@ -1,48 +1,90 @@
 from celery import shared_task
 from indexCompare.models import Stock, IndexMember, Outlier
-from datetime import datetime
 import csv
 import yfinance as yf
+
+
 
 @shared_task
 def NASDAQFile():
     print("Start Stock Load")
-    securityType = 'Common Stock'
-    ticker = ''
     skippedTickers = []
 
-    with open('indexCompare/NASDAQ.csv', mode ='r') as file:
-        csvFile = csv.reader(file)
-        for lines in csvFile:
-            ticker = lines[0]
-            if (ticker != "Symbol" and lines[5] != ""):
-                try:
-                    yfinance = yf.Ticker(ticker)
-                    #response = requests.get("https://finnhub.io/api/v1/search/", params={"q": ticker, "token": "ckivfdpr01qlj9q7a2rgckivfdpr01qlj9q7a2s0"})
-                    #for stock in response.json()["result"]:
-                    #    if (ticker == stock["symbol"]):
-                    #        securityType = stock["type"]
-                    #if (yfinance.info.get("country")):
-                    volumeUSD = yfinance.info["averageVolume"] * yfinance.info["currentPrice"]
-                    freeFloat = yfinance.info["floatShares"] / yfinance.info["sharesOutstanding"]
-                    if (freeFloat > 1):
-                        freeFloat = 1
-                    freeFloatMarketCap = freeFloat * float(lines[5])
-                    Stock.objects.create(ticker=ticker, name=lines[1], marketCap=float(lines[5]), countryIncorp=lines[6], countryHQ=yfinance.info["country"], 
-                                         securityType=securityType, volume=yfinance.info["averageVolume"], volumeUSD=volumeUSD, freeFloat=freeFloat, freeFloatMarketCap=freeFloatMarketCap, yearIPO=lines[7])
-                except:
-                    skippedTickers.append(ticker)
+    # for stock in Stock.objects.all():
+    #     if stock.marketCap == 0:
+    #         stock.delete()
+
+
+    # # Tickers in file not in database are identified and added
+    # with open('indexCompare/NASDAQ.csv', mode ='r') as file:
+    #     csvFile = csv.reader(file)
+    #     fileTickers = []
+    #     for lines in csvFile:
+    #         fileTickers.append(lines[0])
+
+    # existingTickers = []
+    # for stock in Stock.objects.all():
+    #     existingTickers.append(stock.ticker)
+    # newTickers = list(set(fileTickers) - set(existingTickers))
+    # print("New Tickers: ", newTickers)
+
+    # this adds far too many, need a reduced amount
+
+    # # add new stocks to database
+    # for ticker in newTickers:
+    #     try:
+    #         if (Stock.objects.filter(ticker=ticker).count() == 0):
+    #             yfinance = yf.Ticker(ticker)
+    #             Stock.objects.create(
+    #                 ticker=ticker, 
+    #                 name=yfinance.info["shortName"],
+    #                 marketCap=0, 
+    #                 countryIncorp="United States",
+    #                 countryHQ=yfinance.info["country"],
+    #                 securityType="Common Stock", 
+    #                 volume=0, 
+    #                 volumeUSD=0, 
+    #                 freeFloat=0, 
+    #                 freeFloatMarketCap=0, 
+    #                 yearIPO=2025
+    #             )
+    #         else:
+    #             print("trying to add existing ticker: ", ticker)
+    #     except:
+    #         skippedTickers.append(ticker)
+
+
+
+
+    # update all stocks in universe
+    for stock in Stock.objects.all():
+        try:
+            yfinance = yf.Ticker(stock.ticker)
+            stock.marketCap = float(yfinance.info["marketCap"])
+            stock.volume=yfinance.info["averageVolume"]
+            stock.volumeUSD = yfinance.info["averageVolume"] * yfinance.info["currentPrice"]
+            freeFloat = yfinance.info["floatShares"] / yfinance.info["sharesOutstanding"]
+            if (freeFloat > 1):
+                freeFloat = 1
+            stock.freeFloatMarketCap = freeFloat * float(yfinance.info["marketCap"])
+            stock.freeFloat = freeFloat
+            stock.save()
+        except:
+            skippedTickers.append(stock.ticker)
 
     # data fix GOOG and GOOGL
     Stock.objects.filter(ticker="GOOG").update(freeFloat=((5.19 / 5.59) / 2))
     Stock.objects.filter(ticker="GOOGL").update(freeFloat=((5.84 / 5.86) / 2))
 
-    # data fix MLPs and REITS
+    # data fix MLPs and Preferred Stock
     MLPs = ['EPD', 'ET', 'MPLX', 'CQP', 'WES', 'PAA', 'SUN']
     Stock.objects.filter(ticker__in=MLPs).update(securityType="MLP")
 
     Preferred = ['AGNCN', 'AGNCM', 'FITBI', 'SLMBP', 'VLYPO', 'VLYPP']
     Stock.objects.filter(ticker__in=Preferred).update(securityType="Preferred Stock")
+
+    ADR = ['CUK']
+    Stock.objects.filter(ticker__in=Preferred).update(securityType="ADR")
 
     print("Skipped Tickers", skippedTickers)
     print("Finish Stock Load")
@@ -68,7 +110,7 @@ def createRussell1000():
     for stock in Stock.objects.all().order_by('-marketCap'):
         if ((stock.countryHQ == "United States") and (stock.securityType == 'Common Stock') and (stock.freeFloat > 0.10) and (stock.volumeUSD > 125000) and (stock.ticker not in banList)):
             percent = (100 * stock.marketCap / totalMarketCap)
-            IndexMember.objects.create(ticker=stock.ticker, percent=percent, index="Russell 1000")
+            IndexMember.objects.create(stock=stock, percent=percent, index="Russell 1000", outlier=False, notes='')
             i = i + 1
 
         if (i == 1000):
@@ -94,7 +136,6 @@ def createRussell1000():
         if (ticker not in Russell1000):
             InMyIndexNotInRussell1000.append(ticker)
 
-
     for ticker in Russell1000:
         if (ticker not in myIndex):
             InRussell1000NotInMyIndex.append(ticker)
@@ -102,12 +143,11 @@ def createRussell1000():
     print("In My Index, Not in Russell 1000", len(InMyIndexNotInRussell1000), InMyIndexNotInRussell1000)
     print("In Russell 1000, Not in My Index", len(InRussell1000NotInMyIndex), InRussell1000NotInMyIndex)
 
-    for stock in Stock.objects.filter(ticker__in=InMyIndexNotInRussell1000):
-        Outlier.objects.create(ticker=stock.ticker, name=stock.name, marketCap=stock.marketCap, volume=stock.volume,
-                                volumeUSD=stock.volumeUSD, freeFloat=stock.freeFloat, freeFloatMarketCap=stock.freeFloatMarketCap,
-                                countryIncorp=stock.countryIncorp, countryHQ=stock.countryHQ, yearIPO=stock.yearIPO, securityType=stock.securityType)
+    for indexMember in IndexMember.objects.filter(ticker__in=InMyIndexNotInRussell1000):
+        indexMember.outlier = True
+        indexMember.save()
 
-
+# not needed
 @shared_task
 def outlierResearch():
     data = []
@@ -126,10 +166,14 @@ def outlierResearch():
         }
         data.append(outlierObject)
 
-    filename = 'outliers' + str(datetime.today().strftime('%Y-%m-%d')) + ".csv"
+    for indexMember in IndexMember.objects.all():
+        indexMember.stock = Stock.objects.get(ticker=indexMember.ticker)
+        indexMember.save()
 
-    with open(filename, 'w', newline='') as csvfile:
-        fieldnames = ['ticker', 'name', 'marketCap', 'volume', 'volumeUSD', 'freeFloat', 'freeFloatMarketCap', 'countryIncorp', 'countryHQ', 'securityType']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(data)
+    # filename = 'outliers' + str(datetime.today().strftime('%Y-%m-%d')) + ".csv"
+
+    # with open(filename, 'w', newline='') as csvfile:
+    #    fieldnames = ['ticker', 'name', 'marketCap', 'volume', 'volumeUSD', 'freeFloat', 'freeFloatMarketCap', 'countryIncorp', 'countryHQ', 'securityType']
+    #    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    #    writer.writeheader()
+    #    writer.writerows(data)
