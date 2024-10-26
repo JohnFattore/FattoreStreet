@@ -118,14 +118,14 @@ export default function Entertainment() {
 
     return (
         <>
-            <h1>10 10/10 Albums</h1>
-            <DjangoTable setMessage={console.log} models={albums} dispatch={console.log} fields={fields} />
             <h3>Useful Links</h3>
             <ExternalLinks />
             <h3>Fees are costing me in my 401k</h3>
             <Fees/>
             <h3>Notable Company Ratios</h3>
             <DjangoTable setMessage={console.log} models={ratios} dispatch={console.log} fields={fields2} />
+            <h1>10 10/10 Albums</h1>
+            <DjangoTable setMessage={console.log} models={albums} dispatch={console.log} fields={fields} />
             <Spike />
         </>
     );

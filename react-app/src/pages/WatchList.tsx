@@ -1,4 +1,4 @@
-import WatchListForm from '../components/WatchListForm'
+import WatchListForm from '../components/WatchListForm';
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-bootstrap';
 import { IMessage } from '../interfaces';

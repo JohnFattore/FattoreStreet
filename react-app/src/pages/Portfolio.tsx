@@ -66,13 +66,15 @@ export default function Portfolio() {
     const fields = {
         ticker: { name: "Ticker", type: "text" },
         shares: { name: "Shares", type: "amount" },
-        costbasis: { name: "Cost Basis", type: "money" },
+        costbasis: { name: "Cost Basis", type: "hidden" },
         quote: { name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "hidden" },
         totalCostBasis: { name: "Total Cost Basis", function: multipy, parameters: ['shares', 'costbasis'], type: "money" },
         marketPrice: { name: "Total Market Price", function: multipy, parameters: ['shares', 'quote'], type: "money" },
         percentChange: { name: "Percent Change", function: percentChange, parameters: ['totalCostBasis', 'marketPrice'], type: "percent" },
+        SnP500Price: { name: "S&P 500 Price On Buy Date", type: "hidden" },
+        SnP500Quote: { name: "SnP500 Quote", function: useQuote, parameters: ['SPY', setMessage], item: "price", type: "hidden" },
+        SnP500PercentChange: { name: "S&P 500 % Change", function: percentChange, parameters: ['SnP500Price', 'SnP500Quote'], type: "percent" },
         buy: { name: "Buy Date", type: "text" },
-        SnP500Price: { name: "S&P 500 Price On Buy Date", type: "money" },
         delete: { name: "Delete", function2: deleteAsset, type: "delete" }
     }
 

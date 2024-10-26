@@ -1,4 +1,10 @@
 # Full Backend
+
+## Devops refactoring ECS => EC2
+### Key Pair (Login)
+Spike's Secret Key.pem
+i-0c0cdfd99d39d8252
+
 ### Note: Django and react-app have dedicated README.md
 
 #### Deploy Project
