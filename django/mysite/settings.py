@@ -93,7 +93,7 @@ elif (env("DATABASE") == 'postgresLocal'):
             'NAME': 'postgres',
             'USER': env("USERNAME"),
             'PASSWORD': env("PASSWORD_LOCAL"),
-            'HOST': env("HOST_LOCAL"),
+            'HOST': 'postgres',
             'PORT': '5432',
         }
     }
