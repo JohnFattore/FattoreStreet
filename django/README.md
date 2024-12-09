@@ -7,13 +7,7 @@ celery -A mysite worker --beat -E -n beat
 ## Changing database schema
 Stage the migrations and commit changes to database. Portfolio is the name of the app.
 ```
-python3 manage.py makemigrations portfolio
-python3 manage.py migrate
-
-python3 manage.py makemigrations wallstreet
-python3 manage.py migrate
-
-python3 manage.py makemigrations indexCompare
+python3 manage.py makemigrations
 python3 manage.py migrate
 ```
 ## Running the development server

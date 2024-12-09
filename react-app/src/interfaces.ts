@@ -106,3 +106,36 @@ export interface IRatio {
     formula: string;
     description: string;
 }
+
+/******************************************* Restaurant *************************************************/
+
+export interface IRestaurant {
+    name: string;
+    address: string;
+    phone_number: string;
+    website: string;
+    id: number;
+}
+
+export interface IReview {
+    restaurant: string;
+    user: number;
+    rating: number;
+    comment: string;
+    id: number;
+}
+
+export interface IMenuItem {
+    restaurant: string;
+    name: string;
+    description: string;
+    price: number;
+    id: number;
+}
+
+export interface IFavorite {
+    menu_item: string;
+    user: number;
+    comment: string;
+    id: number;
+}

@@ -16,9 +16,10 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fattorestreet.com']
 # Application definition
 
 INSTALLED_APPS = [
+    'users.apps.UsersConfig',
     'portfolio.apps.PortfolioConfig',
-    'wallstreet.apps.WallstreetConfig',
-    'indexCompare.apps.IndexcompareConfig',
+    'indexes.apps.IndexesConfig',
+    'restaurants.apps.RestaurantsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -86,17 +87,30 @@ if (env("DATABASE") == 'postgresRDS'):
             'PORT': '5432',
         }
     }
+elif (env("DATABASE") == 'postgresDocker'):
+        DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'postgres',
+            'USER': 'postgres',
+            'PASSWORD': 'postgres',
+            'HOST': 'postgres',
+            'PORT': '5432',
+        }
+    }
+        
 elif (env("DATABASE") == 'postgresLocal'):
         DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'postgres',
-            'USER': env("USERNAME"),
-            'PASSWORD': env("PASSWORD_LOCAL"),
-            'HOST': 'postgres',
-            'PORT': '5432',
+            'USER': 'postgres',
+            'PASSWORD': 'postgres',
+            'HOST': 'localhost',
+            'PORT': '5432',  # Default PostgreSQL port
         }
     }
+
 else: 
         DATABASES = {
         'default': {
@@ -143,6 +157,8 @@ CORS_ORIGIN_WHITELIST = [
     'http://localhost:80',
     'http://localhost:3000',
 ]
+
+CSRF_TRUSTED_ORIGINS = ["https://fattorestreet.com"]
 
 # API library
 REST_FRAMEWORK = {

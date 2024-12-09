@@ -41,6 +41,12 @@ export function getSunday(week: number) {
     return formatDate(sunday)
 }
 
+
+// I imagine one handleResponse functions that can be used for all axios functions
+
+
+
+
 export function handleError(error, setMessage) {
     if (error.response.statusText == 'Unauthorized') {
         if (error.response.data.detail == 'Given token not valid for any token type') {
@@ -56,6 +62,12 @@ export function handleError(error, setMessage) {
     else if (error.response.statusText == 'Bad Request') {
         setMessage({ text: String(error.response.data.buy[0]), type: "error" })
     }
+
+    else if (error.response.data.code == 'token_not_valid') {
+        // could redirect to a login page
+        setMessage({ text: "Please Login", type: "error" })
+    }
+
     else {
         setMessage({ text: "Error", type: "error" })
     }

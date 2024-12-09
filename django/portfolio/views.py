@@ -2,7 +2,7 @@
 from django.contrib.auth.models import User
 # API modules using drf
 from rest_framework import permissions, generics
-from .serializers import AssetSerializer, UserSerializer
+from .serializers import AssetSerializer
 from .permissions import IsOwner
 from .models import Asset, SnP500Price
 
@@ -26,9 +26,3 @@ class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):
     queryset = Asset.objects.all().select_related("SnP500Price")
     serializer_class = AssetSerializer
     permission_classes = [IsOwner]
-
-# API endpoint for 'post' user, allow anyone to make an account
-class UserCreateView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]

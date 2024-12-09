@@ -13,6 +13,7 @@ import Education from "./pages/Education";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
 import Outliers from "./pages/Outliers";
+import Restaurants from "./pages/Restaurants";
 //import axios from "axios";
 
 // react router for all our routes
@@ -89,6 +90,7 @@ export default function App() {
       <TopNavigation />
       <Routes >
         <Route path="/" element={<Home />} />
+        <Route path="/restaurants" element={<Restaurants />} />
         <Route path="/portfolio" element={<Portfolio />} errorElement={<ErrorPage />} />
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/login" element={<Login />} />

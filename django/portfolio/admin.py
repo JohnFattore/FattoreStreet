@@ -4,7 +4,6 @@ from .models import Asset, SnP500Price
 
 admin.site.register(Asset)
 
-
 @admin.register(SnP500Price)
 class SnP500PriceAdmin(SimpleHistoryAdmin):
     list_display = ('id', 'date', 'price')

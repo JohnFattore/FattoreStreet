@@ -1,5 +1,6 @@
 #!/bin/sh
-docker build -t johnfattore/nginx ../nginx
+docker build -t johnfattore/nginx .
 docker push johnfattore/nginx
-docker build -t johnfattore/django ../django
+
+docker build -t johnfattore/django .
 docker push johnfattore/django

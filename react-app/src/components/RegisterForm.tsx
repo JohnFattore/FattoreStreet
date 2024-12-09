@@ -2,19 +2,15 @@ import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useNavigate } from "react-router-dom";
 import { postUser, login } from './axiosFunctions';
 
 interface IFormInput {
     username: string,
     password: string,
     email: string
-
 }
 
 export default function RegisterForm({ setMessage }) {
-    const navigate = useNavigate();
-
     const schema = yup.object().shape({
         username: yup.string().required(),
         password: yup.string().required(),
@@ -31,7 +27,7 @@ export default function RegisterForm({ setMessage }) {
             .then(() => {
                 login(data.username, data.password)
                     .then(() => {
-                        navigate("/wallstreet");
+                        setMessage({text: "Welcome to Fattore Street", type: "success"});
                     });
             }).catch(() => {
                 setMessage({text: "Error Registering, the username is probably already taken", type: "error"});
