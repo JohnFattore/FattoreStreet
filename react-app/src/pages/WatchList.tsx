@@ -31,7 +31,7 @@ export default function WatchList() {
         quote: { name: "Quote", function: useQuote, parameters: ['ticker', setMessage], item: "price", type: "money" },
         percentChange: { name: "Daily Percent Change", function: useQuote, parameters: ['ticker', setMessage], item: "percentChange", type: "percent" },
         marketCap: { name: "Market Cap", function: useCompanyProfile2, parameters: ['ticker', setMessage], type: "marketCap" },
-        delete: {name: "Delete", function2: setTickers, type: "axiosWL"}
+        delete: {name: "Delete", function2: setTickers, type: "watchlistDelete"}
     }
 
     const tickerModels2 = [{ ticker: "VTI", name: "US Market" },

@@ -3,7 +3,7 @@ import Alert from 'react-bootstrap/Alert';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
-import { getQuote, postAsset } from './axiosFunctions';
+import { getAsset, getQuote, postAsset } from './axiosFunctions';
 import { handleError } from './helperFunctions';
 
 interface IFormInput {
@@ -47,14 +47,19 @@ export default function AssetForm({ setMessage, dispatch }) {
                                 text: data.shares + " shares of " + data.ticker + " bought for " + data.costBasis + " each on " + data.buyDate,
                                 type: "success"
                             })
-                            const asset = {
-                                ticker: data.ticker,
-                                shares: data.shares,
-                                costbasis: data.costBasis,
-                                buy: data.buyDate,
-                                id: response.data.id
-                            }
-                            dispatch({ type: "add", asset: asset })
+                            getAsset(response.data.id)
+                                .then((response) => {
+                                    const asset = {
+                                        ticker: data.ticker,
+                                        shares: data.shares,
+                                        costbasis: data.costBasis,
+                                        buy: data.buyDate,
+                                        id: response.data.id,
+                                        SnP500Price: response.data.SnP500Price.price
+                                    }
+                                    dispatch({ type: "add", asset: asset })
+                                })
+
                         })
                         .catch((error) => {
                             handleError(error, setMessage);

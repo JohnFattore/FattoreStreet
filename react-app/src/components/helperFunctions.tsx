@@ -1,5 +1,38 @@
 import { IMessage, IOption, ISelection } from "../interfaces"
 
+export function formatString(value: string | number, type: string): string {
+    switch (type) {
+        case "text":
+            return String(value);
+
+        case "money":
+            // Format as USD currency
+            return new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+                minimumFractionDigits: 2,
+            }).format(Number(value));
+
+        case "amount":
+            // Format like money, but without the currency symbol
+            return new Intl.NumberFormat("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(Number(value));
+
+        case "percent":
+            // Format as a percentage
+            return new Intl.NumberFormat("en-US", {
+                style: "percent",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(Number(value)); // Divide by 100 for percent formatting
+
+        default:
+            return String(value); // Fallback: return the value as-is
+    }
+}
+
 export function setAlertVarient(message: IMessage) {
     if (message.type == "error")
         return "danger"
@@ -43,9 +76,6 @@ export function getSunday(week: number) {
 
 
 // I imagine one handleResponse functions that can be used for all axios functions
-
-
-
 
 export function handleError(error, setMessage) {
     if (error.response.statusText == 'Unauthorized') {

@@ -18,31 +18,25 @@ sudo docker run --name django --network dockerNet -d \
   johnfattore/django
 
 # nginx
-sudo docker run --name nginx --network dockerNet -p 80:80 -d johnfattore/nginx
+sudo docker run --name nginx --network dockerNet \
+  -v /mnt/ebs/certbot/letsencrypt:/etc/letsencrypt \
+  -v /mnt/ebs/certbot/www:/var/www/certbot \
+  -p 80:80 -p 443:443 \
+  -d johnfattore/nginx
 
-# obtain SSL cert
-docker run -it --rm --name certbot --network dockerNet -p 80:80 -p 443:443 -d certbot/certbot certonly --webroot -w /var/www/certbot fattorestreet.com
-
-# Copy into volume
-docker run --rm -v volume_name:/container_path -v $(pwd):/host busybox cp /host/yourfile /container_path/yourfile
-
-# Certbot
-docker run --rm \
-  -v /path/to/certbot/conf:/etc/letsencrypt \
-  -v /path/to/certbot/www:/var/www/certbot \
+# Certbot get SSL cert
+sudo docker run --rm \
+  --name certbot \
+  --network dockerNet \
+  -v /mnt/ebs/certbot/letsencrypt:/etc/letsencrypt \
+  -v /mnt/ebs/certbot/www:/var/www/certbot \
   certbot/certbot certonly \
   --webroot \
   -w /var/www/certbot \
-  -d yourdomain.com -d www.yourdomain.com
+  -d fattorestreet.com \
+  --email johnefattore@gmail.com \
+  --agree-tos
 
-# nginx with Certbot
-sudo docker run --name nginx --network dockerNet -p 80:80 -p 443:443 -d johnfattore/nginx
-
-# Plan
-# Copy certbot files from certbot container
-# Copy nginx files from nginx container
-
-# file locations needed: /etc/letsencrypt, /var/www/certbot, /var/lib/letsencrypt, /etc/nginx/conf
 
 sudo docker stop postgres
 sudo docker container rm postgres

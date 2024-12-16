@@ -109,6 +109,25 @@ export const patchIndexMembers = async (notes: string, id: number) => {
 
 /********************************* Restaurants *************************************/
 export const getRestaurants = async () => {
-  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurants/"));
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurant-list-create/"));
+  return response
+}
+
+export const getReviews = async () => {
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-list/"));
+  return response
+}
+
+export const postReview = async (restaurant: number, rating: number, comment: string) => {
+  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-create/"), {
+    restaurant: restaurant,
+    user: 1,
+    rating: rating,
+    comment: comment,
+  }, {
+    headers: {
+      'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
+    }
+  });
   return response
 }

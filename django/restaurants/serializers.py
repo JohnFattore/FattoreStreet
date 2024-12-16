@@ -21,9 +21,9 @@ class ReviewSerializer(serializers.ModelSerializer):
                 'comment',
         ]
 
-class ReviewSerializer(serializers.ModelSerializer):
+class MenuItemSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Review
+        model = MenuItem
         fields = [
                 'restaurant',
                 'name',
@@ -31,9 +31,9 @@ class ReviewSerializer(serializers.ModelSerializer):
                 'price',
         ]
 
-class ReviewSerializer(serializers.ModelSerializer):
+class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Review
+        model = Favorite
         fields = [
                 'menu_item',
                 'user',

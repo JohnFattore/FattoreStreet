@@ -118,7 +118,7 @@ export interface IRestaurant {
 }
 
 export interface IReview {
-    restaurant: string;
+    restaurant: number;
     user: number;
     rating: number;
     comment: string;
