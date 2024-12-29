@@ -12,7 +12,6 @@ function TopNavigation() {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link href="portfolio">Portfolio</Nav.Link>
-            <Nav.Link href="allocation">Allocation</Nav.Link>
             <Nav.Link href="watchlist">Watch List</Nav.Link>
             <Nav.Link href="restaurants">Restaurants</Nav.Link>
             <Nav.Link href="education">Suggestions</Nav.Link>

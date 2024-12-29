@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { getQuote, getCompanyProfile2 } from "./axiosFunctions"
 
 // could generalize these functions, a custom hook factory. They all just save to broswer database
-export function useQuote(ticker, setMessage) {
+export function useQuote(ticker) {
     const [quote, setQuote] = useState<IQuote>({ price: 0, percentChange: 0, });
     const d = new Date();
     useEffect(() => {
@@ -21,7 +21,7 @@ export function useQuote(ticker, setMessage) {
                     localStorage.setItem(ticker, JSON.stringify([response.data.c, response.data.dp, d.getTime()]));
                     // store in storage with ticker, stock data, and a time stamp
                 }).catch(() => {
-                    setMessage({ text: "We are experincing are issue getting some asset data", type: "error" })
+                    console.log("Spike Handle this Error")
                 });
             }
         }
@@ -32,14 +32,14 @@ export function useQuote(ticker, setMessage) {
                 localStorage.setItem(ticker, JSON.stringify([response.data.c, response.data.dp, d.getTime()]));
                 // store in storage with ticker, stock data, and a time stamp
             }).catch(() => {
-                setMessage({ text: "We are experincing are issue getting some asset data", type: "error" })
+                console.log("Spike Handle this Error")
             });
         }
     }, []);
     return quote
 }
 
-export function useCompanyProfile2(ticker, setMessage) {
+export function useCompanyProfile2(ticker) {
     const [marketCap, setMarketCap] = useState("");
     const d = new Date();
     useEffect(() => {
@@ -63,7 +63,7 @@ export function useCompanyProfile2(ticker, setMessage) {
                     }
                     // store in storage with ticker, stock data, and a time stamp
                 }).catch(() => {
-                    setMessage({ text: "We are experincing are issue getting market cap data", type: "error" })
+                    console.log("Spike Handle this Error")
                 });
             }
         }
@@ -79,7 +79,7 @@ export function useCompanyProfile2(ticker, setMessage) {
                     localStorage.setItem("marketcap".concat(ticker), JSON.stringify([d.getTime(), "ETF"]));
                 }
             }).catch(() => {
-                setMessage({ text: "We are experincing are issue getting market cap data", type: "error" })
+                console.log("Spike Handle this Error")
             });
         }
     }, []);

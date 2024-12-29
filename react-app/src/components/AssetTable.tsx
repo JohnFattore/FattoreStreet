@@ -1,14 +1,18 @@
 import Table from 'react-bootstrap/Table';
-import { useState } from 'react';
+import { Alert } from 'react-bootstrap';
 import { useQuote } from './customHooks';
 import { formatString } from './helperFunctions';
+import { useSelector, useDispatch } from "react-redux";
+import { AppDispatch, RootState } from '../main';
+import { translateError } from './helperFunctions';
 import { deleteAsset } from './axiosFunctions';
 
 // function is for simple calculations, function2 is for more complex operations
-function AssetRow({ asset, dispatch, fields, setMessage }) {
+function AssetRow({ asset, fields }) {
+    const dispatch = useDispatch<AppDispatch>();
 
-    const quote = useQuote(asset.ticker, setMessage)["price"];
-    const quoteSnP500 = useQuote("SPY", setMessage)["price"];
+    const quote = useQuote(asset.ticker)["price"];
+    const quoteSnP500 = useQuote("SPY")["price"];
     const totalCostBasis = asset.shares * asset.costbasis;
     const totalMarketValue = asset.shares * quote;
 
@@ -24,25 +28,15 @@ function AssetRow({ asset, dispatch, fields, setMessage }) {
         "delete"
     ];
 
-    //for (let i = 0; i < attributes.length; i++) {
-    //    formatString(attributes[i], fields[i]["type"])
-    //}
-
     let tableData: JSX.Element[] = [];
 
     for (let i = 0; i < attributes.length; i++) {
-        if (fields[i]["type"] == "delete")
-            tableData.push(<td onClick={() => {
-                deleteAsset(asset.id).then(() => {
-                    dispatch({ type: "delete", asset: asset });
-                    setMessage({ text: asset.ticker + " deleted", type: "success" })
-                })
-                    .catch(() => {
-                        setMessage({ text: "There was a problem deleting the asset", type: "error" })
-                    })
-            }}>{formatString(attributes[i], fields[i]["type"])}</td>)
-        else
+        if (fields[i]["type"] == 'delete') {
+            tableData.push(<td onClick={() => dispatch(deleteAsset(asset.id))}>{"delete"}</td>)
+        }
+        else {
             tableData.push(<td>{formatString(attributes[i], fields[i]["type"])}</td>)
+        }
     }
 
     return (
@@ -51,7 +45,9 @@ function AssetRow({ asset, dispatch, fields, setMessage }) {
         </tr>)
 }
 
-export default function AssetTable({ assets, dispatch, setMessage }) {
+export default function AssetTable() {
+
+    const { assets, error } = useSelector((state: RootState) => state.assets);
 
     const fields = [
         { name: "Ticker", type: "text" },
@@ -65,33 +61,18 @@ export default function AssetTable({ assets, dispatch, setMessage }) {
         { name: "Delete", type: "delete"}
     ]
     
-    const [counter, setCounter] = useState(1)
     let headers: JSX.Element[] = []
-    for (const field in fields) {
-        headers.push(<th onClick={() => {
-            setCounter(counter * -1)
-            if (fields[field].type == "text") {
-                assets.sort((a, b) => {
-                    if (b[field] > a[field])
-                        return (counter * 1)
-                    else if (b[field] < a[field])
-                        return (counter * -1)
-                    else
-                        return 0
-                })
-            }
-            else {
-                assets.sort((a, b) => counter * (b[field] - a[field]))
-            }
-            dispatch({ type: "refresh" });
-        }}>{fields[field].name}</th>);
+    for (let i = 0; i < fields.length; i++) {
+        headers.push(<th key={i}>{fields[i].name}</th>)
     }
+
+    //if (loading) return <Alert>Loading Assets</Alert>;
+    if (error) return <Alert variant="danger">{translateError(error)}</Alert>;
 
     if (assets.length == 0) {
         return (<h3 role="noModels">No Data</h3>)
     }
 
-    // hard to not feel like models and rows is too similar
     return (
         <Table>
             <thead>
@@ -101,7 +82,7 @@ export default function AssetTable({ assets, dispatch, setMessage }) {
             </thead>
             <tbody>
                 {assets.map((asset) => (
-                    <AssetRow asset={asset} dispatch={dispatch} fields={fields} setMessage={setMessage} />
+                    <AssetRow asset={asset} fields={fields} />
                 ))}
             </tbody>
         </Table>

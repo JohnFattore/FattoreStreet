@@ -107,7 +107,7 @@ elif (env("DATABASE") == 'postgresLocal'):
             'USER': 'postgres',
             'PASSWORD': 'postgres',
             'HOST': 'localhost',
-            'PORT': '5432',  # Default PostgreSQL port
+            'PORT': '5433',  # Default PostgreSQL port
         }
     }
 

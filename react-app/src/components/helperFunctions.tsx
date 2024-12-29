@@ -27,7 +27,17 @@ export function formatString(value: string | number, type: string): string {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
             }).format(Number(value)); // Divide by 100 for percent formatting
-
+        case "marketCap":
+            if (value == "ETF") {
+                return "ETF"
+            }
+            else {
+                return new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 2,
+                }).format(Number(value)) + " Billion";
+        }
         default:
             return String(value); // Fallback: return the value as-is
     }
@@ -102,4 +112,13 @@ export function handleError(error, setMessage) {
         setMessage({ text: "Error", type: "error" })
     }
     // could have single setMessage at end
+}
+
+export function translateError(error: string) {
+    if (error == 'Request failed with status code 401') {
+        return 'Please Login'
+    }
+    else {
+        return error
+    }
 }

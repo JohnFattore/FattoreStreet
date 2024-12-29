@@ -3,8 +3,10 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { postReview } from './axiosFunctions';
+import RestaurantTable from './RestaurantTable';
 
 interface IFormInput {
+    restaurant: number,
     rating: number,
     comment: string
 }
@@ -21,8 +23,9 @@ const RATING_CHOICES = [
     { value: 5, label: "5 - Excellent" },
   ];
 
-export default function RegisterForm({ setMessage }) {
+export default function ReviewForm({ setMessage }) {
     const schema = yup.object().shape({
+        restaurant: yup.number().required(),
         rating: yup.number().required(),
         comment: yup.string().required(),
     });
@@ -69,7 +72,6 @@ export default function RegisterForm({ setMessage }) {
 
                 </Col>
             </Row>
-
             <Button type="submit">Submit Review</Button>
         </Form>
     );

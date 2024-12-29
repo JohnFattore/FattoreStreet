@@ -5,12 +5,19 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { getQuote } from './axiosFunctions';
 import { Alert } from 'react-bootstrap';
+import { addTicker } from '../reducers/watchListReducer';
+import { RootState, AppDispatch } from '../main';
+import { useSelector, useDispatch } from 'react-redux';
+import { translateError } from './helperFunctions';
 
 interface IFormInput {
   ticker: string
 }
 
-export default function WatchListForm({ setMessage, setTickers }) {
+export default function WatchListForm() {
+  const { tickers, error } = useSelector((state: RootState) => state.watchList);
+  const dispatch = useDispatch<AppDispatch>();
+
   const schema = yup.object().shape({
     ticker: yup.string().required().uppercase()
   });
@@ -24,27 +31,21 @@ export default function WatchListForm({ setMessage, setTickers }) {
       .then((response) => {
         // a valid ticker wont return null values
         if (response.data.d == null)
-          setMessage({text: "Ticker isnt valid", type: "error"});
+          console.log("Spike fix this");
         else {
-          let tickersDB: string[] = JSON.parse(localStorage.getItem("tickers") as string);
           // not let duplicates to be added to list
-          if (tickersDB.includes(data.ticker)) {
-            setMessage({text: "Ticker already in watchlist", type: "error"})
+          if (tickers.includes(data.ticker)) {
+            console.log("Spike fix this");
           }
           else {
-            tickersDB.push(data.ticker);
-            let tickerModels: any[] = []
-            for (const i in tickersDB) {
-                tickerModels.push({"ticker": tickersDB[i]})
-            }
-            setTickers(tickerModels)
-                        localStorage.setItem("tickers", JSON.stringify(tickersDB));
-            setMessage({ text: data.ticker + " added to watchlist", type: "success"});
+            dispatch(addTicker(data.ticker));
             reset();
           }
         }
       });
   }
+
+  if (error) return <Alert variant="danger">{translateError(error)}</Alert>;
 
   return (
     <Form onSubmit={handleSubmit(onSubmit)}>

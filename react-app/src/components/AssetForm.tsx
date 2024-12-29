@@ -3,8 +3,9 @@ import Alert from 'react-bootstrap/Alert';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
-import { getAsset, getQuote, postAsset } from './axiosFunctions';
-import { handleError } from './helperFunctions';
+import { getQuote, postAsset } from './axiosFunctions';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../main';
 
 interface IFormInput {
     ticker: string,
@@ -13,7 +14,8 @@ interface IFormInput {
     buyDate: string
 }
 
-export default function AssetForm({ setMessage, dispatch }) {
+export default function AssetForm() {
+    const dispatch = useDispatch<AppDispatch>();
     // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
         ticker: yup.string().required().uppercase(),
@@ -26,6 +28,28 @@ export default function AssetForm({ setMessage, dispatch }) {
         resolver: yupResolver(schema),
     })
     //console.log(watch("ticker"))
+    const onSubmit: SubmitHandler<IFormInput> = (data) => {
+        getQuote(data.ticker)
+            .then((response) => {
+                // a valid ticker wont return null values
+                if (response.data.d == null)
+                    console.log("error")
+                else {dispatch(
+                    postAsset({
+                        ticker: data.ticker,
+                        shares: data.shares,
+                        costbasis: data.costBasis,
+                        buy: data.buyDate,
+                        SnP500Price: 1,
+                        // just a place holder
+                        id: 1
+                    }));
+                }
+            });
+
+    }
+
+    /*
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
         getQuote(data.ticker)
             .then((response) => {
@@ -68,6 +92,7 @@ export default function AssetForm({ setMessage, dispatch }) {
             });
 
     }
+            */
     return (
         <Form onSubmit={handleSubmit(onSubmit)}>
             <Row>
