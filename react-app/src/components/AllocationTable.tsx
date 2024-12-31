@@ -1,10 +1,8 @@
 import Table from 'react-bootstrap/Table';
-import { Alert } from 'react-bootstrap';
 import { useQuote } from './customHooks';
 import { formatString } from './helperFunctions';
 import { useSelector } from "react-redux";
 import { RootState } from '../main';
-import { translateError } from './helperFunctions';
 import { IAllocation } from '../interfaces';
 
 // function is for simple calculations, function2 is for more complex operations
@@ -20,7 +18,7 @@ function AllocationRow({ allocation, fields }) {
     let tableData: JSX.Element[] = [];
 
     for (let i = 0; i < attributes.length; i++) {
-        tableData.push(<td>{formatString(attributes[i], fields[i]["type"])}</td>)
+        tableData.push(<td key={i}>{formatString(attributes[i], fields[i]["type"])}</td>)
     }
 
     return (
@@ -31,7 +29,8 @@ function AllocationRow({ allocation, fields }) {
 
 export default function AllocationTable() {
 
-    const { assets, error } = useSelector((state: RootState) => state.assets);
+    const { assets } = useSelector((state: RootState) => state.assets);
+    const { access } = useSelector((state: RootState) => state.user);
 
     const allocations: IAllocation[] = []
     for (let i = 0; i < assets.length; i++) {
@@ -53,11 +52,12 @@ export default function AllocationTable() {
         headers.push(<th key={i}>{fields[i].name}</th>)
     }
 
-    //if (loading) return <Alert>Loading Assets</Alert>;
-    if (error) return <Alert variant="danger">{translateError(error)}</Alert>;
+    if (!access) {
+        return (<></>)
+    }
 
     if (assets.length == 0) {
-        return (<h3 role="noModels">No Data</h3>)
+        return (<h3 role="noModels">No Assets</h3>)
     }
 
     return (
@@ -69,7 +69,7 @@ export default function AllocationTable() {
             </thead>
             <tbody>
                 {allocations.map((allocation) => (
-                    <AllocationRow allocation={allocation} fields={fields} />
+                    <AllocationRow key={allocation.ticker} allocation={allocation} fields={fields} />
                 ))}
             </tbody>
         </Table>

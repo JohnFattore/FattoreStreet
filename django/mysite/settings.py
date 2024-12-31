@@ -107,7 +107,7 @@ elif (env("DATABASE") == 'postgresLocal'):
             'USER': 'postgres',
             'PASSWORD': 'postgres',
             'HOST': 'localhost',
-            'PORT': '5433',  # Default PostgreSQL port
+            'PORT': '5432',  # Default PostgreSQL port
         }
     }
 
@@ -173,7 +173,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
 }
 
 # celery configuration, maybe in different file?
@@ -181,5 +181,3 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_BROKER_URL = 'redis://localhost:6379'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-
-# DATA_UPLOAD_MAX_NUMBER_FIELDS = 9999999999999

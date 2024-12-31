@@ -14,9 +14,67 @@ import ErrorPage from "./components/ErrorPage";
 import Outliers from "./pages/Outliers";
 import Restaurants from "./pages/Restaurants";
 import RestaurantReview from "./pages/RestaurantReview";
+import axios from "axios";
+import { useSelector, useDispatch } from "react-redux";
+import { AppDispatch, RootState } from './main';
+import { refreshLogin } from "./components/axiosFunctions";
+import { logout, clearErrors } from "./reducers/userReducer";
+import { useEffect } from "react";
 
 // react router for all our routes
 export default function App() {
+
+  const { access, refresh } = useSelector((state: RootState) => state.user)
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    // Clear errors when the app initializes
+    dispatch(clearErrors());
+  }, [dispatch]);
+
+  // i cant think of a good use yet
+  // Request Interceptor
+  axios.interceptors.request.use(
+    (config) => {
+      if (access) {
+        // this breaks the finnhub authorization....
+        //config.headers.Authorization = `Bearer ${access}`; // Attach the token to the request headers
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error); // Handle request errors
+    }
+  );
+
+  // Response Interceptor
+  axios.interceptors.response.use(
+    (response) => {
+      return response; // Return the response if successful
+    },
+    async (error) => {
+      const originalRequest = error.config; // Capture the original request
+      console.log(refresh)
+      if (error.response?.status === 401 && refresh != '' && !originalRequest._retry) {
+        originalRequest._retry = true; // Prevent infinite retries
+        try {
+          // Dispatch refreshLogin and wait for it to complete
+          const result = await dispatch(refreshLogin()).unwrap();
+  
+          // Update the Authorization header with the new token
+          originalRequest.headers['Authorization'] = `Bearer ${result.access}`;
+          
+          // Retry the original request with the updated token
+          return axios(originalRequest);
+        } catch (refreshError) {
+          console.log('Token refresh failed:', refreshError);
+          dispatch(logout());
+          return Promise.reject(refreshError);
+        }
+      }
+      return Promise.reject(error); // Handle response errors
+    }
+  );
 
   return (
     <>

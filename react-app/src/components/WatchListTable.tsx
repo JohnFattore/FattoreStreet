@@ -33,11 +33,10 @@ function WatchListRow({ ticker, fields }) {
         else {
             tableData.push(<td>{formatString(attributes[i], fields[i]["type"])}</td>)
         }
-
     }
 
     return (
-        <tr key={1}>
+        <tr>
             {tableData}
         </tr>)
 }
@@ -75,7 +74,7 @@ export default function WatchListTable() {
             </thead>
             <tbody>
                 {tickers.map((ticker) => (
-                    <WatchListRow ticker={ticker} fields={fields} />
+                    <WatchListRow key={ticker} ticker={ticker} fields={fields} />
                 ))}
             </tbody>
         </Table>

@@ -1,33 +1,35 @@
 import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
-//import { useNavigate } from "react-router-dom";
-import { login } from './axiosFunctions';
-import { handleError } from './helperFunctions';
+import { getAssets, login } from './axiosFunctions';
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from '../main';
+import { translateError } from './helperFunctions';
 
 interface IFormInput {
     username: string,
     password: string
 }
 
-export default function LoginForm({ setMessage }) {
-    //const navigate = useNavigate();
+export default function LoginForm() {
+    const { username, access, loading, error } = useSelector((state: RootState) => state.user);
+    const dispatch = useDispatch<AppDispatch>();
+
     const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>()
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        // on submit, post to server with values in the form
-        setMessage({ text: "Loading", type: "loading" })
-        login(data.username, data.password)
-            .then(() => {
-                setMessage({ text: "Welcome ".concat(data.username, "!!!"), type: "success" });
-                //navigate("/portfolio");
-                // handle this more elegantly please
-                window.location.reload();
-            })
-            .catch((error) => {
-                handleError(error, setMessage)
-            });
+        dispatch(login({username: data.username, password: data.password}))
+        .then(() => {
+            dispatch(getAssets())
+        })
     }
+
+    if (access) {
+        return <Alert variant="success">Welcome, {username}!</Alert>;
+    }
+
     return (
         <>
+            {error && <Alert variant="danger">{translateError(error)}</Alert>}
+            {loading && <Alert>Login Loading...</Alert>}
             <Form onSubmit={handleSubmit(onSubmit)}>
                 <Row>
                     <Col>
@@ -44,7 +46,7 @@ export default function LoginForm({ setMessage }) {
                         {errors.password && <Alert variant="danger" role="passwordError">Error: password, This field is required</Alert>}
                     </Col>
                 </Row>
-                <Button type="submit" >Login</Button>
+                <Button type="submit" disabled={loading}>Login</Button>
             </Form>
         </>
 

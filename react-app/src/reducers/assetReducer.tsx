@@ -27,6 +27,7 @@ const assetSlice = createSlice({
         state.loading = false;  // Set loading to false when the async call is fulfilled
         // this has to be more specific, 
         state.assets = action.payload;  // Set the fetched data
+        state.error = ''
       })
       .addCase(getAssets.rejected, (state, action) => {
         state.loading = false;  // Set loading to false if the call failed

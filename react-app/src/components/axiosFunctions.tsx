@@ -1,12 +1,74 @@
 import axios from 'axios';
 import { IAsset, IRestaurant } from '../interfaces';
 import { createAsyncThunk } from '@reduxjs/toolkit';
+import { RootState } from '../main';
+
+export const login = createAsyncThunk('users/login',
+  async ({ username, password }: { username: string; password: string }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("token/"), {
+        username: username,
+        password: password
+      });
+
+    const { access, refresh } = response.data;
+
+    return {username, access, refresh}
+    }
+    catch (error: any) {
+      if (error.response && error.response.data) {
+        // Reject with the custom server error message
+        return rejectWithValue(error.response.data.detail || 'Login failed');
+      }
+      else {
+        return rejectWithValue('Login failed');
+      }
+    }
+  }
+)
+
+export const refreshLogin = createAsyncThunk('users/refreshLogin',
+  async (_, {getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const refresh = state.user.refresh;
+      const response = await axios.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("token/refresh/"), {
+        refresh: refresh,
+      });
+
+    const { access } = response.data;
+
+    return {access, refresh}
+    }
+    catch (error: any) {
+      if (error.response && error.response.data) {
+        // Reject with the custom server error message
+        return rejectWithValue(error.response.data.detail || 'Refresh Login failed');
+      }
+      else {
+        return rejectWithValue('Refresh Login failed');
+      }
+    }
+  }
+)
+
+// register would conflict with the useForm hook
+export const postUser = async (username: string, password: string, email: string) => {
+  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("users/"), {
+    username: username,
+    password: password,
+    email: email,
+  })
+  return response
+}
 
 export const getAssets = createAsyncThunk<IAsset[]>('assets/getAssets',
-  async () => {
+  async (_, {getState}) => {
+    const state = getState() as RootState;
+    const access = state.user.access;
     const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
       headers: {
-        'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string)
+        'Authorization': ' Bearer '.concat(access)
       },
     });
     const transformedData: IAsset[] = response.data.map((asset: any) => ({
@@ -35,7 +97,7 @@ export const postAsset = createAsyncThunk('assets/postAsset',
       user: 1
     }, {
       headers: {
-        'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
+        'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string)
       }
     });
     return response.data
@@ -80,40 +142,6 @@ export const getCompanyProfile2 = async (ticker: string) => {
       token: import.meta.env.VITE_APP_FINNHUB_KEY
     }
   });
-  return response
-}
-
-/*
-// login is postToken, but also stores the token
-export const login = async (username: string, password: string) => {
-  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("token/"), {
-    username: username,
-    password: password
-  });
-  sessionStorage.setItem("token", response.data.access);
-  sessionStorage.setItem("refresh", response.data.refresh);
-  return response
-}
-*/
-export const login = createAsyncThunk('users/login',
-  async ({ username, password }: { username: string; password: string }) => {
-    const response = await axios.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("token/"), {
-      username: username,
-      password: password
-    });
-    sessionStorage.setItem("token", response.data.access);
-    sessionStorage.setItem("refresh", response.data.refresh);
-    return response
-  }
-)
-
-// register would conflict with the useForm hook
-export const postUser = async (username: string, password: string, email: string) => {
-  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("users/"), {
-    username: username,
-    password: password,
-    email: email,
-  })
   return response
 }
 

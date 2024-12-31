@@ -7,7 +7,6 @@ import { AppDispatch, RootState } from '../main';
 import { translateError } from './helperFunctions';
 import { deleteAsset } from './axiosFunctions';
 
-// function is for simple calculations, function2 is for more complex operations
 function AssetRow({ asset, fields }) {
     const dispatch = useDispatch<AppDispatch>();
 
@@ -32,15 +31,15 @@ function AssetRow({ asset, fields }) {
 
     for (let i = 0; i < attributes.length; i++) {
         if (fields[i]["type"] == 'delete') {
-            tableData.push(<td onClick={() => dispatch(deleteAsset(asset.id))}>{"delete"}</td>)
+            tableData.push(<td key={i} onClick={() => dispatch(deleteAsset(asset.id))}>{"delete"}</td>)
         }
         else {
-            tableData.push(<td>{formatString(attributes[i], fields[i]["type"])}</td>)
+            tableData.push(<td key={i}>{formatString(attributes[i], fields[i]["type"])}</td>)
         }
     }
 
     return (
-        <tr key={asset.id}>
+        <tr>
             {tableData}
         </tr>)
 }
@@ -48,6 +47,7 @@ function AssetRow({ asset, fields }) {
 export default function AssetTable() {
 
     const { assets, error } = useSelector((state: RootState) => state.assets);
+    const { access } = useSelector((state: RootState) => state.user)
 
     const fields = [
         { name: "Ticker", type: "text" },
@@ -58,33 +58,38 @@ export default function AssetTable() {
         { name: "Total Market Price", type: "money" },
         { name: "Percent Change", type: "percent" },
         { name: "S&P 500 % Change", type: "percent" },
-        { name: "Delete", type: "delete"}
+        { name: "Delete", type: "delete" }
     ]
-    
+
     let headers: JSX.Element[] = []
     for (let i = 0; i < fields.length; i++) {
         headers.push(<th key={i}>{fields[i].name}</th>)
     }
 
-    //if (loading) return <Alert>Loading Assets</Alert>;
-    if (error) return <Alert variant="danger">{translateError(error)}</Alert>;
+    if (!access) {
+        return (<Alert variant='danger'>Please Login</Alert>)
+    }
 
-    if (assets.length == 0) {
-        return (<h3 role="noModels">No Data</h3>)
+    if (assets.length == 0 && access) {
+        return (<Alert variant='danger'>No Data</Alert>)
     }
 
     return (
-        <Table>
-            <thead>
-                <tr>
-                    {headers}
-                </tr>
-            </thead>
-            <tbody>
-                {assets.map((asset) => (
-                    <AssetRow asset={asset} fields={fields} />
-                ))}
-            </tbody>
-        </Table>
+        <>
+            {error && <Alert variant="danger">{translateError(error)}</Alert>}
+            <Table>
+                <thead>
+                    <tr>
+                        {headers}
+                    </tr>
+                </thead>
+                <tbody>
+                    {assets.map((asset) => (
+                        <AssetRow key={asset.id} asset={asset} fields={fields} />
+                    ))}
+                </tbody>
+            </Table>
+        </>
+
     );
 }

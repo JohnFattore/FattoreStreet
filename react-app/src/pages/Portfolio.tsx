@@ -28,7 +28,7 @@ export default function Portfolio() {
                         <Accordion.Item eventKey="0">
                             <Accordion.Header>Login</Accordion.Header>
                             <Accordion.Body>
-                                <LoginForm setMessage={console.log} />
+                                <LoginForm />
                             </Accordion.Body>
                         </Accordion.Item>
                     </Accordion>

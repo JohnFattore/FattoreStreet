@@ -1,9 +1,9 @@
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
-import { Button } from 'react-bootstrap';
+import LogoutButton from './LogoutButton';
 
-function TopNavigation() {
+export default function TopNavigation() {
   return (
     <Navbar variant="light" expand="lg">
       <Container>
@@ -18,17 +18,10 @@ function TopNavigation() {
             <Nav.Link href="register">Register</Nav.Link>
             <Nav.Link href="outliers">Outliers</Nav.Link>
             <Nav.Link href="entertainment">Entertainment</Nav.Link>
-            <Button
-              onClick={() => {
-                sessionStorage.removeItem("token");
-                sessionStorage.removeItem("refresh");
-                alert("You are logged out");
-              }}>Logout</Button>
+            <LogoutButton/>
           </Nav>
         </Navbar.Collapse>
       </Container>
     </Navbar>
   );
 }
-
-export default TopNavigation;
