@@ -14,16 +14,22 @@ const initialState: UserSlice = {
   username: '',
   access: '',
   refresh: '',
-  error: '',
+  error: '', 
 };
 
 const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    logout: () => initialState,
+    logout: (state) => {
+      state.username = '';
+      state.access = '';
+      state.refresh = '';
+      state.error = '';
+      window.location.reload(); // Reload the page
+    },
     clearErrors: (state) => {
-      state.error = ''; // Clear the error state
+      state.error = '';
     },
   },
     extraReducers: (builder) => {

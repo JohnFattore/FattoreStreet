@@ -1,7 +1,7 @@
 FROM python:3.10
 
 # set a directory for this app
-WORKDIR /Portfolio-Manager/
+WORKDIR /django/
 # copy all the files to the container
 COPY . .
 ENV PYTHONUNBUFFERED=1

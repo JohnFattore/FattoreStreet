@@ -5,6 +5,10 @@ from rest_framework import permissions, generics
 from .serializers import AssetSerializer
 from .permissions import IsOwner
 from .models import Asset, SnP500Price
+from .tasks import SnP500PriceUpdate
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.views import APIView
 
 # API endpoint for 'get' assets and 'post' asset
 class AssetListCreateView(generics.ListCreateAPIView):
@@ -26,3 +30,10 @@ class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):
     queryset = Asset.objects.all().select_related("SnP500Price")
     serializer_class = AssetSerializer
     permission_classes = [IsOwner]
+
+
+class UpdateSnP500PriceView(APIView):
+    def post(self, request):
+        # Trigger the Celery task
+        task = SnP500PriceUpdate.delay()
+        return Response({"task_id": task.id}, status=status.HTTP_202_ACCEPTED)

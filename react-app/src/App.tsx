@@ -54,7 +54,6 @@ export default function App() {
     },
     async (error) => {
       const originalRequest = error.config; // Capture the original request
-      console.log(refresh)
       if (error.response?.status === 401 && refresh != '' && !originalRequest._retry) {
         originalRequest._retry = true; // Prevent infinite retries
         try {

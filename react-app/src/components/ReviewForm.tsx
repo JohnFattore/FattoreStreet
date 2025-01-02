@@ -3,7 +3,6 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { postReview } from './axiosFunctions';
-import RestaurantTable from './RestaurantTable';
 
 interface IFormInput {
     restaurant: number,

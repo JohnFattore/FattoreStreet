@@ -1,8 +1,9 @@
-import DjangoTable from '../components/DjangoTable';
 import Spike from '../components/SpikeImg';
 import ExternalLinks from '../components/ExternalLinks';
 import { IAlbum, IRatio } from '../interfaces';
 import Fees from '../components/Fees';
+import AlbumTable from '../components/AlbumTable';
+import RatioTable from '../components/RatioTable';
 
 export default function Entertainment() {
 
@@ -103,19 +104,6 @@ export default function Entertainment() {
         },
     ]
 
-    const fields = {
-        name: {name: "Name", type: "text"},
-        artist: {name: "Artist", type: "text"},
-        year: {name: "Year", type: "text"}
-    }
-
-
-    const fields2 = {
-        name: {name: "Name", type: "text"},
-        formula: {name: "Formula", type: "text"},
-        description: {name: "Description", type: "text"}
-    }
-
     return (
         <>
             <h3>Useful Links</h3>
@@ -123,9 +111,9 @@ export default function Entertainment() {
             <h3>Fees are costing me in my 401k</h3>
             <Fees/>
             <h3>Notable Company Ratios</h3>
-            <DjangoTable setMessage={console.log} models={ratios} dispatch={console.log} fields={fields2} />
+            <RatioTable ratios={ratios} />
             <h1>10 10/10 Albums</h1>
-            <DjangoTable setMessage={console.log} models={albums} dispatch={console.log} fields={fields} />
+            <AlbumTable albums={albums} />
             <Spike />
         </>
     );

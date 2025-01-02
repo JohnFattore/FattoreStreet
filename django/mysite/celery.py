@@ -23,6 +23,6 @@ app.conf.beat_schedule = {
 #   },
 'Test Kaggle2': {
  'task': 'portfolio.tasks.SnP500PriceUpdate',
- 'schedule': crontab(hour=15, minute=15),
+ 'schedule': crontab(hour=17, minute=23),
    },
 }

@@ -47,7 +47,8 @@ const assetSlice = createSlice({
             buy: asset.buy,
             SnP500Price: 200, // probably fetch this, this is the historical date price getSnPPrice(asset.buy), or just fetch entire asset
             id: asset.id
-        })  // Set the fetched data
+        })
+        state.error = '';
       })
       .addCase(postAsset.rejected, (state, action) => {
         state.loading = false;  // Set loading to false if the call failed
@@ -59,6 +60,7 @@ const assetSlice = createSlice({
       .addCase(deleteAsset.fulfilled, (state, action) => {
         state.loading = false;  // Set loading to false when the async call is fulfilled
         state.assets = state.assets.filter(asset => asset.id !== action.payload.id);  // Remove the deleted asset
+        state.error = '';
     })
       .addCase(deleteAsset.rejected, (state, action) => {
         state.loading = false;  // Set loading to false if the call failed

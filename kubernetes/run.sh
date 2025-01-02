@@ -8,7 +8,6 @@ sudo docker run -d \
   --network dockerNet \
   -e POSTGRES_PASSWORD=postgres \
   -v /mnt/ebs/postgres-data:/var/lib/postgresql/data \
-  -p 5432:5432 \
   postgres
 
 # django
@@ -23,6 +22,17 @@ sudo docker run --name nginx --network dockerNet \
   -v /mnt/ebs/certbot/www:/var/www/certbot \
   -p 80:80 -p 443:443 \
   -d johnfattore/nginx
+
+# Celery
+sudo docker run \
+  --name celery \
+  --network my-dockerNet \
+  -e CELERY_BROKER_URL=redis://redis-container:6379/0 \
+  -e DJANGO_SETTINGS_MODULE=mysite.settings \
+  -d johnfattore/celery
+
+# Redis
+sudo docker run --network dockerNet --name redis -d redis
 
 # Certbot get SSL cert
 sudo docker run --rm \
@@ -52,6 +62,8 @@ sudo docker stop nginx
 sudo docker container rm nginx
 sudo docker image rm johnfattore/nginx
 
+
+# can probably remove this
 # django RDS
 sudo docker run --name django --network dockerNet -d \
   -e HOST=postgres.cpqoakmk692s.us-east-1.rds.amazonaws.com  \

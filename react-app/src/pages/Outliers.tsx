@@ -116,7 +116,7 @@ export default function Outliers() {
                         <Accordion.Item eventKey="0">
                             <Accordion.Header>Login</Accordion.Header>
                             <Accordion.Body>
-                                <LoginForm setMessage={setMessage} />
+                                <LoginForm />
                             </Accordion.Body>
                         </Accordion.Item>
                     </Accordion>

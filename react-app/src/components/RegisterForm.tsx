@@ -1,8 +1,8 @@
 import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm /*, SubmitHandler*/ } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { postUser, login } from './axiosFunctions';
+//import { postUser, login } from './axiosFunctions';
 
 interface IFormInput {
     username: string,
@@ -10,7 +10,7 @@ interface IFormInput {
     email: string
 }
 
-export default function RegisterForm({ setMessage }) {
+export default function RegisterForm() {
     const schema = yup.object().shape({
         username: yup.string().required(),
         password: yup.string().required(),
@@ -21,6 +21,7 @@ export default function RegisterForm({ setMessage }) {
     const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>({
         resolver: yupResolver(schema)
     })
+    /*
     //console.log(watch("username"))
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
         postUser(data.username, data.password, data.email)
@@ -33,7 +34,12 @@ export default function RegisterForm({ setMessage }) {
                 setMessage({text: "Error Registering, the username is probably already taken", type: "error"});
             });
     }
+*/
 
+    const onSubmit = (data: IFormInput) => {
+        console.log(data);
+    }
+    
     return (
         <Form onSubmit={handleSubmit(onSubmit)}>
             <Row>

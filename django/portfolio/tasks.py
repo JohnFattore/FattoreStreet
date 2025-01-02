@@ -12,7 +12,7 @@ def daterange(start_date: date, end_date: date):
 def SnP500PriceUpdate():
     yfinance = yf.Ticker('SPY')
     start_date = date(2019, 1, 1)
-    end_date = date(2024, 12, 7)
+    end_date = date(2025, 12, 31)
     data = yfinance.history(start=start_date.strftime("%Y-%m-%d"), end=end_date.strftime("%Y-%m-%d"))
     queryset = SnP500Price.objects.all()
 
