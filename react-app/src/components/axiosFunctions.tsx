@@ -11,24 +11,18 @@ export const login = createAsyncThunk('users/login',
         password: password
       });
 
-    const { access, refresh } = response.data;
+      const { access, refresh } = response.data;
 
-    return {username, access, refresh}
+      return { username, access, refresh }
     }
     catch (error: any) {
-      if (error.response && error.response.data) {
-        // Reject with the custom server error message
-        return rejectWithValue(error.response.data.detail || 'Login failed');
-      }
-      else {
-        return rejectWithValue('Login failed');
-      }
+      return rejectWithValue(error.response.data.detail || 'Login failed');
     }
   }
 )
 
 export const refreshLogin = createAsyncThunk('users/refreshLogin',
-  async (_, {getState, rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
       const state = getState() as RootState;
       const refresh = state.user.refresh;
@@ -36,34 +30,34 @@ export const refreshLogin = createAsyncThunk('users/refreshLogin',
         refresh: refresh,
       });
 
-    const { access } = response.data;
+      const { access } = response.data;
 
-    return {access, refresh}
+      return { access }
     }
     catch (error: any) {
-      if (error.response && error.response.data) {
-        // Reject with the custom server error message
-        return rejectWithValue(error.response.data.detail || 'Refresh Login failed');
-      }
-      else {
-        return rejectWithValue('Refresh Login failed');
-      }
+      return rejectWithValue(error.response.data.detail || 'Refresh Login failed');
     }
   }
 )
 
-// register would conflict with the useForm hook
-export const postUser = async (username: string, password: string, email: string) => {
-  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("users/"), {
-    username: username,
-    password: password,
-    email: email,
-  })
-  return response
-}
+export const postUser = createAsyncThunk('users/postUser',
+  async ({ username, password, email }: { username: string, password: string, email: string }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("users/"), {
+        username: username,
+        password: password,
+        email: email,
+      })
+      return response.data
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response.data.detail || 'Registering user failed');
+    }
+  }
+)
 
 export const getAssets = createAsyncThunk<IAsset[]>('assets/getAssets',
-  async (_, {getState}) => {
+  async (_, { getState }) => {
     const state = getState() as RootState;
     const access = state.user.access;
     const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
@@ -75,29 +69,32 @@ export const getAssets = createAsyncThunk<IAsset[]>('assets/getAssets',
       ticker: asset.ticker,
       shares: asset.shares,
       costbasis: asset.costbasis,
-      buy: asset.buy,
+      buyDate: asset.buyDate,
+      dividends: asset.dividends,
+      reinvestShares: asset.reinvestShares,
       SnP500Price: asset.SnP500Price.price,
       id: asset.id
     }));
     return transformedData
   }
 )
- 
+
 // still want to handle errors in these axios functions... well isnt it already handled
 export const postAsset = createAsyncThunk('assets/postAsset',
-  async (asset: IAsset) => {
+  async (asset: IAsset, { getState }) => {
+    const state = getState() as RootState;
+    const access = state.user.access;
     const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
       ticker: asset.ticker,
       shares: asset.shares,
-      costbasis: asset.costbasis,
-      buy: asset.buy,
-      // 1 is a placeholder, value set in backend
-      SnP500Price: 1,
-      // 1 is a placeholder, this is actually set on the back end using the User object returned by the request
+      buyDate: asset.buyDate,
+      costbasis: 1,
+      dividends: 1,
+      reinvestShares: 1,
       user: 1
     }, {
       headers: {
-        'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string)
+        'Authorization': ' Bearer '.concat(access)
       }
     });
     return response.data
@@ -105,13 +102,26 @@ export const postAsset = createAsyncThunk('assets/postAsset',
 )
 
 export const deleteAsset = createAsyncThunk('assets/deleteAsset',
-  async (id: number) => {
+  async (id: number, { getState }) => {
+    const state = getState() as RootState;
+    const access = state.user.access;
     await axios.delete(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset/", id, "/"), {
+      headers: {
+        'Authorization': ' Bearer '.concat(access)
+      },
+    });
+    return { id: id };
+  }
+)
+
+export const patchAssetReinvestDividends = createAsyncThunk('assets/patchAssetReinvestDividends',
+  async (id: number) => {
+    const response = await axios.patch(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("reinvest-dividends/", id, "/"), {
       headers: {
         'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string)
       },
     });
-    return { id: id };
+    return response.data
   }
 )
 
@@ -123,6 +133,8 @@ export const getAsset = async (id: number) => {
   });
   return response
 }
+
+
 
 export const getQuote = async (ticker: string) => {
   const response = await axios.get(import.meta.env.VITE_APP_FINNHUB_URL.concat("quote/"), {

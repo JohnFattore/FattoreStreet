@@ -7,7 +7,9 @@ export interface IAsset {
     ticker: string,
     shares: number,
     costbasis: number,
-    buy: string,
+    buyDate: string,
+    dividends: number, 
+    reinvestShares: number,
     SnP500Price: number,
     id: number,
 }

@@ -5,7 +5,7 @@ import { formatString } from './helperFunctions';
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { translateError } from './helperFunctions';
-import { deleteAsset } from './axiosFunctions';
+import { deleteAsset, patchAssetReinvestDividends } from './axiosFunctions';
 
 function AssetRow({ asset, fields }) {
     const dispatch = useDispatch<AppDispatch>();
@@ -18,20 +18,30 @@ function AssetRow({ asset, fields }) {
     let attributes: any[] = [
         asset.ticker,
         asset.shares,
-        asset.costbasis,
-        quote,
+        //asset.costbasis,
+        // quote,
+        asset.buyDate,
         totalCostBasis,
         totalMarketValue,
         (quote - asset.costbasis) / asset.costbasis,
         (quoteSnP500 - asset.SnP500Price) / asset.SnP500Price,
-        "delete"
+        asset.dividends,
+        asset.reinvestShares,
+        "delete",
+        "reinvestDividends"
     ];
+
+    console.log(asset.costbasis)
+    console.log(asset.SnP500Price)
 
     let tableData: JSX.Element[] = [];
 
     for (let i = 0; i < attributes.length; i++) {
         if (fields[i]["type"] == 'delete') {
             tableData.push(<td key={i} onClick={() => dispatch(deleteAsset(asset.id))}>{"delete"}</td>)
+        }
+        else if (fields[i]["type"] == 'reinvestDividends') {
+            tableData.push(<td key={i} onClick={() => dispatch(patchAssetReinvestDividends(asset.id))}>{"Reinvest Dividends"}</td>)
         }
         else {
             tableData.push(<td key={i}>{formatString(attributes[i], fields[i]["type"])}</td>)
@@ -52,13 +62,17 @@ export default function AssetTable() {
     const fields = [
         { name: "Ticker", type: "text" },
         { name: "Shares", type: "amount" },
-        { name: "Cost Basis", type: "money" },
-        { name: "Quote", type: "money" },
+        //{ name: "Cost Basis", type: "money" },
+        //{ name: "Quote", type: "money" },
+        { name: "Buy Date", type: "text" },
         { name: "Total Cost Basis", type: "money" },
         { name: "Total Market Price", type: "money" },
         { name: "Percent Change", type: "percent" },
         { name: "S&P 500 % Change", type: "percent" },
-        { name: "Delete", type: "delete" }
+        { name: "Dividends", type: "money" },
+        { name: "Reinvest Dividends", type: "amount" },
+        { name: "Delete", type: "delete" },
+        { name: "Reinvest Dividends", type: "reinvestDividends" }
     ]
 
     let headers: JSX.Element[] = []

@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { login, refreshLogin } from '../components/axiosFunctions';
+import { login, postUser, refreshLogin } from '../components/axiosFunctions';
 
 interface UserSlice {
   loading: boolean;
@@ -26,7 +26,7 @@ const userSlice = createSlice({
       state.access = '';
       state.refresh = '';
       state.error = '';
-      window.location.reload(); // Reload the page
+      state.loading = false;
     },
     clearErrors: (state) => {
       state.error = '';
@@ -59,7 +59,19 @@ const userSlice = createSlice({
         .addCase(refreshLogin.rejected, (state, action) => {
           state.loading = false;  // Set loading to false if the call failed
           state.error = (action.payload as string) || action.error.message || 'An error occurred';  // Set the error message
+          state.access = ''
           state.refresh = ''
+        })
+        .addCase(postUser.pending, (state) => {
+          state.loading = true;
+        })
+        .addCase(postUser.fulfilled, (state) => {
+          state.loading = false;
+          state.error = ''
+        })
+        .addCase(postUser.rejected, (state, action) => {
+          state.loading = false;  // Set loading to false if the call failed
+          state.error = (action.payload as string) || action.error.message || 'An error occurred';  // Set the error message
         })
     }
 });

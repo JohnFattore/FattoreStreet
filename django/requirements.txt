@@ -26,3 +26,5 @@ django-filter==24.2
 django-simple-history==3.7.0
 # YFinance API
 yfinance==0.2.40
+# Redis library for Celery and Django
+redis==4.5.5

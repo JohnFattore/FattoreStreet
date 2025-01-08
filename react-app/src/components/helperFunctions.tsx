@@ -118,6 +118,8 @@ export function translateError(error: string) {
     if (error == 'Request failed with status code 401') {
         return 'Please Login'
     }
+    if (error == 'Request failed with status code 500')
+        return 'Server Error'
     else {
         return error
     }

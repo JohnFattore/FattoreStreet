@@ -1,5 +1,5 @@
 from celery import shared_task
-from portfolio.models import SnP500Price
+from portfolio.models import SnP500Price, Asset
 import yfinance as yf
 from datetime import date, timedelta
 
@@ -24,3 +24,23 @@ def SnP500PriceUpdate():
                 print(single_date.strftime("%Y-%m-%d") + " has no value")
         else:
             print("Date already exists")
+
+@shared_task
+def ReinvestSnP500Dividends():
+    yfinance = yf.Ticker("SPY")
+    data = yfinance.history(start=date(2019, 1, 1).strftime("%Y-%m-%d"), end=date.today().strftime("%Y-%m-%d"))
+    dividends = yfinance.dividends
+    for Snp500 in SnP500Price.objects.all():
+        currentShares = 1
+        totalDividends = 0
+        for dividend_date, dividend in dividends.items():
+            if dividend_date > Snp500.date:
+                price = data["Close"][dividend_date.strftime("%Y-%m-%d")]
+                newShares = ((dividend * currentShares) / price)
+                currentShares = currentShares + newShares
+                totalDividends = totalDividends + (dividend * currentShares)
+
+        Snp500.reinvestShares = currentShares
+        Snp500.dividends = totalDividends
+        Snp500.save()
+    

@@ -20,7 +20,7 @@ export default function Portfolio() {
         <>
             <h3>Add Assets</h3>
             <Row>
-            <Col>
+                <Col>
                     <AssetForm />
                 </Col>
                 <Col>
@@ -41,7 +41,3 @@ export default function Portfolio() {
         </>
     );
 }
-
-/*
-
-*/

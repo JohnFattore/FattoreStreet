@@ -26,13 +26,14 @@ sudo docker run --name nginx --network dockerNet \
 # Celery
 sudo docker run \
   --name celery \
-  --network my-dockerNet \
-  -e CELERY_BROKER_URL=redis://redis-container:6379/0 \
-  -e DJANGO_SETTINGS_MODULE=mysite.settings \
-  -d johnfattore/celery
+  --network dockerNet \
+  -e DATABASE=postgresDocker \
+  -e DEBUG=False \
+  -d johnfattore/django \
+  celery -A mysite worker -E -n worker
 
 # Redis
-sudo docker run --network dockerNet --name redis -d redis
+sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis
 
 # Certbot get SSL cert
 sudo docker run --rm \
@@ -62,6 +63,13 @@ sudo docker stop nginx
 sudo docker container rm nginx
 sudo docker image rm johnfattore/nginx
 
+
+sudo docker stop redis
+sudo docker container rm redis
+
+
+sudo docker stop celery
+sudo docker container rm celery
 
 # can probably remove this
 # django RDS

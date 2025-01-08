@@ -172,11 +172,13 @@ REST_FRAMEWORK = {
     )
 }
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
-}
+# default is 5 minutes and 1 day
+#SIMPLE_JWT = {
+#    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
+#    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=2),
+#}
 
-# celery configuration, maybe in different file?
+# might have to be a env variable, this is gonna be a continued problem
 CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_BROKER_URL = 'redis://localhost:6379'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'

@@ -2,7 +2,10 @@ import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm /*, SubmitHandler*/ } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-//import { postUser, login } from './axiosFunctions';
+import { postUser, login } from './axiosFunctions';
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from '../main';
+import { translateError } from './helperFunctions';
 
 interface IFormInput {
     username: string,
@@ -11,6 +14,9 @@ interface IFormInput {
 }
 
 export default function RegisterForm() {
+    const dispatch = useDispatch<AppDispatch>();
+    const { username, access, loading, error } = useSelector((state: RootState) => state.user);
+
     const schema = yup.object().shape({
         username: yup.string().required(),
         password: yup.string().required(),
@@ -21,26 +27,21 @@ export default function RegisterForm() {
     const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>({
         resolver: yupResolver(schema)
     })
-    /*
-    //console.log(watch("username"))
-    const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        postUser(data.username, data.password, data.email)
-            .then(() => {
-                login(data.username, data.password)
-                    .then(() => {
-                        setMessage({text: "Welcome to Fattore Street", type: "success"});
-                    });
-            }).catch(() => {
-                setMessage({text: "Error Registering, the username is probably already taken", type: "error"});
-            });
-    }
-*/
 
     const onSubmit = (data: IFormInput) => {
-        console.log(data);
+        dispatch(postUser(data)).unwrap()
+            .then(() => {
+                dispatch(login({ username: data.username, password: data.password }))
+            })
     }
-    
-    return (
+
+    if (access) {
+        return <Alert variant="success">Welcome, {username}!</Alert>;
+    }
+
+    return (<>
+        {error && <Alert variant="danger">{translateError(error)}</Alert>}
+        {loading && <Alert>Loading...</Alert>}
         <Form onSubmit={handleSubmit(onSubmit)}>
             <Row>
                 <Col sm={3}>
@@ -64,7 +65,8 @@ export default function RegisterForm() {
                 </Col>
             </Row>
 
-            <Button type="submit">Register</Button>
+            <Button type="submit" disabled={loading}>Register</Button>
         </Form>
+    </>
     );
 }
