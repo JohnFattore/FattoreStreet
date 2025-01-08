@@ -2,7 +2,7 @@
 from django.contrib.auth.models import User
 # API modules using drf
 from rest_framework import permissions, generics
-from .serializers import AssetSerializer
+from .serializers import AssetSerializer, SnP500PriceSerializer
 from .permissions import IsOwner
 from .models import Asset, SnP500Price
 from .tasks import SnP500PriceUpdate, ReinvestSnP500Dividends
@@ -39,6 +39,15 @@ class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):
     queryset = Asset.objects.all().select_related("SnP500Price")
     serializer_class = AssetSerializer
     permission_classes = [IsOwner]
+
+# API endpoint to get specific SnP500 prices / dates
+class SnP500RetrieveView(generics.RetrieveAPIView):
+    queryset = SnP500Price.objects.all()
+    serializer_class = SnP500PriceSerializer
+    def retrieve(self, request):
+        date_str = request.query_params.get('date')
+        queryset = queryset.filter(date = date_str)
+
 
 class UpdateSnP500PriceView(APIView):
     def post(self, request):
