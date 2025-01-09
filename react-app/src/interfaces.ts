@@ -14,11 +14,19 @@ export interface IAsset {
     id: number,
 }
 
+export interface ISnP500Price {
+    date: string,
+    price: number, 
+    dividends: number, 
+    reinvestShares: number,
+    id: number,
+}
+
 export interface IQuote {
     price: number,
     percentChange: number
 }
-
+/*
 export interface IMessage {
     text: string,
     type: string
@@ -52,7 +60,7 @@ export interface IResult {
     user: number,
     id: number
 }
-
+*/
 export interface IAlbum {
     name: string;
     artist: string;

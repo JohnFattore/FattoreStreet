@@ -125,6 +125,33 @@ export const patchAssetReinvestDividends = createAsyncThunk('assets/patchAssetRe
   }
 )
 
+export const getSnP500Price = createAsyncThunk('SnP500Prices/getSnP500',
+  async (snp500Date: string) => {
+    const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("snp500-price/"), {
+      params: {
+        date: snp500Date
+      }
+    });
+    return response.data
+  }
+)
+
+/*
+    const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
+      ticker: asset.ticker,
+      shares: asset.shares,
+      buyDate: asset.buyDate,
+      costbasis: 1,
+      dividends: 1,
+      reinvestShares: 1,
+      user: 1
+    }, {
+      headers: {
+        'Authorization': ' Bearer '.concat(access)
+      }
+    });
+*/
+
 export const getAsset = async (id: number) => {
   const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset/", id, "/"), {
     headers: {

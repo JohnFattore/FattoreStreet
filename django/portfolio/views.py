@@ -1,7 +1,7 @@
 # only API views, see retiredViews for old django frontend views
 from django.contrib.auth.models import User
 # API modules using drf
-from rest_framework import permissions, generics
+from rest_framework import permissions, generics, serializers
 from .serializers import AssetSerializer, SnP500PriceSerializer
 from .permissions import IsOwner
 from .models import Asset, SnP500Price
@@ -44,11 +44,12 @@ class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):
 class SnP500RetrieveView(generics.RetrieveAPIView):
     queryset = SnP500Price.objects.all()
     serializer_class = SnP500PriceSerializer
-    def retrieve(self, request):
-        date_str = request.query_params.get('date')
-        queryset = queryset.filter(date = date_str)
-
-
+    def get_object(self):
+        try:
+            return SnP500Price.objects.get(date=self.request.query_params.get("date"))
+        except SnP500Price.DoesNotExist:
+            raise serializers.ValidationError({"detail": "No record found for the given date."})
+        
 class UpdateSnP500PriceView(APIView):
     def post(self, request):
         # Trigger the Celery task

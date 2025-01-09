@@ -13,7 +13,7 @@ const initialState: WatchListState = {
 };
 
 const watchListSlice = createSlice({
-  name: 'restaurant',
+  name: 'watchList',
   initialState,
   reducers: {    
     loadTickers: (state) => {
@@ -38,17 +38,3 @@ const watchListSlice = createSlice({
 });
 export const { loadTickers, addTicker, removeTicker } = watchListSlice.actions;
 export default watchListSlice.reducer;
-
-/*
-    if (localStorage.getItem("tickers") == null) {
-        let allTickers: string[] = (["VTI", "SPY"]);
-        localStorage.setItem("tickers", (JSON.stringify(allTickers)));
-    };
-
-    const [tickerModels, setTickers] = useState<any[]>([]);
-    useEffect(() => {
-        if (tickerModels.length == 0) {
-            const tickers = JSON.parse(localStorage.getItem("tickers") as string) as string[]
-        }
-    }, [])
-*/

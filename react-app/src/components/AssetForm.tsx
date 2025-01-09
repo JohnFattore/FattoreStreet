@@ -41,6 +41,8 @@ export default function AssetForm() {
                         shares: data.shares,
                         buyDate: data.buyDate,
                         costbasis: 1,
+                        dividends: 1,
+                        reinvestShares: 1,
                         SnP500Price: 1,
                         id: 1
                     }));

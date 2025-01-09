@@ -2,20 +2,20 @@ import { createSlice } from '@reduxjs/toolkit';
 import { deleteAsset, getAssets, patchAssetReinvestDividends, postAsset } from '../components/axiosFunctions';
 import { IAsset } from '../interfaces';
 
-interface RestaurantState {
+interface AssetState {
   loading: boolean;
   assets: IAsset[];
   error: string;
 }
 
-const initialState: RestaurantState = {
+const initialState: AssetState = {
   loading: false,
   assets: [],
   error: '',
 };
 
 const assetSlice = createSlice({
-  name: 'restaurant',
+  name: 'asset',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
