@@ -2,26 +2,37 @@ import Table from 'react-bootstrap/Table';
 import { Alert } from 'react-bootstrap';
 import { useQuote } from './customHooks';
 import { formatString } from './helperFunctions';
-import { useSelector } from "react-redux";
-import { RootState } from '../main';
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from '../main';
 import { translateError } from './helperFunctions';
+import { removeSnP500 } from '../reducers/snp500Reducer';
 
 function SnP500Row({ snp500, fields }) {
+    const dispatch = useDispatch<AppDispatch>();
 
     const quote = useQuote("SPY")["price"];
+    const reinvestSharesPrice = snp500.reinvestShares * quote
 
     let attributes: any[] = [
         snp500.date,
         snp500.price,
         quote,
         snp500.dividends,
-        snp500.reinvestShares
+        snp500.reinvestShares,
+        reinvestSharesPrice,
+        (reinvestSharesPrice - snp500.price)/ snp500.price,
+        "remove"
     ];
 
     let tableData: JSX.Element[] = [];
 
     for (let i = 0; i < attributes.length; i++) {
-        tableData.push(<td key={i}>{formatString(attributes[i], fields[i]["type"])}</td>)
+        if (fields[i]["type"] == 'remove') {
+            tableData.push(<td key={i} onClick={() => dispatch(removeSnP500(snp500.id))}>{"remove"}</td>)
+        }
+        else {
+            tableData.push(<td key={i}>{formatString(attributes[i], fields[i]["type"])}</td>)
+        }
     }
 
     return (
@@ -40,6 +51,9 @@ export default function SnP500Table() {
         { name: "Current Price", type: "money" },
         { name: "Dividends", type: "money" },
         { name: "Reinvest Shares", type: "amount" },
+        { name: "Reinvested Shares Price", type: "money" },
+        { name: "Total Percent Change", type: "percent" },
+        { name: "Remove", type: "remove" },
     ]
 
     let headers: JSX.Element[] = []

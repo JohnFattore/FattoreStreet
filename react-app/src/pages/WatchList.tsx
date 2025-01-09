@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { loadTickers } from '../reducers/watchListReducer';
 import BenchmarkTable from '../components/BenchmarkTable';
 import WatchListForm from '../components/WatchListForm';
+import FinnhubBanner from '../components/FinnhubBanner';
 
 export default function WatchList() {
 
@@ -21,6 +22,7 @@ export default function WatchList() {
             <h3>Watchlist</h3>
             <WatchListTable />
             <WatchListForm />
+            <FinnhubBanner />
         </>
     );
 }

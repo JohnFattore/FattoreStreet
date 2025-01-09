@@ -7,6 +7,8 @@ import { Row, Col, Accordion } from 'react-bootstrap';
 import { useDispatch } from "react-redux";
 import { AppDispatch } from '../main';
 import AllocationTable from '../components/AllocationTable';
+import YahooFinanceBanner from '../components/YahooFinanceBanner';
+import FinnhubBanner from '../components/FinnhubBanner';
 
 export default function Portfolio() {
     const dispatch = useDispatch<AppDispatch>();
@@ -38,6 +40,8 @@ export default function Portfolio() {
             <AssetTable />
             <h3>Allocation</h3>
             <AllocationTable />
+            <YahooFinanceBanner />
+            <FinnhubBanner />
         </>
     );
 }

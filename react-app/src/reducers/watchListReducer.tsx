@@ -12,6 +12,7 @@ const initialState: WatchListState = {
   error: '',
 };
 
+// no loading stuff... idk maybe not an issue
 const watchListSlice = createSlice({
   name: 'watchList',
   initialState,

@@ -11,7 +11,7 @@ interface IFormInput {
     date: string,
 }
 
-export default function AssetForm() {
+export default function SnP500Form() {
     const dispatch = useDispatch<AppDispatch>();
     const { loading } = useSelector((state: RootState) => state.assets);
 

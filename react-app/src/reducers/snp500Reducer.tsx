@@ -17,7 +17,12 @@ const initialState: SnP500State = {
 const snp500Slice = createSlice({
   name: 'snp500',
   initialState,
-  reducers: {},
+  reducers: {    
+    removeSnP500: (state, action) => {
+    const updatedSnP500Prices = state.snp500Prices.filter((date) => date !== action.payload);
+    state.snp500Prices = updatedSnP500Prices;
+  },
+},
   extraReducers: (builder) => {
     builder
       .addCase(getSnP500Price.pending, (state) => {
@@ -41,5 +46,5 @@ const snp500Slice = createSlice({
       })
   },
 });
-
+export const { removeSnP500 } = snp500Slice.actions;
 export default snp500Slice.reducer;
