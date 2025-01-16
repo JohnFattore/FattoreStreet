@@ -6,6 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { getQuote, postAsset } from './axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
+import { errorAssets } from '../reducers/assetReducer';
 
 interface IFormInput {
     ticker: string,
@@ -33,17 +34,19 @@ export default function AssetForm() {
             .then((response) => {
                 // a valid ticker wont return null values
                 if (response.data.d == null)
-                    console.log("error")
+                    dispatch(errorAssets("Invalid Ticker"))
                 else {dispatch(
                     postAsset({
                         // 1s are placeholders, nice to include those so IAsset interface can be used
                         ticker: data.ticker,
                         shares: data.shares,
                         buyDate: data.buyDate,
-                        costbasis: 1,
-                        dividends: 1,
-                        reinvestShares: 1,
+                        costBasis: 1,
+                        totalCostBasis: 1,
+                        currentPrice: 1,
+                        percentChange: 1,                        
                         SnP500Price: 1,
+                        SnP500PercentChange: 1,
                         id: 1
                     }));
                 }

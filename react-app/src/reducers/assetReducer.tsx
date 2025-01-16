@@ -1,93 +1,107 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { deleteAsset, getAssets, patchAssetReinvestDividends, postAsset } from '../components/axiosFunctions';
+import { deleteAsset, getAssets, postAsset } from '../components/axiosFunctions';
 import { IAsset } from '../interfaces';
+
+function sortAssets(assets: IAsset[], sortColumn: keyof IAsset, sortDirection: 'asc' | 'desc'): IAsset[] {
+  return [...assets].sort((a, b) => {
+    const aValue = a[sortColumn];
+    const bValue = b[sortColumn];
+
+    if (aValue == null || bValue == null) return 0;
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
 
 interface AssetState {
   loading: boolean;
   assets: IAsset[];
   error: string;
+  sort: {
+    sortColumn: keyof IAsset | null;
+    sortDirection: 'asc' | 'desc'
+  }
 }
 
 const initialState: AssetState = {
   loading: false,
   assets: [],
   error: '',
+  sort: {
+    sortColumn: null,
+    sortDirection: 'asc'
+  }
 };
 
 const assetSlice = createSlice({
   name: 'asset',
   initialState,
-  reducers: {},
+  reducers: {
+    errorAssets: (state, action) => {
+      state.error = action.payload;
+    },
+    setAssetSort: (state, action) => {
+      const { sortColumn, sortDirection } = action.payload;
+      state.sort = { sortColumn, sortDirection };
+      if (sortColumn) {
+        state.assets = sortAssets(state.assets, sortColumn, sortDirection);
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(getAssets.pending, (state) => {
-        state.loading = true;  // Set loading to true when the async call is pending
+        state.loading = true; 
       })
       .addCase(getAssets.fulfilled, (state, action) => {
-        state.loading = false;  // Set loading to false when the async call is fulfilled
-        // this has to be more specific, 
-        state.assets = action.payload;  // Set the fetched data
+        state.loading = false;
+        state.assets = action.payload;
         state.error = ''
       })
       .addCase(getAssets.rejected, (state, action) => {
-        state.loading = false;  // Set loading to false if the call failed
-        state.error = action.error.message || 'An error occurred';  // Set the error message
+        state.loading = false;
+        state.error = (action.payload as string) || action.error.message || 'An error occurred';
       })
       .addCase(postAsset.pending, (state) => {
-        state.loading = true;  // Set loading to true when the async call is pending
+        state.loading = true;
       })
       .addCase(postAsset.fulfilled, (state, action) => {
-        state.loading = false;  // Set loading to false when the async call is fulfilled
-        // this has to be more specific, 
+        state.loading = false;
         let asset = action.payload
         state.assets.push({
             ticker: asset.ticker,
             shares: asset.shares,
-            costbasis: asset.costbasis,
+            costBasis: asset.costBasis,
             buyDate: asset.buyDate,
-            dividends: 1,
-            reinvestShares: 1,
-            SnP500Price: 200, // probably fetch this, this is the historical date price getSnPPrice(asset.buy), or just fetch entire asset
+            totalCostBasis: asset.totalCostBasis,
+            currentPrice: asset.currentPrice, 
+            percentChange: asset.percentChange,
+            SnP500Price: asset.SnP500Price,
+            SnP500PercentChange: asset.SnP500PercentChange,
             id: asset.id
         })
         state.error = '';
       })
       .addCase(postAsset.rejected, (state, action) => {
-        state.loading = false;  // Set loading to false if the call failed
-        state.error = action.error.message || 'An error occurred';  // Set the error message
+        state.loading = false;
+        state.error = (action.payload as string) || action.error.message || 'An error occurred';
       })      
       .addCase(deleteAsset.pending, (state) => {
-        state.loading = true;  // Set loading to true when the async call is pending
+        state.loading = true; 
       })
       .addCase(deleteAsset.fulfilled, (state, action) => {
-        state.loading = false;  // Set loading to false when the async call is fulfilled
-        state.assets = state.assets.filter(asset => asset.id !== action.payload.id);  // Remove the deleted asset
+        state.loading = false;
+        state.assets = state.assets.filter(asset => asset.id !== action.payload.id); 
         state.error = '';
       })
       .addCase(deleteAsset.rejected, (state, action) => {
-        state.loading = false;  // Set loading to false if the call failed
-        // tranlateError could go here!
-        state.error = action.error.message || 'An error occurred';  // Set the error message
-      })
-      .addCase(patchAssetReinvestDividends.pending, (state) => {
-        state.loading = true;  // Set loading to true when the async call is pending
-      })
-      .addCase(patchAssetReinvestDividends.fulfilled, (state, action) => {
-        state.loading = false;  // Set loading to false when the async call is fulfilled
-        const updatedAsset = action.payload; // Get the updated asset from the payload
-        // Find the asset in the state and update its shares
-        state.assets = state.assets.map(asset =>
-          asset.id === updatedAsset.id
-            ? { ...asset, shares: updatedAsset.shares } // Update the shares field
-            : asset // Keep the rest unchanged
-        );
-        state.error = '';
-      })
-      .addCase(patchAssetReinvestDividends.rejected, (state, action) => {
-        state.loading = false;  // Set loading to false if the call failed
-        state.error = action.error.message || 'An error occurred';  // Set the error message
+        state.loading = false;
+        state.error = (action.payload as string) || action.error.message || 'An error occurred';
       });
   },
 });
 
+export const { errorAssets, setAssetSort } = assetSlice.actions;
 export default assetSlice.reducer;

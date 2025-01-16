@@ -9,8 +9,6 @@ class SnP500PriceSerializer(serializers.ModelSerializer):
         fields = ['id', 
                   'date', 
                   'price',
-                  'dividends',
-                  'reinvestShares'
                   ]
 
 # serializer for Asset Model
@@ -24,8 +22,6 @@ class AssetSerializer(serializers.ModelSerializer):
                   'shares', 
                   'costbasis', 
                   'buyDate', 
-                  'dividends',
-                  'reinvestShares',
                   'user',
                   'SnP500Price']
         

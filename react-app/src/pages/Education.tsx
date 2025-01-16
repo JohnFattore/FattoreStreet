@@ -47,7 +47,7 @@ export default function Education() {
                 <Accordion.Item eventKey="6">
                     <Accordion.Header>Brokerage Accounts</Accordion.Header>
                     <Accordion.Body>
-                        Fidelity, Schwab, and Vanguard are three of the top choices for brokerage accounts including IRAs. Below are the passively managed mutual funds for each brokerage that together make up the entire global stock market.
+                        Fidelity, Schwab, and Vanguard are three of the top choices for brokerage accounts. Below are the passively managed mutual funds for each brokerage that together make up the entire global stock market.
                         <Table>
                             <thead>
                                 <tr>
@@ -76,15 +76,16 @@ export default function Education() {
                     <Accordion.Header>6 Month Emergency Fund</Accordion.Header>
                     <Accordion.Body>
                         Maintain a six-month emergency fund in a money market fund.
-                        Money market funds are prefferred because they offer the highest return out of all risk free options such as savings accounts or HYSA all with the same brokerage account as your other investments.
+                        Money market funds are prefferred because they offer the highest return out of all risk free options all with the same brokerage account as your other investments.
                         These funds invest in short-term treasury bonds and are currently yielding around 5% as of August 17, 2024.
+                        A high yields savings account is another good option, but might require opening up a seperate account.
                     </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="5">
                     <Accordion.Header>Buy and Hold</Accordion.Header>
                     <Accordion.Body>
                         Investing in low cost, passively managed, market cap weighted, broadly diversified index funds is the best investing strategy. Limiting the number of funds in your portfolio reduces complexity.
-                        Allocate 20-40% to the international fund.
+                        Allocate about 20% to the international fund.
                         Focus on staying invested rather than trying to time the market.
                         Over the long term, holding your investments smooths out the ups and downs, leading to a solid average return.
                         $100 invested at the start of the year in 1963 would be worth $41,024.18 at the end of 2023, which is a 40,924.18% return on investment or 10.37% a year *.
@@ -123,7 +124,7 @@ export default function Education() {
                 <Accordion.Item eventKey="9">
                     <Accordion.Header>Tax-Advantaged Accounts</Accordion.Header>
                     <Accordion.Body>
-                        Capitalize on all ax advantaged investment accounts such as IRAs and 401ks.
+                        Capitalize on all tax advantaged investment accounts such as IRAs and 401ks.
                         Effectively, investments in IRAs and 401ks are not subject to captial gains tax; the difference is when income tax is applied.
                         These accounts are either government or employer sponsored; the employer 401k match is financially potent.
                         <Table>

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { IAsset, IRestaurant } from '../interfaces';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '../main';
+import { fetchQuote } from './helperFunctions';
 
 export const login = createAsyncThunk('users/login',
   async ({ username, password }: { username: string; password: string }, { rejectWithValue }) => {
@@ -51,107 +52,129 @@ export const postUser = createAsyncThunk('users/postUser',
       return response.data
     }
     catch (error: any) {
-      return rejectWithValue(error.response.data.detail || 'Registering user failed');
+      return rejectWithValue(error.response.data.username || error.response.data.detail || 'Registering user failed');
     }
   }
 )
 
-export const getAssets = createAsyncThunk<IAsset[]>('assets/getAssets',
-  async (_, { getState }) => {
-    const state = getState() as RootState;
-    const access = state.user.access;
-    const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
-      headers: {
-        'Authorization': ' Bearer '.concat(access)
-      },
-    });
-    const transformedData: IAsset[] = response.data.map((asset: any) => ({
-      ticker: asset.ticker,
-      shares: asset.shares,
-      costbasis: asset.costbasis,
-      buyDate: asset.buyDate,
-      dividends: asset.dividends,
-      reinvestShares: asset.reinvestShares,
-      SnP500Price: asset.SnP500Price.price,
-      id: asset.id
-    }));
-    return transformedData
+export const getAssets = createAsyncThunk('assets/getAssets',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        },
+      });
+      const transformedData: IAsset[] = await Promise.all(response.data.map(async (asset: any) => {
+        const quote = await fetchQuote(asset.ticker)
+        const quoteSPY = await fetchQuote("SPY")
+        const totalCostBasis = asset.shares * asset.costbasis
+        const currentPrice = quote.price * asset.shares
+        return {
+          ticker: asset.ticker,
+          shares: asset.shares,
+          costBasis: asset.costbasis,
+          buyDate: asset.buyDate,
+          totalCostBasis: totalCostBasis,
+          currentPrice: currentPrice,
+          percentChange: (currentPrice - totalCostBasis) / totalCostBasis,
+          SnP500Price: asset.SnP500Price.price,
+          SnP500PercentChange: (quoteSPY.price - asset.SnP500Price.price) / asset.SnP500Price.price,
+          id: asset.id
+        }
+      })
+      );
+      return transformedData
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response.data.detail || 'Getting Assets failed');
+    }
   }
 )
 
-// still want to handle errors in these axios functions... well isnt it already handled
 export const postAsset = createAsyncThunk('assets/postAsset',
-  async (asset: IAsset, { getState }) => {
-    const state = getState() as RootState;
-    const access = state.user.access;
-    const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
-      ticker: asset.ticker,
-      shares: asset.shares,
-      buyDate: asset.buyDate,
-      costbasis: 1,
-      dividends: 1,
-      reinvestShares: 1,
-      user: 1
-    }, {
-      headers: {
-        'Authorization': ' Bearer '.concat(access)
+  async (asset: IAsset, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
+        ticker: asset.ticker,
+        shares: asset.shares,
+        buyDate: asset.buyDate,
+        costbasis: 1,
+        user: 1
+      }, {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        }
+      });
+      const assetData = response.data
+      const quote = await fetchQuote(assetData.ticker)
+      const quoteSPY = await fetchQuote("SPY")
+      const totalCostBasis = assetData.shares * assetData.costbasis
+      return {ticker: assetData.ticker,
+              shares: assetData.shares,
+              costBasis: assetData.costbasis,
+              buyDate: assetData.buyDate,
+              totalCostBasis: totalCostBasis,
+              currentPrice: quote.price,
+              percentChange: (quote.price - totalCostBasis) / totalCostBasis,
+              SnP500Price: assetData.SnP500Price.price,
+              SnP500PercentChange: (quoteSPY.price - assetData.SnP500Price.price) / assetData.SnP500Price.price,
+              id: assetData.id
       }
-    });
-    return response.data
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Adding Asset failed');
+    }
   }
 )
 
 export const deleteAsset = createAsyncThunk('assets/deleteAsset',
-  async (id: number, { getState }) => {
-    const state = getState() as RootState;
-    const access = state.user.access;
-    await axios.delete(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset/", id, "/"), {
-      headers: {
-        'Authorization': ' Bearer '.concat(access)
-      },
-    });
-    return { id: id };
-  }
-)
-
-export const patchAssetReinvestDividends = createAsyncThunk('assets/patchAssetReinvestDividends',
-  async (id: number) => {
-    const response = await axios.patch(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("reinvest-dividends/", id, "/"), {
-      headers: {
-        'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string)
-      },
-    });
-    return response.data
+  async (id: number, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      await axios.delete(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset/", id, "/"), {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        },
+      });
+      return { id: id };
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Deleting Asset failed');
+    }
   }
 )
 
 export const getSnP500Price = createAsyncThunk('SnP500Prices/getSnP500',
-  async (snp500Date: string) => {
-    const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("snp500-price/"), {
-      params: {
-        date: snp500Date
-      }
-    });
-    return response.data
+  async (snp500Date: string, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("snp500-price/"), {
+        params: {
+          date: snp500Date
+        }
+      });
+      const SnP500Data = response.data
+      const quote = await fetchQuote("SPY")
+      return {
+              date: SnP500Data.date,
+              costBasis: SnP500Data.price,
+              currentPrice: quote.price,
+              percentChange: (quote.price - SnP500Data.price)/SnP500Data.price,
+              id: SnP500Data.id
+      }    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Adding S&P 500 date failed');
+    }
   }
 )
 
-/*
-    const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
-      ticker: asset.ticker,
-      shares: asset.shares,
-      buyDate: asset.buyDate,
-      costbasis: 1,
-      dividends: 1,
-      reinvestShares: 1,
-      user: 1
-    }, {
-      headers: {
-        'Authorization': ' Bearer '.concat(access)
-      }
-    });
-*/
 
+// currently unused
 export const getAsset = async (id: number) => {
   const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset/", id, "/"), {
     headers: {
@@ -160,8 +183,6 @@ export const getAsset = async (id: number) => {
   });
   return response
 }
-
-
 
 export const getQuote = async (ticker: string) => {
   const response = await axios.get(import.meta.env.VITE_APP_FINNHUB_URL.concat("quote/"), {

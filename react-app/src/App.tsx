@@ -58,7 +58,7 @@ export default function App() {
 
 
   return (
-    <>
+    <div className="app-container">
       <TopNavigation />
       <Routes >
         <Route path="/" element={<Home />} />
@@ -75,7 +75,8 @@ export default function App() {
         <Route path="*" element={<ErrorPage />} />
       </Routes>
       <p>This website is purely for entertainment. All investments carry risk. Consult a professional.</p>
-      <p>Passive Investing is Awesome!!</p>
-    </>
+      <p>Index Funds are Awesome!!</p>
+    </div>
+
   );
 }

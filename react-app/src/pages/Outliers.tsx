@@ -1,9 +1,8 @@
 import DjangoTable from '../components/DjangoTable';
-import { IIndexMember, IMessage } from '../interfaces';
-import { useState, useEffect, useReducer } from 'react';
+import { IIndexMember } from '../interfaces';
+import { useEffect, useReducer } from 'react';
 import { getIndexMembers } from '../components/axiosFunctions';
-import { Alert, Accordion, Row, Col } from 'react-bootstrap';
-import { setAlertVarient } from '../components/helperFunctions';
+import { Accordion, Row, Col } from 'react-bootstrap';
 import OutlierUpdateForm from '../components/OutlierUpdateForm';
 import LoginForm from '../components/LoginForm';
 
@@ -28,7 +27,6 @@ function outlierReducer(outliers, action) {
 }
 
 export default function Outliers() {
-    const [message, setMessage] = useState<IMessage>({ text: "", type: "" })
     const [outliers, dispatch] = useReducer(outlierReducer, []);
 
     let data: IIndexMember[] = []
@@ -63,7 +61,6 @@ export default function Outliers() {
                     }
                 }).catch((error) => {
                     console.log(error)
-                    setMessage({ text: "There was a problem getting the Index", type: "error" })
                 })
         }
     }, []);
@@ -109,7 +106,7 @@ export default function Outliers() {
             <p>Think you know why a stock is excluded? Leave a note! Must be logged in.</p>
             <Row>
                 <Col>
-                    <OutlierUpdateForm setMessage={setMessage} dispatch={dispatch} outliers={outliers} />
+                    <OutlierUpdateForm setMessage={console.log} dispatch={dispatch} outliers={outliers} />
                 </Col>
                 <Col>
                     <Accordion defaultActiveKey="1">
@@ -122,9 +119,8 @@ export default function Outliers() {
                     </Accordion>
                 </Col>
             </Row>
-            {message.type != "" && <Alert variant={setAlertVarient(message)} transition role="message">{message.text} </Alert>}
             <a href="https://docs.google.com/spreadsheets/d/1HbJ2-r7hCXT9IhWA9dbwBZe5utZOl502Txs1tecfYIc/edit?usp=sharing">List as a Google Sheet </a>
-            <DjangoTable setMessage={setMessage} models={outliers} dispatch={dispatch} fields={fields} />
+            <DjangoTable setMessage={console.log} models={outliers} dispatch={dispatch} fields={fields} />
         </>
     )
 }

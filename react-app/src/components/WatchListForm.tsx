@@ -5,17 +5,16 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { getQuote } from './axiosFunctions';
 import { Alert } from 'react-bootstrap';
-import { addTicker } from '../reducers/watchListReducer';
+import { addTicker, errorTicker } from '../reducers/watchListReducer';
 import { RootState, AppDispatch } from '../main';
 import { useSelector, useDispatch } from 'react-redux';
-import { translateError } from './helperFunctions';
 
 interface IFormInput {
   ticker: string
 }
 
 export default function WatchListForm() {
-  const { tickers, error } = useSelector((state: RootState) => state.watchList);
+  const { tickers } = useSelector((state: RootState) => state.watchList);
   const dispatch = useDispatch<AppDispatch>();
 
   const schema = yup.object().shape({
@@ -31,11 +30,11 @@ export default function WatchListForm() {
       .then((response) => {
         // a valid ticker wont return null values
         if (response.data.d == null)
-          console.log("Spike fix this");
+          dispatch(errorTicker("Couldn't retrieve data for ticker"));
         else {
           // not let duplicates to be added to list
           if (tickers.includes(data.ticker)) {
-            console.log("Spike fix this");
+            dispatch(errorTicker("Ticker already on watchlist"));
           }
           else {
             dispatch(addTicker(data.ticker));
@@ -44,8 +43,6 @@ export default function WatchListForm() {
         }
       });
   }
-
-  if (error) return <Alert variant="danger">{translateError(error)}</Alert>;
 
   return (
     <Form onSubmit={handleSubmit(onSubmit)}>

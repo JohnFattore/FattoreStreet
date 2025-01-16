@@ -35,9 +35,9 @@ export default function Entertainment() {
             year: 2010,
         },
         {
-            name: "The Blueprint",
-            artist: "JAY-Z",
-            year: 2001,
+            name: "The Dark Side of the Moon",
+            artist: "Pink Floyd",
+            year: 1973,
         },
         {
             name: "Discovery",

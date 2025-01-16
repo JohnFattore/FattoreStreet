@@ -6,19 +6,21 @@ export interface IAllocation {
 export interface IAsset {
     ticker: string,
     shares: number,
-    costbasis: number,
+    costBasis: number,
     buyDate: string,
-    dividends: number, 
-    reinvestShares: number,
+    totalCostBasis: number,
+    currentPrice: number,
+    percentChange: number,
     SnP500Price: number,
+    SnP500PercentChange: number,
     id: number,
 }
 
 export interface ISnP500Price {
     date: string,
-    price: number, 
-    dividends: number, 
-    reinvestShares: number,
+    costBasis: number,
+    currentPrice: number,
+    percentChange: number,
     id: number,
 }
 
@@ -26,41 +28,7 @@ export interface IQuote {
     price: number,
     percentChange: number
 }
-/*
-export interface IMessage {
-    text: string,
-    type: string
-}
 
-export interface IOption {
-    ticker: string,
-    name: string,
-    sunday: string,
-    startPrice: number,
-    endPrice: number,
-    percentChange: number,
-    rank: number,
-    benchmark: boolean,
-    id: number
-}
-
-export interface ISelection {
-    option: number,
-    allocation: number,
-    user: number,
-    id: number
-}
-
-export interface IResult {
-    portfolioPercentChange: number,
-    SnP500: number,
-    Russell2000: number,
-    WorldEconomy: number,
-    sunday: string,
-    user: number,
-    id: number
-}
-*/
 export interface IAlbum {
     name: string;
     artist: string;

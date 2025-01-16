@@ -6,6 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { getSnP500Price } from './axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
+import { errorSnP500 } from '../reducers/snp500Reducer';
 
 interface IFormInput {
     date: string,
@@ -13,7 +14,7 @@ interface IFormInput {
 
 export default function SnP500Form() {
     const dispatch = useDispatch<AppDispatch>();
-    const { loading } = useSelector((state: RootState) => state.assets);
+    const { snp500Prices, loading } = useSelector((state: RootState) => state.snp500Prices);
 
     // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
@@ -25,8 +26,10 @@ export default function SnP500Form() {
     })
     //console.log(watch("ticker"))
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        dispatch(
-            getSnP500Price(data.date));
+        if (snp500Prices.some((price) => price.date === data.date)) 
+            dispatch(errorSnP500("Date already on list"));
+        else
+            dispatch(getSnP500Price(data.date));
     }
 
     return (

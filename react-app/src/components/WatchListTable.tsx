@@ -4,7 +4,6 @@ import { useCompanyProfile2, useQuote } from './customHooks';
 import { formatString } from './helperFunctions';
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from '../main';
-import { translateError } from './helperFunctions';
 import { removeTicker } from '../reducers/watchListReducer';
 
 // function is for simple calculations, function2 is for more complex operations
@@ -43,7 +42,7 @@ function WatchListRow({ ticker, fields }) {
 
 export default function WatchListTable() {
 
-    const { tickers, loading, error } = useSelector((state: RootState) => state.watchList);
+    const { tickers, loading } = useSelector((state: RootState) => state.watchList);
 
     const fields = [
         { name: "Ticker", type: "text" },
@@ -59,7 +58,6 @@ export default function WatchListTable() {
     }
 
     if (loading) return <Alert>Loading WatchList</Alert>;
-    if (error) return <Alert variant="danger">{translateError(error)}</Alert>;
 
     if (tickers.length == 0) {
         return (<h3 role="noModels">No Data</h3>)

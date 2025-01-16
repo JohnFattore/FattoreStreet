@@ -4,16 +4,17 @@ import AssetTable from '../components/AssetTable';
 import { getAssets } from '../components/axiosFunctions';
 import LoginForm from '../components/LoginForm';
 import { Row, Col, Accordion } from 'react-bootstrap';
-import { useDispatch } from "react-redux";
-import { AppDispatch } from '../main';
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from '../main';
 import AllocationTable from '../components/AllocationTable';
 import YahooFinanceBanner from '../components/YahooFinanceBanner';
 import FinnhubBanner from '../components/FinnhubBanner';
+import ReinvestDividends from '../components/ReinvestDividends'
 
 export default function Portfolio() {
     const dispatch = useDispatch<AppDispatch>();
-    //const { assets, loading, error } = useSelector((state: RootState) => state.assets);
-
+    const { username } = useSelector((state: RootState) => state.user);
+ 
     useEffect(() => {
         dispatch(getAssets());
     }, [dispatch])
@@ -26,17 +27,23 @@ export default function Portfolio() {
                     <AssetForm />
                 </Col>
                 <Col>
-                    <Accordion defaultActiveKey="1">
-                        <Accordion.Item eventKey="0">
+                    <Accordion defaultActiveKey="0">
+                        <Accordion.Item eventKey="1">
                             <Accordion.Header>Login</Accordion.Header>
                             <Accordion.Body>
                                 <LoginForm />
                             </Accordion.Body>
                         </Accordion.Item>
+                        <Accordion.Item eventKey="2">
+                            <Accordion.Header>Historical Stock Prices</Accordion.Header>
+                            <Accordion.Body>
+                                <ReinvestDividends />
+                            </Accordion.Body>
+                        </Accordion.Item>
                     </Accordion>
                 </Col>
             </Row>
-            <h1 role="assetTableHeader">User's Portfolio</h1>
+            <h1>{username ? `${username}'s Portfolio` : 'Portfolio'}</h1>
             <AssetTable />
             <h3>Allocation</h3>
             <AllocationTable />

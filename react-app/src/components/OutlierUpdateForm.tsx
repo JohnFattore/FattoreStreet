@@ -4,7 +4,6 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
 import { patchIndexMembers } from './axiosFunctions';
-import { handleError } from './helperFunctions';
 
 interface IFormInput {
     notes: string,
@@ -30,8 +29,8 @@ export default function OutlierUpdateForm({ setMessage, dispatch, outliers }) {
             patchIndexMembers(data.notes, outlier.id).then(() => {
                 dispatch({ type: "update", outlier: outlier });
                 setMessage({ text: data.ticker.concat(" notes updated"), type: "success" })
-            }).catch((error) => {
-                handleError(error, setMessage)
+            }).catch(() => {
+                //handleError(error, setMessage)
                 //setMessage({ text: "Error setting notes, not logged in", type: "error" })
             })
         }

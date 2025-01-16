@@ -10335,6 +10335,10 @@ body {
   color: #f2d492ff;
   background-color: #202c39ff; }
 
+.table th:hover {
+  color: #202c39ff;
+  background-color: #c3d898; }
+
 .accordion-item {
   border-color: #202c39ff; }
 
@@ -10371,5 +10375,10 @@ img {
   margin-left: auto;
   margin-right: auto;
   width: 40%; }
+
+.app-container {
+  padding: 20px;
+  border-radius: 5px;
+  /* Optional: Adds rounded corners */ }
 
 /*# sourceMappingURL=custom.css.map */

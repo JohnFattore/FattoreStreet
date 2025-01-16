@@ -4,10 +4,10 @@ from .models import Asset, SnP500Price
 
 @admin.register(Asset)
 class AssetAdmin(SimpleHistoryAdmin):
-    list_display = ('id', 'ticker', 'shares', 'costbasis', 'buyDate', 'dividends', 'reinvestShares', 'user')
-    history_list_display = ('id', 'ticker', 'shares', 'costbasis', 'buyDate', 'dividends', 'reinvestShares', 'user')
+    list_display = ('id', 'ticker', 'shares', 'costbasis', 'buyDate', 'user')
+    history_list_display = ('id', 'ticker', 'shares', 'costbasis', 'buyDate','user')
 
 @admin.register(SnP500Price)
 class SnP500PriceAdmin(SimpleHistoryAdmin):
-    list_display = ('id', 'date', 'price', 'dividends', 'reinvestShares')
-    history_list_display = ('id', 'date', 'price', 'dividends', 'reinvestShares')
+    list_display = ('id', 'date', 'price')
+    history_list_display = ('id', 'date', 'price')

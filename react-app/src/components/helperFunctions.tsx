@@ -1,4 +1,5 @@
-import { IMessage, IOption, ISelection } from "../interfaces"
+import { IQuote } from "../interfaces";
+import { getQuote } from "./axiosFunctions";
 
 export function formatString(value: string | number, type: string): string {
     switch (type) {
@@ -43,23 +44,6 @@ export function formatString(value: string | number, type: string): string {
     }
 }
 
-export function setAlertVarient(message: IMessage) {
-    if (message.type == "error")
-        return "danger"
-    else if (message.type == "success")
-        return "success"
-    else if (message.type == "loading")
-        return "primary"
-    else
-        return ""
-}
-
-export function selectedOption(option: IOption, selections: ISelection[]) {
-    const selectionsFiltered: ISelection[] = selections.filter((selection: ISelection) => selection.option == option.id)
-    if (selectionsFiltered.length != 0)
-        return "green"
-}
-
 // this weeks sunday, sunday last past, is 0
 export function getSunday(week: number) {
     function addDays(date, days) {
@@ -85,35 +69,7 @@ export function getSunday(week: number) {
 }
 
 
-// I imagine one handleResponse functions that can be used for all axios functions
-
-export function handleError(error, setMessage) {
-    if (error.response.statusText == 'Unauthorized') {
-        if (error.response.data.detail == 'Given token not valid for any token type') {
-            setMessage({ text: "Please Login", type: "error" })
-        }
-        else if (error.response.data.detail == 'No active account found with the given credentials') {
-            setMessage({ text: "Wrong Email/Password", type: "error" })
-        }
-        else {
-            setMessage({ text: "Please Login", type: "error" })
-        }
-    }
-    else if (error.response.statusText == 'Bad Request') {
-        setMessage({ text: String(error.response.data.buy[0]), type: "error" })
-    }
-
-    else if (error.response.data.code == 'token_not_valid') {
-        // could redirect to a login page
-        setMessage({ text: "Please Login", type: "error" })
-    }
-
-    else {
-        setMessage({ text: "Error", type: "error" })
-    }
-    // could have single setMessage at end
-}
-
+// phase this out, good error message come from the server, set with axiosFunctions and the reducers
 export function translateError(error: string) {
     if (error == 'Request failed with status code 401') {
         return 'Please Login'
@@ -122,5 +78,30 @@ export function translateError(error: string) {
         return 'Server Error'
     else {
         return error
+    }
+}
+
+export async function fetchQuote(ticker: string): Promise<IQuote> {
+    const storedQuote = localStorage.getItem(ticker);
+    const currentTime = Date.now();
+
+    if (storedQuote) {
+        const [price, percentChange, timestamp] = JSON.parse(storedQuote);
+        const isRecent = (currentTime - timestamp) < 100000; // 100 seconds
+
+        if (isRecent) {
+            return { price, percentChange };
+        }
+    }
+
+    // Fetch new quote if not in localStorage or outdated
+    try {
+        const response = await getQuote(ticker);
+        const { c: price, dp: percentChange } = response.data;
+        localStorage.setItem(ticker, JSON.stringify([price, percentChange, currentTime]));
+        return { price, percentChange };
+    } catch (error) {
+        console.error(`Error fetching quote for ${ticker}:`, error);
+        throw new Error('Failed to fetch quote');
     }
 }

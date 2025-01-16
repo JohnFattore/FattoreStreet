@@ -12,7 +12,6 @@ const initialState: WatchListState = {
   error: '',
 };
 
-// no loading stuff... idk maybe not an issue
 const watchListSlice = createSlice({
   name: 'watchList',
   initialState,
@@ -35,7 +34,10 @@ const watchListSlice = createSlice({
       state.tickers = updatedTickers;
       localStorage.setItem("tickers", (JSON.stringify(state.tickers)));
     },
+    errorTicker: (state, action) => {
+      state.error = action.payload
+    },
 },
 });
-export const { loadTickers, addTicker, removeTicker } = watchListSlice.actions;
+export const { loadTickers, addTicker, removeTicker, errorTicker } = watchListSlice.actions;
 export default watchListSlice.reducer;

@@ -5,12 +5,12 @@ from rest_framework import permissions, generics, serializers
 from .serializers import AssetSerializer, SnP500PriceSerializer
 from .permissions import IsOwner
 from .models import Asset, SnP500Price
-from .tasks import SnP500PriceUpdate, ReinvestSnP500Dividends
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
+from .tasks import SnP500PriceUpdate
 import yfinance as yf
 from datetime import datetime, timedelta, date
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 def get_next_day(date_str, date_format="%Y-%m-%d"):
     date_obj = datetime.strptime(date_str, date_format)
@@ -29,7 +29,10 @@ class AssetListCreateView(generics.ListCreateAPIView):
     # user comes from different part of response as other data
     def perform_create(self, serializer):
         buyDate = self.request.data["buyDate"]
-        SnP = SnP500Price.objects.get(date=buyDate)
+        try:
+            SnP = SnP500Price.objects.get(date=buyDate)
+        except:
+            raise serializers.ValidationError({"detail": "Stock market was closed that day."})
         yfinance = yf.Ticker(self.request.data["ticker"])
         data = yfinance.history(start=buyDate, end=get_next_day(buyDate))
         serializer.save(user=self.request.user, SnP500Price=SnP, costbasis=data['Close'].get(buyDate, None))
@@ -50,30 +53,25 @@ class SnP500RetrieveView(generics.RetrieveAPIView):
         except SnP500Price.DoesNotExist:
             raise serializers.ValidationError({"detail": "No record found for the given date."})
         
-class UpdateSnP500PriceView(APIView):
+def daterange(start_date, end_date):
+    """Helper function to iterate over a range of dates."""
+    for n in range((end_date - start_date).days + 1):
+        yield start_date + timedelta(n)
+
+class SnP500PriceCreateView(APIView):
     def post(self, request):
-        # Trigger the Celery task
-        task = SnP500PriceUpdate.delay()
-        return Response({"task_id": task.id}, status=status.HTTP_202_ACCEPTED)
-    
-class ReinvestSnP500DividendsView(APIView):
-    def post(self, request):
-        # Trigger the Celery task
-        task = ReinvestSnP500Dividends.delay()
-        return Response({"task_id": task.id}, status=status.HTTP_202_ACCEPTED)
-    
-class ReinvestDividendsView(generics.RetrieveUpdateAPIView):
-    queryset = Asset.objects.all()
-    serializer_class = AssetSerializer
-    def perform_update(self, serializer):
-        asset = serializer.instance
-        yfinance = yf.Ticker(asset.ticker)
-        data = yfinance.history(start=asset.buyDate.strftime("%Y-%m-%d"), end=date.today().strftime("%Y-%m-%d"))
-        dividends = yfinance.dividends
-        currentShares = 1
-        for dividend_date, dividend in dividends.items():
-            price = data["Close"][dividend_date.strftime("%Y-%m-%d")]
-            newShares = ((dividend * currentShares) / price)
-            currentShares = currentShares + newShares
-        asset.shares = currentShares
-        serializer.save()
+        yfinance = yf.Ticker('SPY')
+        start_date = date(2005, 1, 1)
+        end_date = date(2025, 12, 31)
+        data = yfinance.history(start=start_date.strftime("%Y-%m-%d"), end=end_date.strftime("%Y-%m-%d"))
+        queryset = SnP500Price.objects.all()
+
+        for single_date in daterange(start_date, end_date):
+            if not queryset.filter(date=single_date).exists():
+                try:
+                    SnP500Price.objects.create(date=single_date, price=data['Close'][single_date.strftime("%Y-%m-%d")])
+                except:
+                    print(single_date.strftime("%Y-%m-%d") + " has no value")
+            else:
+                print("Date already exists")
+        return Response({"message": "S&P 500 prices populated successfully!"}, status=status.HTTP_200_OK)
