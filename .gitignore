@@ -4,3 +4,9 @@ AWSCommands.txt
 django/mysite/__pycache__/
 *.log
 deploy.sh
+pytorch/yelp_dataset
+django/restaurants/yelp_dataset
+
+react-app/node_modules
+react-app/dist
+.env.*

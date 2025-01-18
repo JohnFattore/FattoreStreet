@@ -15,19 +15,6 @@ $tertiary: #c3d898;
 // Include all of bootstrap
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
-// Change stripped table colors
-.table-striped>tbody>tr:nth-child(odd)>td,
-.table-striped>tbody>tr:nth-child(odd)>th {
-  background-color: $secondary;
-  color: $primary;
-}
-
-.table-striped>tbody>tr:nth-child(even)>td,
-.table-striped>tbody>tr:nth-child(even)>th {
-  background-color: $primary;
-  color: $secondary
-}
-
 // change <body> colors
 body {
   color: $primary;
@@ -50,6 +37,8 @@ body {
   color: $primary;
   background-color: $tertiary;
   border-color: $primary;
+  border-left: 1px solid $primary;
+  border-right: 1px solid $primary;
 }
 
 .table td:hover {
@@ -60,6 +49,8 @@ body {
 .table th {
   color: $secondary;
   background-color: $primary;
+  border-left: 1px solid $primary;
+  border-right: 1px solid $primary;
 }
 
 .table th:hover {

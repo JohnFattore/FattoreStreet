@@ -88,10 +88,16 @@ export interface IRatio {
 /******************************************* Restaurant *************************************************/
 
 export interface IRestaurant {
+    yelp_id: string;
     name: string;
     address: string;
-    phone_number: string;
-    website: string;
+    state: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+    categories: string;
+    stars: string;
+    review_count: string;
     id: number;
 }
 

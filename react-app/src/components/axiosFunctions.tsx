@@ -114,16 +114,17 @@ export const postAsset = createAsyncThunk('assets/postAsset',
       const quote = await fetchQuote(assetData.ticker)
       const quoteSPY = await fetchQuote("SPY")
       const totalCostBasis = assetData.shares * assetData.costbasis
-      return {ticker: assetData.ticker,
-              shares: assetData.shares,
-              costBasis: assetData.costbasis,
-              buyDate: assetData.buyDate,
-              totalCostBasis: totalCostBasis,
-              currentPrice: quote.price,
-              percentChange: (quote.price - totalCostBasis) / totalCostBasis,
-              SnP500Price: assetData.SnP500Price.price,
-              SnP500PercentChange: (quoteSPY.price - assetData.SnP500Price.price) / assetData.SnP500Price.price,
-              id: assetData.id
+      return {
+        ticker: assetData.ticker,
+        shares: assetData.shares,
+        costBasis: assetData.costbasis,
+        buyDate: assetData.buyDate,
+        totalCostBasis: totalCostBasis,
+        currentPrice: quote.price,
+        percentChange: (quote.price - totalCostBasis) / totalCostBasis,
+        SnP500Price: assetData.SnP500Price.price,
+        SnP500PercentChange: (quoteSPY.price - assetData.SnP500Price.price) / assetData.SnP500Price.price,
+        id: assetData.id
       }
     }
     catch (error: any) {
@@ -161,12 +162,13 @@ export const getSnP500Price = createAsyncThunk('SnP500Prices/getSnP500',
       const SnP500Data = response.data
       const quote = await fetchQuote("SPY")
       return {
-              date: SnP500Data.date,
-              costBasis: SnP500Data.price,
-              currentPrice: quote.price,
-              percentChange: (quote.price - SnP500Data.price)/SnP500Data.price,
-              id: SnP500Data.id
-      }    }
+        date: SnP500Data.date,
+        costBasis: SnP500Data.price,
+        currentPrice: quote.price,
+        percentChange: (quote.price - SnP500Data.price) / SnP500Data.price,
+        id: SnP500Data.id
+      }
+    }
     catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Adding S&P 500 date failed');
     }
@@ -228,7 +230,12 @@ export const patchIndexMembers = async (notes: string, id: number) => {
 // handle errors here, seems like a good idea, particurly when i can use redux to setMessage
 export const getRestaurants = createAsyncThunk<IRestaurant[]>('restaurants/getRestaurants',
   async () => {
-    const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurant-list-create/"));
+    const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurant-list-create/"), {
+      params: {
+        state: "TN",
+        city: "Nashville"
+      }
+    });
     return response.data
   }
 )

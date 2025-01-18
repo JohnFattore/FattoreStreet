@@ -10301,16 +10301,6 @@ textarea.form-control-lg {
 
   .d-print-none {
     display: none !important; } }
-.table-striped > tbody > tr:nth-child(odd) > td,
-.table-striped > tbody > tr:nth-child(odd) > th {
-  background-color: #f2d492ff;
-  color: #202c39ff; }
-
-.table-striped > tbody > tr:nth-child(even) > td,
-.table-striped > tbody > tr:nth-child(even) > th {
-  background-color: #202c39ff;
-  color: #f2d492ff; }
-
 body {
   color: #202c39ff;
   background-color: #f2d492ff; }
@@ -10325,7 +10315,9 @@ body {
 .table td {
   color: #202c39ff;
   background-color: #c3d898;
-  border-color: #202c39ff; }
+  border-color: #202c39ff;
+  border-left: 1px solid #202c39ff;
+  border-right: 1px solid #202c39ff; }
 
 .table td:hover {
   color: #f2d492ff;
@@ -10333,7 +10325,9 @@ body {
 
 .table th {
   color: #f2d492ff;
-  background-color: #202c39ff; }
+  background-color: #202c39ff;
+  border-left: 1px solid #202c39ff;
+  border-right: 1px solid #202c39ff; }
 
 .table th:hover {
   color: #202c39ff;

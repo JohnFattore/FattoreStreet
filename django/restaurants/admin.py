@@ -4,8 +4,8 @@ from .models import Restaurant, Review, MenuItem, Favorite
 
 @admin.register(Restaurant)
 class RestaurantAdmin(SimpleHistoryAdmin):
-    list_display = ('id', 'name', 'address', 'phone_number', 'website')
-    history_list_display = ('id', 'name', 'address', 'phone_number', 'website')
+    list_display = ('id', 'name', 'address', 'state', 'city', 'latitude', 'longitude', 'categories', 'stars', 'review_count')
+    history_list_display = ('id', 'name', 'address', 'state', 'city', 'latitude', 'longitude', 'categories', 'stars', 'review_count')
 
 @admin.register(Review)
 class ReviewAdmin(SimpleHistoryAdmin):

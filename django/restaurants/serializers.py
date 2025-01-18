@@ -5,10 +5,16 @@ class RestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
         fields = [
+                'yelp_id',
                 'name',
                 'address',
-                'phone_number',
-                'website',
+                'state',
+                'city',
+                'latitude',
+                'longitude',
+                'categories',
+                'stars',
+                'review_count'
         ]
 
 class ReviewSerializer(serializers.ModelSerializer):

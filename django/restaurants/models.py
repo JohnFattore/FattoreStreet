@@ -3,10 +3,27 @@ from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
 
 class Restaurant(models.Model):
+    RATING_CHOICES = [
+    (1, '1 - Poor'),
+    (1.5, '1.5 - Subpar'),
+    (2, '2 - Fair'),
+    (2.5, '2.5 - Almost Good'),
+    (3, '3 - Good'),
+    (3.5, '3.5 - Decent'),
+    (4, '4 - Very Good'),
+    (4.5, '4.5 - Excellent-ish'),
+    (5, '5 - Excellent'),
+    ]
+    yelp_id= models.CharField(max_length=250, default=1)
     name = models.CharField(max_length=250)
     address = models.TextField()
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
-    website = models.URLField(blank=True, null=True)
+    state = models.TextField(default="Nash")
+    city = models.TextField(default="NA")
+    latitude = models.DecimalField(max_digits=25, decimal_places=8, default=1)
+    longitude = models.DecimalField(max_digits=25, decimal_places=8, default=1)
+    categories = models.TextField(default="eat")
+    stars = models.DecimalField(max_digits=2, decimal_places=1, choices=RATING_CHOICES, default=1)
+    review_count = models.IntegerField(default=0)
     history = HistoricalRecords()
     def __str__(self):
         return self.name
