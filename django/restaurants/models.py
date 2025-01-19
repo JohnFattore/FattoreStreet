@@ -40,14 +40,15 @@ class Review(models.Model):
     (4.5, '4.5 - Excellent-ish'),
     (5, '5 - Excellent'),
     ]
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES) 
     comment = models.TextField(blank=True, null=True) 
     history = HistoricalRecords()
     def __str__(self):
-        return self.restaurant.name
-    
+        return self.Restaurant.name
+
+# probably wont include menu items til later
 class MenuItem(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)

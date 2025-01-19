@@ -2,8 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 import { getRestaurants } from '../components/axiosFunctions';
 import { IRestaurant } from '../interfaces';
 
-function sortRestaurant(assets: IRestaurant[], sortColumn: keyof IRestaurant, sortDirection: 'asc' | 'desc'): IRestaurant[] {
-  return [...assets].sort((a, b) => {
+function sortRestaurant(restaurants: IRestaurant[], sortColumn: keyof IRestaurant, sortDirection: 'asc' | 'desc'): IRestaurant[] {
+  return [...restaurants].sort((a, b) => {
     const aValue = a[sortColumn];
     const bValue = b[sortColumn];
 

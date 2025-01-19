@@ -3,9 +3,10 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { postReview } from './axiosFunctions';
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from '../main';
 
 interface IFormInput {
-    restaurant: number,
     rating: number,
     comment: string
 }
@@ -20,11 +21,13 @@ const RATING_CHOICES = [
     { value: 4, label: "4 - Very Good" },
     { value: 4.5, label: "4.5 - Excellent-ish" },
     { value: 5, label: "5 - Excellent" },
-  ];
+];
 
-export default function ReviewForm({ setMessage }) {
+export default function ReviewForm({ restaurant }) {
+    const dispatch = useDispatch<AppDispatch>();
+    const { loading, error } = useSelector((state: RootState) => state.reviews);
+
     const schema = yup.object().shape({
-        restaurant: yup.number().required(),
         rating: yup.number().required(),
         comment: yup.string().required(),
     });
@@ -33,45 +36,51 @@ export default function ReviewForm({ setMessage }) {
     const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>({
         resolver: yupResolver(schema)
     })
-    //console.log(watch("username"))
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        postReview(1, data.rating, data.comment)
-            .then(() => {
-                setMessage({ text: "Review Submitted", type: "success" });
-            }).catch(() => {
-                setMessage({ text: "Error submitting review", type: "error" });
-            });
+        dispatch(postReview({
+            restaurant: restaurant.id,
+            name: '',
+            user: 1,
+            rating: data.rating,
+            comment: data.comment,
+            id: 1
+        }))
     }
 
     return (
-        <Form onSubmit={handleSubmit(onSubmit)}>
-            <Row>
-                <Col sm={3}>
-                    <Form.Select
-                        size="lg"
-                        {...register("rating", { required: true })}
-                        aria-label="Rating"
-                    >
-                        <option value="" disabled>
-                            Select a rating
-                        </option>
-                        {RATING_CHOICES.map(({ value, label }) => (
-                            <option key={value} value={value}>
-                                {label}
+        <>
+            <h3>{restaurant.id == 0 ? "Select Restaurant to Review" : "Review for " + restaurant.name}</h3>
+            <Form onSubmit={handleSubmit(onSubmit)}>
+                <Row>
+                    <Col sm={3}>
+                        <Form.Select
+                            size="lg"
+                            {...register("rating", { required: true })}
+                            aria-label="Rating"
+                        >
+                            <option value="" disabled>
+                                Select a rating
                             </option>
-                        ))}
-                    </Form.Select>
-                    {errors.comment && <Alert variant='danger' role="commentError">This field is required</Alert>}
-                </Col>
-                <Col sm={3}>
-                    <Form.Control size="lg" {...register("comment", {
-                        required: true
-                    })} placeholder='Comment' />
-                    {errors.comment && <Alert variant='danger' role="commentError">This field is required</Alert>}
+                            {RATING_CHOICES.map(({ value, label }) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </Form.Select>
+                        {errors.comment && <Alert variant='danger' role="commentError">This field is required</Alert>}
+                    </Col>
+                    <Col sm={3}>
+                        <Form.Control size="lg" {...register("comment", {
+                            required: true
+                        })} placeholder='Comment' />
+                        {errors.comment && <Alert variant='danger' role="commentError">This field is required</Alert>}
 
-                </Col>
-            </Row>
-            <Button type="submit">Submit Review</Button>
-        </Form>
+                    </Col>
+                </Row>
+                <Button type="submit" disabled={restaurant.id == 0 || loading}>Submit Review</Button>
+            </Form>
+            {error && <Alert variant="danger">{error}</Alert>}
+        </>
+
     );
 }

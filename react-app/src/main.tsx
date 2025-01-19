@@ -13,7 +13,7 @@ import storage from 'redux-persist/lib/storage'; // Default storage (localStorag
 const persistConfig = {
     key: 'root', // The key to store the data in storage
     storage, // The storage to use (localStorage or sessionStorage)
-    whitelist: ['user', 'snp500Prices'], // Only persist the user reducer
+    whitelist: ['user', 'snp500Prices', 'location'], // Only persist the user reducer
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

@@ -97,12 +97,13 @@ export interface IRestaurant {
     longitude: number;
     categories: string;
     stars: string;
-    review_count: string;
+    review_count: number;
     id: number;
 }
 
 export interface IReview {
     restaurant: number;
+    name: string;
     user: number;
     rating: number;
     comment: string;

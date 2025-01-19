@@ -14,15 +14,19 @@ const fields = [
     //{ name: "Categories", type: "text", field: "categories" },
     { name: "Stars", type: "number", field: "stars" },
     { name: "Review Count", type: "text", field: "review_count" },
-
+    { name: "Create Review", type: "text", field: "createReview" },
 ]
 
 // function is for simple calculations, function2 is for more complex operations
-function RestaurantRow({ restaurant }) {
+function RestaurantRow({ restaurant, setRestaurant }) {
     let tableData: JSX.Element[] = [];
-
     for (let i = 0; i < fields.length; i++) {
-        tableData.push(<td key={i}>{formatString(restaurant[fields[i]["field"]], fields[i]["type"])}</td>)
+        if (fields[i]["field"] == "createReview") {
+            tableData.push(<td key={i} onClick={() => setRestaurant(restaurant)}>{fields[i]["name"]}</td>)
+        }
+        else {
+            tableData.push(<td key={i}>{formatString(restaurant[fields[i]["field"]], fields[i]["type"])}</td>)
+        }
     }
 
     return (
@@ -31,7 +35,7 @@ function RestaurantRow({ restaurant }) {
         </tr>)
 }
 
-export default function RestaurantTable() {
+export default function RestaurantTable({setRestaurant}) {
     const { restaurants, loading, error, sort } = useSelector((state: RootState) => state.restaurants);
     const dispatch = useDispatch<AppDispatch>();
     if (loading) return <Alert>Loading Restaurants</Alert>;
@@ -64,7 +68,7 @@ export default function RestaurantTable() {
             </thead>
             <tbody>
                 {restaurants.map((restaurant, index) => (
-                    <RestaurantRow key={index} restaurant={restaurant} />
+                    <RestaurantRow key={index} restaurant={restaurant} setRestaurant={setRestaurant} />
                 ))}
             </tbody>
         </Table>

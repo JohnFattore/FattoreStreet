@@ -24,7 +24,7 @@ class AssetListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     # return only the assets the user owns
     def get_queryset(self):
-        return Asset.objects.filter(user=self.request.user).select_related("SnP500Price")
+        return Asset.objects.filter(user=self.request.user).select_related("SnP500Price") 
 
     # user comes from different part of response as other data
     def perform_create(self, serializer):
@@ -35,7 +35,7 @@ class AssetListCreateView(generics.ListCreateAPIView):
             raise serializers.ValidationError({"detail": "Stock market was closed that day."})
         yfinance = yf.Ticker(self.request.data["ticker"])
         data = yfinance.history(start=buyDate, end=get_next_day(buyDate))
-        serializer.save(user=self.request.user, SnP500Price=SnP, costbasis=data['Close'].get(buyDate, None))
+        serializer.save(user=self.request.user, SnP500Price=SnP, costbasis=data['Close'].get(buyDate, None)) 
 
 # API endpoint for 'get' or 'delete' asset, only the owner should be able to do this
 class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):

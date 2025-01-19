@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { IAsset, IRestaurant } from '../interfaces';
+import { IAsset, IRestaurant, IReview } from '../interfaces';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '../main';
 import { fetchQuote } from './helperFunctions';
@@ -227,34 +227,122 @@ export const patchIndexMembers = async (notes: string, id: number) => {
 }
 
 /********************************* Restaurants *************************************/
-// handle errors here, seems like a good idea, particurly when i can use redux to setMessage
 export const getRestaurants = createAsyncThunk<IRestaurant[]>('restaurants/getRestaurants',
-  async () => {
-    const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurant-list-create/"), {
-      params: {
-        state: "TN",
-        city: "Nashville"
-      }
-    });
-    return response.data
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const location = state.location;
+      const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurant-list-create/"), {
+        params: {
+          state: location.state,
+          city: location.city
+        }
+      });
+      const transformedData: IRestaurant[] = await Promise.all(response.data.map(async (restaurant: any) => {
+        return {
+          yelp_id: restaurant.yelp_id,
+          name: restaurant.name,
+          address: restaurant.address,
+          state: restaurant.state,
+          city: restaurant.city,
+          latitude: restaurant.latitude,
+          longitude: restaurant.longitude,
+          categories: restaurant.categories,
+          stars: restaurant.stars,
+          review_count: restaurant.review_count,
+          id: restaurant.id,
+        }
+      })
+      );
+      return transformedData
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Getting Restaurants failed');
+    }
   }
 )
 
-export const getReviews = async () => {
-  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-list/"));
-  return response
-}
-
-export const postReview = async (restaurant: number, rating: number, comment: string) => {
-  const response = await axios.post(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-create/"), {
-    restaurant: restaurant,
-    user: 1,
-    rating: rating,
-    comment: comment,
-  }, {
-    headers: {
-      'Authorization': ' Bearer '.concat(sessionStorage.getItem('token') as string),
+export const getReviews = createAsyncThunk<IReview[]>('reviews/getReviews',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-list/"), {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        }
+      });
+      const transformedData: IReview[] = await Promise.all(response.data.map(async (review: any) => {
+        return {
+          restaurant: review.restaurant,
+          name: review.restaurant_detail.name,
+          user: review.user,
+          rating: review.rating,
+          comment: review.comment,
+          id: review.id,
+        }
+      })
+      );
+      return transformedData
     }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Getting Review failed');
+    }
+  }
+
+)
+
+export const postReview = createAsyncThunk('reviews/postReview',
+  async (review: IReview, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      console.log(review)
+      const response = await axios.post(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-create/"), {
+        restaurant: review.restaurant,
+        user: 1,
+        rating: review.rating,
+        comment: review.comment,
+      }, {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        }
+      });
+      return response.data
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Adding Review failed');
+    }
+  }
+)
+
+export const deleteReview = createAsyncThunk('reviews/deleteReview',
+  async (id: number, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      await axios.delete(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review/", id, "/"), {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        }
+      });
+      return { id: id };
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Deleting Review failed');
+    }
+  }
+)
+
+// this doesnt quite work, state
+/*
+export const getReview = async (id: number) => {
+  const access = store.getState().user.access
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("review/", id, "/"), {
+    headers: {
+      'Authorization': ' Bearer '.concat(access)
+    },
   });
   return response
 }
+  */

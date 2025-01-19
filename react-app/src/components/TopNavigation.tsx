@@ -15,6 +15,7 @@ export default function TopNavigation() {
             <Nav.Link href="watchlist">Watch List</Nav.Link>
             <Nav.Link href="snp500prices">S&P500 Prices</Nav.Link>
             <Nav.Link href="restaurants">Restaurants</Nav.Link>
+            <Nav.Link href="reviews">Reviews</Nav.Link>
             <Nav.Link href="education">Suggestions</Nav.Link>
             <Nav.Link href="register">Register</Nav.Link>
             <Nav.Link href="outliers">Outliers</Nav.Link>

@@ -11,25 +11,26 @@ class RestaurantListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return Restaurant.objects.filter(state=self.request.GET.get("state"), city=self.request.GET.get("city"))
 
+class ReviewRetrieveDestroyView(generics.RetrieveDestroyAPIView):
+    queryset = Review.objects.all().select_related("restaurant")
+    serializer_class = ReviewSerializer
+    permission_classes = [IsOwner]
+
 # API endpoint for 'get' assets and 'post' asset
 class ReviewListView(generics.ListAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    def get_queryset(self):
+        return Review.objects.filter(user=self.request.user).select_related("restaurant") 
 
 class ReviewCreateView(generics.CreateAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [IsOwner]
-    # user comes from different part of response as other data
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 class YelpLoadView(views.APIView):
-    """
-    API endpoint to trigger the YelpLoad Celery task.
-    """
     def post(self, request):
         # Trigger the Celery task
         task = YelpLoad.delay()  # Asynchronously starts the task
