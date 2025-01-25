@@ -4,8 +4,9 @@ import { formatString } from './helperFunctions';
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { deleteAsset } from './axiosFunctions';
-import { setAssetSort } from '../reducers/assetReducer'; 
+import { setAssetSort } from '../reducers/assetReducer';
 
+// could add real vs nominal returns
 const fields = [
     { name: "Ticker", type: "text", field: "ticker" },
     { name: "Shares", type: "amount", field: "shares" },
@@ -38,7 +39,7 @@ function AssetRow({ asset }) {
 
 export default function AssetTable() {
     const { assets, error, sort, loading } = useSelector((state: RootState) => state.assets);
-    const { access } = useSelector((state: RootState) => state.user)
+    const { access, username } = useSelector((state: RootState) => state.user)
     const dispatch = useDispatch<AppDispatch>();
 
     const handleSort = (sortColumn: string) => {
@@ -55,11 +56,11 @@ export default function AssetTable() {
     }
 
     if (!access) {
-        return (<Alert variant='danger'>Please Login</Alert>)
+        return (<></>)
     }
 
     if (assets.length == 0 && access && !loading) {
-        return (<Alert variant='danger'>No Data</Alert>)
+        return (<Alert>{username.concat(" has no assets")}</Alert>)
     }
 
     if (loading) {

@@ -277,7 +277,7 @@ export const getReviews = createAsyncThunk<IReview[]>('reviews/getReviews',
           restaurant: review.restaurant,
           name: review.restaurant_detail.name,
           user: review.user,
-          rating: review.rating,
+          rating: Number(review.rating),
           comment: review.comment,
           id: review.id,
         }
@@ -301,7 +301,7 @@ export const postReview = createAsyncThunk('reviews/postReview',
       const response = await axios.post(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-create/"), {
         restaurant: review.restaurant,
         user: 1,
-        rating: review.rating,
+        rating: Number(review.rating),
         comment: review.comment,
       }, {
         headers: {

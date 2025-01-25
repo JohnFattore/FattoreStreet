@@ -42,11 +42,11 @@ class Review(models.Model):
     ]
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES) 
+    rating = models.DecimalField(max_digits=2, decimal_places=1, choices=RATING_CHOICES, default=1)
     comment = models.TextField(blank=True, null=True) 
     history = HistoricalRecords()
     def __str__(self):
-        return self.Restaurant.name
+        return self.restaurant.name
 
 # probably wont include menu items til later
 class MenuItem(models.Model):

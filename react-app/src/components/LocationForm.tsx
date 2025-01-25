@@ -8,6 +8,26 @@ import { AppDispatch, RootState } from '../main';
 import { setLocation } from '../reducers/locationReducer';
 import { getRestaurants } from './axiosFunctions';
 
+const STATE_CHOICES = [
+    { value: "AZ", label: "Arizona" },
+    { value: "CA", label: "California" },
+    { value: "CO", label: "Colorado" },
+    { value: "DE", label: "Delaware" },
+    { value: "FL", label: "Florida" },
+    { value: "HI", label: "Hawaii" },
+    { value: "ID", label: "Idaho" },
+    { value: "IL", label: "Illinois" },
+    { value: "IN", label: "Indiana" },
+    { value: "LA", label: "Louisiana" },
+    { value: "MO", label: "Missouri" },
+    { value: "MT", label: "Montana" },
+    { value: "NV", label: "Nevada" },
+    { value: "NJ", label: "New Jersey" },
+    { value: "NC", label: "North Carolina" },
+    { value: "PA", label: "Pennsylvania" },
+    { value: "TN", label: "Tennessee" },
+];
+
 interface IFormInput {
     state: string,
     city: string,
@@ -36,11 +56,21 @@ export default function LocationForm() {
         <Form onSubmit={handleSubmit(onSubmit)}>
             <Row>
                 <Col>
-                    <Form.Control size="lg" {...register("state", {
-                        required: true
-                    })} placeholder='State' />
-                    {errors.state && <Alert variant="danger">Error: State field is required</Alert>}
-
+                    <Form.Select
+                        size="lg"
+                        {...register("state", { required: true })}
+                        aria-label="Rating"
+                    >
+                        <option value="" disabled>
+                            Select a rating
+                        </option>
+                        {STATE_CHOICES.map(({ value, label }) => (
+                            <option key={value} value={value}>
+                                {label}
+                            </option>
+                        ))}
+                        {errors.state && <Alert variant="danger">Error: State field is required</Alert>}
+                    </Form.Select>
                 </Col>
                 <Col>
                     <Form.Control size="lg" {...register("city", {

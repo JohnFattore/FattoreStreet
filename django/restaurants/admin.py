@@ -4,13 +4,13 @@ from .models import Restaurant, Review, MenuItem, Favorite
 
 @admin.register(Restaurant)
 class RestaurantAdmin(SimpleHistoryAdmin):
-    list_display = ('id', 'name', 'address', 'state', 'city', 'latitude', 'longitude', 'categories', 'stars', 'review_count')
-    history_list_display = ('id', 'name', 'address', 'state', 'city', 'latitude', 'longitude', 'categories', 'stars', 'review_count')
+    list_display = ('id', 'name', 'address', 'state', 'city', 'latitude', 'longitude', 'categories', 'stars', 'review_count', 'yelp_id')
+    history_list_display = ('id', 'name', 'address', 'state', 'city', 'latitude', 'longitude', 'categories', 'stars', 'review_count', 'yelp_id')
 
 @admin.register(Review)
 class ReviewAdmin(SimpleHistoryAdmin):
     list_display = ('id', 'restaurant', 'user', 'rating', 'comment')
-    history_list_display = ('id', 'restaurant', 'user', 'rating', 'comment')
+    history_list_display = ('id', 'restaurant', 'user', 'rating', 'comment') 
 
 @admin.register(MenuItem)
 class MenuItemAdmin(SimpleHistoryAdmin):

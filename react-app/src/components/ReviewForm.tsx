@@ -5,6 +5,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { postReview } from './axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
+import { useState } from 'react';
 
 interface IFormInput {
     rating: number,
@@ -26,6 +27,7 @@ const RATING_CHOICES = [
 export default function ReviewForm({ restaurant }) {
     const dispatch = useDispatch<AppDispatch>();
     const { loading, error } = useSelector((state: RootState) => state.reviews);
+    const [submission, setSubmission] = useState()
 
     const schema = yup.object().shape({
         rating: yup.number().required(),
@@ -45,6 +47,7 @@ export default function ReviewForm({ restaurant }) {
             comment: data.comment,
             id: 1
         }))
+        setSubmission(restaurant.name)
     }
 
     return (
@@ -69,7 +72,7 @@ export default function ReviewForm({ restaurant }) {
                         </Form.Select>
                         {errors.comment && <Alert variant='danger' role="commentError">This field is required</Alert>}
                     </Col>
-                    <Col sm={3}>
+                    <Col sm={9}>
                         <Form.Control size="lg" {...register("comment", {
                             required: true
                         })} placeholder='Comment' />
@@ -80,6 +83,7 @@ export default function ReviewForm({ restaurant }) {
                 <Button type="submit" disabled={restaurant.id == 0 || loading}>Submit Review</Button>
             </Form>
             {error && <Alert variant="danger">{error}</Alert>}
+            {submission && <Alert>{"Review for ".concat(submission, " submitted")}</Alert>}
         </>
 
     );

@@ -1,6 +1,6 @@
 import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { getAssets, login } from './axiosFunctions';
+import { getAssets, getReviews, login } from './axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { translateError } from './helperFunctions';
@@ -19,6 +19,7 @@ export default function LoginForm() {
         dispatch(login({username: data.username, password: data.password}))
         .then(() => {
             dispatch(getAssets())
+            dispatch(getReviews())
         })
     }
 
@@ -49,6 +50,5 @@ export default function LoginForm() {
                 <Button type="submit" disabled={loading}>Login</Button>
             </Form>
         </>
-
     );
 }

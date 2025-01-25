@@ -46,7 +46,7 @@ export default function AllocationTable() {
         { name: "Shares", type: "amount" },
         { name: "Total Market Price", type: "money" },
     ]
-    
+
     let headers: JSX.Element[] = []
     for (let i = 0; i < fields.length; i++) {
         headers.push(<th key={i}>{fields[i].name}</th>)
@@ -57,21 +57,25 @@ export default function AllocationTable() {
     }
 
     if (assets.length == 0) {
-        return (<h3 role="noModels">No Assets</h3>)
+        return (<></>)
     }
 
     return (
-        <Table>
-            <thead>
-                <tr>
-                    {headers}
-                </tr>
-            </thead>
-            <tbody>
-                {allocations.map((allocation) => (
-                    <AllocationRow key={allocation.ticker} allocation={allocation} fields={fields} />
-                ))}
-            </tbody>
-        </Table>
+        <>
+            <h3>Allocation</h3>
+            <Table>
+                <thead>
+                    <tr>
+                        {headers}
+                    </tr>
+                </thead>
+                <tbody>
+                    {allocations.map((allocation) => (
+                        <AllocationRow key={allocation.ticker} allocation={allocation} fields={fields} />
+                    ))}
+                </tbody>
+            </Table>
+        </>
+
     );
 }

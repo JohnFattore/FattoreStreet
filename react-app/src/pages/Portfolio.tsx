@@ -2,7 +2,6 @@ import AssetForm from '../components/AssetForm';
 import { useEffect } from 'react';
 import AssetTable from '../components/AssetTable';
 import { getAssets } from '../components/axiosFunctions';
-import LoginForm from '../components/LoginForm';
 import { Row, Col, Accordion } from 'react-bootstrap';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
@@ -21,19 +20,12 @@ export default function Portfolio() {
 
     return (
         <>
-            <h3>Add Assets</h3>
             <Row>
                 <Col>
                     <AssetForm />
                 </Col>
                 <Col>
                     <Accordion defaultActiveKey="0">
-                        <Accordion.Item eventKey="1">
-                            <Accordion.Header>Login</Accordion.Header>
-                            <Accordion.Body>
-                                <LoginForm />
-                            </Accordion.Body>
-                        </Accordion.Item>
                         <Accordion.Item eventKey="2">
                             <Accordion.Header>Historical Stock Prices</Accordion.Header>
                             <Accordion.Body>
@@ -45,7 +37,6 @@ export default function Portfolio() {
             </Row>
             <h1>{username ? `${username}'s Portfolio` : 'Portfolio'}</h1>
             <AssetTable />
-            <h3>Allocation</h3>
             <AllocationTable />
             <YahooFinanceBanner />
             <FinnhubBanner />

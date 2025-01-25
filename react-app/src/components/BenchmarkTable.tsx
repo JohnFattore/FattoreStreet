@@ -8,6 +8,7 @@ function BenchmarkRow({ benchmark, fields }) {
     const quote = useQuote(benchmark.ticker)
 
     let attributes: any[] = [
+        benchmark.name,
         benchmark.ticker,
         quote.price,
         quote.percentChange / 100,
@@ -27,19 +28,22 @@ function BenchmarkRow({ benchmark, fields }) {
 
 export default function BenchmarkTable() {
 
-    const benchmarks = [{ ticker: "VTI", name: "US Market" },
+    const benchmarks = [
+        { ticker: "VTI", name: "US Market" },
         { ticker: "VXUS", name: "Global Market Ex US" },
         { ticker: "VTWO", name: "US Small Cap" },
         { ticker: "BND", name: "US Investable Bond Market" },
         { ticker: "VNQ", name: "US Real Estate" },
-        { ticker: "UUP", name: "US Dollar vs International Currency" }]
+        { ticker: "UUP", name: "US Dollar vs International Currency" }
+    ]
 
     const fields = [
+        { name: "Name", type: "text" },
         { name: "Ticker", type: "text" },
         { name: "Price", type: "money" },
         { name: "Percent Change", type: "percent" },
     ]
-    
+
     let headers: JSX.Element[] = []
     for (let i = 0; i < fields.length; i++) {
         headers.push(<th key={i}>{fields[i].name}</th>)

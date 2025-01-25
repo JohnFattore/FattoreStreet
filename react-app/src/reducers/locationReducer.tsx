@@ -27,5 +27,5 @@ const locationSlice = createSlice({
   },
 });
 
-export const { setLocation } = locationSlice.actions; // Export the logout action
+export const { setLocation } = locationSlice.actions;
 export default locationSlice.reducer; 

@@ -4,9 +4,12 @@ AWSCommands.txt
 django/mysite/__pycache__/
 *.log
 deploy.sh
-pytorch/yelp_dataset
+machineLearning/yelp_dataset
+machineLearning/fred
 django/restaurants/yelp_dataset
 
 react-app/node_modules
 react-app/dist
 .env.*
+
+machineLearning/huggingFace.txt

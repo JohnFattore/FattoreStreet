@@ -13,7 +13,6 @@ import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
 import Outliers from "./pages/Outliers";
 import Restaurants from "./pages/Restaurants";
-import Reviews from "./pages/Reviews";
 import SnP500Prices from "./pages/SnP500Prices"
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
@@ -71,7 +70,6 @@ export default function App() {
         <Route path="/education" element={<Education />} />
         <Route path="/outliers" element={<Outliers />} />
         <Route path="/entertainment" element={<Entertainment />} />
-        <Route path="/reviews" element={<Reviews />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
       <p>This website is purely for entertainment. All investments carry risk. Consult a professional.</p>

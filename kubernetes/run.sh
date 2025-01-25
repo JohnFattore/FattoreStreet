@@ -71,11 +71,8 @@ sudo docker container rm redis
 sudo docker stop celery
 sudo docker container rm celery
 
-# can probably remove this
-# django RDS
-sudo docker run --name django --network dockerNet -d \
-  -e HOST=postgres.cpqoakmk692s.us-east-1.rds.amazonaws.com  \
-  -e USERNAME=postgres \
-  -e PASSWORD_RDS=OOjf7vvsOd0zaPTK3jhh \
-  -e DATABASE=postgresRDS \
-  johnfattore/django
+# exec into django
+sudo docker exec -it django bash
+
+# migrate database changes
+python3 manage.py migrate

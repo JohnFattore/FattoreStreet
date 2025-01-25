@@ -21,6 +21,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     restaurant = serializers.PrimaryKeyRelatedField(queryset=Restaurant.objects.all())  # Accepts ID for input
     restaurant_detail = RestaurantSerializer(source='restaurant', read_only=True)  # Nested representation for output
+    rating = serializers.DecimalField(max_digits=2, decimal_places=1)  # Ensures rating is handled as Decimal
 
     class Meta:
         model = Review
@@ -30,7 +31,7 @@ class ReviewSerializer(serializers.ModelSerializer):
                 'comment',
                 'id',
                 'restaurant',
-                'restaurant_detail'
+                'restaurant_detail' 
         ]
 
 class MenuItemSerializer(serializers.ModelSerializer):
