@@ -14,6 +14,7 @@ import ErrorPage from "./components/ErrorPage";
 import Outliers from "./pages/Outliers";
 import Restaurants from "./pages/Restaurants";
 import SnP500Prices from "./pages/SnP500Prices"
+import RestaurantRecommend from "./pages/RestaurantRecommend"
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from './main';
@@ -62,6 +63,7 @@ export default function App() {
       <Routes >
         <Route path="/" element={<Home />} />
         <Route path="/restaurants" element={<Restaurants />} />
+        <Route path="/restaurant-recommend" element={<RestaurantRecommend />} />
         <Route path="/portfolio" element={<Portfolio />} errorElement={<ErrorPage />} />
         <Route path="/snp500Prices" element={<SnP500Prices />} />
         <Route path="/watchlist" element={<Watchlist />} />

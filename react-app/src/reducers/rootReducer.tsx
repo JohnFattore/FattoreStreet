@@ -6,10 +6,12 @@ import watchListReducer from './watchListReducer';
 import snp500Reducer from './snp500Reducer';
 import reviewReducer from './reviewReducer'
 import locationReducer from './locationReducer'
+import restaurantRecommendReducer from './restaurantRecommendReducer'
 
 const rootReducer = combineReducers({
     restaurants: restaurantReducer,
     reviews: reviewReducer,
+    restaurantRecommend: restaurantRecommendReducer,
     assets: assetReducer,
     watchList: watchListReducer,
     user: userReducer,

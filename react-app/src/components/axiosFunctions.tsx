@@ -262,6 +262,35 @@ export const getRestaurants = createAsyncThunk<IRestaurant[]>('restaurants/getRe
   }
 )
 
+export const getRestaurantRecommendations = createAsyncThunk<IRestaurant[]>('restaurants/getRestaurantRecommendations',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurant-recommend/"), {
+      });
+      const transformedData: IRestaurant[] = await Promise.all(response.data.map(async (restaurant: any) => {
+        return {
+          yelp_id: restaurant.yelp_id,
+          name: restaurant.name,
+          address: restaurant.address,
+          state: restaurant.state,
+          city: restaurant.city,
+          latitude: restaurant.latitude,
+          longitude: restaurant.longitude,
+          categories: restaurant.categories,
+          stars: restaurant.stars,
+          review_count: restaurant.review_count,
+          id: restaurant.id,
+        }
+      })
+      );
+      return transformedData
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Getting Restaurants failed');
+    }
+  }
+)
+
 export const getReviews = createAsyncThunk<IReview[]>('reviews/getReviews',
   async (_, { getState, rejectWithValue }) => {
     try {

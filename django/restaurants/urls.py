@@ -7,4 +7,5 @@ urlpatterns = [
     path('api/review-create/', views.ReviewCreateView.as_view(), name="reviewCreate"),
     path('api/review/<int:pk>/', views.ReviewRetrieveDestroyView.as_view(), name="review"),
     path('api/yelp-load/', views.YelpLoadView.as_view(), name="yelpLoad"),
+    path('api/restaurant-recommend/', views.RestaurantRecommenderView.as_view(), name="restaurantRecommend"),
 ]

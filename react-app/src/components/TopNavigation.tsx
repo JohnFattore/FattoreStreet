@@ -18,6 +18,7 @@ export default function TopNavigation() {
             <Nav.Link href="register">Register</Nav.Link>
             {/*<Nav.Link href="outliers">Outliers</Nav.Link>*/}
             <Nav.Link href="restaurants">Restaurants</Nav.Link>
+            <Nav.Link href="restaurant-recommend">Restaurant Recommend</Nav.Link>
             <Nav.Link href="entertainment">Entertainment</Nav.Link>
             <LogoutButton/>
           </Nav>

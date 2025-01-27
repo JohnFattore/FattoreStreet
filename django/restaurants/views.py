@@ -3,6 +3,7 @@ from .serializers import RestaurantSerializer, ReviewSerializer
 from .models import Restaurant, Review
 from .permissions import IsOwner
 from .tasks import YelpLoad
+from .matrixFactorization import getRestaurantRecommendations
 
 # API endpoint for 'get' Restaurants and 'post' Restaurant
 class RestaurantListCreateView(generics.ListCreateAPIView):
@@ -41,3 +42,10 @@ class YelpLoadView(views.APIView):
             },
             status=status.HTTP_202_ACCEPTED
         )
+    
+class RestaurantRecommenderView(generics.ListCreateAPIView):
+    queryset = Restaurant.objects.all()
+    serializer_class = RestaurantSerializer
+    def get_queryset(self):
+        recommendedRestaurants = getRestaurantRecommendations()
+        return Restaurant.objects.filter(yelp_id__in=recommendedRestaurants)
