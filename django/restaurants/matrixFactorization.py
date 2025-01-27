@@ -4,6 +4,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 import os
 import pandas as pd
+from .models import Restaurant, Review
 
 device = "cpu"
 
@@ -32,7 +33,7 @@ class MatrixFactorization(nn.Module):
         return (user_factors * item_factors).sum(dim=1)  # Dot product of embeddings
 
 # Here to hyperparameters is copy of training/testing
-def getRestaurantRecommendations():
+def getRestaurantRecommendations(user):
     device = "cpu"
     file_path = os.path.join(os.path.dirname(__file__), "yelp_dataset/reviews.pkl")
     reviews = pd.read_pickle(file_path)
@@ -86,20 +87,29 @@ def getRestaurantRecommendations():
 
     # Example: New user data
     new_user_id = new_user_int  # The integer ID returned when adding the new user
-    new_user_ratings = [5.0, 4, 3.5, 4, 5, 4, 3]  # Ratings given by the new user
-    new_restaurant_ids = [
-        restaurant_id_to_int["GXFMD0Z4jEVZBCsbPf4CTQ"],
-        restaurant_id_to_int["C9K3579SJgLPp0oAOM29wg"],
-        restaurant_id_to_int["3iUCCf1FWmjlFbGYvBgf9w"],
-        restaurant_id_to_int["GST3wg-wej15vHeCvaXE6w"],
-        restaurant_id_to_int["quk6TFDQyuQ4g0KuIb9qUA"],
-        restaurant_id_to_int["3JpJ3b8r5jMdAb1yPmchrQ"],
-        restaurant_id_to_int["aDgughL1vDootnXe5kUWGQ"],
+    #new_user_ratings = [5.0, 4, 3.5, 4, 5, 4, 3]  # Ratings given by the new user
+    #new_restaurant_ids = [
+    #    restaurant_id_to_int["GXFMD0Z4jEVZBCsbPf4CTQ"],
+    ##    restaurant_id_to_int["C9K3579SJgLPp0oAOM29wg"],
+    #    restaurant_id_to_int["3iUCCf1FWmjlFbGYvBgf9w"],
+    #    restaurant_id_to_int["GST3wg-wej15vHeCvaXE6w"],
+    #    restaurant_id_to_int["quk6TFDQyuQ4g0KuIb9qUA"],
+    #    restaurant_id_to_int["3JpJ3b8r5jMdAb1yPmchrQ"],
+    #    restaurant_id_to_int["aDgughL1vDootnXe5kUWGQ"],
+    #]  # Restaurant IDs mapped to integers
 
-    ]  # Restaurant IDs mapped to integers
+    new_user_ratings = []
+    new_restaurant_ids = []
+
+    for review in Review.objects.filter(user=user.id):
+        new_user_ratings.append(review.rating)
+        new_restaurant_ids.append(restaurant_id_to_int[review.restaurant.yelp_id])
+
+    print(Review.objects.filter(user=user.id))
+    print(new_restaurant_ids)
 
     new_user_tensor = torch.tensor([new_user_id] * len(new_restaurant_ids)).to(device)  # Repeat the new user's ID
-    new_restaurant_tensor = torch.tensor(new_restaurant_ids).to(device)
+    new_restaurant_tensor = torch.tensor(new_restaurant_ids, dtype=torch.int64).to(device)
     new_ratings_tensor = torch.tensor(new_user_ratings, dtype=torch.float32).to(device)
 
     # Set the model to training mode

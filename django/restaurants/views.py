@@ -47,5 +47,5 @@ class RestaurantRecommenderView(generics.ListCreateAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
     def get_queryset(self):
-        recommendedRestaurants = getRestaurantRecommendations()
+        recommendedRestaurants = getRestaurantRecommendations(self.request.user)
         return Restaurant.objects.filter(yelp_id__in=recommendedRestaurants)
