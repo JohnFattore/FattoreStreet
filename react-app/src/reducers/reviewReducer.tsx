@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { IReview } from '../interfaces';
-import { deleteReview, getReviews, postReview } from '../components/axiosFunctions';
+import { deleteReview, getReviews, patchReview, postReview } from '../components/axiosFunctions';
 
 function sortReviews(reviews: IReview[], sortColumn: keyof IReview, sortDirection: 'asc' | 'desc'): IReview[] {
   return [...reviews].sort((a, b) => {
@@ -92,7 +92,21 @@ const reviewSlice = createSlice({
       .addCase(deleteReview.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || action.error.message || 'An error occurred';
-      });    
+      })      
+      .addCase(patchReview.pending, (state) => {
+        state.loading = true; 
+      })
+      .addCase(patchReview.fulfilled, (state, action) => {
+        state.loading = false;
+        state.reviews = state.reviews.map(review =>
+          review.id === action.payload.id ? action.payload : review
+        );
+        state.error = '';
+      })
+      .addCase(patchReview.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || action.error.message || 'An error occurred';
+      });        
   },
 });
 

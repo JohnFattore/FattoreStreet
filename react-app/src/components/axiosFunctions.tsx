@@ -263,9 +263,14 @@ export const getRestaurants = createAsyncThunk<IRestaurant[]>('restaurants/getRe
 )
 
 export const getRestaurantRecommendations = createAsyncThunk<IRestaurant[]>('restaurants/getRestaurantRecommendations',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
+      const state = getState() as RootState;
+      const access = state.user.access;
       const response = await axios.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurant-recommend/"), {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        }
       });
       const transformedData: IRestaurant[] = await Promise.all(response.data.map(async (restaurant: any) => {
         return {
@@ -326,7 +331,6 @@ export const postReview = createAsyncThunk('reviews/postReview',
     try {
       const state = getState() as RootState;
       const access = state.user.access;
-      console.log(review)
       const response = await axios.post(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-create/"), {
         restaurant: review.restaurant,
         user: 1,
@@ -359,6 +363,27 @@ export const deleteReview = createAsyncThunk('reviews/deleteReview',
     }
     catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Deleting Review failed');
+    }
+  }
+)
+
+export const patchReview = createAsyncThunk('reviews/patchReview',
+  async (review: IReview, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      console.log(review)
+      const response = await axios.patch(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-update/", review.id, "/"), {
+        rating: review.rating
+      }, {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        }
+      });
+      return response.data;
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Updating Review failed');
     }
   }
 )

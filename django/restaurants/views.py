@@ -21,7 +21,7 @@ class ReviewRetrieveDestroyView(generics.RetrieveDestroyAPIView):
 class ReviewListView(generics.ListAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsOwner]
     def get_queryset(self):
         return Review.objects.filter(user=self.request.user).select_related("restaurant") 
 
@@ -30,6 +30,11 @@ class ReviewCreateView(generics.CreateAPIView):
     serializer_class = ReviewSerializer
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class ReviewUpdateView(generics.UpdateAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [IsOwner]
 
 class YelpLoadView(views.APIView):
     def post(self, request):

@@ -28,3 +28,9 @@ django-simple-history==3.7.0
 yfinance==0.2.40
 # Redis library for Celery and Django
 redis==4.5.5
+# PyTorch for machine learning
+#torch==2.0.1
+torch==2.0.1 -f https://download.pytorch.org/whl/torch_stable.html
+# pandas for numerical computations
+pandas==2.1.1
+numpy==1.26.0  # Explicitly include the latest compatible version

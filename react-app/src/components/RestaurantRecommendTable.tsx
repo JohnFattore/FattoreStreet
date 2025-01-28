@@ -3,7 +3,8 @@ import { formatString } from './helperFunctions';
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../main";
 import { Alert } from 'react-bootstrap';
-import { setRestaurantSort } from '../reducers/restaurantReducer';
+import { setRestaurantRecommendSort } from '../reducers/restaurantRecommendReducer';
+
 const fields = [
     { name: "Restaurant", type: "text", field: "name" },
     { name: "Address", type: "text", field: "address" },
@@ -47,7 +48,7 @@ export default function RestaurantTable({setRestaurant}) {
             sort.sortColumn === sortColumn && sort.sortDirection === 'asc'
                 ? 'desc'
                 : 'asc';
-        dispatch(setRestaurantSort({ sortColumn, sortDirection }));
+        dispatch(setRestaurantRecommendSort({ sortColumn, sortDirection }));
     };
 
 

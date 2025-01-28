@@ -35,22 +35,16 @@ class MatrixFactorization(nn.Module):
 # Here to hyperparameters is copy of training/testing
 def getRestaurantRecommendations(user):
     device = "cpu"
-    file_path = os.path.join(os.path.dirname(__file__), "yelp_dataset/reviews.pkl")
-    reviews = pd.read_pickle(file_path)
-    reviews = reviews[reviews["city"] == "Nashville"]
-    nashvilleReviews = reviews[reviews["categories"].str.contains("Restaurants", na=False)]
+    file_path = os.path.join(os.path.dirname(__file__), "yelp_dataset/reviewsNashville.pkl")
+    nashvilleReviews = pd.read_pickle(file_path)
 
     user_ids = nashvilleReviews["user_id"].tolist()
     restaurant_ids = nashvilleReviews["restaurant_id"].tolist()
-    ratings = nashvilleReviews["rating"].tolist()
-    restaurant_names = nashvilleReviews["name"].tolist() 
-    restaurant_id_to_name = {rid: name for rid, name in zip(restaurant_ids, restaurant_names)}
 
     #dictionaries
     # important to sort list of unique user_ids/restaurant_ids before creating dictionary
     user_id_to_int = {uid: idx for idx, uid in enumerate(sorted(set(user_ids)))}
     restaurant_id_to_int = {rid: idx for idx, rid in enumerate(sorted(set(restaurant_ids)))}
-    int_to_user_id = {value: key for key, value in user_id_to_int.items()}
     int_to_restaurant_id = {value: key for key, value in restaurant_id_to_int.items()}
 
     # lists
@@ -60,19 +54,15 @@ def getRestaurantRecommendations(user):
     # Hyperparameters
     num_users = len(set(user_ids_mapped))  # Number of unique users
     num_restaurants = len(set(restaurant_ids_mapped))  # Number of unique restaurants
-    batch_size = 128
     num_epochs = 30
     learning_rate = 0.01
     num_features = 10 # r, which should be smaller than m and n
 
-    # Prepare DataLoader
-    dataset = InteractionDataset(user_ids_mapped, restaurant_ids_mapped, ratings)
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
     # Model, loss, optimizer
     model = MatrixFactorization(num_users, num_restaurants, num_features).to(device)
 
-    model.load_state_dict(torch.load('restaurants/matrixFactorModel.pth', weights_only=True))
+    # model.load_state_dict(torch.load('restaurants/matrixFactorModel.pth', weights_only=True))
+    model.load_state_dict(torch.load('restaurants/matrixFactorModel.pth', map_location=torch.device('cpu')))
 
     new_user_id = "maxwell"  # Example new user ID
     new_user_int = len(user_id_to_int)  # Assign the next available integer
@@ -86,17 +76,7 @@ def getRestaurantRecommendations(user):
     model.user_embedding = new_user_embedding
 
     # Example: New user data
-    new_user_id = new_user_int  # The integer ID returned when adding the new user
-    #new_user_ratings = [5.0, 4, 3.5, 4, 5, 4, 3]  # Ratings given by the new user
-    #new_restaurant_ids = [
-    #    restaurant_id_to_int["GXFMD0Z4jEVZBCsbPf4CTQ"],
-    ##    restaurant_id_to_int["C9K3579SJgLPp0oAOM29wg"],
-    #    restaurant_id_to_int["3iUCCf1FWmjlFbGYvBgf9w"],
-    #    restaurant_id_to_int["GST3wg-wej15vHeCvaXE6w"],
-    #    restaurant_id_to_int["quk6TFDQyuQ4g0KuIb9qUA"],
-    #    restaurant_id_to_int["3JpJ3b8r5jMdAb1yPmchrQ"],
-    #    restaurant_id_to_int["aDgughL1vDootnXe5kUWGQ"],
-    #]  # Restaurant IDs mapped to integers
+    new_user_id = new_user_int  # The integer ID returned when adding the new use
 
     new_user_ratings = []
     new_restaurant_ids = []
@@ -104,9 +84,6 @@ def getRestaurantRecommendations(user):
     for review in Review.objects.filter(user=user.id):
         new_user_ratings.append(review.rating)
         new_restaurant_ids.append(restaurant_id_to_int[review.restaurant.yelp_id])
-
-    print(Review.objects.filter(user=user.id))
-    print(new_restaurant_ids)
 
     new_user_tensor = torch.tensor([new_user_id] * len(new_restaurant_ids)).to(device)  # Repeat the new user's ID
     new_restaurant_tensor = torch.tensor(new_restaurant_ids, dtype=torch.int64).to(device)
@@ -119,7 +96,6 @@ def getRestaurantRecommendations(user):
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     loss_fn = nn.MSELoss()
 
-    num_epochs = 50 
     for epoch in range(num_epochs):
         optimizer.zero_grad()
         predictions = model(new_user_tensor, new_restaurant_tensor)
@@ -135,6 +111,10 @@ def getRestaurantRecommendations(user):
         test_restaurant = torch.tensor([key]).to(device)
         predicted_rating = model(test_user, test_restaurant).item()
         new_user_predictions[key] = predicted_rating
+
+    new_user_predictions = {
+            key: value for key, value in new_user_predictions.items() if key not in new_restaurant_ids
+    }
 
     top_5_items = sorted(new_user_predictions.items(), key=lambda x: x[1], reverse=True)[:5]
 

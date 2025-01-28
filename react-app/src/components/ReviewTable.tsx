@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../main";
 import { Alert } from 'react-bootstrap';
 import { setReviewSort } from '../reducers/reviewReducer';
-import { deleteReview } from './axiosFunctions';
+import { deleteReview, patchReview } from './axiosFunctions';
 import LoginForm from './LoginForm';
 
 const fields = [
@@ -12,6 +12,7 @@ const fields = [
     { name: "Rating", type: "rating", field: "rating" },
     { name: "Comment", type: "string", field: "comment" },
     { name: "Delete", type: "delete", field: "delete" },
+    { name: "Update", type: "update", field: "update" },
 ]
 
 const RATING_CHOICES = [
@@ -36,6 +37,12 @@ function ReviewRow({ review }) {
         else if (fields[i]["type"] == "rating") {
             const rating = RATING_CHOICES.find((rating) => rating.value === review.rating)?.label || "Unknown Rating";
             tableData.push(<td key={i}>{rating}</td>)
+        }
+        else if (fields[i]["type"] == "update") {
+            tableData.push(<td key={i} onClick={() => {
+                console.log("maxwell")
+                const updatedReview = { ...review, rating: 4 }; // Create a copy with updated rating
+                dispatch(patchReview(updatedReview))}}>{[fields[i]["field"]]}</td>)
         }
         else {
             tableData.push(<td key={i}>{formatString(review[fields[i]["field"]], fields[i]["type"])}</td>)
