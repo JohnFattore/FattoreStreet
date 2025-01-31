@@ -45,6 +45,8 @@ export default function ReviewForm({ restaurant }) {
             user: 1,
             rating: data.rating,
             comment: data.comment,
+            longitude: 1,
+            latitude: 1,
             id: 1
         }))
         setSubmission(restaurant.name)
@@ -83,7 +85,7 @@ export default function ReviewForm({ restaurant }) {
                 <Button type="submit" disabled={restaurant.id == 0 || loading}>Submit Review</Button>
             </Form>
             {error && <Alert variant="danger">{error}</Alert>}
-            {submission && <Alert>{"Review for ".concat(submission, " submitted")}</Alert>}
+            {submission && error != 'You have already reviewed this restaurant.' && <Alert>{"Review for ".concat(submission, " submitted")}</Alert>}
         </>
 
     );

@@ -15,8 +15,8 @@ const fields = [
     //{ name: "Categories", type: "text", field: "categories" },
     { name: "Stars", type: "number", field: "stars" },
     { name: "Review Count", type: "text", field: "review_count" },
-    { name: "Create Review", type: "text", field: "createReview" },
-    { name: "Yelp ID", type: "text", field: "yelp_id" },
+    //{ name: "Create Review", type: "text", field: "createReview" },
+    //{ name: "Yelp ID", type: "text", field: "yelp_id" },
 ]
 
 // function is for simple calculations, function2 is for more complex operations

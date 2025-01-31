@@ -27,6 +27,8 @@
     "happy-dom": "^13.3.8",
     "install": "^0.13.0",
     "jest-environment-jsdom": "^29.7.0",
+    "leaflet": "^1.9.4",
+    "leaflet.awesome-markers": "^2.0.5",
     "npm": "^10.2.5",
     "react": "^18.2.0",
     "react-bootstrap": "^2.7.2",

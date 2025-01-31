@@ -71,11 +71,12 @@ export function getSunday(week: number) {
 
 // phase this out, good error message come from the server, set with axiosFunctions and the reducers
 export function translateError(error: string) {
-    if (error == 'Request failed with status code 401') {
+    if (error == 'Request failed with status code 401')
         return 'Please Login'
-    }
     if (error == 'Request failed with status code 500')
         return 'Server Error'
+    if (error == 'Token is invalid or expired')
+        return 'Login Expired'
     else {
         return error
     }

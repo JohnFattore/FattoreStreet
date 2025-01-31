@@ -174,8 +174,8 @@ REST_FRAMEWORK = {
 
 # default is 5 minutes and 1 day
 #SIMPLE_JWT = {
-#    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
-#    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=2),
+#    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=10),
+#    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=1),
 #}
 
 # might have to be a env variable, this is gonna be a continued problem

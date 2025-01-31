@@ -1,9 +1,8 @@
+import { Image } from 'react-bootstrap';
 import spikeHead from '../images/spike_head.png'
 
-function SpikeHead() {
+export default function SpikeHead() {
   return (
-    <img src={spikeHead} />
+    <Image src={spikeHead} rounded/>
   );
 }
-
-export default SpikeHead;

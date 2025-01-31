@@ -4,6 +4,7 @@ import { getAssets, getReviews, login } from './axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { translateError } from './helperFunctions';
+import { clearReviewErrors } from '../reducers/reviewReducer';
 
 interface IFormInput {
     username: string,
@@ -20,6 +21,7 @@ export default function LoginForm() {
         .then(() => {
             dispatch(getAssets())
             dispatch(getReviews())
+            dispatch(clearReviewErrors())
         })
     }
 

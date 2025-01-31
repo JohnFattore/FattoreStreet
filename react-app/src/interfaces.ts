@@ -107,6 +107,8 @@ export interface IReview {
     user: number;
     rating: number;
     comment: string;
+    latitude: number;
+    longitude: number;
     id: number;
 }
 

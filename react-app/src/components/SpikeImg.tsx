@@ -1,9 +1,8 @@
 import spike from '../images/spike.png'
+import { Image } from 'react-bootstrap';
 
-function Spike() {
+export default function Spike() {
   return (
-    <img src={spike}/>
+    <Image src={spike} rounded />
   );
 }
-
-export default Spike;

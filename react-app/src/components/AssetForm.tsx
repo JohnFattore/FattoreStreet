@@ -59,7 +59,7 @@ export default function AssetForm() {
     if (!access) {
         return (
             <>
-                <Alert variant='danger'>Login to see portfolio</Alert>
+                <Alert>Login to see portfolio</Alert>
                 <LoginForm />
             </>
         )
@@ -98,6 +98,5 @@ export default function AssetForm() {
                 <Button type="submit" disabled={loading}>Add to Portfolio</Button>
             </Form>
         </>
-
     );
 }

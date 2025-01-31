@@ -313,6 +313,8 @@ export const getReviews = createAsyncThunk<IReview[]>('reviews/getReviews',
           user: review.user,
           rating: Number(review.rating),
           comment: review.comment,
+          latitude: review.restaurant_detail.latitude,
+          longitude: review.restaurant_detail.longitude,
           id: review.id,
         }
       })
@@ -344,7 +346,7 @@ export const postReview = createAsyncThunk('reviews/postReview',
       return response.data
     }
     catch (error: any) {
-      return rejectWithValue(error.response?.data?.detail || 'Adding Review failed');
+      return rejectWithValue(error.response?.data?.detail || error.response?.data?.non_field_errors || 'Adding Review failed');
     }
   }
 )

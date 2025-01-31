@@ -46,6 +46,9 @@ const reviewSlice = createSlice({
         state.reviews = sortReviews(state.reviews, sortColumn, sortDirection);
       }
     },
+    clearReviewErrors: (state) => {
+      state.error = '';
+    }, 
   },
   extraReducers: (builder) => {
     builder
@@ -67,12 +70,15 @@ const reviewSlice = createSlice({
       .addCase(postReview.fulfilled, (state, action) => {
         state.loading = false;
         let review = action.payload
+        console.log(review)
         state.reviews.push({
             restaurant: review.restaurant,
             name: review.restaurant_detail.name,
             user: 1,
-            rating: review.rating,
-            comment: review.rating,
+            rating: Number(review.rating),
+            comment: review.comment,
+            longitude: review.restaurant_detail.longitude,
+            latitude: review.restaurant_detail.latitude,
             id: review.id
         })
         state.error = '';
@@ -110,5 +116,5 @@ const reviewSlice = createSlice({
   },
 });
 
-export const { setReviewSort } = reviewSlice.actions;
+export const { setReviewSort, clearReviewErrors } = reviewSlice.actions;
 export default reviewSlice.reducer;

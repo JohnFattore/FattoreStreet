@@ -12,7 +12,7 @@ const fields = [
     { name: "Rating", type: "rating", field: "rating" },
     { name: "Comment", type: "string", field: "comment" },
     { name: "Delete", type: "delete", field: "delete" },
-    { name: "Update", type: "update", field: "update" },
+    //{ name: "Update", type: "update", field: "update" },
 ]
 
 const RATING_CHOICES = [
@@ -56,7 +56,7 @@ function ReviewRow({ review }) {
 }
 
 export default function ReviewTable() {
-    const { reviews, loading, error, sort } = useSelector((state: RootState) => state.reviews);
+    const { reviews, loading, sort } = useSelector((state: RootState) => state.reviews);
     const { access, username } = useSelector((state: RootState) => state.user);
     const dispatch = useDispatch<AppDispatch>();
 
@@ -91,7 +91,6 @@ export default function ReviewTable() {
     return (
         <>
         <h3>{username.concat("'s restaurant reviews")}</h3>
-            {error && <Alert variant="danger">{error}</Alert>}
             <Table>
                 <thead>
                     <tr>

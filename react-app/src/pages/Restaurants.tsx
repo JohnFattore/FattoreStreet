@@ -34,8 +34,6 @@ export default function Restaurants() {
         id: 0
     });
 
-
-
     return (
         <>
             <ReviewTable />
