@@ -1,11 +1,10 @@
 # only API views, see retiredViews for old django frontend views
-from django.contrib.auth.models import User
 # API modules using drf
-from rest_framework import permissions, generics, serializers
+from rest_framework import permissions, generics, serializers, views, response
 from .serializers import AssetSerializer, SnP500PriceSerializer
 from .permissions import IsOwner
 from .models import Asset, SnP500Price
-from .tasks import SnP500PriceUpdate
+from .tasks import updateCostBasis
 import yfinance as yf
 from datetime import datetime, timedelta, date
 from rest_framework.views import APIView
@@ -75,3 +74,15 @@ class SnP500PriceCreateView(APIView):
             else:
                 print("Date already exists")
         return Response({"message": "S&P 500 prices populated successfully!"}, status=status.HTTP_200_OK)
+    
+class UpdateCostBasis(views.APIView):
+    def post(self, request):
+        # Trigger the Celery task
+        task = updateCostBasis.delay()  # Asynchronously starts the task
+        return response.Response(
+            {
+                "message": "update cost basis task has been initiated.",
+                "task_id": task.id,  # Return the Celery task ID
+            },
+            status=status.HTTP_202_ACCEPTED
+        )
