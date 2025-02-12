@@ -172,6 +172,8 @@ REST_FRAMEWORK = {
     )
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 # default is 5 minutes and 1 day
 #SIMPLE_JWT = {
 #    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=10),

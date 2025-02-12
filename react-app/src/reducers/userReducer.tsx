@@ -31,6 +31,9 @@ const userSlice = createSlice({
     clearErrors: (state) => {
       state.error = '';
     },
+    setUserError: (state, action) => {
+      state.error = action.payload;
+    },
   },
     extraReducers: (builder) => {
       builder
@@ -76,5 +79,5 @@ const userSlice = createSlice({
     }
 });
 
-export const { logout, clearErrors } = userSlice.actions; // Export the logout action
+export const { logout, clearErrors, setUserError } = userSlice.actions; // Export the logout action
 export default userSlice.reducer; 

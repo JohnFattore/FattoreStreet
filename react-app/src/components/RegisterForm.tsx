@@ -6,10 +6,12 @@ import { postUser, login } from './axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { translateError } from './helperFunctions';
+import { setUserError } from '../reducers/userReducer';
 
 interface IFormInput {
     username: string,
     password: string,
+    password2: string,
     email: string
 }
 
@@ -20,6 +22,7 @@ export default function RegisterForm() {
     const schema = yup.object().shape({
         username: yup.string().required(),
         password: yup.string().required(),
+        password2: yup.string().required(),
         email: yup.string().email().required(),
     });
 
@@ -29,10 +32,14 @@ export default function RegisterForm() {
     })
 
     const onSubmit = (data: IFormInput) => {
-        dispatch(postUser(data)).unwrap()
+        if (data.password != data.password2)
+            dispatch(setUserError("Passwords must match"))
+        else {
+            dispatch(postUser(data)).unwrap()
             .then(() => {
                 dispatch(login({ username: data.username, password: data.password }))
             })
+        }
     }
 
     if (access) {
@@ -55,6 +62,12 @@ export default function RegisterForm() {
                     <Form.Control type="password" size="lg" {...register("password", {
                         required: true
                     })} placeholder='Password' />
+                    {errors.password && <Alert variant='danger' role="passwordError">This field is required</Alert>}
+                </Col>
+                <Col sm={3}>
+                    <Form.Control type="password" size="lg" {...register("password2", {
+                        required: true
+                    })} placeholder='Password (again)' />
                     {errors.password && <Alert variant='danger' role="passwordError">This field is required</Alert>}
                 </Col>
                 <Col sm={3}>

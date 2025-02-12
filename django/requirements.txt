@@ -9,7 +9,7 @@ djangorestframework-simplejwt==5.3.0
 # Gunicorn HTTP server
 gunicorn==21.2.0
 # PostgreSQL to Python library
-psycopg2==2.9.9
+psycopg2-binary==2.9.9
 # Environment Variables
 django-environ==0.11.2
 # Async and scheduled tasks
@@ -29,8 +29,7 @@ yfinance==0.2.40
 # Redis library for Celery and Django
 redis==4.5.5
 # PyTorch for machine learning
-#torch==2.0.1
-torch==2.0.1 -f https://download.pytorch.org/whl/torch_stable.html
+# torch==2.0.1
 # pandas for numerical computations
 pandas==2.1.1
 numpy==1.26.0  # Explicitly include the latest compatible version
