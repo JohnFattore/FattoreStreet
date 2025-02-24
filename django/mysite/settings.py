@@ -10,7 +10,8 @@ environ.Env.read_env()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env("SECRET_KEY")
-DEBUG = env("DEBUG")
+#DEBUG = env("DEBUG")
+DEBUG = env.bool("DEBUG", default=True)
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fattorestreet.com']
 
 # Application definition
@@ -20,6 +21,7 @@ INSTALLED_APPS = [
     'portfolio.apps.PortfolioConfig',
     'indexes.apps.IndexesConfig',
     'restaurants.apps.RestaurantsConfig',
+    'chatbot.apps.ChatbotConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -76,18 +78,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
-if (env("DATABASE") == 'postgresRDS'):
-        DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'postgres',
-            'USER': env("USERNAME"),
-            'PASSWORD': env("PASSWORD_RDS"),
-            'HOST': env("HOST_RDS"),
-            'PORT': '5432',
-        }
-    }
-elif (env("DATABASE") == 'postgresDocker'):
+# these should be env variables
+if (env("DATABASE") == 'postgresDocker'):
         DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -181,7 +173,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 #}
 
 # might have to be a env variable, this is gonna be a continued problem
-CELERY_RESULT_BACKEND = 'redis://localhost:6379'
-CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = env("REDIS_URL") #'redis://localhost:6379'
+CELERY_BROKER_URL = env("REDIS_URL") #'redis://localhost:6379'
+# production
+# CELERY_RESULT_BACKEND = 'redis://redis:6379'
+# CELERY_BROKER_URL = 'redis://redis:6379'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

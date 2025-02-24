@@ -42,8 +42,7 @@ export default function Reviews() {
         }
 
         return <RestaurantRecommendTable setRestaurant={console.log} />;
-    };
-
+    }; 
 
     return (
         <>

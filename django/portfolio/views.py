@@ -20,7 +20,7 @@ def get_next_day(date_str, date_format="%Y-%m-%d"):
 class AssetListCreateView(generics.ListCreateAPIView):
     queryset = Asset.objects.all()
     serializer_class = AssetSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsOwner]
     # return only the assets the user owns
     def get_queryset(self):
         return Asset.objects.filter(user=self.request.user).select_related("SnP500Price") 
@@ -57,6 +57,7 @@ def daterange(start_date, end_date):
     for n in range((end_date - start_date).days + 1):
         yield start_date + timedelta(n)
 
+# shouldnt need, part of celery beat task now
 class SnP500PriceCreateView(APIView):
     def post(self, request):
         yfinance = yf.Ticker('SPY')
@@ -74,7 +75,8 @@ class SnP500PriceCreateView(APIView):
             else:
                 print("Date already exists")
         return Response({"message": "S&P 500 prices populated successfully!"}, status=status.HTTP_200_OK)
-    
+
+# shouldn't need, part of celery beat task now    
 class UpdateCostBasis(views.APIView):
     def post(self, request):
         # Trigger the Celery task

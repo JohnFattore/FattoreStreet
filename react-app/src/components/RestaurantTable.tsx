@@ -4,6 +4,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../main";
 import { Alert } from 'react-bootstrap';
 import { setRestaurantSort } from '../reducers/restaurantReducer';
+import RestaurantSearchBar from './RestaurantSearchBar';
+import { useState } from 'react';
+
 const fields = [
     { name: "Restaurant", type: "text", field: "name" },
     { name: "Address", type: "text", field: "address" },
@@ -36,9 +39,11 @@ function RestaurantRow({ restaurant, setRestaurant }) {
         </tr>)
 }
 
-export default function RestaurantTable({setRestaurant}) {
+export default function RestaurantTable({ setRestaurant }) {
     const { restaurants, loading, error, sort } = useSelector((state: RootState) => state.restaurants);
     const dispatch = useDispatch<AppDispatch>();
+    const [search, setSearch] = useState('')
+
     if (loading) return <Alert>Loading Restaurants</Alert>;
     if (error) return <Alert variant="danger">Error: {error}</Alert>;
 
@@ -50,28 +55,52 @@ export default function RestaurantTable({setRestaurant}) {
         dispatch(setRestaurantSort({ sortColumn, sortDirection }));
     };
 
-
     let headers: JSX.Element[] = []
     for (let i = 0; i < fields.length; i++) {
         headers.push(<th key={i} onClick={() => handleSort(fields[i]["field"])}>{fields[i].name}</th>)
     }
 
-    if (restaurants.length == 0) {
-        return (<h3 role="noModels">No Data</h3>)
+    const filteredRestaurants = restaurants.filter(restaurant =>
+        restaurant.name.toLowerCase().includes(search.toLowerCase())
+    );
+
+    if (filteredRestaurants.length == 0) {
     }
 
+    const renderRestaurants = () => {
+
+        if (loading) {
+            return (<Alert>Loading Restaurants</Alert>)
+        }
+
+        else if (error) {
+            return (<Alert variant="danger">Error: {error}</Alert>);
+        }
+
+        else if (filteredRestaurants.length == 0) {
+            return (<h3 role="noModels">No Data</h3>)
+        }
+
+        return <>
+            <Table>
+                <thead>
+                    <tr>
+                        {headers}
+                    </tr>
+                </thead>
+                <tbody>
+                    {filteredRestaurants.map((restaurant, index) => (
+                        <RestaurantRow key={index} restaurant={restaurant} setRestaurant={setRestaurant} />
+                    ))}
+                </tbody>
+            </Table>
+        </>;
+    };
+
     return (
-        <Table>
-            <thead>
-                <tr>
-                    {headers}
-                </tr>
-            </thead>
-            <tbody>
-                {restaurants.map((restaurant, index) => (
-                    <RestaurantRow key={index} restaurant={restaurant} setRestaurant={setRestaurant} />
-                ))}
-            </tbody>
-        </Table>
+        <>
+            {<RestaurantSearchBar setSearch={setSearch} />}
+            {renderRestaurants()}
+        </>
     );
 }

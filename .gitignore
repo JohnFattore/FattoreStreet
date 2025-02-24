@@ -13,3 +13,5 @@ react-app/dist
 .env.*
 
 machineLearning/huggingFace.txt
+
+django/chatbot/secret.txt

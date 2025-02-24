@@ -9,6 +9,7 @@ ENV PYTHONUNBUFFERED=1
 
 RUN pip3 install -r requirements.txt --no-cache-dir
 
-RUN pip3 install --no-cache-dir -r requirements.txt --index-url https://download.pytorch.org/whl/cpu
+RUN pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "mysite.wsgi"]
+# CMD ["gunicorn", "-b", "0.0.0.0:8000", "mysite.wsgi"]
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "--workers", "1", "--threads", "2", "mysite.wsgi"]
