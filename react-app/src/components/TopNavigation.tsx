@@ -20,6 +20,7 @@ export default function TopNavigation() {
             <Nav.Link href="restaurants">Restaurants</Nav.Link>
             <Nav.Link href="reviews">Reviews</Nav.Link>
             <Nav.Link href="entertainment">Entertainment</Nav.Link>
+            <Nav.Link href="chatbot">Chatbot</Nav.Link>
             <LogoutButton/>
           </Nav>
         </Navbar.Collapse>

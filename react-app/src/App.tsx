@@ -21,6 +21,7 @@ import { AppDispatch, RootState } from './main';
 import { refreshLogin } from "./components/axiosFunctions";
 import { logout, clearErrors } from "./reducers/userReducer";
 import { useEffect } from "react";
+import Chatbot from "./pages/Chatbot";
 
 // react router for all our routes
 export default function App() {
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/education" element={<Education />} />
         <Route path="/outliers" element={<Outliers />} />
         <Route path="/entertainment" element={<Entertainment />} />
+        <Route path="/chatbot" element={<Chatbot />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
       <p>This website is purely for entertainment. All investments carry risk. Consult a professional.</p>

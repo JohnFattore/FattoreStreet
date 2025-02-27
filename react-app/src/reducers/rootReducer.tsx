@@ -7,6 +7,7 @@ import snp500Reducer from './snp500Reducer';
 import reviewReducer from './reviewReducer'
 import locationReducer from './locationReducer'
 import restaurantRecommendReducer from './restaurantRecommendReducer'
+import chatbotReducer from './chatbotReducer'
 
 const rootReducer = combineReducers({
     restaurants: restaurantReducer,
@@ -17,6 +18,7 @@ const rootReducer = combineReducers({
     user: userReducer,
     snp500Prices: snp500Reducer,
     location: locationReducer,
+    chatbot: chatbotReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;  // Type the state of the Redux store

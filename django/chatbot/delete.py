@@ -1,21 +1,22 @@
 import os
 import google.generativeai as genai
-import environ
-
 from dotenv import load_dotenv
-import os
+from pathlib import Path
 
-load_dotenv()  # Load .env file
+BASE_DIR = Path(__file__).resolve().parent.parent  # Adjust if needed
+env_path = BASE_DIR / "mysite" / ".env"  # Example: .env is inside a "config" folder
+
+load_dotenv(env_path)  # Load .env file
 api_key = os.getenv("GOOGLE_API_KEY")
 
 genai.configure(api_key=api_key)
 
 # Create the model
 generation_config = {
-  "temperature": 1,
+  "temperature": 0.5,
   "top_p": 0.95,
   "top_k": 40,
-  "max_output_tokens": 8192,
+  "max_output_tokens": 1024,
   "response_mime_type": "text/plain",
 }
 

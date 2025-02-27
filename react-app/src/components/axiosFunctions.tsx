@@ -402,3 +402,23 @@ export const getReview = async (id: number) => {
   return response
 }
   */
+
+export const postChatbot = createAsyncThunk('chatbot/postChatbot',
+  async (message: string, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      const response = await axios.post(import.meta.env.VITE_APP_DJANGO_CHATBOT_URL.concat("chatbot/"), {
+        message: message,
+      }, {
+        headers: {
+          'Authorization': ' Bearer '.concat(access)
+        }
+      });
+      return response.data["message"]
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || error.response?.data?.non_field_errors || 'Posting chatbot failed');
+    }
+  }
+)

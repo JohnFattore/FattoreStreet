@@ -6,5 +6,6 @@ urlpatterns = [
     path('portfolio/', include('portfolio.urls')),
     path("indexes/", include("indexes.urls")),
     path("restaurants/", include("restaurants.urls")),
+    path("chatbot/", include("chatbot.urls")),
     path('admin/', admin.site.urls),
 ]
