@@ -18,6 +18,7 @@ export default function Chatbot() {
             <ChatbotForm />
         </>;
     };
+    
     return (
         <>
             <h2>Boglehead Chatbot</h2>

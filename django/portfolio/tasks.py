@@ -43,7 +43,7 @@ def loadSnP500Prices():
     print("Beginning S&P 500 Price Load")
     yfinance = yf.Ticker('SPY')
     start_date = current_date - timedelta(days=30) # date(2025, 1, 1)
-    end_date = current_date - timedelta(days=30) # date(2025, 12, 31)
+    end_date = current_date + timedelta(days=30) # date(2025, 12, 31)
     data = yfinance.history(start=start_date.strftime("%Y-%m-%d"), end=end_date.strftime("%Y-%m-%d"))
     queryset = SnP500Price.objects.all()
 

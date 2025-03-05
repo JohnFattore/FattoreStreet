@@ -2,15 +2,17 @@ import AssetForm from '../components/AssetForm';
 import { useEffect } from 'react';
 import AssetTable from '../components/AssetTable';
 import { getAssets } from '../components/axiosFunctions';
-import { Row, Col, Accordion } from 'react-bootstrap';
+import { Row, Col, Accordion, Button } from 'react-bootstrap';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import AllocationTable from '../components/AllocationTable';
 import YahooFinanceBanner from '../components/YahooFinanceBanner';
 import FinnhubBanner from '../components/FinnhubBanner';
 import ReinvestDividends from '../components/ReinvestDividends'
+import { useNavigate } from "react-router-dom";
 
 export default function Portfolio() {
+    const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
     const { username } = useSelector((state: RootState) => state.user);
  
@@ -38,6 +40,7 @@ export default function Portfolio() {
             <h1>{username ? `${username}'s Portfolio` : 'Portfolio'}</h1>
             <AssetTable />
             <AllocationTable />
+            <Button onClick={() => navigate("/snp500Prices")}>Historical S&P500 Prices</Button>
             <YahooFinanceBanner />
             <FinnhubBanner />
         </>

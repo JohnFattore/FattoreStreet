@@ -60,6 +60,15 @@ sudo docker run --rm \
   --email johnefattore@gmail.com \
   --agree-tos
 
+# watchtower for updates
+sudo docker run -d \
+  --name watchtower \
+  --network dockerNet \
+  -e WATCHTOWER_POLL_INTERVAL=300 \
+  -e WATCHTOWER_CLEANUP=true \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  containrrr/watchtower
+
 
 sudo docker stop postgres
 sudo docker container rm postgres

@@ -1,93 +1,105 @@
 // Include any default variable overrides here (though functions won't be available)
-$primary: #202c39ff;
-$secondary: #f2d492ff;
-$tertiary: #c3d898;
-//$tertiary: #b8b08dff;
 
-//$primary: #011936ff;
-//$secondary: #f4fffdff;
-//$tertiary: #ed254eff;
 
-//$primary: #e7ebc5ff;
-//$secondary: #cdc7e5ff;
-//$tertiary: #17301cff;
+:root {
+  --primary: #202c39ff;
+  --secondary: #f2d492ff;
+  --tertiary: #c3d898;
+}
+
+.dark-mode {
+  --primary: #e7ebc5ff;
+  --secondary: #cdc7e5ff;
+  --tertiary: #17301cff;
+}
+
+//--tertiary: #b8b08dff;
+
+//--primary: #011936ff;
+//--secondary: #f4fffdff;
+//--tertiary: #ed254eff;
+
+//--primary: #e7ebc5ff;
+//--secondary: #cdc7e5ff;
+//--tertiary: #17301cff;
 
 // Include all of bootstrap
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
 // change <body> colors
 body {
-  color: $primary;
-  background-color: $secondary
+  color: var(--primary);
+  background-color: var(--secondary);
 }
 
 //change nav bar text color
 .navbar {
-  --bs-navbar-color: $secondary
+  //--bs-navbar-color: var(--secondary);
+  --color: var(--secondary);
 }
 
 //change navbar hover colors
 .navbar-nav .nav-link:hover {
-  color: $secondary;
-  background-color: $primary;
+  color: var(--secondary);
+  background-color: var(--primary);
 
 }
 
 .table td {
-  color: $primary;
-  background-color: $tertiary;
-  border-color: $primary;
-  border-left: 1px solid $primary;
-  border-right: 1px solid $primary;
+  color: var(--primary);
+  background-color: var(--tertiary);
+  border-color: var(--primary);
+  border-left: 1px solid var(--primary);
+  border-right: 1px solid var(--primary);
 }
 
 .table td:hover {
-  color: $secondary;
-  background-color: $primary;
+  color: var(--secondary);
+  background-color: var(--primary);
 }
 
 .table th {
-  color: $secondary;
-  background-color: $primary;
-  border-left: 1px solid $primary;
-  border-right: 1px solid $primary;
+  color: var(--secondary);
+  background-color: var(--primary);
+  border-left: 1px solid var(--primary);
+  border-right: 1px solid var(--primary);
 }
 
 .table th:hover {
-  color: $primary;
-  background-color: $tertiary;
+  color: var(--primary);
+  background-color: var(--tertiary);
 }
 
 
 // Change accordion theming
 .accordion-item {
-  border-color: $primary;
+  border-color: var(--primary);
 }
 
 .accordion-button:where(.collapsed) {
-  color: $primary;
-  background-color: $secondary;
+  color: var(--primary);
+  background-color: var(--secondary);
 }
 
 .accordion-button:not(.collapsed) {
-  color: $secondary;
-  background-color: $primary;
+  color: var(--secondary);
+  background-color: var(--primary);
 }
 
 .accordion-body:where(.collapsed) {
-  color: $primary;
-  background-color: $secondary;
+  color: var(--primary);
+  background-color: var(--secondary);
 }
 
 .accordion-body:not(.collapsed) {
-  color: $primary;
-  background-color: $tertiary;
+  color: var(--primary);
+  background-color: var(--tertiary);
 }
 
 // card theming
 .card {
-  color: $primary;
-  background-color: $tertiary;
+  color: var(--primary);
+  background-color: var(--tertiary);
   padding: 10px;
   text-align: center;
   margin-left: 50px;
@@ -95,8 +107,8 @@ body {
 }
 
 .card-title {
-  color: $primary;
-  background-color: $tertiary;
+  color: var(--primary);
+  background-color: var(--tertiary);
 }
 
 img {
@@ -108,5 +120,17 @@ img {
 
 .app-container {
   padding: 20px;
-  border-radius: 5px; /* Optional: Adds rounded corners */
+  border-radius: 5px;
+  /* Optional: Adds rounded corners */
+}
+
+.btn {
+  color: var(--secondary) !important;
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.btn:hover {
+  color: var(--primary) !important;
+  background-color: var(--secondary) !important;
 }

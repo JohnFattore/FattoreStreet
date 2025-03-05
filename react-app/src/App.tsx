@@ -26,8 +26,13 @@ import Chatbot from "./pages/Chatbot";
 // react router for all our routes
 export default function App() {
 
-  const { refresh } = useSelector((state: RootState) => state.user)
+  const { refresh, darkMode } = useSelector((state: RootState) => state.user)
   const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+  }, [darkMode]);
+
 
   useEffect(() => {
     // Clear errors when the app initializes

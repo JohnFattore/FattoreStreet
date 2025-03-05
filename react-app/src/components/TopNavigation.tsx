@@ -2,8 +2,16 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import LogoutButton from './LogoutButton';
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from '../main';
+import { Button } from 'react-bootstrap';
+import { setUserDarkMode } from '../reducers/userReducer';
 
 export default function TopNavigation() {
+
+  const dispatch = useDispatch<AppDispatch>();
+  const { access, darkMode } = useSelector((state: RootState) => state.user);
+
   return (
     <Navbar variant="light" expand="lg">
       <Container>
@@ -13,7 +21,6 @@ export default function TopNavigation() {
           <Nav className="me-auto">
             <Nav.Link href="portfolio">Portfolio</Nav.Link>
             <Nav.Link href="watchlist">Watch List</Nav.Link>
-            <Nav.Link href="snp500prices">S&P500 Prices</Nav.Link>
             <Nav.Link href="education">Suggestions</Nav.Link>
             <Nav.Link href="register">Register</Nav.Link>
             {/*<Nav.Link href="outliers">Outliers</Nav.Link>*/}
@@ -21,7 +28,8 @@ export default function TopNavigation() {
             <Nav.Link href="reviews">Reviews</Nav.Link>
             <Nav.Link href="entertainment">Entertainment</Nav.Link>
             <Nav.Link href="chatbot">Chatbot</Nav.Link>
-            <LogoutButton/>
+            {access && <LogoutButton/>}
+            <Button onClick={() => dispatch(setUserDarkMode(!darkMode))}> Change Theme </Button>
           </Nav>
         </Navbar.Collapse>
       </Container>

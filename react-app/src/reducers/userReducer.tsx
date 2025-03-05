@@ -6,7 +6,8 @@ interface UserSlice {
   username: string,
   access: string,
   refresh: string,
-  error: string;
+  error: string,
+  darkMode: boolean
 }
 
 const initialState: UserSlice = {
@@ -15,6 +16,7 @@ const initialState: UserSlice = {
   access: '',
   refresh: '',
   error: '', 
+  darkMode: false,
 };
 
 const userSlice = createSlice({
@@ -33,6 +35,9 @@ const userSlice = createSlice({
     },
     setUserError: (state, action) => {
       state.error = action.payload;
+    },
+    setUserDarkMode: (state, action) => {
+      state.darkMode = action.payload;
     },
   },
     extraReducers: (builder) => {
@@ -79,5 +84,5 @@ const userSlice = createSlice({
     }
 });
 
-export const { logout, clearErrors, setUserError } = userSlice.actions; // Export the logout action
+export const { logout, clearErrors, setUserError, setUserDarkMode } = userSlice.actions; // Export the logout action
 export default userSlice.reducer; 
