@@ -67,12 +67,14 @@ export const getAssets = createAsyncThunk('assets/getAssets',
           'Authorization': ' Bearer '.concat(access)
         },
       });
-      const transformedData: IAsset[] = await Promise.all(response.data.map(async (asset: any) => {
-        const quote = await fetchQuote(asset.ticker)
-        const quoteSPY = await fetchQuote("SPY")
-        const totalCostBasis = asset.shares * asset.costbasis
-        const currentPrice = quote.price * asset.shares
-        return {
+      const quoteSPY = await fetchQuote("SPY");
+      const transformedData: IAsset[] = [];
+      for (const asset of response.data) {
+        const quote = await fetchQuote(asset.ticker);
+        const totalCostBasis = asset.shares * asset.costbasis;
+        const currentPrice = quote.price * asset.shares;
+
+        transformedData.push({
           ticker: asset.ticker,
           shares: asset.shares,
           costBasis: asset.costbasis,
@@ -82,11 +84,12 @@ export const getAssets = createAsyncThunk('assets/getAssets',
           percentChange: (currentPrice - totalCostBasis) / totalCostBasis,
           SnP500Price: asset.SnP500Price.price,
           SnP500PercentChange: (quoteSPY.price - asset.SnP500Price.price) / asset.SnP500Price.price,
-          id: asset.id
-        }
-      })
-      );
-      return transformedData
+          id: asset.id,
+        });
+      }
+
+      // Return transformed data after all fetchQuote calls
+      return transformedData;     
     }
     catch (error: any) {
       return rejectWithValue(error.response.data.detail || 'Getting Assets failed');
@@ -186,12 +189,24 @@ export const getAsset = async (id: number) => {
   return response
 }
 
+// finnhub get quote
+/*
 export const getQuote = async (ticker: string) => {
   const response = await axios.get(import.meta.env.VITE_APP_FINNHUB_URL.concat("quote/"), {
     params: {
       symbol: ticker,
       token: import.meta.env.VITE_APP_FINNHUB_KEY
     }
+  });
+  return response
+}
+*/
+
+export const getQuote = async (ticker: string) => {
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quote/"), {
+    params: {
+      symbol: ticker
+        }
   });
   return response
 }

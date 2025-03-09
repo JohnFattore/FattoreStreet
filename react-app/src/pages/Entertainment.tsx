@@ -4,8 +4,14 @@ import { IAlbum, IRatio } from '../interfaces';
 import Fees from '../components/Fees';
 import AlbumTable from '../components/AlbumTable';
 import RatioTable from '../components/RatioTable';
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from '../main';
+import { Button } from 'react-bootstrap';
+import { setUserDarkMode } from '../reducers/userReducer';
 
 export default function Entertainment() {
+    const dispatch = useDispatch<AppDispatch>();
+    const { darkMode } = useSelector((state: RootState) => state.user);
 
     // this could be saved in database if desired
     const albums: IAlbum[] = [
@@ -108,12 +114,13 @@ export default function Entertainment() {
         <>
             <h3>Useful Links</h3>
             <ExternalLinks />
-            <h3>Fees are costing me in my 401k</h3>
-            <Fees/>
+            <Button onClick={() => dispatch(setUserDarkMode(!darkMode))}> {darkMode ? "Light Mode" : "Dark Mode"} </Button>
             <h3>Notable Company Ratios</h3>
             <RatioTable ratios={ratios} />
             <h1>10 10/10 Albums</h1>
             <AlbumTable albums={albums} />
+            <h3>Fees are costing me in my 401k</h3>
+            <Fees/>
             <Spike />
         </>
     );

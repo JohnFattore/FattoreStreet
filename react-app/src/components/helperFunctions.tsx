@@ -82,10 +82,10 @@ export function translateError(error: string) {
     }
 }
 
+
 export async function fetchQuote(ticker: string): Promise<IQuote> {
     const storedQuote = localStorage.getItem(ticker);
     const currentTime = Date.now();
-
     if (storedQuote) {
         const [price, percentChange, timestamp] = JSON.parse(storedQuote);
         const isRecent = (currentTime - timestamp) < 100000; // 100 seconds

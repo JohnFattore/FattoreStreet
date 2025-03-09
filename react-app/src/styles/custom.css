@@ -4,9 +4,9 @@
   --tertiary: #c3d898; }
 
 .dark-mode {
-  --primary: #e7ebc5ff;
-  --secondary: #cdc7e5ff;
-  --tertiary: #17301cff; }
+  --primary: #f2d492ff;
+  --secondary: #202c39ff;
+  --tertiary: #202c39ff; }
 
 /*!
  * Bootstrap  v5.3.2 (https://getbootstrap.com/)
@@ -10316,11 +10316,17 @@ body {
   background-color: var(--secondary); }
 
 .navbar {
-  --color: var(--secondary); }
+  --bs-navbar-color: var(--primary);
+  --bs-navbar-hover-color: var(--secondary);
+  /* Optional: Change hover color */ }
 
 .navbar-nav .nav-link:hover {
   color: var(--secondary);
   background-color: var(--primary); }
+
+.navbar-toggler {
+  color: var(--secondary);
+  border-color: var(--primary); }
 
 .table td {
   color: var(--primary);

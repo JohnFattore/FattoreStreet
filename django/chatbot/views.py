@@ -1,5 +1,4 @@
 from django.shortcuts import render
-import os
 import environ
 import google.generativeai as genai
 from rest_framework.views import APIView
@@ -12,7 +11,7 @@ environ.Env.read_env()
 
 class ChatbotView(APIView):
     def post(self, request):
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = env("GOOGLE_API_KEY")
         genai.configure(api_key=api_key)
 
         generation_config = {

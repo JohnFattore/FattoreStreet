@@ -8,9 +8,9 @@
 }
 
 .dark-mode {
-  --primary: #e7ebc5ff;
-  --secondary: #cdc7e5ff;
-  --tertiary: #17301cff;
+  --primary: #f2d492ff;
+  --secondary: #202c39ff;
+  --tertiary: #202c39ff;  
 }
 
 //--tertiary: #b8b08dff;
@@ -34,8 +34,8 @@ body {
 
 //change nav bar text color
 .navbar {
-  //--bs-navbar-color: var(--secondary);
-  --color: var(--secondary);
+  --bs-navbar-color: var(--primary);
+  --bs-navbar-hover-color: var(--secondary); /* Optional: Change hover color */
 }
 
 //change navbar hover colors
@@ -43,6 +43,11 @@ body {
   color: var(--secondary);
   background-color: var(--primary);
 
+}
+
+.navbar-toggler {
+  color: var(--secondary);
+  border-color: var(--primary);
 }
 
 .table td {

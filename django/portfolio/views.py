@@ -10,6 +10,12 @@ from datetime import datetime, timedelta, date
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+import environ
+import requests
+from django.core.cache import cache
+
+env = environ.Env()
+environ.Env.read_env()
 
 def get_next_day(date_str, date_format="%Y-%m-%d"):
     date_obj = datetime.strptime(date_str, date_format)
@@ -51,7 +57,24 @@ class SnP500RetrieveView(generics.RetrieveAPIView):
             return SnP500Price.objects.get(date=self.request.query_params.get("date"))
         except SnP500Price.DoesNotExist:
             raise serializers.ValidationError({"detail": "No record found for the given date."})
+
+class QuoteRetrieveView(APIView):
+    def get(self, request, *args, **kwargs):
+        symbol = request.query_params.get("symbol", "AAPL")
+        cache_key = f"finnhub_{symbol}"  # Unique cache key per stock symbol
+        cached_data = cache.get(cache_key)  # Check Redis cache
+
+        if cached_data:
+            print("used cached data!")
+            return Response(cached_data)  # Return cached response
         
+        api_key = env("FINNHUB_API_KEY")
+        url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={api_key}"
+        response = requests.get(url)
+        data = response.json()
+        cache.set(cache_key, data, timeout=60 * 5)  # Cache for 5 minutes
+        return Response(data)
+
 def daterange(start_date, end_date):
     """Helper function to iterate over a range of dates."""
     for n in range((end_date - start_date).days + 1):
@@ -76,7 +99,7 @@ class SnP500PriceCreateView(APIView):
                 print("Date already exists")
         return Response({"message": "S&P 500 prices populated successfully!"}, status=status.HTTP_200_OK)
 
-# shouldn't need, part of celery beat task now    
+# shouldn't need, part of celery beat task now 
 class UpdateCostBasis(views.APIView):
     def post(self, request):
         # Trigger the Celery task

@@ -7,4 +7,5 @@ urlpatterns = [
     path('api/snp500-price/', views.SnP500RetrieveView.as_view(), name='snp500-price'),
     path('api/snp500-price-create/', views.SnP500PriceCreateView.as_view(), name='snp500-price-create'),
     path('api/update-cost-basis/', views.UpdateCostBasis.as_view(), name='update-cost-basis'),
+    path('api/quote/', views.QuoteRetrieveView.as_view(), name='quote'),
 ]
