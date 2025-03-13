@@ -43,6 +43,5 @@ export default function ChatbotForm() {
             </Form>
             {error && <Alert variant="danger">{error}</Alert>}
         </>
-
     );
 }

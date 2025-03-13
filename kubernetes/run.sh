@@ -24,16 +24,6 @@ sudo docker run --name nginx --network dockerNet \
   -p 80:80 -p 443:443 \
   -d johnfattore/nginx
 
-# Celery worker
-sudo docker run \
-  --name celery \
-  --network dockerNet \
-  -e DATABASE=postgresDocker \
-  -e DEBUG=False \
-  -e REDIS_URL=redis://redis:6379 \
-  -d johnfattore/django \
-  celery -A mysite worker -E -n worker
-
 # Celery beat worker  
 sudo docker run \
   --name celery \
@@ -43,6 +33,16 @@ sudo docker run \
   -e REDIS_URL=redis://redis:6379 \
   -d johnfattore/django \
   celery -A mysite worker --beat -E -n beat
+
+# Celery worker
+sudo docker run \
+  --name celery \
+  --network dockerNet \
+  -e DATABASE=postgresDocker \
+  -e DEBUG=False \
+  -e REDIS_URL=redis://redis:6379 \
+  -d johnfattore/django \
+  celery -A mysite worker -E -n worker
 
 # Redis
 sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis

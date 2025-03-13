@@ -117,14 +117,16 @@ export const postAsset = createAsyncThunk('assets/postAsset',
       const quote = await fetchQuote(assetData.ticker)
       const quoteSPY = await fetchQuote("SPY")
       const totalCostBasis = assetData.shares * assetData.costbasis
+      const currentPrice = quote.price * asset.shares;
+      
       return {
         ticker: assetData.ticker,
         shares: assetData.shares,
         costBasis: assetData.costbasis,
         buyDate: assetData.buyDate,
         totalCostBasis: totalCostBasis,
-        currentPrice: quote.price,
-        percentChange: (quote.price - totalCostBasis) / totalCostBasis,
+        currentPrice: currentPrice,
+        percentChange: (currentPrice - totalCostBasis) / totalCostBasis,
         SnP500Price: assetData.SnP500Price.price,
         SnP500PercentChange: (quoteSPY.price - assetData.SnP500Price.price) / assetData.SnP500Price.price,
         id: assetData.id
