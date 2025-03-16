@@ -60,7 +60,7 @@ sudo docker run --rm \
   --email johnefattore@gmail.com \
   --agree-tos
 
-# watchtower for updates
+# watchtower for updates, doesnt work maybe as well as i hope
 sudo docker run -d \
   --name watchtower \
   --network dockerNet \

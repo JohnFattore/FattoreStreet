@@ -13,29 +13,29 @@ class SnP500PriceSerializer(serializers.ModelSerializer):
 
 # serializer for Asset Model
 class AssetSerializer(serializers.ModelSerializer):
-    SnP500Price = SnP500PriceSerializer(read_only=True) 
+    snp500_buy_date = SnP500PriceSerializer(read_only=True) 
 
     class Meta:
         model = Asset
         fields = ['id', 
                   'ticker', 
                   'shares', 
-                  'costbasis', 
-                  'buyDate', 
+                  'cost_basis', 
+                  'buy_date', 
                   'user',
-                  'SnP500Price']
+                  'snp500_buy_date']
         
     def validate_shares(self, value):
         if value < 0:
             raise serializers.ValidationError("The number of shares must be greater than 0.")
         return value
     
-    def validate_costbasis(self, value):
+    def validate_cost_basis(self, value):
         if value < 0:
             raise serializers.ValidationError("The cost basis must be greater than 0.")
         return value
     
-    def validate_buyDate(self, value):
+    def validate_buy_date(self, value):
         if value > timezone.now().date():
             raise serializers.ValidationError("The buy date can't be in the future.")
         return value

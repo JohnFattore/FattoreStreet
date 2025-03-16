@@ -11,8 +11,8 @@ def updateCostBasis():
     print("Beginning Asset Cost Basis Update")
     for asset in Asset.objects.all():
         yfinance = yf.Ticker(asset.ticker)
-        data = yfinance.history(start=asset.buyDate.strftime("%Y-%m-%d"), end=(asset.buyDate + timedelta(days=1)).strftime("%Y-%m-%d"))
-        newCostBasis = round(Decimal(data['Close'][asset.buyDate.strftime("%Y-%m-%d")]), 2)
+        data = yfinance.history(start=asset.buy_date.strftime("%Y-%m-%d"), end=(asset.buy_date + timedelta(days=1)).strftime("%Y-%m-%d"))
+        newCostBasis = round(Decimal(data['Close'][asset.buy_date.strftime("%Y-%m-%d")]), 2)
         if (asset.costbasis != newCostBasis):
             asset.costbasis = newCostBasis
             print(f"{asset.ticker}: {asset.pk}")

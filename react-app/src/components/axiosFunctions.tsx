@@ -71,19 +71,19 @@ export const getAssets = createAsyncThunk('assets/getAssets',
       const transformedData: IAsset[] = [];
       for (const asset of response.data) {
         const quote = await fetchQuote(asset.ticker);
-        const totalCostBasis = asset.shares * asset.costbasis;
+        const totalCostBasis = asset.shares * asset.cost_basis;
         const currentPrice = quote.price * asset.shares;
 
         transformedData.push({
           ticker: asset.ticker,
           shares: asset.shares,
-          costBasis: asset.costbasis,
-          buyDate: asset.buyDate,
+          costBasis: asset.cost_basis,
+          buyDate: asset.buy_date,
           totalCostBasis: totalCostBasis,
           currentPrice: currentPrice,
           percentChange: (currentPrice - totalCostBasis) / totalCostBasis,
-          SnP500Price: asset.SnP500Price.price,
-          SnP500PercentChange: (quoteSPY.price - asset.SnP500Price.price) / asset.SnP500Price.price,
+          SnP500Price: asset.snp500_buy_date.price,
+          SnP500PercentChange: (quoteSPY.price - asset.snp500_buy_date.price) / asset.snp500_buy_date.price,
           id: asset.id,
         });
       }
@@ -105,8 +105,8 @@ export const postAsset = createAsyncThunk('assets/postAsset',
       const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
         ticker: asset.ticker,
         shares: asset.shares,
-        buyDate: asset.buyDate,
-        costbasis: 1,
+        buy_date: asset.buyDate,
+        cost_basis: 1,
         user: 1
       }, {
         headers: {
@@ -116,19 +116,19 @@ export const postAsset = createAsyncThunk('assets/postAsset',
       const assetData = response.data
       const quote = await fetchQuote(assetData.ticker)
       const quoteSPY = await fetchQuote("SPY")
-      const totalCostBasis = assetData.shares * assetData.costbasis
+      const totalCostBasis = assetData.shares * assetData.cost_basis
       const currentPrice = quote.price * asset.shares;
       
       return {
         ticker: assetData.ticker,
         shares: assetData.shares,
-        costBasis: assetData.costbasis,
-        buyDate: assetData.buyDate,
+        costBasis: assetData.cost_basis,
+        buyDate: assetData.buy_date,
         totalCostBasis: totalCostBasis,
         currentPrice: currentPrice,
         percentChange: (currentPrice - totalCostBasis) / totalCostBasis,
-        SnP500Price: assetData.SnP500Price.price,
-        SnP500PercentChange: (quoteSPY.price - assetData.SnP500Price.price) / assetData.SnP500Price.price,
+        SnP500Price: assetData.snp500_buy_date.price,
+        SnP500PercentChange: (quoteSPY.price - assetData.snp500_buy_date.price) / assetData.snp500_buy_date.price,
         id: assetData.id
       }
     }

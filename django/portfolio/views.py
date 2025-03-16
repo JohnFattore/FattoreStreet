@@ -29,22 +29,22 @@ class AssetListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsOwner]
     # return only the assets the user owns
     def get_queryset(self):
-        return Asset.objects.filter(user=self.request.user).select_related("SnP500Price") 
+        return Asset.objects.filter(user=self.request.user).select_related("snp500_buy_date") 
 
     # user comes from different part of response as other data
     def perform_create(self, serializer):
-        buyDate = self.request.data["buyDate"]
+        buy_date = self.request.data["buy_date"]
         try:
-            SnP = SnP500Price.objects.get(date=buyDate)
+            SnP = SnP500Price.objects.get(date=buy_date)
         except:
             raise serializers.ValidationError({"detail": "Stock market was closed that day."})
         yfinance = yf.Ticker(self.request.data["ticker"])
-        data = yfinance.history(start=buyDate, end=get_next_day(buyDate))
-        serializer.save(user=self.request.user, SnP500Price=SnP, costbasis=data['Close'].get(buyDate, None)) 
+        data = yfinance.history(start=buy_date, end=get_next_day(buy_date))
+        serializer.save(user=self.request.user, snp500_buy_date=SnP, cost_basis=data['Close'].get(buy_date, None)) 
 
 # API endpoint for 'get' or 'delete' asset, only the owner should be able to do this
 class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):
-    queryset = Asset.objects.all().select_related("SnP500Price")
+    queryset = Asset.objects.all().select_related("snp500_buy_date")
     serializer_class = AssetSerializer
     permission_classes = [IsOwner]
 
