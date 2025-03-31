@@ -18,10 +18,8 @@ export default function TopNavigation() {
             <Nav.Link href="portfolio">Portfolio</Nav.Link>
             <Nav.Link href="watchlist">Watch List</Nav.Link>
             <Nav.Link href="chatbot">Chatbot</Nav.Link>
-            <Nav.Link href="education">Suggestions</Nav.Link>
             <Nav.Link href="register">Register</Nav.Link>
             <Nav.Link href="restaurants">Restaurants</Nav.Link>
-            <Nav.Link href="reviews">Reviews</Nav.Link>
             <Nav.Link href="entertainment">Entertainment</Nav.Link>
             {access && <LogoutButton />}
           </Nav>

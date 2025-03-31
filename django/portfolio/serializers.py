@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Asset, SnP500Price
+from .models import Asset, SnP500Price, AssetInfo
 from django.utils import timezone
 
 # serializer for SnP500Price Model
@@ -8,31 +8,41 @@ class SnP500PriceSerializer(serializers.ModelSerializer):
         model = SnP500Price
         fields = ['id', 
                   'date', 
-                  'price',
-                  ]
+                  'price']
+
+class AssetInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AssetInfo
+        fields = ['id', 
+                  'ticker', 
+                  'short_name',
+                  'long_name',
+                  'type',
+                  'exchange',
+                  'market']
 
 # serializer for Asset Model
 class AssetSerializer(serializers.ModelSerializer):
+    asset_info = AssetInfoSerializer(read_only=True)
     snp500_buy_date = SnP500PriceSerializer(read_only=True) 
+    snp500_sell_date = SnP500PriceSerializer(read_only=True)
 
     class Meta:
         model = Asset
         fields = ['id', 
-                  'ticker', 
                   'shares', 
                   'cost_basis', 
+                  'sell_price',
                   'buy_date', 
+                  'sell_date',
                   'user',
-                  'snp500_buy_date']
+                  'asset_info',
+                  'snp500_buy_date',
+                  'snp500_sell_date']
         
     def validate_shares(self, value):
         if value < 0:
             raise serializers.ValidationError("The number of shares must be greater than 0.")
-        return value
-    
-    def validate_cost_basis(self, value):
-        if value < 0:
-            raise serializers.ValidationError("The cost basis must be greater than 0.")
         return value
     
     def validate_buy_date(self, value):

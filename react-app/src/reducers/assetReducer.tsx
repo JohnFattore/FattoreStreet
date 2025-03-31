@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { deleteAsset, getAssets, postAsset } from '../components/axiosFunctions';
+import { deleteAsset, getAssets, postAsset, sellAsset } from '../components/axiosFunctions';
 import { IAsset } from '../interfaces';
 
 function sortAssets(assets: IAsset[], sortColumn: keyof IAsset, sortDirection: 'asc' | 'desc'): IAsset[] {
@@ -18,6 +18,7 @@ function sortAssets(assets: IAsset[], sortColumn: keyof IAsset, sortDirection: '
 interface AssetState {
   loading: boolean;
   assets: IAsset[];
+  asset: IAsset | null;
   error: string;
   sort: {
     sortColumn: keyof IAsset | null;
@@ -28,6 +29,7 @@ interface AssetState {
 const initialState: AssetState = {
   loading: false,
   assets: [],
+  asset: null,
   error: '',
   sort: {
     sortColumn: null,
@@ -48,6 +50,9 @@ const assetSlice = createSlice({
       if (sortColumn) {
         state.assets = sortAssets(state.assets, sortColumn, sortDirection);
       }
+    },
+    setAsset: (state, action) => {
+      state.asset = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -70,18 +75,7 @@ const assetSlice = createSlice({
       .addCase(postAsset.fulfilled, (state, action) => {
         state.loading = false;
         let asset = action.payload
-        state.assets.push({
-            ticker: asset.ticker,
-            shares: asset.shares,
-            costBasis: asset.costBasis,
-            buyDate: asset.buyDate,
-            totalCostBasis: asset.totalCostBasis,
-            currentPrice: asset.currentPrice, 
-            percentChange: asset.percentChange,
-            SnP500Price: asset.SnP500Price,
-            SnP500PercentChange: asset.SnP500PercentChange,
-            id: asset.id
-        })
+        state.assets.push(asset)
         state.error = '';
       })
       .addCase(postAsset.rejected, (state, action) => {
@@ -99,9 +93,25 @@ const assetSlice = createSlice({
       .addCase(deleteAsset.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || action.error.message || 'An error occurred';
-      });
+      })
+      .addCase(sellAsset.pending, (state) => {
+        state.loading = true; 
+      })
+      .addCase(sellAsset.fulfilled, (state, action) => {
+        state.loading = false;
+        state.assets = state.assets.map(asset =>
+          asset.id === action.payload.id ? action.payload : asset
+        );
+
+        state.asset = action.payload;
+        state.error = '';
+      })
+      .addCase(sellAsset.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || action.error.message || 'An error occurred';
+      })
   },
 });
 
-export const { errorAssets, setAssetSort } = assetSlice.actions;
+export const { errorAssets, setAssetSort, setAsset } = assetSlice.actions;
 export default assetSlice.reducer;

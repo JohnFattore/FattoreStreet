@@ -50,16 +50,16 @@ const restaurantSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(getRestaurants.pending, (state) => {
-        state.loading = true;  // Set loading to true when the async call is pending
+        state.loading = true; 
       })
       .addCase(getRestaurants.fulfilled, (state, action) => {
-        state.loading = false;  // Set loading to false when the async call is fulfilled
-        // this has to be more specific, 
-        state.restaurants = action.payload;  // Set the fetched data
+        state.loading = false; 
+        state.restaurants = action.payload;
+        state.error = '';
       })
       .addCase(getRestaurants.rejected, (state, action) => {
-        state.loading = false;  // Set loading to false if the call failed
-        state.error = action.error.message || 'An error occurred';;  // Set the error message
+        state.loading = false;
+        state.error = action.error.message || 'An error occurred';
       });
   },
 });

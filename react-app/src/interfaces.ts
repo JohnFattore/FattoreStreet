@@ -5,14 +5,21 @@ export interface IAllocation {
 
 export interface IAsset {
     ticker: string,
+    short_name: string,
+    long_name: string,
+    type: string,
+    exchange: string,
+    market: string,
     shares: number,
     costBasis: number,
+    sellPrice: number | null,
     buyDate: string,
-    totalCostBasis: number,
+    sellDate: string | null,
     currentPrice: number,
     percentChange: number,
-    SnP500Price: number,
-    SnP500PercentChange: number,
+    snp500PriceBuy: number,
+    snp500PriceSell: number | null,
+    snp500PercentChange: number,
     id: number,
 }
 

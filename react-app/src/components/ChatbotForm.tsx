@@ -34,7 +34,7 @@ export default function ChatbotForm() {
                     <Col sm={9}>
                         <Form.Control size="lg" {...register("message", {
                             required: true
-                        })} placeholder='message' />
+                        })} placeholder='Start by typing here...' />
                         {errors.message && <Alert variant='danger'>This field is required</Alert>}
 
                     </Col>

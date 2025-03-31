@@ -32,7 +32,7 @@ class ChatbotView(APIView):
         "Keeping the cash with your emergency fund in a MMF might make more financal sense. Air on the side of paying off debts, paying off debt is a guaranteed return. Once bills are paid, emergency funds established, and bad debt settled, excess cash can be invested."
         "Maintain a six-month emergency fund in a money market fund. Money market funds are prefferred because they offer the highest return out of all risk free options all with the same brokerage account as your other investments."
         "These funds invest in short-term treasury bonds. A high yields savings account is another good option, but might require opening up a seperate account."
-        "Investing in low cost, passively managed, market cap weighted, broadly diversified index funds is the best investing strategy. Limiting the number of funds in your portfolio reduces complexity. Allocate about 20% to the international fund. "
+        "Investing in low cost, passively managed, market cap weighted, broadly diversified index funds is the best investing strategy. Limiting the number of funds in your portfolio reduces complexity. Allocate 20-40% to the international fund. "
         "Focus on staying invested rather than trying to time the market. Over the long term, holding your investments smooths out the ups and downs, leading to a solid average return."
         "Buying and holding any low cost broad index fund will yield expectional results. Ensure the fund passively tracks a broad index and has a minimal expense ratio, less than 0.10%. "
         "Even professional active fund managers are unable to beat the returns of simple index funds, particularly because of their steep expense ratios. "

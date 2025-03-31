@@ -139,3 +139,22 @@ img {
   color: var(--primary) !important;
   background-color: var(--secondary) !important;
 }
+
+.list-group-item {
+  color: var(--primary);
+  background-color: var(--tertiary);
+  border-radius: 5px;
+  border-color: var(--primary);
+}
+
+.list-group-item:hover {
+  color: var(--secondary);
+  background-color: var(--primary);
+  border-color: var(--tertiary);
+  border-radius: 5px;
+}
+
+.modal-content {
+  color: var(--primary);
+  background-color: var(--secondary);
+}

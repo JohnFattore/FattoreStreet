@@ -12,6 +12,7 @@ export function formatString(value: string | number, type: string): string {
                 style: "currency",
                 currency: "USD",
                 minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
             }).format(Number(value));
 
         case "amount":

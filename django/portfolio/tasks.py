@@ -12,9 +12,9 @@ def updateCostBasis():
     for asset in Asset.objects.all():
         yfinance = yf.Ticker(asset.ticker)
         data = yfinance.history(start=asset.buy_date.strftime("%Y-%m-%d"), end=(asset.buy_date + timedelta(days=1)).strftime("%Y-%m-%d"))
-        newCostBasis = round(Decimal(data['Close'][asset.buy_date.strftime("%Y-%m-%d")]), 2)
-        if (asset.costbasis != newCostBasis):
-            asset.costbasis = newCostBasis
+        newCostBasis = round(Decimal(data['Close'][asset.buy_date.strftime("%Y-%m-%d")]) * asset.shares, 2)
+        if (asset.cost_basis != newCostBasis):
+            asset.cost_basis = newCostBasis
             print(f"{asset.ticker}: {asset.pk}")
             asset.save()
 
@@ -22,7 +22,7 @@ def updateCostBasis():
 
     yfinance = yf.Ticker("SPY")
     start_date = date(1993, 1, 1)
-    end_date = current_date - timedelta(days=30) # date(2025, 12, 31)
+    end_date = current_date + timedelta(days=30) # date(2025, 12, 31)
     data = yfinance.history(start=start_date.strftime("%Y-%m-%d"), end=end_date.strftime("%Y-%m-%d"))
     for snp in SnP500Price.objects.all():    
         newCostBasis = round(Decimal(data['Close'][snp.date.strftime("%Y-%m-%d")]), 2)

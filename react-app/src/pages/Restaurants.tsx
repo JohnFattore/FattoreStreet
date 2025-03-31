@@ -6,14 +6,17 @@ import { AppDispatch, RootState } from "../main";
 import ReviewForm from '../components/ReviewForm';
 import { useState } from 'react';
 import { IRestaurant } from '../interfaces';
-import { Col, Row } from 'react-bootstrap';
+import { Button, Col, Row } from 'react-bootstrap';
 import LocationForm from '../components/LocationForm'
 import ReviewTable from '../components/ReviewTable';
+import { useNavigate } from "react-router-dom";
 
 export default function Restaurants() {
     const dispatch = useDispatch<AppDispatch>();
     const { state, city } = useSelector((state: RootState) => state.location);
     const { access } = useSelector((state: RootState) => state.user);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         dispatch(getRestaurants());
@@ -37,6 +40,7 @@ export default function Restaurants() {
     return (
         <>
             <ReviewTable />
+            <Button onClick={() => {navigate("/reviews")}} >Restaurant Recommender</Button>
             <Row>
                 <Col md={4}>
                     <h3>{"Selected Location: ".concat(state, " ", city)}</h3>

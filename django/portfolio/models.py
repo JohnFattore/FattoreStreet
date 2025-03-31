@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
+from .choices import ASSET_TYPES, EXCHANGES, MARKETS
 
 # one to many with assets, asset model could contain this model as foriegn key
 class SnP500Price(models.Model):
@@ -8,18 +9,28 @@ class SnP500Price(models.Model):
     price = models.DecimalField(decimal_places=2, max_digits=100, default=0)
     history = HistoricalRecords()
 
+class AssetInfo(models.Model):
+    ticker = models.CharField(max_length=5, unique=True, db_index=True)
+    short_name = models.CharField(max_length=100)
+    long_name = models.CharField(max_length=250)
+    type = models.CharField(max_length=25, choices=ASSET_TYPES)
+    exchange = models.CharField(max_length=25, choices=EXCHANGES)
+    market = models.CharField(max_length=25, choices=MARKETS)
+    history = HistoricalRecords()
+
 class Asset(models.Model):
-    ticker = models.CharField(max_length=5)
+    asset_info = models.ForeignKey(AssetInfo, on_delete=models.CASCADE)
     shares = models.DecimalField(decimal_places=5, max_digits=25)
-    cost_basis = models.DecimalField(decimal_places=2, max_digits=10)
+    cost_basis = models.DecimalField(decimal_places=2, max_digits=25)
+    sell_price = models.DecimalField(decimal_places=2, max_digits=25, null=True, blank=True)
     buy_date = models.DateField('date bought')
-    # sell_date = models.DateField('date sold')
+    sell_date = models.DateField('date sold', null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    snp500_buy_date = models.ForeignKey(SnP500Price, on_delete=models.CASCADE) # need to differientiat this from the sell price
-    # snp500_sell_date_price
+    snp500_buy_date = models.ForeignKey(SnP500Price, on_delete=models.CASCADE, related_name="assets_bought")
+    snp500_sell_date = models.ForeignKey(SnP500Price, on_delete=models.CASCADE, null=True, blank=True, related_name="assets_sold")
     history = HistoricalRecords()
     def __str__(self):
-        return self.ticker
+        return self.asset_info.ticker
 
 '''
 # just messing around down here 
@@ -40,6 +51,7 @@ class SecurityTransaction(models.Model):
     TRANSACTION_TYPES = [
         ('BUY', 'Buy'),
         ('SELL', 'Sell'),
+        ('CLOSE', 'Close Position'),
         ('DIVIDEND', 'Dividend'),
         ('TRANSFER', 'Transfer'),
         ('INTEREST', 'Interest'),

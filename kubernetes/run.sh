@@ -60,7 +60,7 @@ sudo docker run --rm \
   --email johnefattore@gmail.com \
   --agree-tos
 
-# watchtower for updates, doesnt work maybe as well as i hope
+# watchtower for updates, doesnt work maybe as well as i hope. if django restarts, nginx needs to as well
 sudo docker run -d \
   --name watchtower \
   --network dockerNet \
@@ -69,16 +69,20 @@ sudo docker run -d \
   -v /var/run/docker.sock:/var/run/docker.sock \
   containrrr/watchtower
 
+# one off watchtower
+
 
 sudo docker stop postgres
 sudo docker container rm postgres
 sudo docker image rm postgres
 
 
+sudo docker stop celery
+sudo docker container rm celery
+
 sudo docker stop django
 sudo docker container rm django
 sudo docker image rm johnfattore/django
-
 
 sudo docker stop nginx
 sudo docker container rm nginx
@@ -87,10 +91,6 @@ sudo docker image rm johnfattore/nginx
 
 sudo docker stop redis
 sudo docker container rm redis
-
-
-sudo docker stop celery
-sudo docker container rm celery
 
 # exec into django
 sudo docker exec -it django bash

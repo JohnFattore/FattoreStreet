@@ -8,7 +8,6 @@ import Portfolio from "./pages/Portfolio"
 import Watchlist from "./pages/WatchList";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Education from "./pages/Education";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
 import Outliers from "./pages/Outliers";
@@ -22,6 +21,8 @@ import { refreshLogin } from "./components/axiosFunctions";
 import { logout, clearErrors } from "./reducers/userReducer";
 import { useEffect } from "react";
 import Chatbot from "./pages/Chatbot";
+import AssetView from "./components/AssetView";
+import Admin from "./pages/Admin";
 
 // react router for all our routes
 export default function App() {
@@ -75,15 +76,15 @@ export default function App() {
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/education" element={<Education />} />
         <Route path="/outliers" element={<Outliers />} />
         <Route path="/entertainment" element={<Entertainment />} />
         <Route path="/chatbot" element={<Chatbot />} />
+        <Route path="/asset" element={<AssetView />} />
+        <Route path="/react-admin" element={<Admin />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
       <p>This website is purely for entertainment. All investments carry risk. Consult a professional.</p>
       <p>Index Funds are Awesome!!</p>
     </div>
-
   );
 }

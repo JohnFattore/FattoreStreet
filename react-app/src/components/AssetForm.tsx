@@ -40,17 +40,11 @@ export default function AssetForm() {
                 else {
                     dispatch(
                         postAsset({
-                            // 1s are placeholders, nice to include those so IAsset interface can be used
                             ticker: data.ticker,
                             shares: data.shares,
                             buyDate: data.buyDate,
                             costBasis: 1,
-                            totalCostBasis: 1,
-                            currentPrice: 1,
-                            percentChange: 1,
-                            SnP500Price: 1,
-                            SnP500PercentChange: 1,
-                            id: 1
+                            user: 1
                         }));
                 }
             });

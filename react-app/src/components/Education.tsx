@@ -85,7 +85,7 @@ export default function Education() {
                     <Accordion.Header>Buy and Hold</Accordion.Header>
                     <Accordion.Body>
                         Investing in low cost, passively managed, market cap weighted, broadly diversified index funds is the best investing strategy. Limiting the number of funds in your portfolio reduces complexity.
-                        Allocate about 20% to the international fund.
+                        Allocate 20-40% to the international fund. 
                         Focus on staying invested rather than trying to time the market.
                         Over the long term, holding your investments smooths out the ups and downs, leading to a solid average return.
                         $100 invested at the start of the year in 1963 would be worth $41,024.18 at the end of 2023, which is a 40,924.18% return on investment or 10.37% a year *.

@@ -1,6 +1,7 @@
 export default {
-  //setupFiles: ['./setupTests.ts'],
-  tests: {
+  test: {
+    globals: true,
+    environment: 'jsdom',
     setupFiles: ['./__tests__/setupTests.ts'],
   }
 };

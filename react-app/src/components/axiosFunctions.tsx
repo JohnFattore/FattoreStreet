@@ -57,39 +57,93 @@ export const postUser = createAsyncThunk('users/postUser',
   }
 )
 
+interface ISnp500Date {
+  id: number;
+  date: string;  // ISO date string (e.g., "2024-12-18")
+  price: number; // Stored as a string
+}
+
+interface IAssetInfo {
+  id: number;
+  ticker: string, 
+  short_name: string,
+  long_name: string,
+  type: string,
+  exchange: string,
+  market: string
+}
+
+interface IAssetResponse {
+  id: number;
+  ticker: string;
+  shares: number;
+  cost_basis: number;
+  sell_price: number | null;
+  buy_date: string; // ISO date string (e.g., "2024-03-01")
+  sell_date: string | null; // Nullable if not sold
+  user: number; // Assuming this is a user ID
+  asset_info: IAssetInfo;
+  snp500_buy_date: ISnp500Date;
+  snp500_sell_date: ISnp500Date | null;
+}
+
+async function formatIAsset(asset: IAssetResponse): Promise<IAsset> {
+  const quoteSPY = await fetchQuote("SPY");
+  const quote = await fetchQuote(asset.asset_info.ticker);
+  const currentPrice = quote.price * asset.shares;
+  var snp500PercentChange = (quoteSPY.price - asset.snp500_buy_date.price) / asset.snp500_buy_date.price
+  var snp500PriceSell: number | null = null
+  var sellDate: string | null = null
+  var sellPrice: number | null = null
+  var percentChange = (currentPrice - asset.cost_basis) / asset.cost_basis;
+  if (asset.sell_price && asset.snp500_sell_date) {
+    snp500PriceSell = asset.snp500_sell_date.price
+    snp500PercentChange = (asset.snp500_sell_date.price - asset.snp500_buy_date.price) / asset.snp500_buy_date.price
+    sellDate = asset.sell_date
+    sellPrice = asset.sell_price
+    percentChange = (asset.sell_price - asset.cost_basis) / asset.cost_basis;
+  }
+  return {
+    ticker: asset.asset_info.ticker,
+    short_name: asset.asset_info.short_name,
+    long_name: asset.asset_info.long_name,
+    type: asset.asset_info.type,
+    exchange: asset.asset_info.exchange,
+    market: asset.asset_info.market,
+    shares: asset.shares,
+    costBasis: asset.cost_basis,
+    sellPrice: sellPrice,
+    buyDate: asset.buy_date,
+    sellDate: sellDate,
+    currentPrice: currentPrice,
+    percentChange: percentChange,
+    snp500PriceBuy: asset.snp500_buy_date.price,
+    snp500PriceSell: snp500PriceSell,
+    snp500PercentChange: snp500PercentChange,
+    id: asset.id,
+  }
+
+}
+
 export const getAssets = createAsyncThunk('assets/getAssets',
   async (_, { getState, rejectWithValue }) => {
     try {
       const state = getState() as RootState;
       const access = state.user.access;
+
+      if (!access) {
+        return rejectWithValue("Unauthorized: No access token found");
+      }
+
       const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
         headers: {
           'Authorization': ' Bearer '.concat(access)
         },
       });
-      const quoteSPY = await fetchQuote("SPY");
-      const transformedData: IAsset[] = [];
-      for (const asset of response.data) {
-        const quote = await fetchQuote(asset.ticker);
-        const totalCostBasis = asset.shares * asset.cost_basis;
-        const currentPrice = quote.price * asset.shares;
 
-        transformedData.push({
-          ticker: asset.ticker,
-          shares: asset.shares,
-          costBasis: asset.cost_basis,
-          buyDate: asset.buy_date,
-          totalCostBasis: totalCostBasis,
-          currentPrice: currentPrice,
-          percentChange: (currentPrice - totalCostBasis) / totalCostBasis,
-          SnP500Price: asset.snp500_buy_date.price,
-          SnP500PercentChange: (quoteSPY.price - asset.snp500_buy_date.price) / asset.snp500_buy_date.price,
-          id: asset.id,
-        });
-      }
+      const assets = await Promise.all(response.data.map(formatIAsset));
 
-      // Return transformed data after all fetchQuote calls
-      return transformedData;     
+      return assets;
     }
     catch (error: any) {
       return rejectWithValue(error.response.data.detail || 'Getting Assets failed');
@@ -97,8 +151,16 @@ export const getAssets = createAsyncThunk('assets/getAssets',
   }
 )
 
+interface IPostAsset {
+  ticker: string,
+  shares: number,
+  buyDate: string,
+  costBasis: number,
+  user: number
+}
+
 export const postAsset = createAsyncThunk('assets/postAsset',
-  async (asset: IAsset, { getState, rejectWithValue }) => {
+  async (asset: IPostAsset, { getState, rejectWithValue }) => {
     try {
       const state = getState() as RootState;
       const access = state.user.access;
@@ -113,24 +175,7 @@ export const postAsset = createAsyncThunk('assets/postAsset',
           'Authorization': ' Bearer '.concat(access)
         }
       });
-      const assetData = response.data
-      const quote = await fetchQuote(assetData.ticker)
-      const quoteSPY = await fetchQuote("SPY")
-      const totalCostBasis = assetData.shares * assetData.cost_basis
-      const currentPrice = quote.price * asset.shares;
-      
-      return {
-        ticker: assetData.ticker,
-        shares: assetData.shares,
-        costBasis: assetData.cost_basis,
-        buyDate: assetData.buy_date,
-        totalCostBasis: totalCostBasis,
-        currentPrice: currentPrice,
-        percentChange: (currentPrice - totalCostBasis) / totalCostBasis,
-        SnP500Price: assetData.snp500_buy_date.price,
-        SnP500PercentChange: (quoteSPY.price - assetData.snp500_buy_date.price) / assetData.snp500_buy_date.price,
-        id: assetData.id
-      }
+      return formatIAsset(response.data)
     }
     catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Adding Asset failed');
@@ -152,6 +197,27 @@ export const deleteAsset = createAsyncThunk('assets/deleteAsset',
     }
     catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Deleting Asset failed');
+    }
+  }
+)
+
+export const sellAsset = createAsyncThunk('assets/sellAsset',
+  async ({ id, sellDate }: { id: number, sellDate: string }, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      const response = await axios.patch(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("update-sell-date/", id, "/"),
+        { sell_date: sellDate },
+        {
+          headers: {
+            'Authorization': ' Bearer '.concat(access)
+          },
+        });
+
+      return formatIAsset(response.data)
+    }
+    catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Selling Asset failed');
     }
   }
 )
@@ -208,7 +274,7 @@ export const getQuote = async (ticker: string) => {
   const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quote/"), {
     params: {
       symbol: ticker
-        }
+    }
   });
   return response
 }
@@ -391,7 +457,6 @@ export const patchReview = createAsyncThunk('reviews/patchReview',
     try {
       const state = getState() as RootState;
       const access = state.user.access;
-      console.log(review)
       const response = await axios.patch(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-update/", review.id, "/"), {
         rating: review.rating
       }, {
