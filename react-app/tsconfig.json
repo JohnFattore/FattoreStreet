@@ -9,6 +9,7 @@
     "paths": {
       "react": [ "./node_modules/@types/react" ]
     },
+    "esModuleInterop": true,
 
     /* Bundler mode */
     "moduleResolution": "node",

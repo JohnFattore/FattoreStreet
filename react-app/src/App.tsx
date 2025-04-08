@@ -6,7 +6,6 @@ import TopNavigation from "./components/TopNavigation";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio"
 import Watchlist from "./pages/WatchList";
-import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
@@ -21,7 +20,7 @@ import { refreshLogin } from "./components/axiosFunctions";
 import { logout, clearErrors } from "./reducers/userReducer";
 import { useEffect } from "react";
 import Chatbot from "./pages/Chatbot";
-import AssetView from "./components/AssetView";
+import AssetView from "./pages/AssetView";
 import Admin from "./pages/Admin";
 
 // react router for all our routes
@@ -74,7 +73,6 @@ export default function App() {
         <Route path="/portfolio" element={<Portfolio />} errorElement={<ErrorPage />} />
         <Route path="/snp500Prices" element={<SnP500Prices />} />
         <Route path="/watchlist" element={<Watchlist />} />
-        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/outliers" element={<Outliers />} />
         <Route path="/entertainment" element={<Entertainment />} />

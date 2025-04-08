@@ -4,23 +4,9 @@ import {
     BrowserRouter,
 } from "react-router-dom";
 import { Provider } from "react-redux";
-import { configureStore } from "@reduxjs/toolkit";
-import rootReducer from './reducers/rootReducer';
-import { persistStore, persistReducer } from 'redux-persist';
+import { persistStore } from 'redux-persist';
 import { PersistGate } from 'redux-persist/integration/react';
-import storage from 'redux-persist/lib/storage'; // Default storage (localStorage)
-
-const persistConfig = {
-    key: 'root', // The key to store the data in storage
-    storage, // The storage to use (localStorage or sessionStorage)
-    whitelist: ['user', 'snp500Prices', 'location'], // Only persist the user reducer
-};
-
-const persistedReducer = persistReducer(persistConfig, rootReducer);
-
-export const store = configureStore({
-    reducer: persistedReducer,
-});
+import { store } from './store';
 
 export const persistor = persistStore(store);
 

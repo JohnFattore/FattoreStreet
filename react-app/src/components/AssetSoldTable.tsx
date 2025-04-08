@@ -19,7 +19,7 @@ const fields = [
 ]
 
 export default function AssetSoldTable() {
-    const { assets, error, sort, loading } = useSelector((state: RootState) => state.assets);
+    const { assets, sort, loading } = useSelector((state: RootState) => state.assets);
     const { access, username } = useSelector((state: RootState) => state.user)
     const dispatch = useDispatch<AppDispatch>();
 
@@ -52,7 +52,7 @@ export default function AssetSoldTable() {
 
     return (
         <>
-            {error && <Alert variant="danger">{error}</Alert>}
+            <h3>Sold Positions</h3>
             <Table>
                 <thead>
                     <tr>
@@ -61,7 +61,7 @@ export default function AssetSoldTable() {
                 </thead>
                 <tbody>
                     {assetsSold.map((asset) => (
-                        <AssetRow key={asset.id} asset={asset} fields={fields}/>
+                        <AssetRow key={asset.id} asset={asset} fields={fields} />
                     ))}
                 </tbody>
             </Table>

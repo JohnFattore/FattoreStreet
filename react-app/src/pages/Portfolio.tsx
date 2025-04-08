@@ -39,7 +39,6 @@ export default function Portfolio() {
             </Row>
             <h1>{username ? `${username}'s Portfolio` : 'Portfolio'}</h1>
             <AssetTable/>
-            <h3>Sold Positions</h3>
             <AssetSoldTable />
             {/*<AllocationTable />*/}
             <Button onClick={() => navigate("/snp500Prices")}>Historical S&P500 Prices</Button>

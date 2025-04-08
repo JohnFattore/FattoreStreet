@@ -103,6 +103,7 @@ async function formatIAsset(asset: IAssetResponse): Promise<IAsset> {
     sellPrice = asset.sell_price
     percentChange = (asset.sell_price - asset.cost_basis) / asset.cost_basis;
   }
+
   return {
     ticker: asset.asset_info.ticker,
     short_name: asset.asset_info.short_name,
@@ -122,7 +123,6 @@ async function formatIAsset(asset: IAssetResponse): Promise<IAsset> {
     snp500PercentChange: snp500PercentChange,
     id: asset.id,
   }
-
 }
 
 export const getAssets = createAsyncThunk('assets/getAssets',
@@ -141,7 +141,13 @@ export const getAssets = createAsyncThunk('assets/getAssets',
         },
       });
 
-      const assets = await Promise.all(response.data.map(formatIAsset));
+      // ensure formatIAsset calls are made sequenially, not in parallel
+      // this ensures the SPY quote call at the beginning isnt called for each asset
+      const assets: IAsset[] = [];
+      for (const asset of response.data) {
+        const formatted = await formatIAsset(asset);
+        assets.push(formatted);
+      }
 
       return assets;
     }

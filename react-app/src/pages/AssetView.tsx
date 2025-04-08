@@ -3,15 +3,15 @@ import { RootState } from '../main';
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { useEffect } from "react";
-import { deleteAsset } from "./axiosFunctions";
+import { deleteAsset } from "../components/axiosFunctions";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from '../main';
 import Card from 'react-bootstrap/Card';
 import Modal from 'react-bootstrap/Modal';
 import { ListGroup } from "react-bootstrap";
 import { useState } from "react";
-import { formatString } from './helperFunctions';
-import AssetSellForm from "./AssetSellForm";
+import { formatString } from '../components/helperFunctions';
+import AssetSellForm from "../components/AssetSellForm";
 
 export default function AssetView() {
     const navigate = useNavigate();

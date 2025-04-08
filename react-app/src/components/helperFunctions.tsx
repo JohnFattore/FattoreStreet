@@ -83,7 +83,6 @@ export function translateError(error: string) {
     }
 }
 
-
 export async function fetchQuote(ticker: string): Promise<IQuote> {
     const storedQuote = localStorage.getItem(ticker);
     const currentTime = Date.now();
@@ -102,6 +101,7 @@ export async function fetchQuote(ticker: string): Promise<IQuote> {
         const { c: price, dp: percentChange } = response.data;
         localStorage.setItem(ticker, JSON.stringify([price, percentChange, currentTime]));
         return { price, percentChange };
+
     } catch (error) {
         console.error(`Error fetching quote for ${ticker}:`, error);
         throw new Error('Failed to fetch quote');

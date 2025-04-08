@@ -43,38 +43,36 @@ class AssetListCreateView(generics.ListCreateAPIView):
             raise serializers.ValidationError({"detail": "Stock market was closed that day."})
         try:
             asset_info = AssetInfo.objects.get(ticker=ticker)
-            if asset_info:
-                pass
 
-            else:
-                yfinance = yf.Ticker(ticker)
-                data = yfinance.info     
-
-                market = data["market"]
-                if market not in {m[0] for m in MARKETS}:
-                    raise Exception(f"Market {market} not recognized")
-
-                type = data["quoteType"]
-                if type not in {t[0] for t in ASSET_TYPES}:
-                    raise Exception(f"type {type} not recognized")
-
-                exchange = data["fullExchangeName"]
-
-                if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
-                    exchange = "NASDAQ"
-                elif exchange in {"NYSEArca"}:
-                    exchange = "NYSE"
-
-                if exchange not in {e[0] for e in EXCHANGES}:
-                    raise Exception(f"exchange {exchange} not recognized")        
-                asset_info = AssetInfo.objects.create(ticker=ticker,
-                                                    short_name=data["shortName"],
-                                                    long_name=data["longName"],
-                                                    type=type,
-                                                    market=market,
-                                                    exchange=exchange)                        
         except:
-            raise Exception(f"an error has occured processing {ticker}")        
+            yfinance = yf.Ticker(ticker)
+            data = yfinance.info     
+
+            market = data["market"]
+            if market not in {m[0] for m in MARKETS}:
+                raise Exception(f"Market {market} not recognized")
+
+            type = data["quoteType"]
+            if type not in {t[0] for t in ASSET_TYPES}:
+                raise Exception(f"type {type} not recognized")
+
+            exchange = data["fullExchangeName"]
+
+            if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
+                exchange = "NASDAQ"
+            elif exchange in {"NYSEArca"}:
+                exchange = "NYSE"
+
+            if exchange not in {e[0] for e in EXCHANGES}:
+                raise Exception(f"exchange {exchange} not recognized")        
+            asset_info = AssetInfo.objects.create(ticker=ticker,
+                                                short_name=data["shortName"],
+                                                long_name=data["longName"],
+                                                type=type,
+                                                market=market,
+                                                exchange=exchange)                        
+#        except:
+#            raise Exception(f"an error has occured processing {ticker}")        
 
 
         yfinance = yf.Ticker(self.request.data["ticker"])
@@ -131,12 +129,11 @@ class QuoteRetrieveView(APIView):
         cached_data = cache.get(cache_key)  # Check Redis cache
 
         if cached_data:
-            print("used cached data!")
             return Response(cached_data)  # Return cached response
         
         api_key = env("FINNHUB_API_KEY")
         url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={api_key}"
         response = requests.get(url)
         data = response.json()
-        cache.set(cache_key, data, timeout=60 * 5)  # Cache for 5 minutes
+        cache.set(cache_key, data, timeout=60 * 5)
         return Response(data)
