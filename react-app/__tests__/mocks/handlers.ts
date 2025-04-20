@@ -47,4 +47,42 @@ export const handlers = [
       "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQzNjQyMTYzLCJpYXQiOjE3NDM2NDE4NjMsImp0aSI6IjE0Nzc4MDJkNjc4YTQ2OTM5MTMzNmQzMjIzODYxYmFjIiwidXNlcl9pZCI6NH0.1scYah9rH9XcikArJz64MC38VKWIzx0aWv4SdJClxEw"
   }, { status: 200 });
   }),
+
+  http.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-list/"), () => {
+    return Response.json([{
+      "user": 2,
+      "rating": "3.0",
+      "comment": "ice cream",
+      "id": 17,
+      "restaurant": 104622,
+      "restaurant_detail": {
+          "yelp_id": "oaboaRBUgGjbo2kfUIKDLQ",
+          "name": "Mike's Ice Cream",
+          "address": "129 2nd Ave N",
+          "state": "TN",
+          "city": "Nashville",
+          "latitude": "36.16264920",
+          "longitude": "-86.77597330",
+          "categories": "Ice Cream & Frozen Yogurt, Coffee & Tea, Restaurants, Sandwiches, Food",
+          "stars": 4.5,
+          "review_count": 593,
+          "id": 104622
+      }}], { status: 200 });
+  }),
+
+http.get(import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("restaurant-list-create/"), () => {
+  return Response.json([{
+    "yelp_id": "bBDDEgkFA1Otx9Lfe7BZUQ",
+    "name": "Sonic Drive-In",
+    "address": "2312 Dickerson Pike",
+    "state": "TN",
+    "city": "Nashville",
+    "latitude": "36.20810240",
+    "longitude": "-86.76816960",
+    "categories": "Ice Cream & Frozen Yogurt, Fast Food, Burgers, Restaurants, Food",
+    "stars": 1.5,
+    "review_count": 10,
+    "id": 104585
+},], { status: 200 });
+}),
 ];

@@ -160,9 +160,7 @@ export const getAssets = createAsyncThunk('assets/getAssets',
 interface IPostAsset {
   ticker: string,
   shares: number,
-  buyDate: string,
-  costBasis: number,
-  user: number
+  buyDate: string
 }
 
 export const postAsset = createAsyncThunk('assets/postAsset',
@@ -173,9 +171,7 @@ export const postAsset = createAsyncThunk('assets/postAsset',
       const response = await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), {
         ticker: asset.ticker,
         shares: asset.shares,
-        buy_date: asset.buyDate,
-        cost_basis: 1,
-        user: 1
+        buy_date: asset.buyDate
       }, {
         headers: {
           'Authorization': ' Bearer '.concat(access)

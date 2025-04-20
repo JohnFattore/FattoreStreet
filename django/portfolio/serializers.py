@@ -26,7 +26,9 @@ class AssetSerializer(serializers.ModelSerializer):
     asset_info = AssetInfoSerializer(read_only=True)
     snp500_buy_date = SnP500PriceSerializer(read_only=True) 
     snp500_sell_date = SnP500PriceSerializer(read_only=True)
-
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    cost_basis = serializers.FloatField(read_only=True)
+    
     class Meta:
         model = Asset
         fields = ['id', 

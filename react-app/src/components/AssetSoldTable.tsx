@@ -1,5 +1,4 @@
 import Table from 'react-bootstrap/Table';
-import { Alert } from 'react-bootstrap';
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { setAssetSort } from '../reducers/assetReducer';
@@ -20,7 +19,7 @@ const fields = [
 
 export default function AssetSoldTable() {
     const { assets, sort, loading } = useSelector((state: RootState) => state.assets);
-    const { access, username } = useSelector((state: RootState) => state.user)
+    const { access } = useSelector((state: RootState) => state.user)
     const dispatch = useDispatch<AppDispatch>();
 
     const handleSort = (sortColumn: string) => {
@@ -43,11 +42,7 @@ export default function AssetSoldTable() {
     }
 
     if (assets.length == 0 && access && !loading) {
-        return (<Alert>{username.concat(" has no assets ")}</Alert>)
-    }
-
-    if (loading) {
-        return (<Alert>Loading...</Alert>)
+        return (<></>)
     }
 
     return (

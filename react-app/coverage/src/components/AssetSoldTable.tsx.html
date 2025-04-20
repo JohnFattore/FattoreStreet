@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">84.72% </span>
+                <span class="strong">86.36% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>61/72</span>
+                <span class='fraction'>57/66</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">61.53% </span>
+                <span class="strong">70% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>8/13</span>
+                <span class='fraction'>7/10</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">84.72% </span>
+                <span class="strong">86.36% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>61/72</span>
+                <span class='fraction'>57/66</span>
             </div>
         
             
@@ -128,14 +128,7 @@
 <a name='L63'></a><a href='#L63'>63</a>
 <a name='L64'></a><a href='#L64'>64</a>
 <a name='L65'></a><a href='#L65'>65</a>
-<a name='L66'></a><a href='#L66'>66</a>
-<a name='L67'></a><a href='#L67'>67</a>
-<a name='L68'></a><a href='#L68'>68</a>
-<a name='L69'></a><a href='#L69'>69</a>
-<a name='L70'></a><a href='#L70'>70</a>
-<a name='L71'></a><a href='#L71'>71</a>
-<a name='L72'></a><a href='#L72'>72</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L66'></a><a href='#L66'>66</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -182,31 +175,25 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span></td><td class="text"><pre class="prettyprint lang-js">import Table from 'react-bootstrap/Table';
-import { Alert } from 'react-bootstrap';
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span></td><td class="text"><pre class="prettyprint lang-js">import Table from 'react-bootstrap/Table';
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { setAssetSort } from '../reducers/assetReducer';
@@ -226,8 +213,8 @@ const fields = [
 ]
 &nbsp;
 export default function AssetSoldTable() {
-    const { assets, error, sort, loading } = useSelector((state: RootState) =&gt; state.assets);
-    const { access, username } = useSelector((state: RootState) =&gt; state.user)
+    const { assets, sort, loading } = useSelector((state: RootState) =&gt; state.assets);
+    const { access } = useSelector((state: RootState) =&gt; state.user)
     const dispatch = useDispatch&lt;AppDispatch&gt;();
 &nbsp;
     const handleSort = <span class="fstat-no" title="function not covered" >(sortColumn: string) =&gt; {</span>
@@ -250,17 +237,12 @@ export default function AssetSoldTable() {
     }
 &nbsp;
     if (assets.length == <span class="branch-0 cbranch-no" title="branch not covered" >0 &amp;&amp; <span class="branch-0 cbranch-no" title="branch not covered" >access &amp;&amp; !</span>loading) <span class="branch-0 cbranch-no" title="branch not covered" >{</span></span>
-<span class="cstat-no" title="statement not covered" >        return (&lt;Alert&gt;{username.concat(" has no assets ")}&lt;/Alert&gt;)</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-&nbsp;
-    if (loading) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
-<span class="cstat-no" title="statement not covered" >        return (&lt;Alert&gt;Loading...&lt;/Alert&gt;)</span>
+<span class="cstat-no" title="statement not covered" >        return (&lt;&gt;&lt;/&gt;)</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
 &nbsp;
     return (
         &lt;&gt;
             &lt;h3&gt;Sold Positions&lt;/h3&gt;
-            {<span class="branch-0 cbranch-no" title="branch not covered" >error &amp;&amp; &lt;Alert variant="danger"&gt;{error}&lt;/Alert&gt;}</span>
             &lt;Table&gt;
                 &lt;thead&gt;
                     &lt;tr&gt;
@@ -283,7 +265,7 @@ export default function AssetSoldTable() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-04T01:19:55.522Z
+                at 2025-04-19T22:37:39.343Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

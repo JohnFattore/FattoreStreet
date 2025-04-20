@@ -1,14 +1,6 @@
 # Full Backend
 
-## Devops refactoring ECS => EC2
-### Key Pair (Login)
-Spike's Secret Key.pem
-i-0c0cdfd99d39d8252
-
 ### Note: Django and react-app have dedicated README.md
-
-#### Deploy Project
-    ./deploy.sh
 
 ## Project Overview
 The web framework [Django](https://www.djangoproject.com/) runs on a [Gunicorn](https://gunicorn.org/) server, connected utilizing WSGI. A [postgreSQL](https://www.postgresql.org/) server runs to manage the applications database. A [NGINX](https://www.nginx.com/) server works as a reverse proxy / load balancer / static conent deliver boy for the system. [Vite](https://vitejs.dev/) handles the [react](https://react.dev/) frontend development and deployment. [Docker](https://www.docker.com/) is heavily utilized for deployment to cloud services.
@@ -33,7 +25,6 @@ Staging, locally run with compose.yaml, uses a docker bridge network which conta
 Database 
 - SQLite3 can be run in development
 - A postgres container can be run in staging
-- RDS can be used with any environment
 
 ## Starting each Environment
 ### Development
@@ -84,20 +75,10 @@ The CA cert is *.fattore.com, so any subdomain is supported.
 The hosted zone is called fattorestreet.com so all subdomains can be easily accomidated
 
 ### CI/CD Pipeline
-The continous integration, continious deployment pipeline consists of a distinct CI and CD. The CI are automated tests for both the react and django apps. The CD is a .sh file called deploy.sh that does everything between building the production code and deploying it onto AWS. [GithubActions](https://github.com/features/actions) is considerred; however free resources are preferred.
+The continous integration, continious deployment pipeline consists of a distinct CI and CD. The CI are automated tests for both the react and django apps. Images can be easily built using the build.sh file and a watchtower docker container automatically deploys new containers.
 
 ### Kubernetes
-Kubernetes is a container orchestration largely used for container management and scaling. This project currently runs just fine with a simple container set up, no need for containers to spin up and down to meet demand. However, if this project ever gets popular enough, Kubernetes will be an excellent choice. Not to mention it doesn't really work with AWS Fargate.
+Kubernetes is a container orchestration largely used for container management and scaling. This project currently runs just fine with a simple container set up, no need for containers to spin up and down to meet demand. However, if this project ever gets popular enough, Kubernetes will be an excellent choice.
 
 ### Stock Data
 Reliable cheap stock data delivered through APIs are hard to come by. Finnhub finaincal APIs have been utilized for stock quotes. Other options have been explored including IEX Cloud and Alpha Vantage.
-
-## Future To Do
-#### The long term goal is to be cloud agnostic because I don't want to be tied to a particular cloud vender. 
-The RDS server and ALB are both AWS specific and can't be used on a different hosting service. 
-They are also the most expensive parts of the system and less control is had over these services compared to the DIY options.
-Fargate, an PaaS, is what limits the webapps options and should be eventually phased out by an IaaS option such as EC2.
-The application load balancer is the first priority to get rid of. I can configure my own NGINX server and use Certbot / LetsEncrpyt for SSL.
-Update: To further make this point. Using the free year of AWS, I have only had to pay $20 a month to host this site. 
-The largest cost has been public IPv4 addresses: 1 for the django/nginx containers, 1 for RDS, and 2 for the load balancer.
-IPv4 costs were $12 a month, all other hosting was $8.

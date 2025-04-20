@@ -4,7 +4,7 @@ from . import admin_views
 
 urlpatterns = [
     path('api/assets/', views.AssetListCreateView.as_view(), name="assets"),
-    path('api/asset/<int:pk>/', views.AssetRetrieveDestroyView.as_view(), name="asset"),
+    path('api/asset/<int:pk>/', views.AssetRetrieveDestroyView.as_view(), name="asset-get-delete"),
     path('api/update-sell-date/<int:pk>/', views.AssetUpdateSellDateView.as_view(), name="update-sell-date"),
     path('api/snp500-price/', views.SnP500RetrieveView.as_view(), name='snp500-price'),
     path('api/quote/', views.QuoteRetrieveView.as_view(), name='quote'),

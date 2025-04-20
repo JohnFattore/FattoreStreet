@@ -45,9 +45,8 @@ test('Portfolio Test', async () => {
         await store.dispatch(login({ username: 'testUser', password: 'testPass' }));
         await store.dispatch(getAssets());
     });
-    console.log(store.getState());
-    screen.debug()
-  });
+    expect(await screen.findByText('MSFT')).toBeInTheDocument();
+});
 
 test('Chatbot Test', async () => {
     renderWrapped(<Chatbot />);
