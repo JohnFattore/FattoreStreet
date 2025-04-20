@@ -42,9 +42,7 @@ export default function AssetForm() {
                         postAsset({
                             ticker: data.ticker,
                             shares: data.shares,
-                            buyDate: data.buyDate,
-                            costBasis: 1,
-                            user: 1
+                            buyDate: data.buyDate
                         }));
                 }
             });

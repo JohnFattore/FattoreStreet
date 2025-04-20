@@ -49,6 +49,11 @@ const reviewSlice = createSlice({
     clearReviewErrors: (state) => {
       state.error = '';
     }, 
+    /*
+    logoutReviews: (state) => {
+      state = initialState
+    },
+    */ 
   },
   extraReducers: (builder) => {
     builder

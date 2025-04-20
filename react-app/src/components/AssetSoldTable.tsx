@@ -18,7 +18,7 @@ const fields = [
 ]
 
 export default function AssetSoldTable() {
-    const { assets, sort, loading } = useSelector((state: RootState) => state.assets);
+    const { assets, sort } = useSelector((state: RootState) => state.assets);
     const { access } = useSelector((state: RootState) => state.user)
     const dispatch = useDispatch<AppDispatch>();
 
@@ -37,13 +37,9 @@ export default function AssetSoldTable() {
         headers.push(<th key={i} onClick={() => handleSort(fields[i]["field"])}>{fields[i].name}</th>)
     }
 
-    if (!access) {
-        return (<></>)
-    }
+    if (!access) return null
 
-    if (assets.length == 0 && access && !loading) {
-        return (<></>)
-    }
+    if (assets.length == 0 && access) return null
 
     return (
         <>

@@ -1,0 +1,460 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for react-app/src/pages/Outliers.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">react-app/src/pages</a> Outliers.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/126</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/126</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import DjangoTable from '../components/DjangoTable';</span></span></span>
+<span class="cstat-no" title="statement not covered" >import { IIndexMember } from '../interfaces';</span>
+<span class="cstat-no" title="statement not covered" >import { useEffect, useReducer } from 'react';</span>
+<span class="cstat-no" title="statement not covered" >import { getIndexMembers } from '../components/axiosFunctions';</span>
+<span class="cstat-no" title="statement not covered" >import { Accordion, Row, Col } from 'react-bootstrap';</span>
+<span class="cstat-no" title="statement not covered" >import OutlierUpdateForm from '../components/OutlierUpdateForm';</span>
+<span class="cstat-no" title="statement not covered" >import LoginForm from '../components/LoginForm';</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >function outlierReducer(outliers, action) {</span>
+<span class="cstat-no" title="statement not covered" >    switch (action.type) {</span>
+<span class="cstat-no" title="statement not covered" >        case 'add': {</span>
+<span class="cstat-no" title="statement not covered" >            return [...outliers, action.outlier];</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >        case 'delete': {</span>
+<span class="cstat-no" title="statement not covered" >            // return outliers.filter(e =&gt; e !== action.outlier)</span>
+<span class="cstat-no" title="statement not covered" >            return outliers.filter(e =&gt; e !== action.outlier)</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >        case 'update': {</span>
+<span class="cstat-no" title="statement not covered" >            // return outliers.filter(e =&gt; e !== action.outlier)</span>
+<span class="cstat-no" title="statement not covered" >            outliers = outliers.filter(e =&gt; e.ticker !== action.outlier.ticker)</span>
+<span class="cstat-no" title="statement not covered" >            return [...outliers, action.outlier]</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >        case 'refresh': {</span>
+<span class="cstat-no" title="statement not covered" >            return [...outliers]</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export default function Outliers() {</span>
+<span class="cstat-no" title="statement not covered" >    const [outliers, dispatch] = useReducer(outlierReducer, []);</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    let data: IIndexMember[] = []</span>
+<span class="cstat-no" title="statement not covered" >    useEffect(() =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        if (outliers.length == 0) {</span>
+<span class="cstat-no" title="statement not covered" >            getIndexMembers()</span>
+<span class="cstat-no" title="statement not covered" >                .then((response) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >                    for (let i = 0; i &lt; response.data.length; i++) {</span>
+<span class="cstat-no" title="statement not covered" >                        if (response.data[i].outlier == true) {</span>
+<span class="cstat-no" title="statement not covered" >                            data.push({</span>
+<span class="cstat-no" title="statement not covered" >                                ticker: response.data[i].stock.ticker,</span>
+<span class="cstat-no" title="statement not covered" >                                name: response.data[i].stock.name,</span>
+<span class="cstat-no" title="statement not covered" >                                marketCap: response.data[i].stock.marketCap,</span>
+<span class="cstat-no" title="statement not covered" >                                volume: response.data[i].stock.volume,</span>
+<span class="cstat-no" title="statement not covered" >                                volumeUSD: response.data[i].stock.volumeUSD,</span>
+<span class="cstat-no" title="statement not covered" >                                freeFloat: response.data[i].stock.freeFloat,</span>
+<span class="cstat-no" title="statement not covered" >                                freeFloatMarketCap: response.data[i].stock.freeFloatMarketCap,</span>
+<span class="cstat-no" title="statement not covered" >                                countryIncorp: response.data[i].stock.countryIncorp,</span>
+<span class="cstat-no" title="statement not covered" >                                countryHQ: response.data[i].stock.countryHQ,</span>
+<span class="cstat-no" title="statement not covered" >                                securityType: response.data[i].stock.securityType,</span>
+<span class="cstat-no" title="statement not covered" >                                yearIPO: response.data[i].stock.yearIPO,</span>
+<span class="cstat-no" title="statement not covered" >                                percent: response.data[i].percent,</span>
+<span class="cstat-no" title="statement not covered" >                                index: response.data[i].index,</span>
+<span class="cstat-no" title="statement not covered" >                                outlier: response.data[i].outlier,</span>
+<span class="cstat-no" title="statement not covered" >                                notes: response.data[i].notes,</span>
+<span class="cstat-no" title="statement not covered" >                                id: response.data[i].id</span>
+<span class="cstat-no" title="statement not covered" >                            })</span>
+<span class="cstat-no" title="statement not covered" >                        }</span>
+<span class="cstat-no" title="statement not covered" >                    }</span>
+<span class="cstat-no" title="statement not covered" >                    for (let i = 0; i &lt; data.length; i++) {</span>
+<span class="cstat-no" title="statement not covered" >                        dispatch({ type: "add", outlier: data[i] })</span>
+<span class="cstat-no" title="statement not covered" >                    }</span>
+<span class="cstat-no" title="statement not covered" >                }).catch((error) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >                    console.log(error)</span>
+<span class="cstat-no" title="statement not covered" >                })</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >    }, []);</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    const fields = {</span>
+<span class="cstat-no" title="statement not covered" >        ticker: { name: "Ticker", type: "text" },</span>
+<span class="cstat-no" title="statement not covered" >        name: { name: "Name", type: "text" },</span>
+<span class="cstat-no" title="statement not covered" >        marketCap: { name: "Market Cap", type: "money" },</span>
+<span class="cstat-no" title="statement not covered" >        volume: { name: "Volume Daily Shares", type: "amount" },</span>
+<span class="cstat-no" title="statement not covered" >        volumeUSD: { name: "Volume Daily USD", type: "money" },</span>
+<span class="cstat-no" title="statement not covered" >        freeFloat: { name: "Free Float Percent", type: "amount" },</span>
+<span class="cstat-no" title="statement not covered" >        freeFloatMarketCap: { name: "Free Float Market Cap", type: "money" },</span>
+<span class="cstat-no" title="statement not covered" >        countryIncorp: { name: "Country of Incorporation", type: "text" },</span>
+<span class="cstat-no" title="statement not covered" >        countryHQ: { name: "HQ Location", type: "text" },</span>
+<span class="cstat-no" title="statement not covered" >        securityType: { name: "Security Type", type: "text" },</span>
+<span class="cstat-no" title="statement not covered" >        yearIPO: { name: "IPO Year", type: "text" },</span>
+<span class="cstat-no" title="statement not covered" >        notes: { name: "Notes", type: "text" },</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    return (</span>
+<span class="cstat-no" title="statement not covered" >        &lt;&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h4&gt;Why are these stocks not in the Russell 1000?&lt;/h4&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;I started with all the tickers on the NASDAQ and NYSE. The Russell 1000 aims to track the 1000 largest publically traded US companies, so many tickers were immediatly excluded from the universe.</span>
+<span class="cstat-no" title="statement not covered" >                Security types such as ETFs, and MLPs were omitted, while common stock, and REITs were included. Domiciles are decided for all companies and only US based companies are included.</span>
+<span class="cstat-no" title="statement not covered" >                Domicile is largely determined by HQ location, but country of incorporation also comes into consideration.</span>
+<span class="cstat-no" title="statement not covered" >                I know I am missing some "foreign" companies considered US companies because of revenue / assets in the US. Such as Spotify (SPOT).</span>
+<span class="cstat-no" title="statement not covered" >                My bigger concern is that I am still including too many tickers.</span>
+<span class="cstat-no" title="statement not covered" >                Perhaps I am including some US based companies considered foriegn because of revenue, but for many of these companies this is not the case.</span>
+<span class="cstat-no" title="statement not covered" >                The "outliers" are tickers that are part the my calculated index, but is not actually part of the Rusell 1000.</span>
+<span class="cstat-no" title="statement not covered" >                In other words, The Russell 1000 excludes companies such as Chewy (CHWY), Reddit (RDDT), and Symbotic (SYM) and I am not sure why.</span>
+<span class="cstat-no" title="statement not covered" >                I believe some, such as Snapchat (SNAP) are not included because of voting rights assessable to the public being below 5%, but I am not 100% sure.</span>
+<span class="cstat-no" title="statement not covered" >                Some companies have more than 1 share class / restricted shares, making it not straightforward.</span>
+<span class="cstat-no" title="statement not covered" >                Perhaps "controlled" companies are not included in indexes? This would explain Chewy's exclusion.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h5&gt;Index Eligibility Critea&lt;/h5&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;li&gt;Listed on NASDAQ/NYSE&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;li&gt;Only common stock and REITS included&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;li&gt;US domiciled companies only, largely based on HQ location&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;li&gt;Daily USD volume greater than $125,000&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;li&gt;Free float percentage greater than 12.5%&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;li&gt;Public voting rights greater than 5%&lt;/li&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/ul&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;p&gt;Think you know why a stock is excluded? Leave a note! Must be logged in.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Row&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;Col&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;OutlierUpdateForm setMessage={console.log} dispatch={dispatch} outliers={outliers} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/Col&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;Col&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;Accordion defaultActiveKey="1"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                        &lt;Accordion.Item eventKey="0"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                            &lt;Accordion.Header&gt;Login&lt;/Accordion.Header&gt;</span>
+<span class="cstat-no" title="statement not covered" >                            &lt;Accordion.Body&gt;</span>
+<span class="cstat-no" title="statement not covered" >                                &lt;LoginForm /&gt;</span>
+<span class="cstat-no" title="statement not covered" >                            &lt;/Accordion.Body&gt;</span>
+<span class="cstat-no" title="statement not covered" >                        &lt;/Accordion.Item&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;/Accordion&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/Col&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/Row&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;a href="https://docs.google.com/spreadsheets/d/1HbJ2-r7hCXT9IhWA9dbwBZe5utZOl502Txs1tecfYIc/edit?usp=sharing"&gt;List as a Google Sheet &lt;/a&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;DjangoTable setMessage={console.log} models={outliers} dispatch={dispatch} fields={fields} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/&gt;</span>
+<span class="cstat-no" title="statement not covered" >    )</span>
+<span class="cstat-no" title="statement not covered" >}</span></pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2025-04-20T18:56:26.672Z
+            </div>
+        <script src="../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
+    </body>
+</html>
+    

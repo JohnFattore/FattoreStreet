@@ -1,22 +1,21 @@
 import RestaurantTable from '../components/RestaurantTable';
 import { useEffect } from 'react';
-import { getRestaurants, getReviews } from '../components/axiosFunctions';
+import { getRestaurants, getReviews, getRestaurantRecommendations } from '../components/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../main";
 import ReviewForm from '../components/ReviewForm';
 import { useState } from 'react';
 import { IRestaurant } from '../interfaces';
-import { Button, Col, Row } from 'react-bootstrap';
-import LocationForm from '../components/LocationForm'
+import { Button, Alert } from 'react-bootstrap';
 import ReviewTable from '../components/ReviewTable';
-import { useNavigate } from "react-router-dom";
+import ReviewMap from '../components/ReviewMap'
+import RestaurantRecommendTable from '../components/RestaurantRecommendTable'
+import LoginForm from '../components/LoginForm';
 
 export default function Restaurants() {
     const dispatch = useDispatch<AppDispatch>();
-    const { state, city } = useSelector((state: RootState) => state.location);
     const { access } = useSelector((state: RootState) => state.user);
-
-    const navigate = useNavigate();
+    const { restaurants, loading } = useSelector((state: RootState) => state.restaurantRecommend);
 
     useEffect(() => {
         dispatch(getRestaurants());
@@ -37,21 +36,42 @@ export default function Restaurants() {
         id: 0
     });
 
+    const [showMap, setShowMap] = useState(false);
+
+    const renderRecommendations = () => {
+
+        if (restaurants.length === 0 && !loading) {
+            return (
+                <Button onClick={() => dispatch(getRestaurantRecommendations())}>
+                    Click for Recommendations
+                </Button>
+            );
+        }
+
+        if (loading) return <Alert>Loading Restaurant Recommendations</Alert>;
+
+        return <RestaurantRecommendTable setRestaurant={setRestaurant} />
+    };
+
+    if (!access) {
+        return <>
+        <Alert>Login to see reviews and get recommendations</Alert>
+        <LoginForm/>
+        <RestaurantTable setRestaurant={setRestaurant} />
+        <p>Data provided by Yelp</p>
+        </>
+    }
+
     return (
         <>
+        <h1>Nashville Restaurants</h1>
             <ReviewTable />
-            <Button onClick={() => {navigate("/reviews")}} >Restaurant Recommender</Button>
-            <Row>
-                <Col md={4}>
-                    <h3>{"Selected Location: ".concat(state, " ", city)}</h3>
-                    <LocationForm />
-                </Col>
-                {access && <Col md={8}>
-                    <ReviewForm restaurant={restaurant} />
-                </Col>}
-            </Row>
+            <Button onClick={() => setShowMap(prev => !prev)}> {showMap ? 'Hide Map' : 'Show Map'} </Button>
+            {showMap && <ReviewMap />}
+            {renderRecommendations()}
+            <ReviewForm restaurant={restaurant} />
             <RestaurantTable setRestaurant={setRestaurant} />
-            <p>Data provided by Yelp and is only a subset of all restaurant... All Nashville restaurants seem to be here.</p>
+            <p>Data provided by Yelp</p>
         </>
     )
 }

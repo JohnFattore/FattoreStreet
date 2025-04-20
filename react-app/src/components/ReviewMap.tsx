@@ -6,7 +6,7 @@ import { RootState } from "../main";
 import 'leaflet.awesome-markers/dist/leaflet.awesome-markers.css';
 import 'leaflet.awesome-markers';
 
-export default function LeafletMap() {
+export default function ReviewMap() {
 
     const mapRef = useRef(null);
 

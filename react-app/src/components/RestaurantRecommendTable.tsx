@@ -1,9 +1,9 @@
 import Table from 'react-bootstrap/Table';
-import { formatString } from './helperFunctions';
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../main";
 import { Alert } from 'react-bootstrap';
 import { setRestaurantRecommendSort } from '../reducers/restaurantRecommendReducer';
+import RestaurantRow from './RestaurantRow';
 
 const fields = [
     { name: "Restaurant", type: "text", field: "name" },
@@ -19,29 +19,9 @@ const fields = [
     //{ name: "Yelp ID", type: "text", field: "yelp_id" },
 ]
 
-// function is for simple calculations, function2 is for more complex operations
-function RestaurantRow({ restaurant, setRestaurant }) {
-    let tableData: JSX.Element[] = [];
-    for (let i = 0; i < fields.length; i++) {
-        if (fields[i]["field"] == "createReview") {
-            tableData.push(<td key={i} onClick={() => setRestaurant(restaurant)}>{fields[i]["name"]}</td>)
-        }
-        else {
-            tableData.push(<td key={i}>{formatString(restaurant[fields[i]["field"]], fields[i]["type"])}</td>)
-        }
-    }
-
-    return (
-        <tr key={restaurant.id}>
-            {tableData}
-        </tr>)
-}
-
-export default function RestaurantTable({setRestaurant}) {
+export default function RestaurantRecommendTable({ setRestaurant }) {
     const { restaurants, loading, error, sort } = useSelector((state: RootState) => state.restaurantRecommend);
     const dispatch = useDispatch<AppDispatch>();
-    if (loading) return <Alert>Loading Restaurants</Alert>;
-    if (error) return <Alert variant="danger">Error: {error}</Alert>;
 
     const handleSort = (sortColumn: string) => {
         const sortDirection =
@@ -57,22 +37,28 @@ export default function RestaurantTable({setRestaurant}) {
         headers.push(<th key={i} onClick={() => handleSort(fields[i]["field"])}>{fields[i].name}</th>)
     }
 
+    if (loading) return <Alert>Loading Restaurants</Alert>;
+    if (error) return <Alert variant="danger">Error: {error}</Alert>;
     if (restaurants.length == 0) {
-        return (<h3 role="noModels">No Data</h3>)
+        return (<h3>No Data</h3>)
     }
 
     return (
-        <Table>
-            <thead>
-                <tr>
-                    {headers}
-                </tr>
-            </thead>
-            <tbody>
-                {restaurants.map((restaurant, index) => (
-                    <RestaurantRow key={index} restaurant={restaurant} setRestaurant={setRestaurant} />
-                ))}
-            </tbody>
-        </Table>
+        <>
+        <h3>Recommended Restaurants</h3>
+            <Table>
+                <thead>
+                    <tr>
+                        {headers}
+                    </tr>
+                </thead>
+                <tbody>
+                    {restaurants.map((restaurant, index) => (
+                        <RestaurantRow key={index} fields={fields} restaurant={restaurant} setRestaurant={setRestaurant} />
+                    ))}
+                </tbody>
+            </Table>
+        </>
+
     );
 }

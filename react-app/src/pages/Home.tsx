@@ -18,7 +18,7 @@ export default function Home() {
                 <li>Chatbot allows you to chat with a Boglehead bot that will answer all your index fund questions</li>
                 <li>Watch List is a live stock/bond tracker</li>
                 <li>Suggestions provides basic advice about investing in low cost index funds</li>
-                <li>Restaurants/Reviews is a Nashville restaurant recommendator. Add your restaurant reviews on Restaurants, then go to Reviews to generate recommendations</li>
+                <li>Restaurants is a Nashville restaurant recommendator. Add your restaurant reviews on Restaurants, then go to the recommender to generate recommendations</li>
             </ul>
         </>
     );

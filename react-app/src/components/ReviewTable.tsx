@@ -5,7 +5,6 @@ import { RootState, AppDispatch } from "../main";
 import { Alert } from 'react-bootstrap';
 import { setReviewSort } from '../reducers/reviewReducer';
 import { deleteReview, patchReview } from './axiosFunctions';
-import LoginForm from './LoginForm';
 
 const fields = [
     { name: "Restaurant", type: "text", field: "name" },
@@ -75,19 +74,10 @@ export default function ReviewTable() {
 
     if (loading) return <Alert>Loading Reviews</Alert>;
 
-    if (!access) {
-        return (
-            <>
-                <Alert>Login to submit and view reviews</Alert>
-                <LoginForm/>
-            </>
-        )
-    }
+    if (!access) return null
 
-    if (reviews.length == 0) {
-        return (<Alert>{username.concat(" has no reviews")}</Alert>)
-    }
-
+    if (reviews.length == 0) return (<Alert>{username.concat(" has no reviews")}</Alert>)
+    
     return (
         <>
         <h3>{username.concat("'s restaurant reviews")}</h3>
