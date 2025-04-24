@@ -8,6 +8,7 @@ urlpatterns = [
     path('api/update-sell-date/<int:pk>/', views.AssetUpdateSellDateView.as_view(), name="update-sell-date"),
     path('api/snp500-price/', views.SnP500RetrieveView.as_view(), name='snp500-price'),
     path('api/quote/', views.QuoteRetrieveView.as_view(), name='quote'),
+    path('api/financials/', views.FinancialsRetrieveView.as_view(), name='financials'),
     # admin views
     path('api/snp500-price-create/', admin_views.SnP500PriceCreateView.as_view(), name='snp500-price-create'),
     path('api/update-cost-basis/', admin_views.UpdateCostBasis.as_view(), name='update-cost-basis'),

@@ -92,6 +92,15 @@ class QuoteTest(BaseAssetTest):
         self.url = reverse('quote')
 
     def test_quote(self):
-        data = {'ticker': 'SPY'}
+        data = {'symbol': 'SPY'}
+        response = self.client.get(self.url, data, format='json')
+        self.assertEqual(response.status_code, 200)
+
+class FinancialsTest(BaseAssetTest):
+    def setUp(self):
+        self.url = reverse('financials')
+
+    def test_financials(self):
+        data = {'symbol': 'AAPL'}
         response = self.client.get(self.url, data, format='json')
         self.assertEqual(response.status_code, 200)

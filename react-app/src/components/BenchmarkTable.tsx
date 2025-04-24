@@ -2,7 +2,6 @@ import Table from 'react-bootstrap/Table';
 import { useQuote } from './customHooks';
 import { formatString } from './helperFunctions';
 
-// function is for simple calculations, function2 is for more complex operations
 function BenchmarkRow({ benchmark, fields }) {
 
     const quote = useQuote(benchmark.ticker)
@@ -49,9 +48,7 @@ export default function BenchmarkTable() {
         headers.push(<th key={i}>{fields[i].name}</th>)
     }
 
-    if (benchmarks.length == 0) {
-        return (<h3 role="noModels">No Data</h3>)
-    }
+    if (benchmarks.length == 0) return (<h3>No Data</h3>)
 
     return (
         <Table>

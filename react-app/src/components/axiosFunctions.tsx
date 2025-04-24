@@ -281,6 +281,15 @@ export const getQuote = async (ticker: string) => {
   return response
 }
 
+export const getFinancials = async (ticker: string) => {
+  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("financials/"), {
+    params: {
+      symbol: ticker
+    }
+  });
+  return response
+}
+
 // only works for stocks
 export const getCompanyProfile2 = async (ticker: string) => {
   const response = await axios.get(import.meta.env.VITE_APP_FINNHUB_URL.concat("stock/profile2/"), {

@@ -13,6 +13,7 @@ import Reviews from '../src/pages/Reviews';
 import { getAssets, login } from '../src/components/axiosFunctions';
 import { act } from 'react';
 import { store } from '../src/store';
+import WatchList from '../src/pages/WatchList';
 
 afterEach(() => {
     cleanup();
@@ -52,10 +53,10 @@ test('Chatbot Test', async () => {
     renderWrapped(<Chatbot />);
 });
 
-test('Restaurants Test', async () => {
-    renderWrapped(<Restaurants />);
+test('Watchlist Test', async () => {
+    renderWrapped(<WatchList />);
 });
 
-test('Reviews Test', async () => {
-    renderWrapped(<Reviews />);
+test('Restaurants Test', async () => {
+    renderWrapped(<Restaurants />);
 });
