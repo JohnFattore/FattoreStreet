@@ -15,3 +15,8 @@ react-app/dist
 machineLearning/huggingFace.txt
 
 django/chatbot/secret.txt
+
+awscliv2.zip
+aws/
+
+kubernetes/

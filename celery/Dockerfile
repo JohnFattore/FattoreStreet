@@ -1,4 +1,6 @@
 
+#unused, celery container run off django image
+
 FROM python:3.10
 
 # Set work directory
