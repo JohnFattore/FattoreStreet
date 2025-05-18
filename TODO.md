@@ -11,4 +11,3 @@
 - clean up watchlist
 - axios function tests would be nice
 - Does the reducers properly handle logout? Does logging out remove reviews, assets etc
-- Review page can be deleted

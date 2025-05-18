@@ -9,7 +9,6 @@ function BenchmarkRow({ benchmark, fields }) {
     let attributes: any[] = [
         benchmark.name,
         benchmark.ticker,
-        quote.price,
         quote.percentChange / 100,
     ];
 
@@ -28,18 +27,18 @@ function BenchmarkRow({ benchmark, fields }) {
 export default function BenchmarkTable() {
 
     const benchmarks = [
-        { ticker: "VTI", name: "US Market" },
-        { ticker: "VXUS", name: "Global Market Ex US" },
-        { ticker: "VTWO", name: "US Small Cap" },
-        { ticker: "BND", name: "US Investable Bond Market" },
-        { ticker: "VNQ", name: "US Real Estate" },
-        { ticker: "UUP", name: "US Dollar vs International Currency" }
+        { ticker: "VT", name: "Global Market", index: "FTSE Global All Cap Index" },
+        { ticker: "VTI", name: "US Market", index: "CRSP US Total Market Index" },
+        { ticker: "VXUS", name: "Global Market Ex US", index: "FTSE Global All Cap ex US Index" },
+        { ticker: "VTWO", name: "US Small Cap", index: "Russell 2000 Index" },
+        { ticker: "BND", name: "US Investable Bond Market", index: "Bloomberg U.S. Aggregate Float Adjusted Index" },
+        { ticker: "VNQ", name: "US Real Estate", index: "MSCI US Investable Market Real Estate 25/50 Index" },
+        { ticker: "UUP", name: "US Dollar vs International Currency", index: "US Dollar Index (DXY)" }
     ]
 
     const fields = [
         { name: "Name", type: "text" },
         { name: "Ticker", type: "text" },
-        { name: "Price", type: "money" },
         { name: "Percent Change", type: "percent" },
     ]
 

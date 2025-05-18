@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import YahooFinanceBanner from '../components/YahooFinanceBanner';
 import FinnhubBanner from '../components/FinnhubBanner';
-import ReinvestDividends from '../components/ReinvestDividends'
+import AdjustedCostBasis from '../components/AdjustedCostBasis'
 import { useNavigate } from "react-router-dom";
 import AssetSoldTable from '../components/AssetSoldTable';
 
@@ -31,7 +31,7 @@ export default function Portfolio() {
                         <Accordion.Item eventKey="2">
                             <Accordion.Header>Historical Stock Prices</Accordion.Header>
                             <Accordion.Body>
-                                <ReinvestDividends />
+                                <AdjustedCostBasis />
                             </Accordion.Body>
                         </Accordion.Item>
                     </Accordion>
@@ -40,7 +40,6 @@ export default function Portfolio() {
             <h1>{username ? `${username}'s Portfolio` : 'Portfolio'}</h1>
             <AssetTable/>
             <AssetSoldTable />
-            {/*<AllocationTable />*/}
             <Button onClick={() => navigate("/snp500Prices")}>Historical S&P500 Prices</Button>
             <YahooFinanceBanner />
             <FinnhubBanner />

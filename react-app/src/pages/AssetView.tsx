@@ -8,7 +8,7 @@ import { useDispatch } from "react-redux";
 import { AppDispatch } from '../main';
 import Card from 'react-bootstrap/Card';
 import Modal from 'react-bootstrap/Modal';
-import { ListGroup } from "react-bootstrap";
+import { ListGroup, Alert } from "react-bootstrap";
 import { useState } from "react";
 import { formatString } from '../components/helperFunctions';
 import AssetSellForm from "../components/AssetSellForm";
@@ -16,7 +16,7 @@ import AssetSellForm from "../components/AssetSellForm";
 export default function AssetView() {
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
-    const { asset, loading } = useSelector((state: RootState) => state.assets);
+    const { asset, loading, error } = useSelector((state: RootState) => state.assets);
 
     // remember, useEffect is used to properly execute side effects in react
     useEffect(() => {
@@ -61,7 +61,9 @@ export default function AssetView() {
                 <Modal.Header closeButton>
                     <Modal.Title>{`Sell ${asset.ticker}`}</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>{`Would you like to sell ${asset.ticker}?`}</Modal.Body>
+                <Modal.Body>{`Would you like to sell ${asset.ticker}?`}
+                    {error && <Alert variant="danger">{error}</Alert>}
+                </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={handleCloseSell}>
                         Close

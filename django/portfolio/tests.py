@@ -30,6 +30,13 @@ class AssetsTests(BaseAssetTest):
         created_asset = Asset.objects.latest('id')
         self.assertEqual(created_asset.user, self.user)
 
+    def test_create_asset_future_date(self):
+        self.client.force_authenticate(user=self.user)
+        data = {'ticker': 'SPY', 'shares': 10, 'buy_date': '2029-10-13'}
+        response = self.client.post(reverse('assets'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("buy date", response.data["buy_date"][0].lower())
+
 ## list
     def test_list_assets(self):
         self.client.force_authenticate(user=self.user)
@@ -74,6 +81,13 @@ class AssetSellTest(BaseAssetTest):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(self.url, self.data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_sell_asset_before_buy_date(self):
+        self.data = {'sell_date': '2023-09-14'}
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(self.url, self.data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("sell date", response.data["non_field_errors"][0].lower())
 
 # Other model tests
 class SnP500GetTests(BaseAssetTest):

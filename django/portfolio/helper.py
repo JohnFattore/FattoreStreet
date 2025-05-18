@@ -14,8 +14,8 @@ def get_or_create_SnP500Price(price_date: date):
             data = yfinance.history(start=price_date.strftime("%Y-%m-%d"), end=(price_date + timedelta(days=1)).strftime("%Y-%m-%d"))
             snp500Price = SnP500Price.objects.create(date=price_date, price=data['Close'][price_date.strftime("%Y-%m-%d")])
             return snp500Price
-        except: 
-            raise Exception("Error getting S&P 500 Price")
+        except Exception as e:
+            raise Exception(f"Failed to fetch or create S&P 500 price for {price_date}: {str(e)}")
 
 def get_or_create_AssetInfo(ticker: str):
     try:

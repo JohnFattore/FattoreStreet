@@ -3,8 +3,7 @@ import ChatbotOutput from "../components/ChatbotOutput";
 import { useSelector } from "react-redux";
 import { RootState } from '../main';
 import LoginForm from "../components/LoginForm";
-import Education from "../components/Education";
-
+import Principles from "../components/Principles";
 
 export default function Chatbot() {
     const { access } = useSelector((state: RootState) => state.user);
@@ -24,7 +23,7 @@ export default function Chatbot() {
         <>
             <h2>Boglehead Chatbot</h2>
             {renderChatbot()}
-            <Education/>
+            <Principles/>
         </>
     );
 }
