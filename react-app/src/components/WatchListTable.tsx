@@ -5,12 +5,11 @@ import { formatString } from "./helperFunctions";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../main";
 import { removeTicker } from "../reducers/watchListReducer";
-import { getCompanyProfile2, getQuote } from "./axiosFunctions";
+import { getCompanyProfile2, /*getFinancials,*/ getQuote } from "./axiosFunctions";
 
 function WatchListRow({ ticker, fields }) {
   const dispatch = useDispatch<AppDispatch>();
 
-  //const quote = useQuote(ticker);
   const quoteResponse = useCachedData(ticker, getQuote, 10000);
   var quote = {
     c: 0,
@@ -19,7 +18,7 @@ function WatchListRow({ ticker, fields }) {
   if (quoteResponse) {
     quote = quoteResponse.data;
   }
-  console.log(quote)
+
   const companyProfileResponse = useCachedData(ticker, getCompanyProfile2, 30000);
   var companyProfile = {
     marketCapitalization: 0,
@@ -27,7 +26,20 @@ function WatchListRow({ ticker, fields }) {
   if (companyProfileResponse) {
     companyProfile = companyProfileResponse.data;
   }
-
+/*
+  const financialsResponse = useCachedData(ticker, getFinancials, 30000);
+  var financials = {
+    marketCapitalization: 0,
+  };
+  if (financialsResponse) {
+    financials = financialsResponse.data;
+    if (financials["data"][0]) {
+      let cf = financials["data"][0]["report"]["cf"]
+      //console.log(cf)
+      console.log(Object.values(cf).find(item => (item as { concept: string }).concept === "us-gaap_NetIncomeLoss"));
+    }
+  }
+*/
   let attributes: any[] = [
     ticker,
     quote.c,
@@ -63,6 +75,7 @@ export default function WatchListTable() {
     { name: "Price", type: "money" },
     { name: "Percent Change", type: "percent" },
     { name: "Market Cap", type: "marketCap" },
+    //{ name: "PE Ratio", type: "text" },
     { name: "Delete", type: "delete" },
   ];
 
