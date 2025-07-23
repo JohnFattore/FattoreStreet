@@ -36,6 +36,18 @@ export interface IQuote {
     percentChange: number
 }
 
+export interface IWatchListItem {
+    ticker: string;
+    name: string;
+    price: number;
+    percentChange: number;
+    marketCap: number;
+    trailingPERatio: number;
+    incomeTTM: number;
+    revenueTTM: number;
+    netMarginTTM: number;
+}
+
 export interface IAlbum {
     name: string;
     artist: string;

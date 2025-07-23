@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen, cleanup, waitFor, fireEvent, getByPlaceholderText } from '@testing-library/react';
 import { expect, test, vi, afterEach } from 'vitest'
-import React from "react";
 import { Provider } from "react-redux";
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
@@ -9,11 +8,11 @@ import { MemoryRouter } from 'react-router-dom';
 import Portfolio from '../src/pages/Portfolio';
 import Chatbot from '../src/pages/Chatbot';
 import Restaurants from '../src/pages/Restaurants';
-import Reviews from '../src/pages/Reviews';
 import { getAssets, login } from '../src/components/axiosFunctions';
 import { act } from 'react';
 import { store } from '../src/store';
 import WatchList from '../src/pages/WatchList';
+import './setupTests.ts'
 
 afterEach(() => {
     cleanup();

@@ -1,6 +1,53 @@
-import { IQuote } from "../interfaces";
+import { IQuote, IWatchListItem } from "../interfaces";
 import { useState, useEffect } from "react";
-import { getQuote, getCompanyProfile2 } from "./axiosFunctions";
+import { getQuote, getCompanyProfile2, getFinancials } from "./axiosFunctions";
+
+export function useWatchListData (ticker: string) {
+    const quoteResponse = useCachedData(ticker, getQuote, 10000);
+    var quote = {
+      c: 0,
+      dp: 0,
+    };
+    if (quoteResponse) {
+      quote = quoteResponse.data;
+    }
+  
+    const companyProfileResponse = useCachedData(
+      ticker,
+      getCompanyProfile2,
+      30000
+    );
+    var companyProfile = {
+      marketCapitalization: 0,
+    };
+    if (companyProfileResponse) {
+      companyProfile = companyProfileResponse.data;
+    }
+  
+    let incomeTTM = 0;
+    let revenueTTM = 0;
+    let name = ""
+    const financialsResponse = useCachedData(ticker, getFinancials, 30000);
+    if (financialsResponse) {
+      incomeTTM = financialsResponse.data["net_income"];
+      revenueTTM = financialsResponse.data["total_revenue"];
+      name = financialsResponse.data["name"]
+    }
+  
+    const watchListItem: IWatchListItem = {
+      ticker: ticker,
+      name: name,
+      price: quote.c,
+      percentChange: quote.dp / 100,
+      marketCap: companyProfile.marketCapitalization / 1000,
+      trailingPERatio: (1000000 * companyProfile.marketCapitalization) / incomeTTM,
+      incomeTTM: incomeTTM,
+      revenueTTM: revenueTTM,
+      netMarginTTM: incomeTTM / revenueTTM
+    };
+
+    return watchListItem;
+}
 
 export function useCachedData<T>(
   key: string,
@@ -38,6 +85,7 @@ export function useCachedData<T>(
 
   return data;
 }
+
 
 // could generalize these functions, a custom hook factory. They all just save to broswer database
 export function useQuote(ticker) {
@@ -87,7 +135,7 @@ export function useQuote(ticker) {
   }, []);
   return quote;
 }
-
+/*
 export function useCompanyProfile2(ticker: string) {
   const [marketCap, setMarketCap] = useState("");
   const d = new Date();
@@ -213,3 +261,4 @@ export function useCompanyFinancials(ticker) {
   }, []);
   return financials;
 }
+*/

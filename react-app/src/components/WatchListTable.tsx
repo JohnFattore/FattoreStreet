@@ -1,67 +1,50 @@
 import Table from "react-bootstrap/Table";
 import { Alert } from "react-bootstrap";
-import { useCachedData } from "./customHooks";
+import { useWatchListData } from "./customHooks";
 import { formatString } from "./helperFunctions";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../main";
 import { removeTicker } from "../reducers/watchListReducer";
-import { getCompanyProfile2, /*getFinancials,*/ getQuote } from "./axiosFunctions";
+import { Button } from 'react-bootstrap';
+
+const fields = [
+  { name: "Ticker", type: "text", field: "ticker" },
+  { name: "Name", type: "text", field: "name" },
+  { name: "Price", type: "money", field: "price" },
+  { name: "Percent Change", type: "percent", field: "percentChange" },
+  { name: "Market Cap", type: "marketCap", field: "marketCap" },
+  { name: "PE Ratio", type: "amount", field: "trailingPERatio" },
+  { name: "Income TTM", type: "money", field: "incomeTTM" },
+  { name: "Revenue TTM", type: "money", field: "revenueTTM" },
+  { name: "Net Margins TTM", type: "percent", field: "netMarginTTM" },
+  { name: "Delete", type: "delete", field: "delete" },
+];
 
 function WatchListRow({ ticker, fields }) {
   const dispatch = useDispatch<AppDispatch>();
-
-  const quoteResponse = useCachedData(ticker, getQuote, 10000);
-  var quote = {
-    c: 0,
-    dp: 0
-  };
-  if (quoteResponse) {
-    quote = quoteResponse.data;
-  }
-
-  const companyProfileResponse = useCachedData(ticker, getCompanyProfile2, 30000);
-  var companyProfile = {
-    marketCapitalization: 0,
-  };
-  if (companyProfileResponse) {
-    companyProfile = companyProfileResponse.data;
-  }
-/*
-  const financialsResponse = useCachedData(ticker, getFinancials, 30000);
-  var financials = {
-    marketCapitalization: 0,
-  };
-  if (financialsResponse) {
-    financials = financialsResponse.data;
-    if (financials["data"][0]) {
-      let cf = financials["data"][0]["report"]["cf"]
-      //console.log(cf)
-      console.log(Object.values(cf).find(item => (item as { concept: string }).concept === "us-gaap_NetIncomeLoss"));
-    }
-  }
-*/
-  let attributes: any[] = [
-    ticker,
-    quote.c,
-    quote.dp / 100,
-    companyProfile.marketCapitalization / 1000,
-    "delete",
-  ];
+  
+  let watchListItem = useWatchListData(ticker);
 
   let tableData: JSX.Element[] = [];
 
-  for (let i = 0; i < attributes.length; i++) {
-    if (fields[i]["type"] == "delete") {
+  for (let i = 0; i < fields.length; i++) {
+    if (fields[i]["name"] == "Delete") {
       tableData.push(
-        <td onClick={() => dispatch(removeTicker(ticker))}>
-          {formatString(attributes[i], fields[i]["type"])}
+        <td key={i}> 
+        <Button
+          onClick={() => {
+            dispatch(removeTicker(watchListItem.ticker));
+                }}>
+      {`Delete ${watchListItem.ticker}`}</Button> </td>);
+    } 
+    else {
+      tableData.push(
+        <td key={i}>
+          {formatString(watchListItem[fields[i]["field"]], fields[i]["type"])}
         </td>
       );
-    } else {
-      tableData.push(<td>{formatString(attributes[i], fields[i]["type"])}</td>);
     }
   }
-
   return <tr>{tableData}</tr>;
 }
 
@@ -70,18 +53,13 @@ export default function WatchListTable() {
     (state: RootState) => state.watchList
   );
 
-  const fields = [
-    { name: "Ticker", type: "text" },
-    { name: "Price", type: "money" },
-    { name: "Percent Change", type: "percent" },
-    { name: "Market Cap", type: "marketCap" },
-    //{ name: "PE Ratio", type: "text" },
-    { name: "Delete", type: "delete" },
-  ];
-
   let headers: JSX.Element[] = [];
   for (let i = 0; i < fields.length; i++) {
-    headers.push(<th key={i}>{fields[i].name}</th>);
+    headers.push(
+      <th key={i} /*onClick={() => handleSort(fields[i]["field"])}*/>
+        {fields[i].name}
+      </th>
+    );
   }
 
   if (loading) return <Alert>Loading WatchList</Alert>;

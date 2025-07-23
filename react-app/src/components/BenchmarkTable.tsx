@@ -1,15 +1,21 @@
 import Table from 'react-bootstrap/Table';
-import { useQuote } from './customHooks';
+import { useCachedData } from './customHooks';
+import { getQuote } from './axiosFunctions';
 import { formatString } from './helperFunctions';
 
 function BenchmarkRow({ benchmark, fields }) {
 
-    const quote = useQuote(benchmark.ticker)
+    const quote = useCachedData(benchmark.ticker, getQuote, 10000);
+
+    let percentChange = 0;
+    if (quote) {
+        percentChange = quote.data.dp
+    }
 
     let attributes: any[] = [
         benchmark.name,
         benchmark.ticker,
-        quote.percentChange / 100,
+        percentChange / 100,
     ];
 
     let tableData: JSX.Element[] = [];

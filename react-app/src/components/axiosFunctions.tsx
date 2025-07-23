@@ -179,7 +179,7 @@ export const postUser = createAsyncThunk(
   }
 );
 
-export const getAssets = createAsyncThunk(
+export const getAssets = createAsyncThunk/*<IAsset[], void, { state: RootState }>*/(
   "assets/getAssets",
   async (_, { getState, rejectWithValue }) => {
     try {

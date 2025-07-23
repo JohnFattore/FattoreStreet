@@ -111,15 +111,18 @@ class FinancialsRetrieveView(APIView):
         symbol = request.query_params.get("symbol")
         if (symbol == None):
             raise serializers.ValidationError({"symbol": "This field is required."})
-        cache_key = f"finnhub_financials_{symbol}"
+        cache_key = f"financials_{symbol}"
         cached_data = cache.get(cache_key)
 
         if cached_data:
             return Response(cached_data)
-        
-        api_key = env("FINNHUB_API_KEY")
-        url = f"https://finnhub.io/api/v1/stock/financials-reported?symbol={symbol}&freq=quarterly&token={api_key}"
-        response = requests.get(url)
-        data = response.json()
+
+        ticker = yf.Ticker(symbol)  # Use your stock ticker here
+        financials = ticker.quarterly_financials
+        data = {
+            "name": ticker.info["shortName"],
+            "net_income": financials.loc["Net Income"].iloc[:4].sum(),
+            "total_revenue": financials.loc["Total Revenue"].iloc[:4].sum()
+        }
         cache.set(cache_key, data, timeout=60 * 5)
         return Response(data)
