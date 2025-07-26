@@ -45,7 +45,7 @@ class AssetListCreateView(generics.ListCreateAPIView):
             raise serializers.ValidationError({"detail": "Ticker doesn't exist."})           
 
         cost_basis_per_share = get_ticker_price(ticker, buy_date)
-        cost_basis = cost_basis_per_share * self.request.data["shares"]
+        cost_basis = cost_basis_per_share * Decimal(str(self.request.data["shares"]))
         serializer.save(user=self.request.user, asset_info=asset_info, snp500_buy_date=snp500_buy_date, cost_basis=cost_basis)
 
 # API endpoint for 'get' or 'delete' asset, only the owner should be able to do this

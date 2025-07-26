@@ -11,6 +11,7 @@ django/restaurants/yelp_dataset
 react-app/node_modules
 react-app/dist
 .env.*
+react-app/coverage
 
 machineLearning/huggingFace.txt
 

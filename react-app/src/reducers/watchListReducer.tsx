@@ -4,12 +4,14 @@ interface WatchListState {
   loading: boolean;
   tickers: string[];
   error: string;
+  ticker: string;
 }
 
 const initialState: WatchListState = {
   loading: false,
   tickers: [],
   error: '',
+  ticker: ""
 };
 
 const watchListSlice = createSlice({
@@ -28,6 +30,9 @@ const watchListSlice = createSlice({
       const updatedTickers = [...state.tickers, action.payload]; // Create a new array with the new ticker added
       state.tickers = updatedTickers;
       localStorage.setItem("tickers", (JSON.stringify(state.tickers)));
+    },
+    analyzeTicker: (state, action) => {
+      state.ticker = action.payload;
     },
     removeTicker: (state, action) => {
       const updatedTickers = state.tickers.filter((ticker) => ticker !== action.payload);
