@@ -3,6 +3,10 @@ AWSCommands.txt
 .env
 django/mysite/__pycache__/
 django/portfolio/__pycache__/
+django/chatbot/__pycache__/
+django/indexes/__pycache__/
+django/restaurants/__pycache__/
+
 *.log
 deploy.sh
 machineLearning/yelp_dataset
