@@ -7,6 +7,8 @@ django/chatbot/__pycache__/
 django/indexes/__pycache__/
 django/restaurants/__pycache__/
 
+django/lib
+
 *.log
 deploy.sh
 machineLearning/yelp_dataset
