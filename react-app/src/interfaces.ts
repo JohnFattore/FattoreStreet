@@ -4,23 +4,15 @@ export interface IAllocation {
 }
 
 export interface IAsset {
-    ticker: string,
-    short_name: string,
-    long_name: string,
-    type: string,
-    exchange: string,
-    market: string,
-    shares: number,
-    costBasis: number,
-    sellPrice: number | null,
-    buyDate: string,
-    sellDate: string | null,
-    currentPrice: number,
-    percentChange: number,
-    snp500PriceBuy: number,
-    snp500PriceSell: number | null,
-    snp500PercentChange: number,
     id: number,
+    ticker: string,
+    shares: number,
+    buyDate: string,
+    buyPrice: number,
+    snp500PriceBuy: number,
+    sellDate: string | null,
+    sellPrice: number | null,
+    snp500PriceSell: number | null,
 }
 
 export interface ISnP500Price {
@@ -36,16 +28,34 @@ export interface IQuote {
     percentChange: number
 }
 
-export interface IWatchListItem {
+export interface IEquityInfo {
     ticker: string;
-    name: string;
-    price: number;
-    percentChange: number;
+    shortName: string;
+    longName: string;
+    type: string;
+    exchange: string;
+    market: string;
+    currentPrice: number,
+    percentChangeDaily: number,
     marketCap: number;
-    trailingPERatio: number;
+    trailingPE: number;
     incomeTTM: number;
     revenueTTM: number;
     netMarginTTM: number;
+}
+
+export interface IETFInfo {
+    ticker: string;
+    shortName: string;
+    longName: string;
+    type: string;
+    exchange: string;
+    market: string;
+    currentPrice: number,
+    percentChangeDaily: number,
+    marketCap: number;
+    trailingPE: number;
+    expenseRatio: number;
 }
 
 export interface IAlbum {
@@ -54,41 +64,6 @@ export interface IAlbum {
     year: number;
 }
 
-// outdated
-export interface IOutlier {
-    ticker: string;
-    name: string;
-    marketCap: number;
-    volume: number;
-    volumeUSD: number;
-    freeFloat: number;
-    freeFloatMarketCap: number;
-    countryIncorp: string;
-    countryHQ: string;
-    securityType: string;
-    yearIPO: number;
-    notes: string;
-    id: number
-}
-
-export interface IIndexMember {
-    ticker: string;
-    name: string;
-    marketCap: number;
-    volume: number;
-    volumeUSD: number;
-    freeFloat: number;
-    freeFloatMarketCap: number;
-    countryIncorp: string;
-    countryHQ: string;
-    securityType: string;
-    yearIPO: number;
-    percent: number;
-    index: string;
-    outlier: boolean;
-    notes: string;
-    id: number
-}
 
 export interface IBrokerage {
     name: string;

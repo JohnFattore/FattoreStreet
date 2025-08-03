@@ -1,62 +1,95 @@
-import Table from 'react-bootstrap/Table';
-import { useSelector, useDispatch } from "react-redux";
-import { AppDispatch, RootState } from '../main';
-import { setAssetSort } from '../reducers/assetReducer';
-import AssetRow from './AssetRow';
+import Table from "react-bootstrap/Table";
+import { Alert, Spinner, Button } from "react-bootstrap";
+import { useSelector } from "react-redux";
+import { RootState } from "../main";
+import { useGetAssetsQuery } from "../functions/api";
+import { formatString } from "../functions/helperFunctions";
+import { useGetAssetInfosQuery } from "../functions/api";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
-// could add real vs nominal returns
-const fields = [
-    { name: "Ticker", type: "text", field: "ticker" },
-    { name: "Shares", type: "amount", field: "shares" },
-    { name: "Buy Date", type: "text", field: "buyDate" },
-    { name: "Cost Basis", type: "money", field: "costBasis" },
-    { name: "Sell Price", type: "money", field: "sellPrice" },
-    { name: "Percent Change", type: "percent", field: "percentChange" },
-    { name: "S&P 500 Percent Change", type: "percent", field: "snp500PercentChange" },
-    { name: "Sell Date", type: "text", field: "sellDate" },
-    { name: "View Asset", type: "assetView", field: "ticker" },
-]
+function AssetRow({ asset, assetInfo }) {
+  const navigate = useNavigate();
+  if (!assetInfo) return null;
+  return (
+    <tr>
+      <td>{asset.ticker}</td>
+      <td>{assetInfo.shortName}</td>
+      <td>{formatString(asset.shares, "amount")}</td>
+      <td>{asset.buyDate}</td>
+      <td>{formatString(asset.buyPrice, "money")}</td>
+      <td>{asset.sellDate}</td>
+      <td>{formatString(asset.sellPrice, "money")}</td>
+      <td>
+        <Button
+          onClick={() => {
+            navigate(`/asset/${asset.ticker}`);
+          }}
+        >{`View ${asset.ticker}`}</Button>
+      </td>
+    </tr>
+  );
+}
 
-export default function AssetSoldTable() {
-    const { assets, sort } = useSelector((state: RootState) => state.assets);
-    const { access } = useSelector((state: RootState) => state.user)
-    const dispatch = useDispatch<AppDispatch>();
+export default function AssetTable() {
+  const { access, username } = useSelector((state: RootState) => state.user);
+  const { data: assets, refetch } = useGetAssetsQuery();
+  const tickers = [...new Set(assets?.map((asset) => asset.ticker) ?? [])];
+  const { data: assetInfos, isLoading } = useGetAssetInfosQuery(tickers, {
+    skip: tickers.length === 0 || !access
+  });
 
-    const handleSort = (sortColumn: string) => {
-        const sortDirection =
-            sort.sortColumn === sortColumn && sort.sortDirection === 'asc'
-                ? 'desc'
-                : 'asc';
-        dispatch(setAssetSort({ sortColumn, sortDirection }));
-    };
-
-    const assetsSold = assets.filter(item => item.sellDate !== null);
-
-    let headers: JSX.Element[] = []
-    for (let i = 0; i < fields.length; i++) {
-        headers.push(<th key={i} onClick={() => handleSort(fields[i]["field"])}>{fields[i].name}</th>)
+  useEffect(() => {
+    if (access) {
+      refetch();
     }
+  }, [access, refetch]);
 
-    if (!access) return null
+  if (!access) {
+    return <></>;
+  }
 
-    if (assets.length == 0 && access) return null
+  if (!assets) return <Spinner animation="border" />;
+  const assetsSold = assets.filter((item) => item.sellDate);
 
+  if (assets.length == 0 && access && !isLoading) {
+    return <Alert>{username.concat(" has no assets")}</Alert>;
+  }
+
+  if (isLoading)
     return (
-        <>
-            <h3>Sold Positions</h3>
-            <Table>
-                <thead>
-                    <tr>
-                        {headers}
-                    </tr>
-                </thead>
-                <tbody>
-                    {assetsSold.map((asset) => (
-                        <AssetRow key={asset.id} asset={asset} fields={fields} />
-                    ))}
-                </tbody>
-            </Table>
-        </>
-
+      <>
+        <h3>Assets Sold</h3>
+        <Spinner animation="border" />
+      </>
     );
+
+  return (
+    <>
+      <h3>Assets Sold</h3>
+      <Table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Name</th>
+            <th>Shares</th>
+            <th>Buy Date</th>
+            <th>Buy Price</th>
+            <th>Sell Date</th>
+            <th>Sell Price</th>
+            <th>View Asset</th>
+          </tr>
+        </thead>
+        <tbody>
+          {assetsSold.map((asset) => (
+            <AssetRow
+              key={asset.id}
+              asset={asset}
+              assetInfo={assetInfos?.[asset.ticker]}
+            />
+          ))}
+        </tbody>
+      </Table>
+    </>
+  );
 }

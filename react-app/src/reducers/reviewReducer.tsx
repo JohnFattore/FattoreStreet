@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { IReview } from '../interfaces';
-import { deleteReview, getReviews, patchReview, postReview } from '../components/axiosFunctions';
+import { deleteReview, getReviews, patchReview, postReview } from '../functions/axiosFunctions';
 
 function sortReviews(reviews: IReview[], sortColumn: keyof IReview, sortDirection: 'asc' | 'desc'): IReview[] {
   return [...reviews].sort((a, b) => {

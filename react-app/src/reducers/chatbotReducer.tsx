@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { postChatbot } from '../components/axiosFunctions';
+import { postChatbot } from '../functions/axiosFunctions';
 
 interface ChatbotState {
   loading: boolean;

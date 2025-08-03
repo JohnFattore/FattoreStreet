@@ -1,13 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { getFinancials, login, getAssets, postAsset, deleteAsset, sellAsset } from '../src/components/axiosFunctions';
+import { getFinancials, login, getAssets, postAsset, deleteAsset, sellAsset } from '../src/functions/axiosFunctions';
 import { configureStore } from '@reduxjs/toolkit';
 import userReducer from '../src/reducers/userReducer';
 import assetReducer from '../src/reducers/assetReducer'
 import { IAsset } from '../src/interfaces';
 
-describe('getFinancials test', () => {
+describe('getFinancials for stock test', () => {
   it('returns real user data from the API', async () => {
     const financials = await getFinancials("V");
+    expect(financials).toHaveProperty('data');
+  });
+});
+
+describe('getFinancials for ETF test', () => {
+  it('returns real user data from the API', async () => {
+    const financials = await getFinancials("VTI");
     expect(financials).toHaveProperty('data');
   });
 });
@@ -21,10 +28,10 @@ describe('login thunk test', () => {
     });
 
     const result = await store.dispatch(
-      login({ username: 'maxwell', password: 'maxwell' })
+      login({ username: 'jimmy', password: 'jimmy' })
     );
     expect(result.type).toBe('users/login/fulfilled');
-    expect(result.payload).toHaveProperty('username', 'maxwell');
+    expect(result.payload).toHaveProperty('username', 'jimmy');
     expect(result.payload).toHaveProperty('access');
     expect(result.payload).toHaveProperty('refresh');
   });
@@ -40,7 +47,7 @@ describe('getAssets thunk test', () => {
     });
 
     await store.dispatch(
-      login({ username: 'maxwell', password: 'maxwell' })
+      login({ username: 'jimmy', password: 'jimmy' })
     );
 
     const assetsResponse = await store.dispatch(getAssets())
@@ -61,7 +68,7 @@ describe('postAsset / sellAsset / deleteAsset thunk test', () => {
     });
 
     await store.dispatch(
-      login({ username: 'maxwell', password: 'maxwell' })
+      login({ username: 'jimmy', password: 'jimmy' })
     );
 
     const postAssetResponse = await store.dispatch(postAsset({

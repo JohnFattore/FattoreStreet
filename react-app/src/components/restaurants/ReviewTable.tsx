@@ -1,10 +1,10 @@
 import Table from 'react-bootstrap/Table';
-import { formatString } from './helperFunctions';
+import { formatString } from '../../functions/helperFunctions';
 import { useSelector, useDispatch } from "react-redux";
-import { RootState, AppDispatch } from "../main";
+import { RootState, AppDispatch } from "../../main";
 import { Alert } from 'react-bootstrap';
-import { setReviewSort } from '../reducers/reviewReducer';
-import { deleteReview, patchReview } from './axiosFunctions';
+import { setReviewSort } from '../../reducers/reviewReducer';
+import { deleteReview, patchReview } from '../../functions/axiosFunctions';
 
 const fields = [
     { name: "Restaurant", type: "text", field: "name" },

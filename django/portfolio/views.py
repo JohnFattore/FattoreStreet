@@ -1,19 +1,17 @@
-# only API views, see retiredViews for old django frontend views
-# API modules using drf
 from rest_framework import generics, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .serializers import AssetSerializer, SnP500PriceSerializer
+from .serializers import AssetSerializer
 from .permissions import IsOwner
-from .models import Asset, SnP500Price, AssetInfo
+from .models import Asset
 import yfinance as yf
-from datetime import datetime, timedelta, date
+from datetime import datetime
 import environ
 import requests
 from django.core.cache import cache
-from decimal import Decimal
-from .helper import get_or_create_SnP500Price, get_or_create_AssetInfo, get_ticker_price
+from .helper import get_ticker_price
+from .choices import ASSET_TYPES, EXCHANGES, MARKETS
 
 env = environ.Env()
 environ.Env.read_env()
@@ -25,104 +23,97 @@ class AssetListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsOwner]
     # return only the assets the user owns
     def get_queryset(self):
-        return Asset.objects.filter(user=self.request.user).select_related("snp500_buy_date", "snp500_sell_date") 
+        return Asset.objects.filter(user=self.request.user)
 
     # user comes from different part of response as other data
     def perform_create(self, serializer):
+        ticker = self.request.data["ticker"]        
+        shares = self.request.data["shares"]
         buy_date = datetime.strptime(self.request.data["buy_date"], "%Y-%m-%d").date()
-        ticker = self.request.data["ticker"]
+        # should just check some list of stock market open / closed
         try:
-            snp500_buy_date = get_or_create_SnP500Price(buy_date)  
-        except Exception as e:
-            if str(e) == "Error getting S&P 500 Price":
-                print(str(e))
-            else:
-                raise serializers.ValidationError({"detail": "Stock market was closed that day."})
-        
-        try:
-            asset_info = get_or_create_AssetInfo(ticker=ticker)
+            get_ticker_price(ticker, buy_date)
         except:
-            raise serializers.ValidationError({"detail": "Ticker doesn't exist."})           
+            raise serializers.ValidationError({"detail": f"Market closed on {buy_date}"})           
 
-        cost_basis_per_share = get_ticker_price(ticker, buy_date)
-        cost_basis = cost_basis_per_share * Decimal(str(self.request.data["shares"]))
-        serializer.save(user=self.request.user, asset_info=asset_info, snp500_buy_date=snp500_buy_date, cost_basis=cost_basis)
+        serializer.save(user=self.request.user, ticker=ticker, shares=shares, buy_date=buy_date)
 
-# API endpoint for 'get' or 'delete' asset, only the owner should be able to do this
-class AssetRetrieveDestroyView(generics.RetrieveDestroyAPIView):
-    queryset = Asset.objects.all().select_related("snp500_buy_date", "snp500_sell_date")
-    serializer_class = AssetSerializer
-    permission_classes = [IsOwner]
-
-class AssetUpdateSellDateView(generics.UpdateAPIView):
+# API endpoint for 'get' or 'delete' or "patch" asset, only the owner should be able to do this
+class AssetRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Asset.objects.all()
     serializer_class = AssetSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
-    def get_queryset(self):
+    def get_queryset(self):     
         return Asset.objects.filter(user=self.request.user)
-
-    def perform_update(self, serializer):
-        sell_date = self.request.data.get("sell_date")
-        if not sell_date:
-            raise serializers.ValidationError({"sell_date": "This field is required for updating."})
-
-        try:
-            ticker = serializer.instance.asset_info.ticker
-            sell_date = datetime.strptime(self.request.data["sell_date"], "%Y-%m-%d").date()
-            snp500_sell_date = get_or_create_SnP500Price(sell_date)
-            price_per_share = get_ticker_price(ticker, sell_date)
-            sell_price = serializer.instance.shares * price_per_share
-
-        except SnP500Price.DoesNotExist:
-            raise serializers.ValidationError({"sell_date": "Stock market was closed that day."})
-
-        # might not have to explicitly save sell_date
-        serializer.save(sell_date=sell_date, sell_price=sell_price, snp500_sell_date=snp500_sell_date)
-
-# API endpoint to get specific SnP500 prices / dates
-class SnP500RetrieveView(generics.RetrieveAPIView):
-    queryset = SnP500Price.objects.all()
-    serializer_class = SnP500PriceSerializer
-    def get_object(self):
-        date = datetime.strptime(self.request.query_params.get("date"), "%Y-%m-%d").date()
-        return get_or_create_SnP500Price(date)
-
-class QuoteRetrieveView(APIView):
-    def get(self, request):
-        symbol = request.query_params.get("symbol")
-        if (symbol == None):
-            raise serializers.ValidationError({"symbol": "This field is required."})
-        cache_key = f"finnhub_quote_{symbol}"
-        cached_data = cache.get(cache_key)
-
-        if cached_data:
-            return Response(cached_data)
-        
-        api_key = env("FINNHUB_API_KEY")
-        url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={api_key}"
-        response = requests.get(url)
-        data = response.json()
-        cache.set(cache_key, data, timeout=60 * 5)
-        return Response(data)
     
-class FinancialsRetrieveView(APIView):
+class AssetInfoRetrieveView(APIView):
     def get(self, request):
-        symbol = request.query_params.get("symbol")
-        if (symbol == None):
-            raise serializers.ValidationError({"symbol": "This field is required."})
-        cache_key = f"financials_{symbol}"
-        cached_data = cache.get(cache_key)
+        tickers = request.query_params.get("tickers")
+        if (tickers == None):
+            raise serializers.ValidationError({"tickers": "This field is required."})
+        ticker_list = tickers.split(",")
+        if len(ticker_list) == 1 and ticker_list[0] == "":
+            raise serializers.ValidationError({"tickers": "This field must contain at least 1 ticker."})
+        data = []
+        for ticker in ticker_list:
+            quote = get_ticker_price(ticker)
+            cache_key = f"financials_{ticker}"
+            cached_data = cache.get(cache_key)
 
-        if cached_data:
-            return Response(cached_data)
+            if cached_data:
+                cached_data["current_price"] = quote["price"]
+                cached_data["percent_change_daily"] = quote["percent_change"]
+                data.append(cached_data)
+            else:
+                yfinance = yf.Ticker(ticker)  # Use your stock ticker here
+                market = yfinance.info["market"]
+                if market not in {m[0] for m in MARKETS}:
+                    raise Exception(f"Market {market} not recognized")
 
-        ticker = yf.Ticker(symbol)  # Use your stock ticker here
-        financials = ticker.quarterly_financials
-        data = {
-            "name": ticker.info["shortName"],
-            "net_income": financials.loc["Net Income"].iloc[:4].sum(),
-            "total_revenue": financials.loc["Total Revenue"].iloc[:4].sum()
-        }
-        cache.set(cache_key, data, timeout=60 * 5)
+                type = yfinance.info["quoteType"]
+                if type not in {t[0] for t in ASSET_TYPES}:
+                    raise Exception(f"type {type} not recognized")
+
+                exchange = yfinance.info["fullExchangeName"]
+
+                if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
+                    exchange = "NASDAQ"
+                elif exchange in {"NYSEArca"}:
+                    exchange = "NYSE"
+
+                if exchange not in {e[0] for e in EXCHANGES}:
+                    raise Exception(f"exchange {exchange} not recognized")
+                
+                financials = {
+                    "ticker": ticker,
+                    "current_price": quote["price"],
+                    "percent_change_daily": quote["percent_change"],
+                    "short_name": yfinance.info["shortName"],
+                    "long_name": yfinance.info["longName"],
+                    "type": type,
+                    "market": market,
+                    "exchange": exchange
+                }
+
+                if yfinance.info["quoteType"] == "EQUITY":
+                    financials["market_cap"] = yfinance.info["marketCap"]
+                    financials["net_income"] = yfinance.quarterly_financials.loc["Net Income"].iloc[:4].sum()
+                    financials["total_revenue"] = yfinance.quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
+
+                    cache.set(cache_key, financials, timeout=60 * 60 * 24)
+                    data.append(financials)
+                elif yfinance.info["quoteType"] == "ETF":
+                    financials["market_cap"] = 0
+                    financials["ttm_pe"] = 0
+                    if yfinance.info.get("marketCap") != None:
+                        financials["market_cap"] = yfinance.info["marketCap"]
+                    financials["expenseRatio"] = yfinance.info["netExpenseRatio"] / 100
+                    if yfinance.info.get("ttm_pe") != None:
+                        financials["ttm_pe"] = yfinance.info["trailingPE"]
+
+                    cache.set(cache_key, financials, timeout=60 * 60 * 24)
+                    data.append(financials)
+                else:
+                    raise serializers.ValidationError({"tickers": "unrecognized ticker"})
         return Response(data)

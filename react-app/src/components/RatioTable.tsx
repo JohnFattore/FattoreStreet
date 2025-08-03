@@ -1,5 +1,5 @@
 import Table from 'react-bootstrap/Table';
-import { formatString } from './helperFunctions';
+import { formatString } from '../functions/helperFunctions';
 
 // function is for simple calculations, function2 is for more complex operations
 function RatioRow({ ratio, fields }) {

@@ -1,0 +1,15 @@
+import CompanyLogo from "./CompanyLogo";
+import { Card } from "react-bootstrap";
+import { useGetAssetInfosQuery } from "../functions/api";
+export default function TickerHeader({ ticker }) {
+  const { data: assetInfos } = useGetAssetInfosQuery([ticker])
+  const assetInfo = assetInfos ? assetInfos[ticker] : undefined
+  return (
+    <Card>
+      <Card.Body>
+        <Card.Title>{assetInfo?.longName}</Card.Title>
+        {assetInfo?.type == "EQUITY" ? <CompanyLogo ticker={ticker} />: null}
+      </Card.Body>
+    </Card>
+  );
+}

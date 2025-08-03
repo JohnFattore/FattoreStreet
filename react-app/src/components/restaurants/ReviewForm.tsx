@@ -2,9 +2,9 @@ import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { postReview } from './axiosFunctions';
+import { postReview } from '../../functions/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from '../main';
+import { AppDispatch, RootState } from '../../main';
 import { useState } from 'react';
 
 interface IFormInput {

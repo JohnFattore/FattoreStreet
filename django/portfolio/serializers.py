@@ -1,47 +1,57 @@
 from rest_framework import serializers
-from .models import Asset, SnP500Price, AssetInfo
+from .models import Asset
 from django.utils import timezone
-
-# serializer for SnP500Price Model
-class SnP500PriceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SnP500Price
-        fields = ['id', 
-                  'date', 
-                  'price']
-
-class AssetInfoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AssetInfo
-        fields = ['id', 
-                  'ticker', 
-                  'short_name',
-                  'long_name',
-                  'type',
-                  'exchange',
-                  'market']
+from .helper import get_ticker_price
 
 # serializer for Asset Model
 class AssetSerializer(serializers.ModelSerializer):
-    asset_info = AssetInfoSerializer(read_only=True)
-    snp500_buy_date = SnP500PriceSerializer(read_only=True) 
-    snp500_sell_date = SnP500PriceSerializer(read_only=True)
     user = serializers.PrimaryKeyRelatedField(read_only=True)
-    cost_basis = serializers.FloatField(read_only=True)
-    
+    buy_price = serializers.SerializerMethodField()
+    sell_price = serializers.SerializerMethodField()
+    buy_SnP500 = serializers.SerializerMethodField()
+    sell_SnP500 = serializers.SerializerMethodField()
+
     class Meta:
         model = Asset
         fields = ['id', 
+                  'ticker',
                   'shares', 
-                  'cost_basis', 
-                  'sell_price',
-                  'buy_date', 
+                  'buy_date',
+                  'buy_price',
+                  'buy_SnP500',
                   'sell_date',
-                  'user',
-                  'asset_info',
-                  'snp500_buy_date',
-                  'snp500_sell_date']
-        
+                  'sell_price',
+                  'sell_SnP500',
+                  'user']
+
+    def get_buy_price(self, obj):
+        try:
+            return get_ticker_price(obj.ticker, obj.buy_date)["price"]
+        except Exception as e:
+            return None  # or str(e)
+
+    def get_buy_SnP500(self, obj):
+        try:
+            return get_ticker_price("SPY", obj.buy_date)["price"]
+        except Exception as e:
+            return None  # or str(e)
+
+    def get_sell_price(self, obj):
+        if obj.sell_date:
+            try:
+                return get_ticker_price(obj.ticker, obj.sell_date)["price"]
+            except Exception as e:
+                return None
+        return None
+
+    def get_sell_SnP500(self, obj):
+        if obj.sell_date:
+            try:
+                return get_ticker_price("SPY", obj.sell_date)["price"]
+            except Exception as e:
+                return None
+        return None
+
     def validate_shares(self, value):
         if value < 0:
             raise serializers.ValidationError("The number of shares must be greater than 0.")
@@ -55,6 +65,10 @@ class AssetSerializer(serializers.ModelSerializer):
     def validate_sell_date(self, value):
         if value > timezone.now().date():
             raise serializers.ValidationError("The sell date can't be in the future.")
+        try:
+            get_ticker_price('AAPL', value)
+        except:
+            raise serializers.ValidationError(f"Market closed on {value}")
         return value
         
     def validate(self, data):

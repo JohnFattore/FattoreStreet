@@ -1,9 +1,9 @@
 import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { getAssets, getReviews, login } from './axiosFunctions';
+import { getReviews, login } from '../functions/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
-import { translateError } from './helperFunctions';
+import { translateError } from '../functions/helperFunctions';
 import { clearReviewErrors } from '../reducers/reviewReducer';
 
 interface IFormInput {
@@ -19,7 +19,6 @@ export default function LoginForm() {
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
         dispatch(login({username: data.username, password: data.password}))
         .then(() => {
-            dispatch(getAssets())
             dispatch(getReviews())
             dispatch(clearReviewErrors())
         })

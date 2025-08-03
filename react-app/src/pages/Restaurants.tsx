@@ -1,15 +1,15 @@
-import RestaurantTable from '../components/RestaurantTable';
+import RestaurantTable from '../components/restaurants/RestaurantTable';
 import { useEffect } from 'react';
-import { getRestaurants, getReviews, getRestaurantRecommendations } from '../components/axiosFunctions';
+import { getRestaurants, getReviews, getRestaurantRecommendations } from '../functions/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../main";
-import ReviewForm from '../components/ReviewForm';
+import ReviewForm from '../components/restaurants/ReviewForm';
 import { useState } from 'react';
 import { IRestaurant } from '../interfaces';
 import { Button, Alert } from 'react-bootstrap';
-import ReviewTable from '../components/ReviewTable';
-import ReviewMap from '../components/ReviewMap'
-import RestaurantRecommendTable from '../components/RestaurantRecommendTable'
+import ReviewTable from '../components/restaurants/ReviewTable';
+import ReviewMap from '../components/restaurants/ReviewMap'
+import RestaurantRecommendTable from '../components/restaurants/RestaurantRecommendTable'
 import LoginForm from '../components/LoginForm';
 
 export default function Restaurants() {

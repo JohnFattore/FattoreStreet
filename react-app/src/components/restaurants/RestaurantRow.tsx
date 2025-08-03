@@ -1,4 +1,4 @@
-import { formatString } from "./helperFunctions";
+import { formatString } from "../../functions/helperFunctions";
 
 export default function RestaurantRow({ fields, restaurant, setRestaurant }) {
     let tableData: JSX.Element[] = [];

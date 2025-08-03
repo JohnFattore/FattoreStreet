@@ -2,10 +2,10 @@ import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
 import { useForm /*, SubmitHandler*/ } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { postUser, login } from './axiosFunctions';
+import { postUser, login } from '../functions/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
-import { translateError } from './helperFunctions';
+import { translateError } from '../functions/helperFunctions';
 import { setUserError } from '../reducers/userReducer';
 
 interface IFormInput {

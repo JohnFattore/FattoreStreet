@@ -5,7 +5,6 @@ export const handlers = [
     return Response.json([{
       "id": 65,
       "shares": "1.00000",
-      "cost_basis": "239.67",
       "sell_price": null,
       "buy_date": "2021-06-02",
       "sell_date": null,
@@ -18,13 +17,7 @@ export const handlers = [
           "type": "EQUITY",
           "exchange": "NASDAQ",
           "market": "us_market"
-      },
-      "snp500_buy_date": {
-          "id": 609,
-          "date": "2021-06-02",
-          "price": "398.28"
-      },
-      "snp500_sell_date": null
+      }
   }], { status: 200 });
   }),
 
@@ -38,6 +31,12 @@ export const handlers = [
       "o": 545.11,
       "pc": 564.52,
       "t": 1743710400
+  }, { status: 200 });
+  }),
+
+  http.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("historical-quote/"), () => {
+    return Response.json({
+      'data': 500
   }, { status: 200 });
   }),
 

@@ -1,25 +1,15 @@
 import AssetForm from '../components/AssetForm';
-import { useEffect } from 'react';
 import AssetTable from '../components/AssetTable';
-import { getAssets } from '../components/axiosFunctions';
-import { Row, Col, Accordion, Button } from 'react-bootstrap';
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from '../main';
+import { Row, Col, Accordion } from 'react-bootstrap';
+import { useSelector } from "react-redux";
+import { RootState } from '../main';
 import YahooFinanceBanner from '../components/YahooFinanceBanner';
 import FinnhubBanner from '../components/FinnhubBanner';
 import AdjustedCostBasis from '../components/AdjustedCostBasis'
-import { useNavigate } from "react-router-dom";
 import AssetSoldTable from '../components/AssetSoldTable';
 
 export default function Portfolio() {
-    const navigate = useNavigate();
-    const dispatch = useDispatch<AppDispatch>();
     const { username } = useSelector((state: RootState) => state.user);
-
-    useEffect(() => {
-        dispatch(getAssets());
-    }, [dispatch])
-
     return (
         <>
             <Row>
@@ -40,7 +30,6 @@ export default function Portfolio() {
             <h1>{username ? `${username}'s Portfolio` : 'Portfolio'}</h1>
             <AssetTable/>
             <AssetSoldTable />
-            <Button onClick={() => navigate("/snp500Prices")}>Historical S&P500 Prices</Button>
             <YahooFinanceBanner />
             <FinnhubBanner />
         </>

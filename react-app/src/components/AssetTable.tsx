@@ -1,69 +1,98 @@
-import Table from 'react-bootstrap/Table';
-import { Alert } from 'react-bootstrap';
-import { useSelector, useDispatch } from "react-redux";
-import { AppDispatch, RootState } from '../main';
-import { setAssetSort } from '../reducers/assetReducer';
-import AssetRow from './AssetRow';
+import Table from "react-bootstrap/Table";
+import { Alert, Button, Spinner } from "react-bootstrap";
+import { useSelector } from "react-redux";
+import { RootState } from "../main";
+import { useGetAssetsQuery, useGetAssetInfosQuery } from "../functions/api";
+import { formatString } from "../functions/helperFunctions";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
-// could add real vs nominal returns
-const fields = [
-    { name: "Ticker", type: "text", field: "ticker" },
-    { name: "Shares", type: "amount", field: "shares" },
-    { name: "Buy Date", type: "text", field: "buyDate" },
-    { name: "Cost Basis", type: "money", field: "costBasis" },
-    { name: "Current Price", type: "money", field: "currentPrice" },
-    { name: "Percent Change", type: "percent", field: "percentChange" },
-    { name: "S&P 500 Percent Change", type: "percent", field: "snp500PercentChange" },
-    { name: "View Asset", type: "assetView", field: "ticker" },
-]
+function AssetRow({ asset, assetInfo }) {
+  const navigate = useNavigate();
+  if (!asset || !assetInfo) return null;
+  return (
+    <tr>
+      <td>{asset.ticker}</td>
+      <td>{assetInfo.shortName}</td>
+      <td>{formatString(asset.shares, "amount")}</td>
+      <td>{asset.buyDate}</td>
+      <td>{formatString(asset.buyPrice, "money")}</td>
+      <td>{formatString(assetInfo.currentPrice, "money")}</td>
+      <td>
+        <Button
+          onClick={() => {
+            navigate(`/asset/${asset.ticker}`);
+          }}
+        >{`View ${asset.ticker}`}</Button>
+      </td>
+    </tr>
+  );
+}
 
 export default function AssetTable() {
-    const { assets, error, sort, loading } = useSelector((state: RootState) => state.assets);
-    const { access, username } = useSelector((state: RootState) => state.user)
-    const dispatch = useDispatch<AppDispatch>();
+  const { access, username } = useSelector((state: RootState) => state.user);
+  const { data: assets, refetch } = useGetAssetsQuery();
+  const tickers = [...new Set(assets?.map((asset) => asset.ticker) ?? [])];
+  const { data: assetInfos, isLoading } = useGetAssetInfosQuery(tickers, {
+    skip: tickers.length === 0 || !access,
+  });
 
-    const assetsOwned = assets.filter(item => item.sellDate === null);
-
-    const handleSort = (sortColumn: string) => {
-        const sortDirection =
-            sort.sortColumn === sortColumn && sort.sortDirection === 'asc'
-                ? 'desc'
-                : 'asc';
-        dispatch(setAssetSort({ sortColumn, sortDirection }));
-    };
-
-    let headers: JSX.Element[] = []
-    for (let i = 0; i < fields.length; i++) {
-        headers.push(<th key={i} onClick={() => handleSort(fields[i]["field"])}>{fields[i].name}</th>)
+  useEffect(() => {
+    if (access) {
+      refetch();
     }
+  }, [access, refetch]);
 
-    if (!access) {
-        return (<></>)
-    }
+  if (!access) {
+    return <></>;
+  }
 
-    if (assets.length == 0 && access && !loading) {
-        return (<Alert>{username.concat(" has no assets")}</Alert>)
-    }
-
-    if (loading) {
-        return (<Alert>Loading...</Alert>)
-    }
-
+  if (!assets)
     return (
-        <>
-            {error && <Alert variant="danger">{error}</Alert>}
-            <Table>
-                <thead>
-                    <tr>
-                        {headers}
-                    </tr>
-                </thead>
-                <tbody>
-                    {assetsOwned.map((asset) => (
-                        <AssetRow key={asset.id} asset={asset} fields={fields} />
-                    ))}
-                </tbody>
-            </Table>
-        </>
+      <>
+        <h3>Assets Owned</h3>
+        <Spinner animation="border" />
+      </>
     );
+  const assetsOwned = assets.filter((item) => !item.sellDate);
+
+  if (assets.length == 0 && access && !isLoading) {
+    return <Alert>{username.concat(" has no assets")}</Alert>;
+  }
+
+  if (isLoading)
+    return (
+      <>
+        <h3>Assets Owned</h3>
+        <Spinner animation="border" />
+      </>
+    );
+
+  return (
+    <>
+      <h3>Assets Owned</h3>
+      <Table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Name</th>
+            <th>Shares</th>
+            <th>Buy Date</th>
+            <th>Buy Price</th>
+            <th>Current Price</th>
+            <th>View Asset</th>
+          </tr>
+        </thead>
+        <tbody>
+          {assetsOwned.map((asset) => (
+            <AssetRow
+              key={asset.id}
+              asset={asset}
+              assetInfo={assetInfos?.[asset.ticker]}
+            />
+          ))}
+        </tbody>
+      </Table>
+    </>
+  );
 }

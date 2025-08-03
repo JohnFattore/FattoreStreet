@@ -1,59 +1,42 @@
 import yfinance as yf
-from datetime import date, timedelta, datetime
-from .models import SnP500Price, AssetInfo
+from datetime import date, timedelta
 from .choices import ASSET_TYPES, EXCHANGES, MARKETS
 from decimal import Decimal
+from django.core.cache import cache
+from typing import Optional
+import requests
+import environ
 
-def get_or_create_SnP500Price(price_date: date):
-    try:
-        snp500Price = SnP500Price.objects.get(date=price_date)
-        return snp500Price
-    except SnP500Price.DoesNotExist:
-        try:
-            yfinance = yf.Ticker('SPY')
-            data = yfinance.history(start=price_date.strftime("%Y-%m-%d"), end=(price_date + timedelta(days=1)).strftime("%Y-%m-%d"))
-            snp500Price = SnP500Price.objects.create(date=price_date, price=data['Close'][price_date.strftime("%Y-%m-%d")])
-            return snp500Price
-        except Exception as e:
-            raise Exception(f"Failed to fetch or create S&P 500 price for {price_date}: {str(e)}")
+# Initialise environment variables
+env = environ.Env()
+environ.Env.read_env()
 
-def get_or_create_AssetInfo(ticker: str):
-    try:
-        asset_info = AssetInfo.objects.get(ticker=ticker)
-        return asset_info
-    except AssetInfo.DoesNotExist:
+def get_ticker_price(ticker: str, date: Optional[date] = None):
+    if date:
         yfinance = yf.Ticker(ticker)
-        data = yfinance.info     
+        cache_key = f"historical_quote_{ticker}_{date}"
+        cached_data = cache.get(cache_key)
 
-        market = data["market"]
-        if market not in {m[0] for m in MARKETS}:
-            raise Exception(f"Market {market} not recognized")
+        if cached_data:
+            return cached_data
+        
+        data = yfinance.history(start=date.strftime("%Y-%m-%d"), end=(date + timedelta(days=1)).strftime("%Y-%m-%d"))
+        price = data['Close'].get(date.strftime("%Y-%m-%d"), None)
+        if price == None:
+            raise Exception(f"No Price for ticker {ticker} on day {date}")
+        output = {"price": Decimal(price), "percent_change": 0}
+        cache.set(cache_key, output, timeout=60 * 60 * 24)
+        return output
+    else:
+        cache_key = f"current_quote_{ticker}_{date}"
+        cached_data = cache.get(cache_key)
 
-        type = data["quoteType"]
-        if type not in {t[0] for t in ASSET_TYPES}:
-            raise Exception(f"type {type} not recognized")
-
-        exchange = data["fullExchangeName"]
-
-        if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
-            exchange = "NASDAQ"
-        elif exchange in {"NYSEArca"}:
-            exchange = "NYSE"
-
-        if exchange not in {e[0] for e in EXCHANGES}:
-            raise Exception(f"exchange {exchange} not recognized")        
-        asset_info = AssetInfo.objects.create(ticker=ticker,
-                                            short_name=data["shortName"],
-                                            long_name=data["longName"],
-                                            type=type,
-                                            market=market,
-                                            exchange=exchange)
-        return asset_info
-
-def get_ticker_price(ticker: str, date: date):
-    yfinance = yf.Ticker(ticker)
-    data = yfinance.history(start=date.strftime("%Y-%m-%d"), end=(date + timedelta(days=1)).strftime("%Y-%m-%d"))
-    price = data['Close'].get(date.strftime("%Y-%m-%d"), None)
-    if price == None:
-        raise Exception(f"No Price for ticker {ticker} on day {date}")
-    return Decimal(price)
+        if cached_data:
+            return cached_data
+        api_key = env("FINNHUB_API_KEY")
+        url = f"https://finnhub.io/api/v1/quote?symbol={ticker}&token={api_key}"
+        response = requests.get(url)
+        quote = response.json()
+        output = {"price": Decimal(quote["c"]), "percent_change": Decimal(quote["dp"]/100)}
+        cache.set(cache_key, output, timeout=60)
+        return output

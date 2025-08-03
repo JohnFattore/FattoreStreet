@@ -6,7 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { setLocation } from '../reducers/locationReducer';
-import { getRestaurants } from './axiosFunctions';
+import { getRestaurants } from '../functions/axiosFunctions';
 
 const STATE_CHOICES = [
     { value: "AZ", label: "Arizona" },

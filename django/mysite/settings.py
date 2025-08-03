@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     # admin uses sessions
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -51,8 +52,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # Security for communicating with react frontend
-    'corsheaders.middleware.CorsMiddleware',
     # History
     'simple_history.middleware.HistoryRequestMiddleware',
 ]
@@ -153,12 +152,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, "../nginx/static")
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # allow NGINX server
-CORS_ORIGIN_WHITELIST = [
+CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
-    'http://localhost',
-    'http://localhost:80',
-    'http://localhost:3000',
-]
+    'http://localhost:80'
+    ]
 
 CSRF_TRUSTED_ORIGINS = ["https://fattorestreet.com"]
 

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen, cleanup, waitFor, fireEvent, getByPlaceholderText } from '@testing-library/react';
+import { act } from 'react';
 import { expect, test, vi, afterEach } from 'vitest'
 import { Provider } from "react-redux";
 import '@testing-library/jest-dom';
@@ -8,11 +9,10 @@ import { MemoryRouter } from 'react-router-dom';
 import Portfolio from '../src/pages/Portfolio';
 import Chatbot from '../src/pages/Chatbot';
 import Restaurants from '../src/pages/Restaurants';
-import { getAssets, login } from '../src/components/axiosFunctions';
-import { act } from 'react';
 import { store } from '../src/store';
 import WatchList from '../src/pages/WatchList';
 import './setupTests.ts'
+import App from '../src/App.tsx';
 
 afterEach(() => {
     cleanup();
@@ -30,6 +30,11 @@ export function renderWrapped(ui) {
     );
 }
 
+test('App Test', async () => {
+    renderWrapped(<App />);
+    expect(await screen.findByText('Welcome to Fattore Street!')).toBeInTheDocument();
+});
+
 test('Portfolio Test', async () => {
     renderWrapped(<Portfolio />);
     const usernameInput = screen.getByPlaceholderText('Username');
@@ -42,20 +47,21 @@ test('Portfolio Test', async () => {
     // Submit the form
     await act(async () => {
         await userEvent.click(submitButton);
-        await store.dispatch(login({ username: 'testUser', password: 'testPass' }));
-        await store.dispatch(getAssets());
     });
     expect(await screen.findByText('MSFT')).toBeInTheDocument();
 });
 
 test('Chatbot Test', async () => {
     renderWrapped(<Chatbot />);
+    expect(await screen.findByText('Boglehead Chatbot')).toBeInTheDocument();
 });
 
 test('Watchlist Test', async () => {
     renderWrapped(<WatchList />);
+    expect(await screen.findByText('Watchlist')).toBeInTheDocument();
 });
 
 test('Restaurants Test', async () => {
     renderWrapped(<Restaurants />);
+    expect(await screen.findByText('Nashville Restaurants')).toBeInTheDocument();
 });

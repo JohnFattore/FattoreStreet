@@ -1,72 +1,36 @@
-import Table from 'react-bootstrap/Table';
-import { useCachedData } from './customHooks';
-import { getQuote } from './axiosFunctions';
-import { formatString } from './helperFunctions';
+import { Table, Spinner } from "react-bootstrap";
+import { formatString } from "../functions/helperFunctions";
+import { useGetAssetInfosQuery } from "../functions/api";
 
-function BenchmarkRow({ benchmark, fields }) {
-
-    const quote = useCachedData(benchmark.ticker, getQuote, 10000);
-
-    let percentChange = 0;
-    if (quote) {
-        percentChange = quote.data.dp
-    }
-
-    let attributes: any[] = [
-        benchmark.name,
-        benchmark.ticker,
-        percentChange / 100,
-    ];
-
-    let tableData: JSX.Element[] = [];
-
-    for (let i = 0; i < attributes.length; i++) {
-        tableData.push(<td>{formatString(attributes[i], fields[i]["type"])}</td>)
-    }
-
-    return (
-        <tr key={1}>
-            {tableData}
-        </tr>)
+function BenchmarkRow({ benchmark }) {
+  return (
+    <tr>
+      <td>{benchmark.ticker}</td>
+      <td>{benchmark.shortName}</td>
+      <td>{formatString(benchmark.percentChangeDaily, "percent")}</td>
+    </tr>
+  );
 }
 
 export default function BenchmarkTable() {
+  const benchmarkTickers = ["VT", "VTI", "VXUS", "VTWO", "BND", "VNQ", "UUP"];
+  const { data: benchmarks } = useGetAssetInfosQuery(benchmarkTickers);
+  if (!benchmarks) return <Spinner animation="border" />;
 
-    const benchmarks = [
-        { ticker: "VT", name: "Global Market", index: "FTSE Global All Cap Index" },
-        { ticker: "VTI", name: "US Market", index: "CRSP US Total Market Index" },
-        { ticker: "VXUS", name: "Global Market Ex US", index: "FTSE Global All Cap ex US Index" },
-        { ticker: "VTWO", name: "US Small Cap", index: "Russell 2000 Index" },
-        { ticker: "BND", name: "US Investable Bond Market", index: "Bloomberg U.S. Aggregate Float Adjusted Index" },
-        { ticker: "VNQ", name: "US Real Estate", index: "MSCI US Investable Market Real Estate 25/50 Index" },
-        { ticker: "UUP", name: "US Dollar vs International Currency", index: "US Dollar Index (DXY)" }
-    ]
-
-    const fields = [
-        { name: "Name", type: "text" },
-        { name: "Ticker", type: "text" },
-        { name: "Percent Change", type: "percent" },
-    ]
-
-    let headers: JSX.Element[] = []
-    for (let i = 0; i < fields.length; i++) {
-        headers.push(<th key={i}>{fields[i].name}</th>)
-    }
-
-    if (benchmarks.length == 0) return (<h3>No Data</h3>)
-
-    return (
-        <Table>
-            <thead>
-                <tr>
-                    {headers}
-                </tr>
-            </thead>
-            <tbody>
-                {benchmarks.map((benchmark) => (
-                    <BenchmarkRow benchmark={benchmark} fields={fields} />
-                ))}
-            </tbody>
-        </Table>
-    );
+  return (
+    <Table>
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>ETF Name</th>
+          <th>Percent Change Today</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Object.entries(benchmarks).map(([ticker, benchmark]) => (
+          <BenchmarkRow key={ticker} benchmark={benchmark} />
+        ))}
+      </tbody>
+    </Table>
+  );
 }

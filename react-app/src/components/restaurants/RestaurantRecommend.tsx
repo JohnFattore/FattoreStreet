@@ -1,7 +1,7 @@
 import RestaurantRecommendTable from './RestaurantRecommendTable';
-import { getRestaurantRecommendations } from './axiosFunctions';
+import { getRestaurantRecommendations } from '../../functions/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "../main";
+import { AppDispatch, RootState } from "../../main";
 import { Alert, Button } from 'react-bootstrap';
 
 export default function Restaurants() {

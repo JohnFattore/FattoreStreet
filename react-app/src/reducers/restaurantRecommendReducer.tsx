@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { getRestaurantRecommendations } from '../components/axiosFunctions';
+import { getRestaurantRecommendations } from '../functions/axiosFunctions';
 import { IRestaurant } from '../interfaces';
 
 function sortRestaurant(restaurants: IRestaurant[], sortColumn: keyof IRestaurant, sortDirection: 'asc' | 'desc'): IRestaurant[] {

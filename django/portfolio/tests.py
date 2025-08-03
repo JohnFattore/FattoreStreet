@@ -52,7 +52,7 @@ class AssetDeleteTest(BaseAssetTest):
         super().setUp()
         self.client.force_authenticate(user=self.user)
         response = self.post_asset()
-        self.url = reverse('asset-get-delete', kwargs={'pk': response.data["id"]})
+        self.url = reverse('asset', kwargs={'pk': response.data["id"]})
 
     def test_delete_asset_unauthenticated(self):
         self.client.force_authenticate(user=None)
@@ -69,7 +69,7 @@ class AssetSellTest(BaseAssetTest):
         super().setUp()
         self.client.force_authenticate(user=self.user)
         response = self.post_asset()
-        self.url = reverse('update-sell-date', kwargs={'pk': response.data["id"]})
+        self.url = reverse('asset', kwargs={'pk': response.data["id"]})
         self.data = {'sell_date': '2023-11-14'}
 
     def test_sell_asset_unauthenticated(self):
@@ -89,32 +89,11 @@ class AssetSellTest(BaseAssetTest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("sell date", response.data["non_field_errors"][0].lower())
 
-# Other model tests
-class SnP500GetTests(BaseAssetTest):
+class AssetInfoTest(BaseAssetTest):
     def setUp(self):
-        super().setUp()
-        self.url = reverse('snp500-price')
-        self.post_asset()
+        self.url = reverse('asset-info')
 
-    def test_retrieve_existing_date(self):
-        data = {'date': '2023-10-13'}
-        response = self.client.get(self.url, data, format='json')
-        self.assertEqual(response.status_code, 200)
-
-class QuoteTest(BaseAssetTest):
-    def setUp(self):
-        self.url = reverse('quote')
-
-    def test_quote(self):
-        data = {'symbol': 'SPY'}
-        response = self.client.get(self.url, data, format='json')
-        self.assertEqual(response.status_code, 200)
-
-class FinancialsTest(BaseAssetTest):
-    def setUp(self):
-        self.url = reverse('financials')
-
-    def test_financials(self):
-        data = {'symbol': 'AAPL'}
+    def test_asset_info(self):
+        data = {'tickers': ['AAPL']}
         response = self.client.get(self.url, data, format='json')
         self.assertEqual(response.status_code, 200)

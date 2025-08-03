@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { login, postUser, refreshLogin } from '../components/axiosFunctions';
+import { login, postUser, refreshLogin } from '../functions/axiosFunctions';
 
 interface UserSlice {
   loading: boolean;
