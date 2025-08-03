@@ -46,7 +46,15 @@ class AssetRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):     
         return Asset.objects.filter(user=self.request.user)
-    
+
+class QuoteRetrieveView(APIView):
+    def get(self, request):
+        symbol = request.query_params.get("symbol")
+        if (symbol == None):
+            raise serializers.ValidationError({"symbol": "This field is required."})
+        data = get_ticker_price(symbol)
+        return Response(data)
+
 class AssetInfoRetrieveView(APIView):
     def get(self, request):
         tickers = request.query_params.get("tickers")
@@ -57,63 +65,66 @@ class AssetInfoRetrieveView(APIView):
             raise serializers.ValidationError({"tickers": "This field must contain at least 1 ticker."})
         data = []
         for ticker in ticker_list:
-            quote = get_ticker_price(ticker)
-            cache_key = f"financials_{ticker}"
-            cached_data = cache.get(cache_key)
+            try:
+                quote = get_ticker_price(ticker)
+                cache_key = f"financials_{ticker}"
+                cached_data = cache.get(cache_key)
 
-            if cached_data:
-                cached_data["current_price"] = quote["price"]
-                cached_data["percent_change_daily"] = quote["percent_change"]
-                data.append(cached_data)
-            else:
-                yfinance = yf.Ticker(ticker)  # Use your stock ticker here
-                market = yfinance.info["market"]
-                if market not in {m[0] for m in MARKETS}:
-                    raise Exception(f"Market {market} not recognized")
-
-                type = yfinance.info["quoteType"]
-                if type not in {t[0] for t in ASSET_TYPES}:
-                    raise Exception(f"type {type} not recognized")
-
-                exchange = yfinance.info["fullExchangeName"]
-
-                if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
-                    exchange = "NASDAQ"
-                elif exchange in {"NYSEArca"}:
-                    exchange = "NYSE"
-
-                if exchange not in {e[0] for e in EXCHANGES}:
-                    raise Exception(f"exchange {exchange} not recognized")
-                
-                financials = {
-                    "ticker": ticker,
-                    "current_price": quote["price"],
-                    "percent_change_daily": quote["percent_change"],
-                    "short_name": yfinance.info["shortName"],
-                    "long_name": yfinance.info["longName"],
-                    "type": type,
-                    "market": market,
-                    "exchange": exchange
-                }
-
-                if yfinance.info["quoteType"] == "EQUITY":
-                    financials["market_cap"] = yfinance.info["marketCap"]
-                    financials["net_income"] = yfinance.quarterly_financials.loc["Net Income"].iloc[:4].sum()
-                    financials["total_revenue"] = yfinance.quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
-
-                    cache.set(cache_key, financials, timeout=60 * 60 * 24)
-                    data.append(financials)
-                elif yfinance.info["quoteType"] == "ETF":
-                    financials["market_cap"] = 0
-                    financials["ttm_pe"] = 0
-                    if yfinance.info.get("marketCap") != None:
-                        financials["market_cap"] = yfinance.info["marketCap"]
-                    financials["expenseRatio"] = yfinance.info["netExpenseRatio"] / 100
-                    if yfinance.info.get("ttm_pe") != None:
-                        financials["ttm_pe"] = yfinance.info["trailingPE"]
-
-                    cache.set(cache_key, financials, timeout=60 * 60 * 24)
-                    data.append(financials)
+                if cached_data:
+                    cached_data["current_price"] = quote["price"]
+                    cached_data["percent_change_daily"] = quote["percent_change"]
+                    data.append(cached_data)
                 else:
-                    raise serializers.ValidationError({"tickers": "unrecognized ticker"})
+                    yfinance = yf.Ticker(ticker)  # Use your stock ticker here
+                    market = yfinance.info["market"]
+                    if market not in {m[0] for m in MARKETS}:
+                        raise Exception(f"Market {market} not recognized")
+
+                    type = yfinance.info["quoteType"]
+                    if type not in {t[0] for t in ASSET_TYPES}:
+                        raise Exception(f"type {type} not recognized")
+
+                    exchange = yfinance.info["fullExchangeName"]
+
+                    if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
+                        exchange = "NASDAQ"
+                    elif exchange in {"NYSEArca"}:
+                        exchange = "NYSE"
+
+                    if exchange not in {e[0] for e in EXCHANGES}:
+                        raise Exception(f"exchange {exchange} not recognized")
+                    
+                    financials = {
+                        "ticker": ticker,
+                        "current_price": quote["price"],
+                        "percent_change_daily": quote["percent_change"],
+                        "short_name": yfinance.info["shortName"],
+                        "long_name": yfinance.info["longName"],
+                        "type": type,
+                        "market": market,
+                        "exchange": exchange
+                    }
+
+                    if yfinance.info["quoteType"] == "EQUITY":
+                        financials["market_cap"] = yfinance.info["marketCap"]
+                        financials["net_income"] = yfinance.quarterly_financials.loc["Net Income"].iloc[:4].sum()
+                        financials["total_revenue"] = yfinance.quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
+
+                        cache.set(cache_key, financials, timeout=60 * 60 * 24)
+                        data.append(financials)
+                    elif yfinance.info["quoteType"] == "ETF":
+                        financials["market_cap"] = 0
+                        financials["ttm_pe"] = 0
+                        if yfinance.info.get("marketCap") != None:
+                            financials["market_cap"] = yfinance.info["marketCap"]
+                        financials["expenseRatio"] = yfinance.info["netExpenseRatio"] / 100
+                        if yfinance.info.get("ttm_pe") != None:
+                            financials["ttm_pe"] = yfinance.info["trailingPE"]
+
+                        cache.set(cache_key, financials, timeout=60 * 60 * 24)
+                        data.append(financials)
+                    else:
+                        raise serializers.ValidationError({"tickers": "unrecognized ticker"})
+            except:
+                continue        
         return Response(data)

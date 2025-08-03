@@ -29,7 +29,7 @@ function ETFWatchListRow({ etfInfo }) {
           onClick={() => {
             navigate(`/asset/${etfInfo.ticker}`);
           }}
-        >{`view ${etfInfo.ticker}`}</Button>
+        >{`View ${etfInfo.ticker}`}</Button>
       </td>
     </tr>
   );

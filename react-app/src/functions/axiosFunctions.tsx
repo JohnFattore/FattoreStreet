@@ -81,34 +81,9 @@ export const postUser = createAsyncThunk(
   }
 );
 
-export const getHistoricalQuote = async (ticker: string, date: string) => {
-  const response = await axios.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("historical-quote/"),
-    {
-      params: {
-        symbol: ticker,
-        date: date
-      },
-    }
-  );
-  return response;
-};
-
 export const getQuote = async (ticker: string) => {
   const response = await axios.get(
     import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quote/"),
-    {
-      params: {
-        symbol: ticker,
-      },
-    }
-  );
-  return response;
-};
-
-export const getFinancials = async (ticker: string) => {
-  const response = await axios.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("financials/"),
     {
       params: {
         symbol: ticker,

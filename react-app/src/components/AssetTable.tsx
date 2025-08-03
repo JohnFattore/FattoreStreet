@@ -1,5 +1,5 @@
 import Table from "react-bootstrap/Table";
-import { Alert, Button, Spinner } from "react-bootstrap";
+import { Button, Spinner } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import { useGetAssetsQuery, useGetAssetInfosQuery } from "../functions/api";
@@ -30,7 +30,7 @@ function AssetRow({ asset, assetInfo }) {
 }
 
 export default function AssetTable() {
-  const { access, username } = useSelector((state: RootState) => state.user);
+  const { access } = useSelector((state: RootState) => state.user);
   const { data: assets, refetch } = useGetAssetsQuery();
   const tickers = [...new Set(assets?.map((asset) => asset.ticker) ?? [])];
   const { data: assetInfos, isLoading } = useGetAssetInfosQuery(tickers, {
@@ -56,8 +56,8 @@ export default function AssetTable() {
     );
   const assetsOwned = assets.filter((item) => !item.sellDate);
 
-  if (assets.length == 0 && access && !isLoading) {
-    return <Alert>{username.concat(" has no assets")}</Alert>;
+  if (assetsOwned.length == 0 && access && !isLoading) {
+    return null;
   }
 
   if (isLoading)

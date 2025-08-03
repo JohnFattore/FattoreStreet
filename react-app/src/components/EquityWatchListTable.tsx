@@ -29,7 +29,7 @@ function EquityWatchListRow({ equityInfo }) {
       </td>
       <td><Button onClick={() => {
               navigate(`/asset/${equityInfo.ticker}`);
-            }}>{`view ${equityInfo.ticker}`}</Button></td>
+            }}>{`View ${equityInfo.ticker}`}</Button></td>
     </tr>
   );
 }

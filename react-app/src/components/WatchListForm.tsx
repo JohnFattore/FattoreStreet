@@ -1,13 +1,13 @@
-import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import { useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { getQuote } from "../functions/axiosFunctions";
 import { Alert } from "react-bootstrap";
-import { addTicker, errorTicker } from "../reducers/watchListReducer";
+import { addTicker, clearWatchlistError, errorTicker } from "../reducers/watchListReducer";
 import { RootState, AppDispatch } from "../main";
 import { useSelector, useDispatch } from "react-redux";
+import LoadingButton from "./LoadingButton";
 
 interface IFormInput {
   ticker: string;
@@ -38,13 +38,14 @@ export default function WatchListForm() {
     } else {
       getQuote(data.ticker).then((response) => {
         // a valid ticker wont return null values
-        if (response.data.d == null)
+        if (response.data.price == null)
           dispatch(errorTicker("Couldn't retrieve data for ticker"));
         else {
           if (tickers.includes(data.ticker)) {
             dispatch(errorTicker("Ticker already on watchlist"));
           } else {
             dispatch(addTicker(data.ticker));
+            dispatch(clearWatchlistError());
             reset();
           }
         }
@@ -61,9 +62,7 @@ export default function WatchListForm() {
           Error: Ticker text field is required
         </Alert>
       )}
-      <Button type="submit" disabled={loading}>
-        Add to Watchlist
-      </Button>
+    <LoadingButton label={"Add to Watchlist"} loading={loading}/>
     </Form>
   );
 }

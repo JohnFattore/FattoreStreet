@@ -31,9 +31,6 @@ const watchListSlice = createSlice({
       state.tickers = updatedTickers;
       localStorage.setItem("tickers", (JSON.stringify(state.tickers)));
     },
-    analyzeTicker: (state, action) => {
-      state.ticker = action.payload;
-    },
     removeTicker: (state, action) => {
       const updatedTickers = state.tickers.filter((ticker) => ticker !== action.payload);
       state.tickers = updatedTickers;
@@ -42,7 +39,10 @@ const watchListSlice = createSlice({
     errorTicker: (state, action) => {
       state.error = action.payload
     },
+    clearWatchlistError: (state) => {
+      state.error = ""
+    }
 },
 });
-export const { loadTickers, addTicker, removeTicker, errorTicker } = watchListSlice.actions;
+export const { loadTickers, addTicker, removeTicker, errorTicker, clearWatchlistError } = watchListSlice.actions;
 export default watchListSlice.reducer;
