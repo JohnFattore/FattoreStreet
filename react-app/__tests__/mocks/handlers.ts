@@ -1,25 +1,37 @@
 import { http } from 'msw';
 
 export const handlers = [
-  http.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"), () => {
+  http.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets"), () => {
     return Response.json([{
-      "id": 65,
-      "shares": "1.00000",
-      "sell_price": null,
-      "buy_date": "2021-06-02",
-      "sell_date": null,
-      "user": 1,
-      "asset_info": {
-          "id": 25,
-          "ticker": "MSFT",
-          "short_name": "Microsoft Corporation",
-          "long_name": "Microsoft Corporation",
-          "type": "EQUITY",
-          "exchange": "NASDAQ",
-          "market": "us_market"
-      }
+        "id": 223,
+        "ticker": "MSFT",
+        "shares": "1.00000",
+        "buy_date": "2025-07-30",
+        "buy_price": 513.239990234375,
+        "buy_SnP500": 634.4600219726562,
+        "sell_date": null,
+        "sell_price": null,
+        "sell_SnP500": null,
+        "user": 5
   }], { status: 200 });
   }),
+
+  http.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-info/"), () => {
+    return Response.json([{
+        "ticker": "MSFT",
+        "current_price": 524.11,
+        "percent_change_daily": -0.017601,
+        "short_name": "Microsoft Corporation",
+        "long_name": "Microsoft Corporation",
+        "type": "EQUITY",
+        "market": "us_market",
+        "exchange": "NASDAQ",
+        "market_cap": 3895798530048,
+        "net_income": 101832000000.0,
+        "total_revenue": 281724000000.0
+  }], { status: 200 });
+  }),
+
 
   http.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quote/"), () => {
     return Response.json({

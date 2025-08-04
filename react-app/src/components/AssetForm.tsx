@@ -25,7 +25,6 @@ export default function AssetForm() {
     shares: yup.number().required().positive(),
     buyDate: yup.string().required(),
   });
-  console.log(error);
   const {
     register,
     handleSubmit,

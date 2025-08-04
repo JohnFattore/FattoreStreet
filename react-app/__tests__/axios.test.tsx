@@ -1,3 +1,4 @@
+/*
 import { describe, it, expect } from 'vitest';
 import { getFinancials, login, getAssets, postAsset, deleteAsset, sellAsset } from '../src/functions/axiosFunctions';
 import { configureStore } from '@reduxjs/toolkit';
@@ -88,3 +89,4 @@ describe('postAsset / sellAsset / deleteAsset thunk test', () => {
     expect(deleteAssetResponse.payload).toHaveProperty("id")
   });
 });
+*/

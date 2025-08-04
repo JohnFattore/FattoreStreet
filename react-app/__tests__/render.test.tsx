@@ -11,7 +11,6 @@ import Chatbot from '../src/pages/Chatbot';
 import Restaurants from '../src/pages/Restaurants';
 import { store } from '../src/store';
 import WatchList from '../src/pages/WatchList';
-import './setupTests.ts'
 import App from '../src/App.tsx';
 
 afterEach(() => {
@@ -25,7 +24,7 @@ export function renderWrapped(ui) {
         <Provider store={store}>
             <MemoryRouter>
                 {ui}
-            </MemoryRouter >
+            </MemoryRouter>
         </Provider>
     );
 }
@@ -58,7 +57,7 @@ test('Chatbot Test', async () => {
 
 test('Watchlist Test', async () => {
     renderWrapped(<WatchList />);
-    expect(await screen.findByText('Watchlist')).toBeInTheDocument();
+    expect(await screen.findByText('Common Benchmarks')).toBeInTheDocument();
 });
 
 test('Restaurants Test', async () => {
