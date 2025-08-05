@@ -15,11 +15,19 @@ function AssetRow({ asset, assetInfo }) {
     <tr>
       <td>{asset.ticker}</td>
       <td>{assetInfo.shortName}</td>
-      <td>{formatString(asset.shares, "amount")}</td>
-      <td>{asset.buyDate}</td>
-      <td>{formatString(asset.buyPrice, "money")}</td>
-      <td>{asset.sellDate}</td>
-      <td>{formatString(asset.sellPrice, "money")}</td>
+      <td>{formatString(asset.totalShares, "amount")}</td>
+      <td>{formatString(asset.averageBuyPrice, "money")}</td>
+      <td>{formatString(asset.totalCost, "money")}</td>
+      <td>
+        {formatString(asset.totalSalePrice, "money")}
+      </td>
+      <td>
+        {formatString(
+          (asset.totalSalePrice - asset.totalCost) /
+            asset.totalCost,
+          "percent"
+        )}
+      </td>
       <td>
         <Button
           onClick={() => {
@@ -55,7 +63,27 @@ export default function AssetTable() {
   if (assetsSold.length == 0 && access && !isLoading) {
     return null
   }
+  const combinedAssets: Record<
+    string,
+    { totalShares: number; totalCost: number, totalSalePrice: number }
+  > = {};
+  for (const asset of assetsSold) {
+    if (!combinedAssets[asset.ticker]) {
+      combinedAssets[asset.ticker] = { totalShares: 0, totalCost: 0, totalSalePrice: 0 };
+    }
 
+    combinedAssets[asset.ticker].totalShares += asset.shares;
+    combinedAssets[asset.ticker].totalCost += asset.buyPrice;
+    combinedAssets[asset.ticker].totalSalePrice += asset.sellPrice!;
+  }
+
+  const combined = Object.entries(combinedAssets).map(([ticker, data]) => ({
+    ticker,
+    totalShares: data.totalShares,
+    totalCost: data.totalCost,
+    totalSalePrice: data.totalSalePrice,
+    averageBuyPrice: data.totalCost / data.totalShares,
+  }));
   if (isLoading)
     return (
       <>
@@ -72,18 +100,18 @@ export default function AssetTable() {
           <tr>
             <th>Ticker</th>
             <th>Name</th>
-            <th>Shares</th>
-            <th>Buy Date</th>
-            <th>Buy Price</th>
-            <th>Sell Date</th>
-            <th>Sell Price</th>
+            <th>Total Shares Sold</th>
+            <th>Average Buy Price</th>
+            <th>Total Cost</th>
+            <th>Total Sale Price</th>
+            <th>Percent Change</th>
             <th>View Asset</th>
           </tr>
         </thead>
         <tbody>
-          {assetsSold.map((asset) => (
+          {combined.map((asset) => (
             <AssetRow
-              key={asset.id}
+              key={asset.ticker}
               asset={asset}
               assetInfo={assetInfos?.[asset.ticker]}
             />

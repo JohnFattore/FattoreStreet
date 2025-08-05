@@ -67,11 +67,11 @@ function AssetRow({ asset, assetInfo }) {
         <td>{formatString(asset.shares, "amount")}</td>
         <td>{asset.buyDate}</td>
         <td>{formatString(asset.buyPrice, "money")}</td>
-        <td>{formatString(assetInfo.currentPrice * asset.shares, "money")}</td>
+        <td>{asset.sellDate}</td>
+        <td>{formatString(asset.sellPrice, "money")}</td>
         <td>
           {formatString(
-            (assetInfo.currentPrice * asset.shares - asset.buyPrice) /
-              asset.buyPrice,
+            (asset.sellPrice - asset.buyPrice) / asset.buyPrice,
             "percent"
           )}
         </td>
@@ -88,7 +88,7 @@ function AssetRow({ asset, assetInfo }) {
   );
 }
 
-export default function AssetTickerTable({ ticker }) {
+export default function AssetTickerSoldTable({ ticker }) {
   const { data: allAssets } = useGetAssetsQuery();
   const assets = allAssets?.filter((a) => a.ticker === ticker);
   const { data: assetInfos, isLoading } = useGetAssetInfosQuery([ticker]);
@@ -99,9 +99,10 @@ export default function AssetTickerTable({ ticker }) {
   }
 
   if (!assets) return <Spinner animation="border" />;
-  const assetsOwned = assets.filter((item) => !item.sellDate);
 
-  if (assetsOwned.length == 0 && access && !isLoading) {
+  const assetsSold = assets.filter((item) => item.sellDate);
+
+  if (assetsSold.length == 0 && access && !isLoading) {
     return null;
   }
 
@@ -117,14 +118,15 @@ export default function AssetTickerTable({ ticker }) {
             <th>Shares</th>
             <th>Buy Date</th>
             <th>Buy Price</th>
-            <th>Current Price</th>
+            <th>Sell Date</th>
+            <th>Sell Price</th>
             <th>Percent Change</th>
             <th>Sell Asset</th>
             <th>Delete Asset</th>
           </tr>
         </thead>
         <tbody>
-          {assetsOwned.map((asset) => (
+          {assetsSold.map((asset) => (
             <AssetRow
               key={asset.id}
               asset={asset}

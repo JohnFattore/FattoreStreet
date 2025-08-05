@@ -7,6 +7,7 @@ import { useParams } from "react-router-dom";
 import AssetInfo from "../components/AssetInfo";
 import AssetTickerTable from "../components/AssetTickerTable";
 import TickerHeader from "../components/TickerHeader";
+import AssetTickerSoldTable from "../components/AssetTickerSoldTable";
 
 export default function AssetView() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function AssetView() {
       <TickerHeader ticker={ticker}/>
       <AssetInfo ticker={ticker} />
       <AssetTickerTable ticker={ticker} />
+      <AssetTickerSoldTable ticker={ticker} />
       <Button onClick={() => navigate("/portfolio")}>Back to Portfolio</Button>
       <Button onClick={() => navigate("/watchlist")}>Back to WatchList</Button>
     </>

@@ -18,7 +18,7 @@ export default function TopNavigation() {
           <Nav className="me-auto">
             <Nav.Link as={Link} to="/">Home</Nav.Link>
             <Nav.Link as={Link} to="/portfolio">Portfolio</Nav.Link>
-            <Nav.Link as={Link} to="/watchlist">Watch List</Nav.Link>
+            <Nav.Link as={Link} to="/watchlist">Watchlist</Nav.Link>
             <Nav.Link as={Link} to="/chatbot">Chatbot</Nav.Link>
             {!access && <Nav.Link as={Link} to="/register">Register</Nav.Link>}
             <Nav.Link as={Link} to="/restaurants">Restaurants</Nav.Link>

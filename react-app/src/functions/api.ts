@@ -47,7 +47,7 @@ export const api = createApi({
         return response.map((item) => ({
           id: item.id,
           ticker: item.ticker,
-          shares: item.shares,
+          shares: Number(item.shares),
           buyDate: item.buy_date,
           buyPrice: item.buy_price,
           snp500PriceBuy: item.buy_SnP500,
@@ -75,7 +75,7 @@ export const api = createApi({
         return ({
           id: response.id,
           ticker: response.ticker,
-          shares: response.shares,
+          shares: Number(response.shares),
           buyDate: response.buy_date,
           buyPrice: response.buy_price,
           snp500PriceBuy: response.buy_SnP500,

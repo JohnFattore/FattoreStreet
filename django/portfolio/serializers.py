@@ -26,7 +26,7 @@ class AssetSerializer(serializers.ModelSerializer):
 
     def get_buy_price(self, obj):
         try:
-            return get_ticker_price(obj.ticker, obj.buy_date)["price"]
+            return get_ticker_price(obj.ticker, obj.buy_date)["price"] * obj.shares
         except Exception as e:
             return None  # or str(e)
 
@@ -39,7 +39,7 @@ class AssetSerializer(serializers.ModelSerializer):
     def get_sell_price(self, obj):
         if obj.sell_date:
             try:
-                return get_ticker_price(obj.ticker, obj.sell_date)["price"]
+                return get_ticker_price(obj.ticker, obj.sell_date)["price"] * obj.shares
             except Exception as e:
                 return None
         return None
