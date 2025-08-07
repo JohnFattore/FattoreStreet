@@ -1,22 +1,37 @@
 import { useNavigate } from "react-router-dom";
-import {
-  Alert,
-  Button,
-} from "react-bootstrap";
+import { Alert, Button, Spinner } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import AssetInfo from "../components/AssetInfo";
 import AssetTickerTable from "../components/AssetTickerTable";
 import TickerHeader from "../components/TickerHeader";
 import AssetTickerSoldTable from "../components/AssetTickerSoldTable";
+import { useGetAssetInfosQuery } from "../functions/api";
+import { getErrorMessages } from "../functions/helperFunctions";
 
 export default function AssetView() {
   const navigate = useNavigate();
   const { ticker } = useParams<{ ticker: string }>();
-  if (!ticker) {return <Alert>Loading</Alert>}
-
+  if (!ticker) {
+    return <Alert variant="danger">Error</Alert>;
+  }
+  const { isLoading, error } = useGetAssetInfosQuery([ticker]);
+  if (isLoading)
+    return (
+      <>
+        <h3>{ticker} View</h3>
+        <Spinner animation="border" />
+      </>
+    );
+  if (error)
+    return (
+      <>
+        <h3>{ticker} View</h3>
+        <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
+      </>
+    );
   return (
     <>
-      <TickerHeader ticker={ticker}/>
+      <TickerHeader ticker={ticker} />
       <AssetInfo ticker={ticker} />
       <AssetTickerTable ticker={ticker} />
       <AssetTickerSoldTable ticker={ticker} />

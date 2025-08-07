@@ -6,11 +6,11 @@ from .serializers import AssetSerializer
 from .permissions import IsOwner
 from .models import Asset
 import yfinance as yf
-from datetime import datetime
+from datetime import datetime, timedelta
 import environ
 import requests
 from django.core.cache import cache
-from .helper import get_ticker_price
+from .helper import get_ticker_price, get_market_reference_dates
 from .choices import ASSET_TYPES, EXCHANGES, MARKETS
 
 env = environ.Env()
@@ -63,17 +63,20 @@ class AssetInfoRetrieveView(APIView):
         ticker_list = tickers.split(",")
         if len(ticker_list) == 1 and ticker_list[0] == "":
             raise serializers.ValidationError({"tickers": "This field must contain at least 1 ticker."})
+        dates = get_market_reference_dates()
         data = []
         for ticker in ticker_list:
             try:
                 quote = get_ticker_price(ticker)
-                cache_key = f"financials_{ticker}"
-                cached_data = cache.get(cache_key)
+                #cache_key = f"financials_{ticker}"
+                #cached_data = cache.get(cache_key)
 
-                if cached_data:
-                    cached_data["current_price"] = quote["price"]
-                    cached_data["percent_change_daily"] = quote["percent_change"]
-                    data.append(cached_data)
+                #if cached_data:
+                #    cached_data["current_price"] = quote["price"]
+                #    cached_data["percent_change_daily"] = quote["percent_change"]
+                #    data.append(cached_data)
+                if False:
+                    print("what")
                 else:
                     yfinance = yf.Ticker(ticker)  # Use your stock ticker here
                     market = yfinance.info["market"]
@@ -93,11 +96,24 @@ class AssetInfoRetrieveView(APIView):
 
                     if exchange not in {e[0] for e in EXCHANGES}:
                         raise Exception(f"exchange {exchange} not recognized")
-                    
+                    historical_prices = {}
+                    for label, date in dates.items():
+                        try:
+                            price = get_ticker_price(ticker, date)["price"]
+                        except:
+                            price = 0
+                        historical_prices[label] = price
                     financials = {
                         "ticker": ticker,
                         "current_price": quote["price"],
                         "percent_change_daily": quote["percent_change"],
+                        "percent_change_weekly": (quote["price"] - historical_prices["1_week_ago"]) / quote["price"],
+                        "percent_change_monthly": (quote["price"] - historical_prices["1_month_ago"]) / quote["price"],
+                        "percent_change_YTD": (quote["price"] - historical_prices["year_to_date"]) / quote["price"],
+                        "percent_change_yearly": (quote["price"] - historical_prices["1_year_ago"]) / quote["price"],
+                        "percent_change_3_years": (quote["price"] - historical_prices["3_years_ago"]) / quote["price"],
+                        "percent_change_5_years": (quote["price"] - historical_prices["5_years_ago"]) / quote["price"],
+
                         "short_name": yfinance.info["shortName"],
                         "long_name": yfinance.info["longName"],
                         "type": type,
@@ -110,7 +126,7 @@ class AssetInfoRetrieveView(APIView):
                         financials["net_income"] = yfinance.quarterly_financials.loc["Net Income"].iloc[:4].sum()
                         financials["total_revenue"] = yfinance.quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
 
-                        cache.set(cache_key, financials, timeout=60 * 60 * 24)
+                        #cache.set(cache_key, financials, timeout=60 * 60 * 24)
                         data.append(financials)
                     elif yfinance.info["quoteType"] == "ETF":
                         financials["market_cap"] = 0
@@ -121,7 +137,7 @@ class AssetInfoRetrieveView(APIView):
                         if yfinance.info.get("ttm_pe") != None:
                             financials["ttm_pe"] = yfinance.info["trailingPE"]
 
-                        cache.set(cache_key, financials, timeout=60 * 60 * 24)
+                        #cache.set(cache_key, financials, timeout=60 * 60 * 24)
                         data.append(financials)
                     else:
                         raise serializers.ValidationError({"tickers": "unrecognized ticker"})

@@ -35,3 +35,4 @@ pandas==2.1.1
 numpy==1.26.0
 google-generativeai==0.8.4
 django-redis==5.4.0
+pandas-market-calendars==5.1.1

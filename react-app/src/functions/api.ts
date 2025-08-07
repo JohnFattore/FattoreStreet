@@ -40,7 +40,7 @@ export const api = createApi({
   endpoints: (builder) => ({
     getAssets: builder.query<IAsset[], void>({
       query: () => ({
-        url: "assets",
+        url: "assets/",
         method: "GET",
       }),
       transformResponse: (response: any[]): IAsset[] => {
@@ -125,6 +125,12 @@ export const api = createApi({
               market: item.market,
               currentPrice: item.current_price,
               percentChangeDaily: item.percent_change_daily,
+              percentChangeWeekly: item.percent_change_weekly,
+              percentChangeMonthly: item.percent_change_monthly,
+              percentChangeYTD: item.percent_change_YTD,
+              percentChangeYearly: item.percent_change_yearly,
+              percentChange3Years: item.percent_change_3_years,
+              percentChange5Years: item.percent_change_5_years,
               marketCap: item.market_cap,
               trailingPE: item.market_cap / item.net_income,
               incomeTTM: item.net_income,
@@ -141,6 +147,12 @@ export const api = createApi({
               market: item.market,
               currentPrice: item.current_price,
               percentChangeDaily: item.percent_change_daily,
+              percentChangeWeekly: item.percent_change_weekly,
+              percentChangeMonthly: item.percent_change_monthly,
+              percentChangeYTD: item.percent_change_YTD,
+              percentChangeYearly: item.percent_change_yearly,
+              percentChange3Years: item.percent_change_3_years,
+              percentChange5Years: item.percent_change_5_years,
               marketCap: item.market_cap,
               trailingPE: item.ttm_pe,
               expenseRatio: item.expenseRatio,

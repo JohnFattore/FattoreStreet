@@ -1,7 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../main";
-import EquityWatchListTable from "../components/EquityWatchListTable";
-import ETFWatchListTable from "../components/ETFWatchListTable";
+import WatchListTable from "../components/WatchListTable";
 import { useEffect } from "react";
 import { loadTickers } from "../reducers/watchListReducer";
 import BenchmarkTable from "../components/BenchmarkTable";
@@ -21,10 +20,8 @@ export default function WatchList() {
     <>
       <h3>Common Benchmarks</h3>
       <BenchmarkTable />
-      <h3>Stock Watchlist</h3>
-      <EquityWatchListTable />
-      <h3>ETF Watchlist</h3>
-      <ETFWatchListTable />
+      <h3>Watchlist</h3>
+      <WatchListTable />
       {error && <Alert variant="danger">{translateError(error)}</Alert>}
       <WatchListForm />
       <FinnhubBanner />

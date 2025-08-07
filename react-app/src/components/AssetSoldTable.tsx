@@ -1,9 +1,8 @@
-import Table from "react-bootstrap/Table";
-import { Spinner, Button } from "react-bootstrap";
+import { Spinner, Button, Alert, Table } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import { useGetAssetsQuery } from "../functions/api";
-import { formatString } from "../functions/helperFunctions";
+import { formatString, getErrorMessages } from "../functions/helperFunctions";
 import { useGetAssetInfosQuery } from "../functions/api";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -18,13 +17,10 @@ function AssetRow({ asset, assetInfo }) {
       <td>{formatString(asset.totalShares, "amount")}</td>
       <td>{formatString(asset.averageBuyPrice, "money")}</td>
       <td>{formatString(asset.totalCost, "money")}</td>
-      <td>
-        {formatString(asset.totalSalePrice, "money")}
-      </td>
+      <td>{formatString(asset.totalSalePrice, "money")}</td>
       <td>
         {formatString(
-          (asset.totalSalePrice - asset.totalCost) /
-            asset.totalCost,
+          (asset.totalSalePrice - asset.totalCost) / asset.totalCost,
           "percent"
         )}
       </td>
@@ -41,10 +37,14 @@ function AssetRow({ asset, assetInfo }) {
 
 export default function AssetTable() {
   const { access } = useSelector((state: RootState) => state.user);
-  const { data: assets, refetch } = useGetAssetsQuery();
+  const { data: assets, refetch, error: assetError } = useGetAssetsQuery();
   const tickers = [...new Set(assets?.map((asset) => asset.ticker) ?? [])];
-  const { data: assetInfos, isLoading } = useGetAssetInfosQuery(tickers, {
-    skip: tickers.length === 0 || !access
+  const {
+    data: assetInfos,
+    isLoading,
+    error: assetInfoError,
+  } = useGetAssetInfosQuery(tickers, {
+    skip: tickers.length === 0 || !access,
   });
 
   useEffect(() => {
@@ -56,20 +56,38 @@ export default function AssetTable() {
   if (!access) {
     return <></>;
   }
+  if (assetError)
+    return (
+      <Alert variant="danger">{getErrorMessages(assetError["data"])}</Alert>
+    );
+  if (assetInfoError)
+    return (
+      <Alert variant="danger">{getErrorMessages(assetInfoError["data"])}</Alert>
+    );
+  if (!assets)
+    return (
+      <>
+        <h3>Assets Sold</h3>
+        <Spinner animation="border" />
+      </>
+    );
 
-  if (!assets) return <Spinner animation="border" />;
   const assetsSold = assets.filter((item) => item.sellDate);
 
   if (assetsSold.length == 0 && access && !isLoading) {
-    return null
+    return null;
   }
   const combinedAssets: Record<
     string,
-    { totalShares: number; totalCost: number, totalSalePrice: number }
+    { totalShares: number; totalCost: number; totalSalePrice: number }
   > = {};
   for (const asset of assetsSold) {
     if (!combinedAssets[asset.ticker]) {
-      combinedAssets[asset.ticker] = { totalShares: 0, totalCost: 0, totalSalePrice: 0 };
+      combinedAssets[asset.ticker] = {
+        totalShares: 0,
+        totalCost: 0,
+        totalSalePrice: 0,
+      };
     }
 
     combinedAssets[asset.ticker].totalShares += asset.shares;
@@ -84,6 +102,7 @@ export default function AssetTable() {
     totalSalePrice: data.totalSalePrice,
     averageBuyPrice: data.totalCost / data.totalShares,
   }));
+
   if (isLoading)
     return (
       <>

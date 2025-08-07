@@ -37,6 +37,12 @@ export interface IEquityInfo {
     market: string;
     currentPrice: number,
     percentChangeDaily: number,
+    percentChangeWeekly: number,
+    percentChangeMonthly: number,
+    percentChangeYTD: number,
+    percentChangeYearly: number,
+    percentChange3Years: number,
+    percentChange5Years: number,
     marketCap: number;
     trailingPE: number;
     incomeTTM: number;
@@ -53,6 +59,7 @@ export interface IETFInfo {
     market: string;
     currentPrice: number,
     percentChangeDaily: number,
+    percentChangeYTD: number,
     marketCap: number;
     trailingPE: number;
     expenseRatio: number;

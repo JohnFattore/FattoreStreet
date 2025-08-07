@@ -12,6 +12,7 @@ export default function EquityInfo({ticker}) {
     <>
     <ListGroup>
         <ListGroup.Item>{"Market Capitalization: " + formatString(assetInfo.marketCap, "money")}</ListGroup.Item>
+        <ListGroup.Item>{"Price to Earnings Ratio: " + formatString(assetInfo.trailingPE, "money")}</ListGroup.Item>
         <ListGroup.Item>{"Income TTM: " + formatString(assetInfo.incomeTTM, "money")}</ListGroup.Item>
         <ListGroup.Item>{"Revenue TTM: " + formatString(assetInfo.revenueTTM, "money")}</ListGroup.Item>
         <ListGroup.Item>{"Net Margin TTM: " + formatString(assetInfo.netMarginTTM, "percent")}</ListGroup.Item>

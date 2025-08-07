@@ -1,9 +1,8 @@
-import Table from "react-bootstrap/Table";
-import { Button, Spinner } from "react-bootstrap";
+import { Button, Spinner, Alert, Table } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import { useGetAssetsQuery, useGetAssetInfosQuery } from "../functions/api";
-import { formatString } from "../functions/helperFunctions";
+import { formatString, getErrorMessages } from "../functions/helperFunctions";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
@@ -22,7 +21,7 @@ function AssetRow({ asset, assetInfo }) {
       </td>
       <td>
         {formatString(
-          ((assetInfo.currentPrice * asset.totalShares) - asset.totalCost) /
+          (assetInfo.currentPrice * asset.totalShares - asset.totalCost) /
             asset.totalCost,
           "percent"
         )}
@@ -40,9 +39,13 @@ function AssetRow({ asset, assetInfo }) {
 
 export default function AssetTable() {
   const { access } = useSelector((state: RootState) => state.user);
-  const { data: assets, refetch } = useGetAssetsQuery();
+  const { data: assets, refetch, error: assetError } = useGetAssetsQuery();
   const tickers = [...new Set(assets?.map((asset) => asset.ticker) ?? [])];
-  const { data: assetInfos, isLoading } = useGetAssetInfosQuery(tickers, {
+  const {
+    data: assetInfos,
+    isLoading,
+    error: assetInfoError,
+  } = useGetAssetInfosQuery(tickers, {
     skip: tickers.length === 0 || !access,
   });
   useEffect(() => {
@@ -54,7 +57,14 @@ export default function AssetTable() {
   if (!access) {
     return <></>;
   }
-
+  if (assetError)
+    return (
+      <Alert variant="danger">{getErrorMessages(assetError["data"])}</Alert>
+    );
+  if (assetInfoError)
+    return (
+      <Alert variant="danger">{getErrorMessages(assetInfoError["data"])}</Alert>
+    );
   if (!assets)
     return (
       <>
