@@ -1,4 +1,4 @@
-import { Form, Button, Col, Row, Spinner } from "react-bootstrap";
+import { Form, Col, Row } from "react-bootstrap";
 import Alert from "react-bootstrap/Alert";
 import { useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
@@ -8,6 +8,7 @@ import { RootState } from "../main";
 import LoginForm from "./LoginForm";
 import { usePostNewAssetMutation } from "../functions/api";
 import { getErrorMessages } from "../functions/helperFunctions";
+import LoadingButton from "./LoadingButton";
 
 interface IFormInput {
   ticker: string;
@@ -104,23 +105,7 @@ export default function AssetForm() {
             )}
           </Col>
         </Row>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Spinner
-                as="span"
-                animation="grow"
-                size="sm"
-                role="status"
-                aria-hidden="true"
-                className="me-2"
-              />
-              Loading...
-            </>
-          ) : (
-            "Add to Portfolio"
-          )}
-        </Button>
+        <LoadingButton label={"Add to Portfolio"} loading={isLoading}/>
       </Form>
     </>
   );

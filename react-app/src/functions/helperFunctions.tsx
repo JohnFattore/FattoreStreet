@@ -96,3 +96,17 @@ export function translateError(error: string) {
     return error;
   }
 }
+
+
+import { useSelector } from 'react-redux';
+import { RootState } from '../main';
+import { api } from './api';
+import { QueryStatus } from '@reduxjs/toolkit/query';
+
+export function useIsEndpointLoading(endpointName: string): boolean {
+  return useSelector((state: RootState) =>
+    Object.values(state[api.reducerPath].queries).some(
+      (query) => query?.endpointName === endpointName && query.status === QueryStatus.pending
+    )
+  );
+}

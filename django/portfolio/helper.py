@@ -72,3 +72,8 @@ def get_market_reference_dates(reference_date: datetime = None):
     }
 
     return adjusted
+
+def is_market_open(date: datetime):
+    nyse = mcal.get_calendar('NYSE')
+    schedule = nyse.schedule(start_date=date, end_date=date)
+    return not schedule.empty

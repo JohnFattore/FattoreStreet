@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Asset
 from django.utils import timezone
-from .helper import get_ticker_price
+from .helper import get_ticker_price, is_market_open
 
 # serializer for Asset Model
 class AssetSerializer(serializers.ModelSerializer):
@@ -65,9 +65,7 @@ class AssetSerializer(serializers.ModelSerializer):
     def validate_sell_date(self, value):
         if value > timezone.now().date():
             raise serializers.ValidationError("The sell date can't be in the future.")
-        try:
-            get_ticker_price('AAPL', value)
-        except:
+        if not is_market_open(value):
             raise serializers.ValidationError(f"Market closed on {value}")
         return value
         

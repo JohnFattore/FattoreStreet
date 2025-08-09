@@ -11,7 +11,7 @@ import { formatString, getErrorMessages } from "../functions/helperFunctions";
 import { useState } from "react";
 import AssetSellForm from "../components/AssetSellForm";
 
-function AssetRow({ asset, assetInfo }) {
+function AssetRow({ asset }) {
   const [showSell, setShowSell] = useState(false);
   const handleCloseSell = () => setShowSell(false);
   const handleShowSell = () => setShowSell(true);
@@ -21,7 +21,6 @@ function AssetRow({ asset, assetInfo }) {
   const handleShowDelete = () => setShowDelete(true);
   const [deleteAsset, { error, isLoading }] = useDeleteAssetMutation();
 
-  if (!assetInfo) return null;
   return (
     <>
       <Modal show={showSell} onHide={handleCloseSell}>
@@ -91,8 +90,9 @@ function AssetRow({ asset, assetInfo }) {
 export default function AssetTickerSoldTable({ ticker }) {
   const { data: allAssets } = useGetAssetsQuery();
   const assets = allAssets?.filter((a) => a.ticker === ticker);
-  const { data: assetInfos, isLoading } = useGetAssetInfosQuery([ticker]);
+  const { data: assetInfosRaw, isLoading } = useGetAssetInfosQuery([ticker]);
   const { access } = useSelector((state: RootState) => state.user);
+  const assetInfos = assetInfosRaw ?? {}
 
   if (!access) {
     return <></>;
@@ -108,9 +108,28 @@ export default function AssetTickerSoldTable({ ticker }) {
 
   if (access && isLoading) return <Spinner animation="border" />;
 
+  const data = assetsSold.map((asset) => {
+    const info = assetInfos[asset.ticker]; // I think you meant asset.ticker, not ticker
+    if (!asset.sellPrice) {
+      throw Error(`ticker ${asset.ticker} as no sell price`)
+    }
+    return {
+      id: asset.id,
+      ticker: asset.ticker,
+      shares: asset.shares,
+      buyDate: asset.buyDate,
+      buyPrice: asset.buyPrice,
+      sellDate: asset.sellDate,
+      sellPrice: asset.sellPrice,
+      percentChange: (asset.sellPrice - asset.buyPrice) / asset.buyPrice,
+      shortName: info?.shortName ?? "Error Loading Info",
+      hasError: !info,
+    };
+  });
+
   return (
     <>
-      <h3>Purchased Assets</h3>
+      <h3>Sold Assets</h3>
       <Table>
         <thead>
           <tr>
@@ -126,11 +145,10 @@ export default function AssetTickerSoldTable({ ticker }) {
           </tr>
         </thead>
         <tbody>
-          {assetsSold.map((asset) => (
+          {data.map((asset) => (
             <AssetRow
               key={asset.id}
               asset={asset}
-              assetInfo={assetInfos?.[asset.ticker]}
             />
           ))}
         </tbody>

@@ -111,10 +111,11 @@ export const api = createApi({
         params: { tickers: tickers.join(",") },
       }),
       transformResponse: (
-        response: any[]
+        response: any
       ): Record<string, IEquityInfo | IETFInfo> => {
+        const items = Array.isArray(response) ? response : response.data; // handle only the non errored tickers
         const result: Record<string, IEquityInfo | IETFInfo> = {};
-        response.forEach((item) => {
+        items.forEach((item) => {
           if (item.type === "EQUITY") {
             result[item.ticker] = {
               ticker: item.ticker,

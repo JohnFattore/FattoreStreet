@@ -3,10 +3,20 @@ import { formatString, getErrorMessages } from "../functions/helperFunctions";
 import { useGetAssetInfosQuery } from "../functions/api";
 
 function BenchmarkRow({ benchmark }) {
+  const benchmarkNames = {
+    "VT": "Total Global Stock Market",
+    "VTI": "Total US Stock Market",
+    "VXUS": "Total Global Stock Market Excluding US",
+    "VTWO": "Russell 2000 / Small Cap US",
+    "BND": "Total US Bond Market",
+    "UUP": "Dollar vs Foreign Currency"
+  }
+ 
   return (
     <tr>
       <td>{benchmark.ticker}</td>
       <td>{benchmark.shortName}</td>
+      <td>{benchmarkNames[benchmark.ticker]}</td>
       <td>{formatString(benchmark.percentChangeDaily, "percent")}</td>
       <td>{formatString(benchmark.percentChangeWeekly, "percent")}</td>
       <td>{formatString(benchmark.percentChangeMonthly, "percent")}</td>
@@ -19,7 +29,7 @@ function BenchmarkRow({ benchmark }) {
 }
 
 export default function BenchmarkTable() {
-  const benchmarkTickers = ["VT", "VTI", "VXUS", "VTWO", "BND", "VNQ", "UUP"];
+  const benchmarkTickers = ["VT", "VTI", "VXUS", "VTWO", "BND", "UUP"];
   const { data: benchmarks, error } = useGetAssetInfosQuery(benchmarkTickers);
 
   if (error)
@@ -35,6 +45,7 @@ export default function BenchmarkTable() {
         <tr>
           <th>Ticker</th>
           <th>ETF Name</th>
+          <th>Benchmark Name</th>
           <th>Percent Change Today</th>
           <th>Percent Change Weekly</th>
           <th>Percent Change Monthly</th>

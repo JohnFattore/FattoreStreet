@@ -4,6 +4,9 @@ import { useGetAssetInfosQuery } from "../functions/api";
 export default function TickerHeader({ ticker }) {
   const { data: assetInfos } = useGetAssetInfosQuery([ticker])
   const assetInfo = assetInfos ? assetInfos[ticker] : undefined
+  if (!assetInfo) {
+    return null
+  }
   return (
     <Card>
       <Card.Body>

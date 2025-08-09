@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import environ
 import requests
 from django.core.cache import cache
-from .helper import get_ticker_price, get_market_reference_dates
+from .helper import get_ticker_price, get_market_reference_dates, is_market_open
 from .choices import ASSET_TYPES, EXCHANGES, MARKETS
 
 env = environ.Env()
@@ -31,9 +31,7 @@ class AssetListCreateView(generics.ListCreateAPIView):
         shares = self.request.data["shares"]
         buy_date = datetime.strptime(self.request.data["buy_date"], "%Y-%m-%d").date()
         # should just check some list of stock market open / closed
-        try:
-            get_ticker_price(ticker, buy_date)
-        except:
+        if not is_market_open(buy_date):
             raise serializers.ValidationError({"detail": f"Market closed on {buy_date}"})           
 
         serializer.save(user=self.request.user, ticker=ticker, shares=shares, buy_date=buy_date)
@@ -65,29 +63,31 @@ class AssetInfoRetrieveView(APIView):
             raise serializers.ValidationError({"tickers": "This field must contain at least 1 ticker."})
         dates = get_market_reference_dates()
         data = []
+        errors = []
         for ticker in ticker_list:
             try:
                 quote = get_ticker_price(ticker)
-                #cache_key = f"financials_{ticker}"
-                #cached_data = cache.get(cache_key)
+                cache_key = f"financials_{ticker}"
+                cached_data = cache.get(cache_key)
 
-                #if cached_data:
-                #    cached_data["current_price"] = quote["price"]
-                #    cached_data["percent_change_daily"] = quote["percent_change"]
-                #    data.append(cached_data)
+                if cached_data:
+                    cached_data["current_price"] = quote["price"]
+                    cached_data["percent_change_daily"] = quote["percent_change"]
+                    data.append(cached_data)
                 if False:
                     print("what")
                 else:
-                    yfinance = yf.Ticker(ticker)  # Use your stock ticker here
-                    market = yfinance.info["market"]
+                    yfinance = yf.Ticker(ticker)
+                    info = yfinance.info
+                    market = info["market"]
                     if market not in {m[0] for m in MARKETS}:
                         raise Exception(f"Market {market} not recognized")
 
-                    type = yfinance.info["quoteType"]
+                    type = info["quoteType"]
                     if type not in {t[0] for t in ASSET_TYPES}:
                         raise Exception(f"type {type} not recognized")
 
-                    exchange = yfinance.info["fullExchangeName"]
+                    exchange = info["fullExchangeName"]
 
                     if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
                         exchange = "NASDAQ"
@@ -107,40 +107,43 @@ class AssetInfoRetrieveView(APIView):
                         "ticker": ticker,
                         "current_price": quote["price"],
                         "percent_change_daily": quote["percent_change"],
-                        "percent_change_weekly": (quote["price"] - historical_prices["1_week_ago"]) / quote["price"],
-                        "percent_change_monthly": (quote["price"] - historical_prices["1_month_ago"]) / quote["price"],
-                        "percent_change_YTD": (quote["price"] - historical_prices["year_to_date"]) / quote["price"],
-                        "percent_change_yearly": (quote["price"] - historical_prices["1_year_ago"]) / quote["price"],
-                        "percent_change_3_years": (quote["price"] - historical_prices["3_years_ago"]) / quote["price"],
-                        "percent_change_5_years": (quote["price"] - historical_prices["5_years_ago"]) / quote["price"],
-
-                        "short_name": yfinance.info["shortName"],
-                        "long_name": yfinance.info["longName"],
+                        "percent_change_weekly": (quote["price"] - historical_prices["1_week_ago"]) / historical_prices["1_week_ago"],
+                        "percent_change_monthly": (quote["price"] - historical_prices["1_month_ago"]) / historical_prices["1_month_ago"],
+                        "percent_change_YTD": (quote["price"] - historical_prices["year_to_date"]) / historical_prices["year_to_date"],
+                        "percent_change_yearly": (quote["price"] - historical_prices["1_year_ago"]) / historical_prices["1_year_ago"],
+                        "percent_change_3_years": (quote["price"] - historical_prices["3_years_ago"]) / historical_prices["3_years_ago"],
+                        "percent_change_5_years": (quote["price"] - historical_prices["5_years_ago"]) / historical_prices["5_years_ago"],
+                        # dividend yield, forward PE
+                        "short_name": info["shortName"],
+                        "long_name": info["longName"],
                         "type": type,
                         "market": market,
                         "exchange": exchange
                     }
 
-                    if yfinance.info["quoteType"] == "EQUITY":
-                        financials["market_cap"] = yfinance.info["marketCap"]
-                        financials["net_income"] = yfinance.quarterly_financials.loc["Net Income"].iloc[:4].sum()
-                        financials["total_revenue"] = yfinance.quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
+                    if info["quoteType"] == "EQUITY":
+                        quarterly_financials = yfinance.quarterly_financials
+                        financials["market_cap"] = info["marketCap"]
+                        financials["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum()
+                        financials["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
 
-                        #cache.set(cache_key, financials, timeout=60 * 60 * 24)
+                        cache.set(cache_key, financials, timeout=60 * 60 * 24)
                         data.append(financials)
-                    elif yfinance.info["quoteType"] == "ETF":
+                    elif info["quoteType"] == "ETF":
                         financials["market_cap"] = 0
                         financials["ttm_pe"] = 0
-                        if yfinance.info.get("marketCap") != None:
-                            financials["market_cap"] = yfinance.info["marketCap"]
-                        financials["expenseRatio"] = yfinance.info["netExpenseRatio"] / 100
-                        if yfinance.info.get("ttm_pe") != None:
-                            financials["ttm_pe"] = yfinance.info["trailingPE"]
+                        if info.get("marketCap") != None:
+                            financials["market_cap"] = info["marketCap"]
+                        financials["expenseRatio"] = info["netExpenseRatio"] / 100
+                        if info.get("ttm_pe") != None:
+                            financials["ttm_pe"] = info["trailingPE"]
 
-                        #cache.set(cache_key, financials, timeout=60 * 60 * 24)
+                        cache.set(cache_key, financials, timeout=60 * 60 * 24)
                         data.append(financials)
                     else:
                         raise serializers.ValidationError({"tickers": "unrecognized ticker"})
             except:
+                errors.append(ticker)
+                # make this error better
                 continue        
-        return Response(data)
+        return Response({"data": data, "errors": errors})

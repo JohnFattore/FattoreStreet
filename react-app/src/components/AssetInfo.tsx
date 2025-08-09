@@ -1,11 +1,15 @@
 import { useGetAssetInfosQuery } from "../functions/api";
 import EquityInfo from "./EquityInfo";
 import ETFInfo from "./ETFInfo";
-import { Col } from "react-bootstrap";
+import { Col, Alert } from "react-bootstrap";
 
 export default function AssetInfo({ ticker }: { ticker: string }) {
   const { data: assetInfos } = useGetAssetInfosQuery([ticker]);
   const assetInfo = assetInfos?.[ticker];
+
+  if (!assetInfo) {
+    return <Alert variant="danger">No data available for {ticker}</Alert>;
+  }
 
   return (
     <Col>

@@ -1,70 +1,39 @@
-import { Spinner, Button, Alert, Table } from "react-bootstrap";
+import { Button, Spinner, Alert } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
-import { useGetAssetsQuery } from "../functions/api";
+import { useGetAssetsQuery, useGetAssetInfosQuery } from "../functions/api";
 import { formatString, getErrorMessages } from "../functions/helperFunctions";
-import { useGetAssetInfosQuery } from "../functions/api";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-
-function AssetRow({ asset, assetInfo }) {
-  const navigate = useNavigate();
-  if (!assetInfo) return null;
-  return (
-    <tr>
-      <td>{asset.ticker}</td>
-      <td>{assetInfo.shortName}</td>
-      <td>{formatString(asset.totalShares, "amount")}</td>
-      <td>{formatString(asset.averageBuyPrice, "money")}</td>
-      <td>{formatString(asset.totalCost, "money")}</td>
-      <td>{formatString(asset.totalSalePrice, "money")}</td>
-      <td>
-        {formatString(
-          (asset.totalSalePrice - asset.totalCost) / asset.totalCost,
-          "percent"
-        )}
-      </td>
-      <td>
-        <Button
-          onClick={() => {
-            navigate(`/asset/${asset.ticker}`);
-          }}
-        >{`View ${asset.ticker}`}</Button>
-      </td>
-    </tr>
-  );
-}
+import { SortableTable } from "./SortableTable";
 
 export default function AssetTable() {
+  const navigate = useNavigate();
   const { access } = useSelector((state: RootState) => state.user);
-  const { data: assets, refetch, error: assetError } = useGetAssetsQuery();
-  const tickers = [...new Set(assets?.map((asset) => asset.ticker) ?? [])];
+  const { data: assetsRaw, refetch, error: assetError } = useGetAssetsQuery();
+  const assets = assetsRaw ?? [];
+  const tickers = [...new Set(assets.map((a) => a.ticker))];
   const {
-    data: assetInfos,
+    data: assetInfosRaw,
     isLoading,
     error: assetInfoError,
   } = useGetAssetInfosQuery(tickers, {
     skip: tickers.length === 0 || !access,
   });
+  const assetInfos = assetInfosRaw ?? {};
 
   useEffect(() => {
-    if (access) {
-      refetch();
-    }
+    if (access) refetch();
   }, [access, refetch]);
 
-  if (!access) {
-    return <></>;
-  }
+  if (!access) return null;
   if (assetError)
-    return (
-      <Alert variant="danger">{getErrorMessages(assetError["data"])}</Alert>
-    );
+    return <Alert variant="danger">{getErrorMessages(assetError["data"])}</Alert>;
   if (assetInfoError)
     return (
       <Alert variant="danger">{getErrorMessages(assetInfoError["data"])}</Alert>
     );
-  if (!assets)
+  if (!assets || !assetInfos)
     return (
       <>
         <h3>Assets Sold</h3>
@@ -74,34 +43,7 @@ export default function AssetTable() {
 
   const assetsSold = assets.filter((item) => item.sellDate);
 
-  if (assetsSold.length == 0 && access && !isLoading) {
-    return null;
-  }
-  const combinedAssets: Record<
-    string,
-    { totalShares: number; totalCost: number; totalSalePrice: number }
-  > = {};
-  for (const asset of assetsSold) {
-    if (!combinedAssets[asset.ticker]) {
-      combinedAssets[asset.ticker] = {
-        totalShares: 0,
-        totalCost: 0,
-        totalSalePrice: 0,
-      };
-    }
-
-    combinedAssets[asset.ticker].totalShares += asset.shares;
-    combinedAssets[asset.ticker].totalCost += asset.buyPrice;
-    combinedAssets[asset.ticker].totalSalePrice += asset.sellPrice!;
-  }
-
-  const combined = Object.entries(combinedAssets).map(([ticker, data]) => ({
-    ticker,
-    totalShares: data.totalShares,
-    totalCost: data.totalCost,
-    totalSalePrice: data.totalSalePrice,
-    averageBuyPrice: data.totalCost / data.totalShares,
-  }));
+  if (assetsSold.length === 0 && !isLoading) return null;
 
   if (isLoading)
     return (
@@ -111,32 +53,84 @@ export default function AssetTable() {
       </>
     );
 
+  const assetsByTicker: Record<string, { totalShares: number; totalCost: number, totalSellPrice: number }> = {};
+  for (const asset of assetsSold) {
+    if (!assetsByTicker[asset.ticker]) {
+      assetsByTicker[asset.ticker] = { totalShares: 0, totalCost: 0, totalSellPrice: 0 };
+    }
+    if (!asset.sellPrice) {
+      throw Error(`Sell price for ${asset.ticker} is null`)
+    }
+    assetsByTicker[asset.ticker].totalShares += asset.shares;
+    assetsByTicker[asset.ticker].totalCost += asset.buyPrice;
+    assetsByTicker[asset.ticker].totalSellPrice += asset.sellPrice;
+  }
+
+  const data = Object.entries(assetsByTicker).map(([ticker, data]) => {
+    const info = assetInfos[ticker];
+    return {
+      ticker,
+      totalShares: data.totalShares,
+      averageBuyPrice: data.totalCost / data.totalShares,
+      totalCost: data.totalCost,
+      totalSalePrice: data.totalSellPrice,
+      percentChange: (data.totalSellPrice - data.totalCost) / data.totalCost,
+      shortName: info?.shortName ?? "Error Loading Info",
+      hasError: !info,
+    };
+  });
+
+  const columns = [
+    {
+      label: "Ticker",
+      sortKey: "ticker",
+    },
+    {
+      label: "Name",
+      sortKey: "shortName",
+    },
+    {
+      label: "Total Shares",
+      sortKey: "totalShares",
+      render: (row: any) => formatString(row.totalShares, "amount"),
+    },
+    {
+      label: "Average Buy Price",
+      sortKey: "averageBuyPrice",
+      render: (row: any) => formatString(row.averageBuyPrice, "money"),
+    },
+    {
+      label: "Total Buy Price",
+      sortKey: "totalCost",
+      render: (row: any) => formatString(row.totalCost, "money"),
+    },
+    {
+      label: "Total Sell Price",
+      sortKey: "totalSalePrice",
+      render: (row: any) => formatString(row.totalSalePrice, "money"),
+    },    
+    {
+      label: "Percent Change",
+      sortKey: "percentChange",
+      render: (row: any) =>
+        row.percentChange !== null ? formatString(row.percentChange, "percent") : "N/A",
+    },
+    {
+      label: "View Asset",
+      sortKey: "viewAsset",
+      sortable: false,
+      render: (row: any) => (
+        <Button onClick={() => navigate(`/asset/${row.ticker}`)}>
+          {`View ${row.ticker}`}
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <>
       <h3>Assets Sold</h3>
-      <Table>
-        <thead>
-          <tr>
-            <th>Ticker</th>
-            <th>Name</th>
-            <th>Total Shares Sold</th>
-            <th>Average Buy Price</th>
-            <th>Total Cost</th>
-            <th>Total Sale Price</th>
-            <th>Percent Change</th>
-            <th>View Asset</th>
-          </tr>
-        </thead>
-        <tbody>
-          {combined.map((asset) => (
-            <AssetRow
-              key={asset.ticker}
-              asset={asset}
-              assetInfo={assetInfos?.[asset.ticker]}
-            />
-          ))}
-        </tbody>
-      </Table>
+      <SortableTable data={data} columns={columns} initialSortKey="ticker" />
     </>
   );
 }
