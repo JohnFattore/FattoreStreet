@@ -50,6 +50,13 @@ body {
   border-color: var(--primary);
 }
 
+.navbar-light .nav-link.active,
+.navbar-light .nav-link.show,
+.navbar-light .nav-link:focus {
+  color: var(--secondary);
+  background-color: var(--primary);
+}
+
 .table td {
   color: var(--primary);
   background-color: var(--tertiary);

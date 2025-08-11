@@ -11,7 +11,7 @@ export default function TopNavigation() {
   const { access } = useSelector((state: RootState) => state.user);
 
   return (
-    <Navbar variant="light" expand="lg">
+    <Navbar expand="lg">
       <Container>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">

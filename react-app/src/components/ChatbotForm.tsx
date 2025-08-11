@@ -1,10 +1,11 @@
-import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
+import { Form, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { postChatbot } from '../functions/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
+import LoadingButton from './LoadingButton';
 
 interface IFormInput {
     message: string
@@ -39,7 +40,7 @@ export default function ChatbotForm() {
 
                     </Col>
                 </Row>
-                <Button type="submit" disabled={loading}>Ask Chatbot</Button>
+                <LoadingButton label={"Ask Chatbot"} loading={loading}/>
             </Form>
             {error && <Alert variant="danger">{error}</Alert>}
         </>
