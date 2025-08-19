@@ -72,7 +72,7 @@ export const api = createApi({
         method: "GET",
       }),
       transformResponse: (response: any): IAsset => {
-        return ({
+        return {
           id: response.id,
           ticker: response.ticker,
           shares: Number(response.shares),
@@ -82,7 +82,7 @@ export const api = createApi({
           sellDate: response.sell_date,
           sellPrice: response.sell_price,
           snp500PriceSell: response.sell_SnP500,
-        });
+        };
       },
       providesTags: [],
     }),
@@ -96,10 +96,10 @@ export const api = createApi({
     patchAsset: builder.mutation({
       query: ({ id, ...patch }) => ({
         url: `assets/${id}/`,
-        method: 'PATCH',
+        method: "PATCH",
         data: patch,
       }),
-      invalidatesTags: [{ type: 'Assets', id: "LIST" }],
+      invalidatesTags: [{ type: "Assets", id: "LIST" }],
     }),
     getAssetInfos: builder.query<
       Record<string, IEquityInfo | IETFInfo>,
@@ -167,6 +167,26 @@ export const api = createApi({
         return result;
       },
     }),
+    getFredData: builder.query<
+      any,
+      { series_id: string; compute_yoy?: boolean }[]
+    >({
+      query: (seriesList) => ({
+        url: "fred-data/",
+        method: "POST",
+        data: seriesList,
+      }),
+    }),
+    getQuote: builder.query<
+      any,
+      string
+    >({
+      query: (ticker) => ({
+        url: "quote/",
+        method: "GET",
+        params: { symbol: ticker },
+      }),
+    }),
   }),
 });
 
@@ -176,5 +196,7 @@ export const {
   usePostNewAssetMutation,
   useGetAssetQuery,
   useDeleteAssetMutation,
-  usePatchAssetMutation
+  usePatchAssetMutation,
+  useGetFredDataQuery,
+  useGetQuoteQuery
 } = api;

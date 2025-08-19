@@ -6,6 +6,8 @@ from typing import Optional
 import requests
 import environ
 import pandas_market_calendars as mcal
+import pandas as pd
+from .choices import ASSET_TYPES, EXCHANGES, MARKETS
 
 # Initialise environment variables
 env = environ.Env()
@@ -24,7 +26,7 @@ def get_ticker_price(ticker: str, date: Optional[date] = None):
         price = data['Close'].get(date.strftime("%Y-%m-%d"), None)
         if price == None:
             raise Exception(f"No Price for ticker {ticker} on day {date}")
-        output = {"price": Decimal(price), "percent_change": 0}
+        output = {"price": Decimal(price), "percent_change_daily": 0}
         cache.set(cache_key, output, timeout=60 * 60 * 24)
         return output
     else:
@@ -37,9 +39,101 @@ def get_ticker_price(ticker: str, date: Optional[date] = None):
         url = f"https://finnhub.io/api/v1/quote?symbol={ticker}&token={api_key}"
         response = requests.get(url)
         quote = response.json()
-        output = {"price": Decimal(quote["c"]), "percent_change": Decimal(quote["dp"]/100)}
+        output = {"price": Decimal(quote["c"]), "percent_change_daily": Decimal(quote["dp"]/100)}
         cache.set(cache_key, output, timeout=60)
         return output
+
+def get_yfinance_data(ticker: str):
+    cache_key = f"financials_{ticker}"# also check date, should update if the historical dates are out of date
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return cached_data
+    dates = get_market_reference_dates()
+    yfinance = yf.Ticker(ticker)
+    info = yfinance.info
+    market = info["market"]
+    if market not in {m[0] for m in MARKETS}:
+        raise Exception(f"Market {market} not recognized")
+
+    type = info["quoteType"]
+    if type not in {t[0] for t in ASSET_TYPES}:
+        raise Exception(f"type {type} not recognized")
+
+    exchange = info["fullExchangeName"]
+
+    if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
+        exchange = "NASDAQ"
+    elif exchange in {"NYSEArca"}:
+        exchange = "NYSE"
+
+    if exchange not in {e[0] for e in EXCHANGES}:
+        raise Exception(f"exchange {exchange} not recognized")
+
+    financials = {
+        "ticker": ticker,
+        "short_name": info["shortName"],
+        "long_name": info["longName"],
+        "type": type,
+        "market": market,
+        "exchange": exchange
+    }
+
+    for label, date in dates.items():
+        try:
+            price = get_ticker_price(ticker, date)["price"]
+        except:
+            price = 0
+        financials[label] = price
+
+    if info["quoteType"] == "EQUITY":
+        # dividend yield, forward PE
+        quarterly_financials = yfinance.quarterly_financials
+        financials["market_cap"] = info["marketCap"]
+        financials["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum()
+        financials["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
+
+    elif info["quoteType"] == "ETF":
+        financials["market_cap"] = 0
+        financials["ttm_pe"] = 0
+        if info.get("marketCap") != None:
+            financials["market_cap"] = info["marketCap"]
+        financials["expenseRatio"] = info["netExpenseRatio"] / 100
+        if info.get("ttm_pe") != None:
+            financials["ttm_pe"] = info["trailingPE"]
+
+    cache.set(cache_key, financials, timeout=60 * 60 * 24)
+    return financials
+
+def get_fred_data(series_id: str, compute_yoy: bool = False):
+    cache_key = f"FRED_{series_id}_{compute_yoy}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    api_key = env("FRED_API_KEY")
+    url = f"https://api.stlouisfed.org/fred/series/observations"
+    params = {
+        "series_id": series_id,
+        "api_key": api_key,
+        "file_type": "json",
+    }
+    if compute_yoy:
+        params["units"] = "pc1"
+
+    response = requests.get(url, params=params)
+    response.raise_for_status()
+    data = response.json()["observations"]
+    df = pd.DataFrame(data)
+    df["date"] = pd.to_datetime(df["date"]).dt.date
+    df["value"] = pd.to_numeric(df["value"], errors="coerce")
+    del df["realtime_start"]
+    del df["realtime_end"]
+    df = df.sort_values("date").reset_index(drop=True)
+
+    df = df.dropna(subset=["value"])
+    output = df.to_dict(orient="records")    
+    cache.set(cache_key, output, timeout=60 * 60 * 24)
+    return output
 
 def get_last_market_day_on_or_before(date: datetime) -> datetime:
     nyse = mcal.get_calendar('NYSE')

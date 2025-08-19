@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Table } from "react-bootstrap";
+import { Table, Spinner, Alert } from "react-bootstrap";
+import { getErrorMessages } from "../functions/helperFunctions";
 
 type Column<T> = {
   label: string;
@@ -12,12 +13,16 @@ type Props<T> = {
   data: T[];
   columns: Column<T>[];
   initialSortKey?: keyof T | string;
+  isLoading: boolean
+  errors: any[]
 };
 
 export function SortableTable<T extends Record<string, any>>({
   data,
   columns,
   initialSortKey,
+  isLoading,
+  errors
 }: Props<T>) {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof T | string;
@@ -60,6 +65,18 @@ export function SortableTable<T extends Record<string, any>>({
       return 0;
     });
   }, [data, sortConfig]);
+
+  if (isLoading || !data) {
+    return (
+      <Spinner animation="border" />
+    )
+  }
+  console.log(errors)
+  for (const error of errors) {
+    if (error) {
+      return (<Alert variant="danger">{getErrorMessages(error["data"])}</Alert>)
+    }
+  }
 
   return (
     <Table>

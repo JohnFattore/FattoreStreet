@@ -12,6 +12,8 @@ import Restaurants from '../src/pages/Restaurants';
 import { store } from '../src/store';
 import WatchList from '../src/pages/WatchList';
 import App from '../src/App.tsx';
+import Visualizer from '../src/pages/Visualizer.tsx';
+import EconomicIndicators from '../src/pages/EconomicIndicators.tsx';
 
 afterEach(() => {
     cleanup();
@@ -58,6 +60,16 @@ test('Chatbot Test', async () => {
 test('Watchlist Test', async () => {
     renderWrapped(<WatchList />);
     expect(await screen.findByText('Common Benchmarks')).toBeInTheDocument();
+});
+
+test('Visualizer Test', async () => {
+    renderWrapped(<Visualizer />);
+    expect(await screen.findByText('Assets')).toBeInTheDocument();
+});
+
+test('Economic Indicators Test', async () => {
+    renderWrapped(<EconomicIndicators />);
+    expect(await screen.findByText('CPI')).toBeInTheDocument();
 });
 
 test('Restaurants Test', async () => {

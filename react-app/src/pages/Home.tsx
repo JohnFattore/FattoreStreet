@@ -15,8 +15,10 @@ export default function Home() {
             <ul>
                 <li>New to the site? Create an account on the Register page</li>
                 <li>Portfolio is a stock/bond paper trader, where you can create a hypothetical portfolio and compare it to the broader market</li>
+                <li>Visualizer is where you can compare your portfolio to the broader market</li>
+                <li>Watchlist is a live stock/ETF tracker</li>
+                <li>Economic Indicators includes graphs of macro data</li>
                 <li>Chatbot allows you to chat with a Boglehead bot that will answer all your index fund questions. The page provides basic advice about investing in low cost index funds</li>
-                <li>Watchlist is a live stock/bond tracker</li>
                 <li>Restaurants is a Nashville restaurant recommender</li>
             </ul>
         </>

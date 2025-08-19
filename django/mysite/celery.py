@@ -14,19 +14,14 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 
-# game should reset at the beginnong of before hours trading on first trading day of the week (usually monday)
+# game should reset at the beginning of before hours trading on first trading day of the week (usually monday)
 app.conf.beat_schedule = {
-#'Test Kaggle': {
-# 'task': 'indexCompare.tasks.createMarketCapIndex',
-# 'schedule': crontab(hour=00, minute=53),
-# 'args': (1000,),
-#   },
-'Update Cost Basis': {
- 'task': 'portfolio.tasks.updateCostBasis',
+'Load yfinance Cache': {
+ 'task': 'portfolio.tasks.load_yfinance_cache',
  'schedule': crontab(hour=9, minute=0),
    },
-'Load SnP500 Prices': {
- 'task': 'portfolio.tasks.loadSnP500Prices',
+'Load FRED Cache': {
+ 'task': 'portfolio.tasks.load_fred_cache',
  'schedule': crontab(hour=9, minute=5),
    },
 }

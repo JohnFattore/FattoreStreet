@@ -7,6 +7,8 @@ import Register from "./pages/Register";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
 import Restaurants from "./pages/Restaurants";
+import Visualizer from "./pages/Visualizer";
+import EconomicIndicators from "./pages/EconomicIndicators";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "./main";
@@ -75,6 +77,8 @@ export default function App() {
         <Route path="/entertainment" element={<Entertainment />} />
         <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/asset/:ticker" element={<AssetView />} />
+        <Route path="/visualizer" element={<Visualizer />} />
+        <Route path="/economic-indicators" element={<EconomicIndicators />} />
         <Route path="/react-admin" element={<Admin />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>

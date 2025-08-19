@@ -1,8 +1,8 @@
-import { Button, Spinner, Alert } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import { useGetAssetsQuery, useGetAssetInfosQuery } from "../functions/api";
-import { formatString, getErrorMessages } from "../functions/helperFunctions";
+import { formatString } from "../functions/helperFunctions";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { SortableTable } from "./SortableTable";
@@ -10,48 +10,27 @@ import { SortableTable } from "./SortableTable";
 export default function AssetTable() {
   const navigate = useNavigate();
   const { access } = useSelector((state: RootState) => state.user);
-  const { data: assetsRaw, refetch, error: assetError } = useGetAssetsQuery();
+  const { data: assetsRaw, refetch, isLoading: assetInfoLoading, error: assetError } = useGetAssetsQuery();
   const assets = assetsRaw ?? [];
   const tickers = [...new Set(assets.map((a) => a.ticker))];
   const {
     data: assetInfosRaw,
-    isLoading,
+    isLoading: assetLoading,
     error: assetInfoError,
   } = useGetAssetInfosQuery(tickers, {
     skip: tickers.length === 0 || !access,
   });
   const assetInfos = assetInfosRaw ?? {};
-
+  const isLoading = assetLoading || assetInfoLoading
   useEffect(() => {
     if (access) refetch();
   }, [access, refetch]);
 
   if (!access) return null;
-  if (assetError)
-    return <Alert variant="danger">{getErrorMessages(assetError["data"])}</Alert>;
-  if (assetInfoError)
-    return (
-      <Alert variant="danger">{getErrorMessages(assetInfoError["data"])}</Alert>
-    );
-  if (!assets || !assetInfos)
-    return (
-      <>
-        <h3>Assets Sold</h3>
-        <Spinner animation="border" />
-      </>
-    );
 
   const assetsSold = assets.filter((item) => item.sellDate);
 
   if (assetsSold.length === 0 && !isLoading) return null;
-
-  if (isLoading)
-    return (
-      <>
-        <h3>Assets Sold</h3>
-        <Spinner animation="border" />
-      </>
-    );
 
   const assetsByTicker: Record<string, { totalShares: number; totalCost: number, totalSellPrice: number }> = {};
   for (const asset of assetsSold) {
@@ -130,7 +109,7 @@ export default function AssetTable() {
   return (
     <>
       <h3>Assets Sold</h3>
-      <SortableTable data={data} columns={columns} initialSortKey="ticker" />
+      <SortableTable data={data} columns={columns} initialSortKey="ticker" isLoading={isLoading} errors={[assetError, assetInfoError]}/>
     </>
   );
 }

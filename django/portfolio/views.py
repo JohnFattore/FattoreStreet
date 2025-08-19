@@ -6,12 +6,10 @@ from .serializers import AssetSerializer
 from .permissions import IsOwner
 from .models import Asset
 import yfinance as yf
-from datetime import datetime, timedelta
+from datetime import datetime
 import environ
-import requests
 from django.core.cache import cache
-from .helper import get_ticker_price, get_market_reference_dates, is_market_open
-from .choices import ASSET_TYPES, EXCHANGES, MARKETS
+from .helper import get_ticker_price, get_yfinance_data, is_market_open, get_fred_data
 
 env = environ.Env()
 environ.Env.read_env()
@@ -61,89 +59,41 @@ class AssetInfoRetrieveView(APIView):
         ticker_list = tickers.split(",")
         if len(ticker_list) == 1 and ticker_list[0] == "":
             raise serializers.ValidationError({"tickers": "This field must contain at least 1 ticker."})
-        dates = get_market_reference_dates()
         data = []
         errors = []
         for ticker in ticker_list:
             try:
+                # AAA largely comes back correct...
+                financials = get_yfinance_data(ticker)
                 quote = get_ticker_price(ticker)
-                cache_key = f"financials_{ticker}"
-                cached_data = cache.get(cache_key)
-
-                if cached_data:
-                    cached_data["current_price"] = quote["price"]
-                    cached_data["percent_change_daily"] = quote["percent_change"]
-                    data.append(cached_data)
-                if False:
-                    print("what")
-                else:
-                    yfinance = yf.Ticker(ticker)
-                    info = yfinance.info
-                    market = info["market"]
-                    if market not in {m[0] for m in MARKETS}:
-                        raise Exception(f"Market {market} not recognized")
-
-                    type = info["quoteType"]
-                    if type not in {t[0] for t in ASSET_TYPES}:
-                        raise Exception(f"type {type} not recognized")
-
-                    exchange = info["fullExchangeName"]
-
-                    if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
-                        exchange = "NASDAQ"
-                    elif exchange in {"NYSEArca"}:
-                        exchange = "NYSE"
-
-                    if exchange not in {e[0] for e in EXCHANGES}:
-                        raise Exception(f"exchange {exchange} not recognized")
-                    historical_prices = {}
-                    for label, date in dates.items():
-                        try:
-                            price = get_ticker_price(ticker, date)["price"]
-                        except:
-                            price = 0
-                        historical_prices[label] = price
-                    financials = {
-                        "ticker": ticker,
-                        "current_price": quote["price"],
-                        "percent_change_daily": quote["percent_change"],
-                        "percent_change_weekly": (quote["price"] - historical_prices["1_week_ago"]) / historical_prices["1_week_ago"],
-                        "percent_change_monthly": (quote["price"] - historical_prices["1_month_ago"]) / historical_prices["1_month_ago"],
-                        "percent_change_YTD": (quote["price"] - historical_prices["year_to_date"]) / historical_prices["year_to_date"],
-                        "percent_change_yearly": (quote["price"] - historical_prices["1_year_ago"]) / historical_prices["1_year_ago"],
-                        "percent_change_3_years": (quote["price"] - historical_prices["3_years_ago"]) / historical_prices["3_years_ago"],
-                        "percent_change_5_years": (quote["price"] - historical_prices["5_years_ago"]) / historical_prices["5_years_ago"],
-                        # dividend yield, forward PE
-                        "short_name": info["shortName"],
-                        "long_name": info["longName"],
-                        "type": type,
-                        "market": market,
-                        "exchange": exchange
-                    }
-
-                    if info["quoteType"] == "EQUITY":
-                        quarterly_financials = yfinance.quarterly_financials
-                        financials["market_cap"] = info["marketCap"]
-                        financials["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum()
-                        financials["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
-
-                        cache.set(cache_key, financials, timeout=60 * 60 * 24)
-                        data.append(financials)
-                    elif info["quoteType"] == "ETF":
-                        financials["market_cap"] = 0
-                        financials["ttm_pe"] = 0
-                        if info.get("marketCap") != None:
-                            financials["market_cap"] = info["marketCap"]
-                        financials["expenseRatio"] = info["netExpenseRatio"] / 100
-                        if info.get("ttm_pe") != None:
-                            financials["ttm_pe"] = info["trailingPE"]
-
-                        cache.set(cache_key, financials, timeout=60 * 60 * 24)
-                        data.append(financials)
-                    else:
-                        raise serializers.ValidationError({"tickers": "unrecognized ticker"})
+                financials["current_price"] = quote["price"]
+                financials["percent_change_daily"] = quote["percent_change_daily"]
+                financials["percent_change_weekly"] = (quote["price"] - financials["1_week_ago"]) / financials["1_week_ago"]
+                financials["percent_change_monthly"] = (quote["price"] - financials["1_month_ago"]) / financials["1_month_ago"]
+                financials["percent_change_YTD"] = (quote["price"] - financials["year_to_date"]) / financials["year_to_date"]
+                financials["percent_change_yearly"] = (quote["price"] - financials["1_year_ago"]) / financials["1_year_ago"]
+                financials["percent_change_3_years"] = (quote["price"] - financials["3_years_ago"]) / financials["3_years_ago"]
+                financials["percent_change_5_years"] = (quote["price"] - financials["5_years_ago"]) / financials["5_years_ago"]
+                data.append(financials)
             except:
                 errors.append(ticker)
                 # make this error better
                 continue        
         return Response({"data": data, "errors": errors})
+
+# should go in serializer file
+class FredSeriesItemSerializer(serializers.Serializer):
+    series_id = serializers.CharField()
+    compute_yoy = serializers.BooleanField(default=False)
+
+# this should remove multiple series at once
+class FredDataRetrieveView(APIView):
+    def post(self, request):
+        serializer = FredSeriesItemSerializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        data = {}
+        for item in serializer.validated_data:
+            output = get_fred_data(item["series_id"], item["compute_yoy"])
+            data[item["series_id"]] = output
+
+        return Response(data)

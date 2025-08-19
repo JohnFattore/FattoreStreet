@@ -6,4 +6,5 @@ urlpatterns = [
     path('api/assets/<int:pk>/', views.AssetRetrieveDestroyView.as_view(), name="asset"),
     path('api/asset-info/', views.AssetInfoRetrieveView.as_view(), name='asset-info'),
     path('api/quote/', views.QuoteRetrieveView.as_view(), name='quote'),
+    path('api/fred-data/', views.FredDataRetrieveView.as_view(), name='fred-data')
 ]

@@ -97,3 +97,21 @@ class AssetInfoTest(BaseAssetTest):
         data = {'tickers': ['AAPL']}
         response = self.client.get(self.url, data, format='json')
         self.assertEqual(response.status_code, 200)
+
+class QuoteTest(BaseAssetTest):
+    def setUp(self):
+        self.url = reverse('quote')
+
+    def test_quote(self):
+        data = {'symbol': "AAPL"}
+        response = self.client.get(self.url, data, format='json')
+        self.assertEqual(response.status_code, 200)
+
+class FredDataTest(BaseAssetTest):
+    def setUp(self):
+        self.url = reverse('fred-data')
+
+    def test_quote(self):
+        data = [{ "series_id": "UNRATE", "compute_yoy": False}]
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, 200)
