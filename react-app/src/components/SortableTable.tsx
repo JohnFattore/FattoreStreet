@@ -71,7 +71,6 @@ export function SortableTable<T extends Record<string, any>>({
       <Spinner animation="border" />
     )
   }
-  console.log(errors)
   for (const error of errors) {
     if (error) {
       return (<Alert variant="danger">{getErrorMessages(error["data"])}</Alert>)

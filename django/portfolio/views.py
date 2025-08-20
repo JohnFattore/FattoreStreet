@@ -9,7 +9,7 @@ import yfinance as yf
 from datetime import datetime
 import environ
 from django.core.cache import cache
-from .helper import get_ticker_price, get_yfinance_data, is_market_open, get_fred_data
+from .helper import get_ticker_price, get_yfinance_data, is_market_open, get_fred_data, percent_change
 
 env = environ.Env()
 environ.Env.read_env()
@@ -48,7 +48,10 @@ class QuoteRetrieveView(APIView):
         symbol = request.query_params.get("symbol")
         if (symbol == None):
             raise serializers.ValidationError({"symbol": "This field is required."})
-        data = get_ticker_price(symbol)
+        try:
+            data = get_ticker_price(symbol)
+        except Exception as e:
+            raise serializers.ValidationError({"symbol": e})
         return Response(data)
 
 class AssetInfoRetrieveView(APIView):
@@ -63,17 +66,16 @@ class AssetInfoRetrieveView(APIView):
         errors = []
         for ticker in ticker_list:
             try:
-                # AAA largely comes back correct...
                 financials = get_yfinance_data(ticker)
                 quote = get_ticker_price(ticker)
                 financials["current_price"] = quote["price"]
                 financials["percent_change_daily"] = quote["percent_change_daily"]
-                financials["percent_change_weekly"] = (quote["price"] - financials["1_week_ago"]) / financials["1_week_ago"]
-                financials["percent_change_monthly"] = (quote["price"] - financials["1_month_ago"]) / financials["1_month_ago"]
-                financials["percent_change_YTD"] = (quote["price"] - financials["year_to_date"]) / financials["year_to_date"]
-                financials["percent_change_yearly"] = (quote["price"] - financials["1_year_ago"]) / financials["1_year_ago"]
-                financials["percent_change_3_years"] = (quote["price"] - financials["3_years_ago"]) / financials["3_years_ago"]
-                financials["percent_change_5_years"] = (quote["price"] - financials["5_years_ago"]) / financials["5_years_ago"]
+                financials["percent_change_weekly"] = percent_change(quote["price"], financials["1_week_ago"])
+                financials["percent_change_monthly"] = percent_change(quote["price"], financials["1_month_ago"])
+                financials["percent_change_YTD"] = percent_change(quote["price"], financials["year_to_date"])
+                financials["percent_change_yearly"] = percent_change(quote["price"], financials["1_year_ago"])
+                financials["percent_change_3_years"] = percent_change(quote["price"], financials["3_years_ago"])
+                financials["percent_change_5_years"] = percent_change(quote["price"], financials["5_years_ago"])
                 data.append(financials)
             except:
                 errors.append(ticker)
@@ -86,7 +88,6 @@ class FredSeriesItemSerializer(serializers.Serializer):
     series_id = serializers.CharField()
     compute_yoy = serializers.BooleanField(default=False)
 
-# this should remove multiple series at once
 class FredDataRetrieveView(APIView):
     def post(self, request):
         serializer = FredSeriesItemSerializer(data=request.data, many=True)

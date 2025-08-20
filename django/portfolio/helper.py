@@ -21,10 +21,9 @@ def get_ticker_price(ticker: str, date: Optional[date] = None):
 
         if cached_data:
             return cached_data
-        
         data = yfinance.history(start=date.strftime("%Y-%m-%d"), end=(date + timedelta(days=1)).strftime("%Y-%m-%d"))
         price = data['Close'].get(date.strftime("%Y-%m-%d"), None)
-        if price == None:
+        if not price:
             raise Exception(f"No Price for ticker {ticker} on day {date}")
         output = {"price": Decimal(price), "percent_change_daily": 0}
         cache.set(cache_key, output, timeout=60 * 60 * 24)
@@ -39,6 +38,8 @@ def get_ticker_price(ticker: str, date: Optional[date] = None):
         url = f"https://finnhub.io/api/v1/quote?symbol={ticker}&token={api_key}"
         response = requests.get(url)
         quote = response.json()
+        if not quote["dp"]:
+            raise Exception(f"No real time quote for {ticker}")
         output = {"price": Decimal(quote["c"]), "percent_change_daily": Decimal(quote["dp"]/100)}
         cache.set(cache_key, output, timeout=60)
         return output
@@ -82,7 +83,7 @@ def get_yfinance_data(ticker: str):
         try:
             price = get_ticker_price(ticker, date)["price"]
         except:
-            price = 0
+            price = -1
         financials[label] = price
 
     if info["quoteType"] == "EQUITY":
@@ -93,13 +94,7 @@ def get_yfinance_data(ticker: str):
         financials["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
 
     elif info["quoteType"] == "ETF":
-        financials["market_cap"] = 0
-        financials["ttm_pe"] = 0
-        if info.get("marketCap") != None:
-            financials["market_cap"] = info["marketCap"]
         financials["expenseRatio"] = info["netExpenseRatio"] / 100
-        if info.get("ttm_pe") != None:
-            financials["ttm_pe"] = info["trailingPE"]
 
     cache.set(cache_key, financials, timeout=60 * 60 * 24)
     return financials
@@ -171,3 +166,9 @@ def is_market_open(date: datetime):
     nyse = mcal.get_calendar('NYSE')
     schedule = nyse.schedule(start_date=date, end_date=date)
     return not schedule.empty
+
+def percent_change(current_price: Decimal, historical_price: Decimal):
+    if historical_price != -1:
+        return (current_price - historical_price) / historical_price
+    else:
+        return "N/A"

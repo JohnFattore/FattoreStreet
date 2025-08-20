@@ -8,7 +8,7 @@ import { addTicker, clearWatchlistError, errorTicker } from "../reducers/watchLi
 import { RootState, AppDispatch } from "../main";
 import { useSelector, useDispatch } from "react-redux";
 import LoadingButton from "./LoadingButton";
-import { useIsEndpointLoading } from "../functions/helperFunctions";
+import { getErrorMessages, useIsEndpointLoading } from "../functions/helperFunctions";
 
 interface IFormInput {
   ticker: string;
@@ -37,26 +37,25 @@ export default function WatchListForm() {
   const onSubmit: SubmitHandler<IFormInput> = (data) => {
     if (tickers.includes(data.ticker)) {
       dispatch(errorTicker("Ticker already on watchlist"));
-    } else {
+      return
+    } 
       getQuote(data.ticker).then((response) => {
         // a valid ticker wont return null values
         if (response.data.price == null)
           dispatch(errorTicker("Couldn't retrieve data for ticker"));
         else {
-          if (tickers.includes(data.ticker)) {
-            dispatch(errorTicker("Ticker already on watchlist"));
-          } else {
-            dispatch(addTicker(data.ticker));
-            dispatch(clearWatchlistError());
-            reset();
-          }
+          dispatch(addTicker(data.ticker));
+          dispatch(clearWatchlistError());
+          reset();
         }
+      }).catch((error) => {
+        dispatch(errorTicker(getErrorMessages(error.response.data)))
       });
-    }
   };
 
   return (
-    <Form onSubmit={handleSubmit(onSubmit)}>
+    <>
+      <Form onSubmit={handleSubmit(onSubmit)}>
       <Form.Label>Ticker</Form.Label>
       <Form.Control {...register("ticker")} placeholder="Enter Ticker Here" />
       {errors.ticker && (
@@ -66,5 +65,7 @@ export default function WatchListForm() {
       )}
     <LoadingButton label={"Add to Watchlist"} loading={loading || isLoading}/>
     </Form>
+    </>
+
   );
 }
