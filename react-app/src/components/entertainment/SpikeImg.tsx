@@ -1,4 +1,4 @@
-import spike from '../images/spike.png'
+import spike from '../../images/spike.png'
 import { Image } from 'react-bootstrap';
 
 export default function Spike() {

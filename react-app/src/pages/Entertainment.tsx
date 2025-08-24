@@ -1,9 +1,9 @@
-import Spike from '../components/SpikeImg';
-import ExternalLinks from '../components/ExternalLinks';
+import Spike from '../components/entertainment/SpikeImg';
+import ExternalLinks from '../components/entertainment/ExternalLinks';
 import { IAlbum, IRatio } from '../interfaces';
-import Fees from '../components/Fees';
-import AlbumTable from '../components/AlbumTable';
-import RatioTable from '../components/RatioTable';
+import Fees from '../components/entertainment/Fees';
+import AlbumTable from '../components/entertainment/AlbumTable';
+import RatioTable from '../components/entertainment/RatioTable';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { Button } from 'react-bootstrap';

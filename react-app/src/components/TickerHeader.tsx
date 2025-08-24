@@ -11,6 +11,7 @@ export default function TickerHeader({ ticker }) {
     <Card>
       <Card.Body>
         <Card.Title>{assetInfo?.longName}</Card.Title>
+        <Card.Text>{assetInfo?.type}</Card.Text>
         {assetInfo?.type == "EQUITY" ? <CompanyLogo ticker={ticker} />: null}
       </Card.Body>
     </Card>

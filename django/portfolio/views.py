@@ -9,8 +9,8 @@ import yfinance as yf
 from datetime import datetime
 import environ
 from django.core.cache import cache
-from .helper import get_ticker_price, get_yfinance_data, is_market_open, get_fred_data, percent_change
-
+from .helper import get_realtime_price, get_yfinance_data, is_market_open, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates
+from decimal import Decimal
 env = environ.Env()
 environ.Env.read_env()
 
@@ -49,7 +49,7 @@ class QuoteRetrieveView(APIView):
         if (symbol == None):
             raise serializers.ValidationError({"symbol": "This field is required."})
         try:
-            data = get_ticker_price(symbol)
+            data = get_realtime_price(symbol)
         except Exception as e:
             raise serializers.ValidationError({"symbol": e})
         return Response(data)
@@ -64,24 +64,49 @@ class AssetInfoRetrieveView(APIView):
             raise serializers.ValidationError({"tickers": "This field must contain at least 1 ticker."})
         data = []
         errors = []
+        dates = get_market_reference_dates()
         for ticker in ticker_list:
             try:
+                historical_prices = get_historical_prices(ticker)
+                reference_prices = {}
+                for label, date in dates.items():
+                    price = historical_prices.get(date.strftime("%Y-%m-%d"), None)
+                    reference_prices[label] = price
+
                 financials = get_yfinance_data(ticker)
-                quote = get_ticker_price(ticker)
-                financials["current_price"] = quote["price"]
-                financials["percent_change_daily"] = quote["percent_change_daily"]
-                financials["percent_change_weekly"] = percent_change(quote["price"], financials["1_week_ago"])
-                financials["percent_change_monthly"] = percent_change(quote["price"], financials["1_month_ago"])
-                financials["percent_change_YTD"] = percent_change(quote["price"], financials["year_to_date"])
-                financials["percent_change_yearly"] = percent_change(quote["price"], financials["1_year_ago"])
-                financials["percent_change_3_years"] = percent_change(quote["price"], financials["3_years_ago"])
-                financials["percent_change_5_years"] = percent_change(quote["price"], financials["5_years_ago"])
+                price = 0
+                percent_change_daily = 0
+                if financials["type"] == "MUTUALFUND":
+                    price = reference_prices["yesterday"]
+                else:
+                    quote = get_realtime_price(ticker)
+                    price = quote["price"]
+                    percent_change_daily = quote["percent_change_daily"]
+                financials["current_price"] = price
+                financials["percent_change_daily"] = percent_change_daily
+                financials["percent_change_weekly"] = percent_change(price, reference_prices["1_week_ago"])
+                financials["percent_change_monthly"] = percent_change(price, reference_prices["1_month_ago"])
+                financials["percent_change_YTD"] = percent_change(price, reference_prices["year_to_date"])
+                financials["percent_change_yearly"] = percent_change(price, reference_prices["1_year_ago"])
+                financials["percent_change_3_years"] = percent_change(price, reference_prices["3_years_ago"])
+                financials["percent_change_5_years"] = percent_change(price, reference_prices["5_years_ago"])
                 data.append(financials)
-            except:
-                errors.append(ticker)
+            except Exception as e:
+                errors.append({"ticker": ticker, "error": str(e)})
                 # make this error better
                 continue        
         return Response({"data": data, "errors": errors})
+
+class AssetHistoricalPricesRetrieveView(APIView):
+    def get(self, request):
+        ticker = request.query_params.get("ticker")
+        if (ticker == None):
+            raise serializers.ValidationError({"ticker": "This field is required."})
+        prices = get_historical_prices(ticker)
+        output = []
+        for date, price in prices.items():
+            output.append({"date": date, "value": price})
+        return Response(output)
 
 # should go in serializer file
 class FredSeriesItemSerializer(serializers.Serializer):

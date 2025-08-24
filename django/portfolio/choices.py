@@ -1,7 +1,8 @@
 ASSET_TYPES = [
     ('EQUITY', 'Equity'),
     ('ETF', 'ETF'),
-    ('MUTUAL_FUND', 'Mutual Fund')
+    ('MUTUAL_FUND', 'Mutual Fund'),
+    ('MUTUALFUND', 'Mutual Fund')
 ]
 
 EXCHANGES = [

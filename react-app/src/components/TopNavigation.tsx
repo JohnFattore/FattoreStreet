@@ -20,8 +20,8 @@ export default function TopNavigation() {
             <Nav.Link as={Link} to="/portfolio">Portfolio</Nav.Link>
             <Nav.Link as={Link} to="/visualizer">Visualizer</Nav.Link>
             <Nav.Link as={Link} to="/watchlist">Watchlist</Nav.Link>
-            <Nav.Link as={Link} to="/economic-indicators">Economic Indicators</Nav.Link>
             <Nav.Link as={Link} to="/chatbot">Chatbot</Nav.Link>
+            <Nav.Link as={Link} to="/economic-indicators">Economic Indicators</Nav.Link>
             {!access && <Nav.Link as={Link} to="/register">Register</Nav.Link>}
             <Nav.Link as={Link} to="/restaurants">Restaurants</Nav.Link>
             <Nav.Link as={Link} to="/entertainment">Entertainment</Nav.Link>

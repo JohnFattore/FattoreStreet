@@ -5,8 +5,9 @@ import AssetInfo from "../components/AssetInfo";
 import AssetTickerTable from "../components/AssetTickerTable";
 import TickerHeader from "../components/TickerHeader";
 import AssetTickerSoldTable from "../components/AssetTickerSoldTable";
-import { useGetAssetInfosQuery } from "../functions/api";
+import { useGetAssetInfosQuery, useGetAssetPricesQuery } from "../functions/api";
 import { getErrorMessages } from "../functions/helperFunctions";
+import GenericLineChart from "../components/GenericLineChart";
 
 export default function AssetView() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function AssetView() {
     return <Alert variant="danger">Error</Alert>;
   }
   const { isLoading, error } = useGetAssetInfosQuery([ticker]);
+  const {data: prices} = useGetAssetPricesQuery(ticker)
   if (isLoading)
     return (
       <>
@@ -35,6 +37,7 @@ export default function AssetView() {
       <AssetInfo ticker={ticker} />
       <AssetTickerTable ticker={ticker} />
       <AssetTickerSoldTable ticker={ticker} />
+      <GenericLineChart data={prices} label={"Prices"}/>
       <Button onClick={() => navigate("/portfolio")}>Back to Portfolio</Button>
       <Button onClick={() => navigate("/watchlist")}>Back to WatchList</Button>
     </>

@@ -2,7 +2,6 @@ import yfinance as yf
 from datetime import date, timedelta, datetime
 from decimal import Decimal
 from django.core.cache import cache
-from typing import Optional
 import requests
 import environ
 import pandas_market_calendars as mcal
@@ -13,43 +12,44 @@ from .choices import ASSET_TYPES, EXCHANGES, MARKETS
 env = environ.Env()
 environ.Env.read_env()
 
-def get_ticker_price(ticker: str, date: Optional[date] = None):
-    if date:
-        yfinance = yf.Ticker(ticker)
-        cache_key = f"historical_quote_{ticker}_{date}"
-        cached_data = cache.get(cache_key)
-
-        if cached_data:
-            return cached_data
-        data = yfinance.history(start=date.strftime("%Y-%m-%d"), end=(date + timedelta(days=1)).strftime("%Y-%m-%d"))
-        price = data['Close'].get(date.strftime("%Y-%m-%d"), None)
-        if not price:
-            raise Exception(f"No Price for ticker {ticker} on day {date}")
-        output = {"price": Decimal(price), "percent_change_daily": 0}
-        cache.set(cache_key, output, timeout=60 * 60 * 24)
-        return output
+# should really just keep data in cache
+def get_historical_prices(ticker: str):
+    now = datetime.today() - timedelta(hours=7)
+    start = (now - timedelta(days=367 * 5)).strftime("%Y-%m-%d")
+    end = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+    cache_key = f"historical_prices_{ticker}_start:_{start}_end_{end}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        prices = cached_data
     else:
-        cache_key = f"current_quote_{ticker}_{date}"
-        cached_data = cache.get(cache_key)
+        yfinance = yf.Ticker(ticker)
+        data = yfinance.history(start=start, end=end)
+        prices = data[["Close"]]
+        prices = {idx.strftime("%Y-%m-%d"): Decimal(row["Close"]) for idx, row in prices.iterrows()}
+        cache.set(cache_key, prices, timeout=60 * 60 * 24)
+    return prices
 
-        if cached_data:
-            return cached_data
-        api_key = env("FINNHUB_API_KEY")
-        url = f"https://finnhub.io/api/v1/quote?symbol={ticker}&token={api_key}"
-        response = requests.get(url)
-        quote = response.json()
-        if not quote["dp"]:
-            raise Exception(f"No real time quote for {ticker}")
-        output = {"price": Decimal(quote["c"]), "percent_change_daily": Decimal(quote["dp"]/100)}
-        cache.set(cache_key, output, timeout=60)
-        return output
+def get_realtime_price(ticker: str):
+    cache_key = f"current_quote_{ticker}"
+    cached_data = cache.get(cache_key)
+
+    if cached_data:
+        return cached_data
+    api_key = env("FINNHUB_API_KEY")
+    url = f"https://finnhub.io/api/v1/quote?symbol={ticker}&token={api_key}"
+    response = requests.get(url)
+    quote = response.json()
+    if response.status_code >= 400 or not quote["dp"]:
+        raise Exception(f"No real time quote for {ticker}")
+    output = {"price": Decimal(quote["c"]), "percent_change_daily": Decimal(quote["dp"]/100)}
+    cache.set(cache_key, output, timeout=60)
+    return output
 
 def get_yfinance_data(ticker: str):
-    cache_key = f"financials_{ticker}"# also check date, should update if the historical dates are out of date
+    cache_key = f"financials_{ticker}"
     cached_data = cache.get(cache_key)
     if cached_data:
         return cached_data
-    dates = get_market_reference_dates()
     yfinance = yf.Ticker(ticker)
     info = yfinance.info
     market = info["market"]
@@ -62,7 +62,7 @@ def get_yfinance_data(ticker: str):
 
     exchange = info["fullExchangeName"]
 
-    if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM"}:
+    if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM", "Nasdaq"}:
         exchange = "NASDAQ"
     elif exchange in {"NYSEArca"}:
         exchange = "NYSE"
@@ -79,21 +79,19 @@ def get_yfinance_data(ticker: str):
         "exchange": exchange
     }
 
-    for label, date in dates.items():
-        try:
-            price = get_ticker_price(ticker, date)["price"]
-        except:
-            price = -1
-        financials[label] = price
-
     if info["quoteType"] == "EQUITY":
-        # dividend yield, forward PE
+        # dividend yield, forward 
+        financials["display_name"] =  info["displayName"]
+        if info.get("dividendYield", None):
+            financials["dividendYield"] = info["dividendYield"]
+        else:
+            financials["dividendYield"] = 0
         quarterly_financials = yfinance.quarterly_financials
         financials["market_cap"] = info["marketCap"]
         financials["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum()
         financials["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
 
-    elif info["quoteType"] == "ETF":
+    elif info["quoteType"] in ("ETF", "MUTUALFUND"):
         financials["expenseRatio"] = info["netExpenseRatio"] / 100
 
     cache.set(cache_key, financials, timeout=60 * 60 * 24)
@@ -126,26 +124,26 @@ def get_fred_data(series_id: str, compute_yoy: bool = False):
     df = df.sort_values("date").reset_index(drop=True)
 
     df = df.dropna(subset=["value"])
-    output = df.to_dict(orient="records")    
+    output = df.to_dict(orient="records")
     cache.set(cache_key, output, timeout=60 * 60 * 24)
     return output
 
-def get_last_market_day_on_or_before(date: datetime) -> datetime:
-    nyse = mcal.get_calendar('NYSE')
-    schedule = nyse.valid_days(
-        start_date=(date - timedelta(days=10)).strftime('%Y-%m-%d'),
-        end_date=date.strftime('%Y-%m-%d')
-    )
-    if not schedule.empty:
-        return schedule[-1].date()
-    else:
-        raise ValueError(f"No valid trading days found before {date.date()}")
-
 def get_market_reference_dates(reference_date: datetime = None):
+    def get_last_market_day_on_or_before(date: datetime) -> datetime:
+        nyse = mcal.get_calendar('NYSE')
+        schedule = nyse.valid_days(
+            start_date=(date - timedelta(days=10)).strftime('%Y-%m-%d'),
+            end_date=date.strftime('%Y-%m-%d')
+        )
+        if not schedule.empty:
+            return schedule[-1].date()
+        else:
+            raise ValueError(f"No valid trading days found before {date.date()}")
     if reference_date is None:
-        reference_date = datetime.today()
+        reference_date = datetime.today() - timedelta(hours=7)
 
     checkpoints = {
+        "yesterday": reference_date - timedelta(days=1),
         "1_week_ago": reference_date - timedelta(days=7),
         "1_month_ago": reference_date - timedelta(days=30),
         "year_to_date": datetime(reference_date.year, 1, 1),
@@ -168,7 +166,7 @@ def is_market_open(date: datetime):
     return not schedule.empty
 
 def percent_change(current_price: Decimal, historical_price: Decimal):
-    if historical_price != -1:
+    if historical_price:
         return (current_price - historical_price) / historical_price
     else:
         return "N/A"

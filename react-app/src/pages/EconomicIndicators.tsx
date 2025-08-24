@@ -1,5 +1,5 @@
 import { Row, Col, Spinner, Alert } from "react-bootstrap";
-import FredGraph from "../components/FredGraph";
+import GenericLineChart from "../components/GenericLineChart";
 import { useGetFredDataQuery } from "../functions/api";
 import { getErrorMessages } from "../functions/helperFunctions";
 export default function EconomicIndicators() {
@@ -28,24 +28,24 @@ export default function EconomicIndicators() {
     <>
       <Row>
         <Col>
-          <FredGraph data={data["DGS10"]} label={"10 Year Treasury Yield"} />
+          <GenericLineChart data={data["DGS10"]} label={"10 Year Treasury Yield"} />
         </Col>
         <Col>
-          <FredGraph data={data["CPIAUCSL"]} label={"CPI"} />
+          <GenericLineChart data={data["CPIAUCSL"]} label={"CPI"} />
         </Col>
         <Col>
-          <FredGraph data={data["UNRATE"]} label={"Unemployment Rate"} />
+          <GenericLineChart data={data["UNRATE"]} label={"Unemployment Rate"} />
         </Col>
       </Row>
       <Row>
         <Col>
-          <FredGraph data={data["DTWEXBGS"]} label={"USD Strength Index Year over Year"} />
+          <GenericLineChart data={data["DTWEXBGS"]} label={"USD Strength Index Year over Year"} />
         </Col>
         <Col>
-          <FredGraph data={data["FEDFUNDS"]} label={"Federal Funds Rate"} />
+          <GenericLineChart data={data["FEDFUNDS"]} label={"Federal Funds Rate"} />
         </Col>
         <Col>
-          <FredGraph data={data["GDP"]} label={"US GDP Year over Year"} />
+          <GenericLineChart data={data["GDP"]} label={"US GDP Year over Year"} />
         </Col>
       </Row>
     </>

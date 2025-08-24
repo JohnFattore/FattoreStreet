@@ -63,6 +63,9 @@ export default function AssetTable() {
     {
       label: "Ticker",
       sortKey: "ticker",
+      render: (row: any) => (
+        <div onClick={() => navigate(`/asset/${row.ticker}`)}>{row.ticker}</div>
+      ),
     },
     {
       label: "Name",

@@ -16,7 +16,7 @@ export default function AssetInfo({ ticker }: { ticker: string }) {
       <h3>General Financials</h3>
       {assetInfo?.type === "EQUITY" ? (
         <EquityInfo ticker={ticker} />
-      ) : assetInfo?.type === "ETF" ? (
+      ) : assetInfo?.type === "ETF" || "MUTUALFUND" ? (
         <ETFInfo ticker={ticker} />
       ) : null}
     </Col>

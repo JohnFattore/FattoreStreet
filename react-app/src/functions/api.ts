@@ -119,6 +119,7 @@ export const api = createApi({
           if (item.type === "EQUITY") {
             result[item.ticker] = {
               ticker: item.ticker,
+              displayName: item.display_name,
               shortName: item.short_name,
               longName: item.long_name,
               type: "EQUITY",
@@ -132,18 +133,19 @@ export const api = createApi({
               percentChangeYearly: item.percent_change_yearly,
               percentChange3Years: item.percent_change_3_years,
               percentChange5Years: item.percent_change_5_years,
+              dividendYield: item.dividend_yield,
               marketCap: item.market_cap,
               trailingPE: item.market_cap / item.net_income,
               incomeTTM: item.net_income,
               revenueTTM: item.total_revenue,
               netMarginTTM: item.net_income / item.total_revenue,
             };
-          } else if (item.type === "ETF") {
+          } else if (item.type === "ETF" || item.type === "MUTUALFUND") {
             result[item.ticker] = {
               ticker: item.ticker,
               shortName: item.short_name,
               longName: item.long_name,
-              type: "ETF",
+              type: item.type,
               exchange: item.exchange,
               market: item.market,
               currentPrice: item.current_price,
@@ -166,6 +168,16 @@ export const api = createApi({
         });
         return result;
       },
+    }),
+    getAssetPrices: builder.query<
+      any,
+      string
+    >({
+      query: (ticker) => ({
+        url: "asset-prices/",
+        method: "GET",
+        params: { ticker: ticker },
+      }),
     }),
     getFredData: builder.query<
       any,
@@ -192,6 +204,7 @@ export const api = createApi({
 
 export const {
   useGetAssetInfosQuery,
+  useGetAssetPricesQuery,
   useGetAssetsQuery,
   usePostNewAssetMutation,
   useGetAssetQuery,

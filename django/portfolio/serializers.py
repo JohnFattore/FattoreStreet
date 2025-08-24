@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Asset
 from django.utils import timezone
-from .helper import get_ticker_price, is_market_open
+from .helper import get_historical_prices, is_market_open
 
 # serializer for Asset Model
 class AssetSerializer(serializers.ModelSerializer):
@@ -26,20 +26,23 @@ class AssetSerializer(serializers.ModelSerializer):
 
     def get_buy_price(self, obj):
         try:
-            return get_ticker_price(obj.ticker, obj.buy_date)["price"] * obj.shares
+            prices = get_historical_prices(obj.ticker)
+            return prices[obj.buy_date.strftime("%Y-%m-%d")] * obj.shares
         except Exception as e:
             return None  # or str(e)
 
     def get_buy_SnP500(self, obj):
         try:
-            return get_ticker_price("SPY", obj.buy_date)["price"]
+            prices = get_historical_prices("SPY")
+            return prices[obj.buy_date.strftime("%Y-%m-%d")] 
         except Exception as e:
             return None  # or str(e)
 
     def get_sell_price(self, obj):
         if obj.sell_date:
             try:
-                return get_ticker_price(obj.ticker, obj.sell_date)["price"] * obj.shares
+                prices = get_historical_prices(obj.ticker)
+                return prices[obj.sell_date.strftime("%Y-%m-%d")] * obj.shares
             except Exception as e:
                 return None
         return None
@@ -47,7 +50,8 @@ class AssetSerializer(serializers.ModelSerializer):
     def get_sell_SnP500(self, obj):
         if obj.sell_date:
             try:
-                return get_ticker_price("SPY", obj.sell_date)["price"]
+                prices = get_historical_prices("SPY")
+                return prices[obj.sell_date.strftime("%Y-%m-%d")] 
             except Exception as e:
                 return None
         return None

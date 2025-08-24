@@ -64,7 +64,7 @@ test('Watchlist Test', async () => {
 
 test('Visualizer Test', async () => {
     renderWrapped(<Visualizer />);
-    expect(await screen.findByText('Assets')).toBeInTheDocument();
+    expect(await screen.findByText('Assets vs S&P 500')).toBeInTheDocument();
 });
 
 test('Economic Indicators Test', async () => {

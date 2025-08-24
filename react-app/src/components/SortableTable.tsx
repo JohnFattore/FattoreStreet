@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Table, Spinner, Alert } from "react-bootstrap";
-import { getErrorMessages } from "../functions/helperFunctions";
+import { Table, Spinner } from "react-bootstrap";
+import StateHandler from "./StateHandler";
 
 type Column<T> = {
   label: string;
@@ -13,8 +13,8 @@ type Props<T> = {
   data: T[];
   columns: Column<T>[];
   initialSortKey?: keyof T | string;
-  isLoading: boolean
-  errors: any[]
+  isLoading: boolean;
+  errors: any[];
 };
 
 export function SortableTable<T extends Record<string, any>>({
@@ -22,7 +22,7 @@ export function SortableTable<T extends Record<string, any>>({
   columns,
   initialSortKey,
   isLoading,
-  errors
+  errors,
 }: Props<T>) {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof T | string;
@@ -66,42 +66,41 @@ export function SortableTable<T extends Record<string, any>>({
     });
   }, [data, sortConfig]);
 
-  if (isLoading || !data) {
-    return (
-      <Spinner animation="border" />
-    )
-  }
-  for (const error of errors) {
-    if (error) {
-      return (<Alert variant="danger">{getErrorMessages(error["data"])}</Alert>)
-    }
+  if (!data) {
+    return <Spinner animation="border" />;
   }
 
   return (
-    <Table>
-      <thead>
-        <tr>
-          {columns.map(({ label, sortKey, sortable = true }) => (
-            <th
-              key={label}
-              onClick={() => (sortable ? onSort(sortKey) : undefined)}
-              style={{ cursor: sortable ? "pointer" : "default" }}
-            >
-              {label}
-              {sortable && renderSortArrow(sortKey)}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {sortedData.map((row, i) => (
-          <tr key={i}>
-            {columns.map(({ sortKey, render }, j) => (
-              <td key={j}>{render ? render(row) : row[sortKey]}</td>
+    <StateHandler
+      isLoading={isLoading}
+      errors={errors}
+      content={
+        <Table>
+          <thead>
+            <tr>
+              {columns.map(({ label, sortKey, sortable = true }) => (
+                <th
+                  key={label}
+                  onClick={() => (sortable ? onSort(sortKey) : undefined)}
+                  style={{ cursor: sortable ? "pointer" : "default" }}
+                >
+                  {label}
+                  {sortable && renderSortArrow(sortKey)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedData.map((row, i) => (
+              <tr key={i}>
+                {columns.map(({ sortKey, render }, j) => (
+                  <td key={j}>{render ? render(row) : row[sortKey]}</td>
+                ))}
+              </tr>
             ))}
-          </tr>
-        ))}
-      </tbody>
-    </Table>
+          </tbody>
+        </Table>
+      }
+    />
   );
 }

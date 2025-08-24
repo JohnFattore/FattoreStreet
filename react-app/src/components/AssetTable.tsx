@@ -10,7 +10,12 @@ import { SortableTable } from "./SortableTable";
 export default function AssetTable() {
   const navigate = useNavigate();
   const { access } = useSelector((state: RootState) => state.user);
-  const { data: assetsRaw, refetch, isLoading: assetInfoLoading, error: assetError } = useGetAssetsQuery();
+  const {
+    data: assetsRaw,
+    refetch,
+    isLoading: assetInfoLoading,
+    error: assetError,
+  } = useGetAssetsQuery();
   const assets = assetsRaw ?? [];
   const tickers = [...new Set(assets.map((a) => a.ticker))];
   const {
@@ -21,7 +26,7 @@ export default function AssetTable() {
     skip: tickers.length === 0 || !access,
   });
   const assetInfos = assetInfosRaw ?? {};
-  const isLoading = assetLoading || assetInfoLoading
+  const isLoading = assetLoading || assetInfoLoading;
   useEffect(() => {
     if (access) refetch();
   }, [access, refetch]);
@@ -32,7 +37,10 @@ export default function AssetTable() {
 
   if (assetsOwned.length === 0 && !isLoading) return null;
 
-  const assetsByTicker: Record<string, { totalShares: number; totalCost: number }> = {};
+  const assetsByTicker: Record<
+    string,
+    { totalShares: number; totalCost: number }
+  > = {};
   for (const asset of assetsOwned) {
     if (!assetsByTicker[asset.ticker]) {
       assetsByTicker[asset.ticker] = { totalShares: 0, totalCost: 0 };
@@ -50,7 +58,8 @@ export default function AssetTable() {
       totalCost: data.totalCost,
       currentPrice: info ? info.currentPrice * data.totalShares : null,
       percentChange: info
-        ? (info.currentPrice * data.totalShares - data.totalCost) / data.totalCost
+        ? (info.currentPrice * data.totalShares - data.totalCost) /
+          data.totalCost
         : null,
       shortName: info?.shortName ?? "Error Loading Info",
       hasError: !info,
@@ -61,6 +70,9 @@ export default function AssetTable() {
     {
       label: "Ticker",
       sortKey: "ticker",
+      render: (row: any) => (
+        <div onClick={() => navigate(`/asset/${row.ticker}`)}>{row.ticker}</div>
+      ),
     },
     {
       label: "Name",
@@ -85,13 +97,17 @@ export default function AssetTable() {
       label: "Current Price",
       sortKey: "currentPrice",
       render: (row: any) =>
-        row.currentPrice !== null ? formatString(row.currentPrice, "money") : "N/A",
+        row.currentPrice !== null
+          ? formatString(row.currentPrice, "money")
+          : "N/A",
     },
     {
       label: "Percent Change",
       sortKey: "percentChange",
       render: (row: any) =>
-        row.percentChange !== null ? formatString(row.percentChange, "percent") : "N/A",
+        row.percentChange !== null
+          ? formatString(row.percentChange, "percent")
+          : "N/A",
     },
     {
       label: "View Asset",
@@ -108,7 +124,13 @@ export default function AssetTable() {
   return (
     <>
       <h3>Assets Owned</h3>
-      <SortableTable data={data} columns={columns} initialSortKey="ticker" isLoading={isLoading} errors={[assetError, assetInfoError]}/>
+      <SortableTable
+        data={data}
+        columns={columns}
+        initialSortKey="ticker"
+        isLoading={isLoading}
+        errors={[assetError, assetInfoError]}
+      />
     </>
   );
 }

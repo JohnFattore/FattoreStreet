@@ -4,9 +4,9 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from '../main';
-import { setLocation } from '../reducers/locationReducer';
-import { getRestaurants } from '../functions/axiosFunctions';
+import { AppDispatch, RootState } from '../../main';
+import { setLocation } from '../../reducers/locationReducer';
+import { getRestaurants } from '../../functions/axiosFunctions';
 
 const STATE_CHOICES = [
     { value: "AZ", label: "Arizona" },

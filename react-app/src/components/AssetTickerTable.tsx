@@ -1,17 +1,32 @@
-import Table from "react-bootstrap/Table";
-import { Button, Spinner, Modal, Alert } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
-import {
-  useGetAssetsQuery,
-  useGetAssetInfosQuery,
-  useDeleteAssetMutation,
-} from "../functions/api";
-import { formatString, getErrorMessages } from "../functions/helperFunctions";
+import { useGetAssetsQuery, useGetAssetInfosQuery } from "../functions/api";
+import { formatString } from "../functions/helperFunctions";
 import { useState } from "react";
-import AssetSellForm from "../components/AssetSellForm";
+import { SortableTable } from "./SortableTable";
+import { Button } from "react-bootstrap";
+import { IAsset } from "../interfaces";
+import AssetDeleteSellModal from "./AssetDeleteSellModal";
 
-function AssetRow({ asset, assetInfo }) {
+export default function AssetTickerTable({ ticker }) {
+  const {
+    data: rawAllAssets,
+    isLoading: assetLoading,
+    error: assetError,
+  } = useGetAssetsQuery();
+  const allAssets = rawAllAssets ?? [];
+  const assets = allAssets?.filter((a) => a.ticker === ticker);
+  const {
+    data: rawAssetInfos,
+    isLoading: assetInfoLoading,
+    error: assetInfoError,
+  } = useGetAssetInfosQuery([ticker]);
+  const assetInfos = rawAssetInfos ?? {};
+  const { access } = useSelector((state: RootState) => state.user);
+  const isLoading = assetLoading || assetInfoLoading;
+
+  const [selectedAsset, setSelectedAsset] = useState<IAsset>();
+
   const [showSell, setShowSell] = useState(false);
   const handleCloseSell = () => setShowSell(false);
   const handleShowSell = () => setShowSell(true);
@@ -19,120 +34,112 @@ function AssetRow({ asset, assetInfo }) {
   const [showDelete, setShowDelete] = useState(false);
   const handleCloseDelete = () => setShowDelete(false);
   const handleShowDelete = () => setShowDelete(true);
-  const [deleteAsset, { error, isLoading }] = useDeleteAssetMutation();
-
-  if (!assetInfo) return null;
-  return (
-    <>
-      <Modal show={showSell} onHide={handleCloseSell}>
-        <Modal.Header closeButton>
-          <Modal.Title>{`Sell ${asset?.ticker}`}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {}
-          {`Would you like to sell ${asset?.ticker}?`}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseSell}>
-            Close
-          </Button>
-          <AssetSellForm asset={asset} />
-        </Modal.Footer>
-      </Modal>
-
-      <Modal show={showDelete} onHide={handleCloseDelete}>
-        <Modal.Header closeButton>
-          <Modal.Title>{`Delete ${asset?.ticker}`}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {error ? (
-            <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
-          ) : null}
-          {`Would you like to delete ${asset?.ticker}?`}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseDelete}>
-            Close
-          </Button>
-          <Button
-            disabled={isLoading}
-            onClick={async () => {
-              await deleteAsset(asset?.id!);
-            }}
-          >{`Delete ${asset?.ticker}`}</Button>
-        </Modal.Footer>
-      </Modal>
-      <tr>
-        <td>{asset.ticker}</td>
-        <td>{formatString(asset.shares, "amount")}</td>
-        <td>{asset.buyDate}</td>
-        <td>{formatString(asset.buyPrice, "money")}</td>
-        <td>{formatString(assetInfo.currentPrice * asset.shares, "money")}</td>
-        <td>
-          {formatString(
-            (assetInfo.currentPrice * asset.shares - asset.buyPrice) /
-              asset.buyPrice,
-            "percent"
-          )}
-        </td>
-        <td>
-          <Button onClick={handleShowSell}>{`Sell ${asset?.ticker}`}</Button>
-        </td>
-        <td>
-          <Button
-            onClick={handleShowDelete}
-          >{`Delete ${asset?.ticker}`}</Button>
-        </td>
-      </tr>
-    </>
-  );
-}
-
-export default function AssetTickerTable({ ticker }) {
-  const { data: allAssets } = useGetAssetsQuery();
-  const assets = allAssets?.filter((a) => a.ticker === ticker);
-  const { data: assetInfos, isLoading } = useGetAssetInfosQuery([ticker]);
-  const { access } = useSelector((state: RootState) => state.user);
 
   if (!access) {
-    return <></>;
+    return null;
   }
-
-  if (!assets) return <Spinner animation="border" />;
   const assetsOwned = assets.filter((item) => !item.sellDate);
 
   if (assetsOwned.length == 0 && access && !isLoading) {
     return null;
   }
 
-  if (access && isLoading) return <Spinner animation="border" />;
+  const data: any[] = [];
+  const info = assetInfos[ticker];
+  for (const asset of assetsOwned) {
+    data.push({
+      id: asset.id,
+      ticker: asset.ticker,
+      shares: asset.shares,
+      buyDate: asset.buyDate,
+      buyPrice: asset.buyPrice,
+      currentPrice: asset.shares * info?.currentPrice,
+      percentChange:
+        (asset.shares * info?.currentPrice - asset.buyPrice) / asset.buyPrice,
+    });
+  }
+
+  const columns = [
+    {
+      label: "Ticker",
+      sortKey: "ticker",
+    },
+    {
+      label: "Shares",
+      sortKey: "shares",
+      render: (row: any) => formatString(row.shares, "amount"),
+    },
+    {
+      label: "Buy Date",
+      sortKey: "buyDate",
+      render: (row: any) => formatString(row.buyDate, "date"),
+    },
+    {
+      label: "Buy Price",
+      sortKey: "buyPrice",
+      render: (row: any) => formatString(row.buyPrice, "money"),
+    },
+    {
+      label: "Current Price",
+      sortKey: "currentPrice",
+      render: (row: any) =>
+        row.currentPrice !== null
+          ? formatString(row.currentPrice, "money")
+          : "N/A",
+    },
+    {
+      label: "Percent Change",
+      sortKey: "percentChange",
+      render: (row: any) =>
+        row.percentChange !== null
+          ? formatString(row.percentChange, "percent")
+          : "N/A",
+    },
+    {
+      label: "Sell Asset",
+      sortKey: "sellAsset",
+      sortable: false,
+      render: (row: any) => {
+        setSelectedAsset(assets.find((asset) => asset.id === row.id));
+        return (
+          <Button
+            onClick={handleShowSell}
+          >{`Sell ${selectedAsset?.ticker}`}</Button>
+        );
+      },
+    },
+    {
+      label: "Delete Asset",
+      sortKey: "deleteAsset",
+      sortable: false,
+      render: (row: any) => {
+        setSelectedAsset(assets.find((asset) => asset.id === row.id));
+        return (
+          <Button
+            onClick={handleShowDelete}
+          >{`Delete ${selectedAsset?.ticker}`}</Button>
+        );
+      },
+    },
+  ];
 
   return (
     <>
       <h3>Purchased Assets</h3>
-      <Table>
-        <thead>
-          <tr>
-            <th>Ticker</th>
-            <th>Shares</th>
-            <th>Buy Date</th>
-            <th>Buy Price</th>
-            <th>Current Price</th>
-            <th>Percent Change</th>
-            <th>Sell Asset</th>
-            <th>Delete Asset</th>
-          </tr>
-        </thead>
-        <tbody>
-          {assetsOwned.map((asset) => (
-            <AssetRow
-              key={asset.id}
-              asset={asset}
-              assetInfo={assetInfos?.[asset.ticker]}
-            />
-          ))}
-        </tbody>
-      </Table>
+      <SortableTable
+        data={data}
+        columns={columns}
+        initialSortKey="ticker"
+        isLoading={isLoading}
+        errors={[assetError, assetInfoError]}
+      />
+      <AssetDeleteSellModal
+        asset={selectedAsset}
+        showSell={showSell}
+        showDelete={showDelete}
+        handleCloseSell={handleCloseSell}
+        handleCloseDelete={handleCloseDelete}
+      />
     </>
   );
 }

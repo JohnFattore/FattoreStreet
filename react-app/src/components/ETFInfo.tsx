@@ -55,7 +55,6 @@ export default function ETFInfo({ ticker }) {
             formatString(assetInfo.percentChange5Years, "percent")}
         </ListGroup.Item>
         <ListGroup.Item>
-          {" "}
           {"Expense Ratio: " + formatString(assetInfo.expenseRatio, "percent")}
         </ListGroup.Item>
       </ListGroup>

@@ -56,6 +56,9 @@ export default function BenchmarkCompareTable() {
     {
       label: "Ticker",
       sortKey: "ticker",
+      render: (row: any) => (
+        <div onClick={() => navigate(`/asset/${row.ticker}`)}>{row.ticker}</div>
+      ),
     },
     {
       label: "Name",
@@ -114,7 +117,7 @@ export default function BenchmarkCompareTable() {
 
   return (
     <>
-      <h3>Assets</h3>
+      <h3>Assets vs S&P 500</h3>
       <SortableTable data={data} columns={columns} initialSortKey="ticker" isLoading={assetLoading || assetInfoLoading} errors={[assetError, assetInfoError]}/>
     </>
   );

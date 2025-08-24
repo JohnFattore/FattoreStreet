@@ -30,6 +30,7 @@ export interface IQuote {
 
 export interface IEquityInfo {
     ticker: string;
+    displayName: string;
     shortName: string;
     longName: string;
     type: string;
@@ -43,6 +44,7 @@ export interface IEquityInfo {
     percentChangeYearly: number,
     percentChange3Years: number,
     percentChange5Years: number,
+    dividendYield: number,
     marketCap: number;
     trailingPE: number;
     incomeTTM: number;
