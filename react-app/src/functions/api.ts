@@ -119,7 +119,6 @@ export const api = createApi({
           if (item.type === "EQUITY") {
             result[item.ticker] = {
               ticker: item.ticker,
-              displayName: item.display_name,
               shortName: item.short_name,
               longName: item.long_name,
               type: "EQUITY",

@@ -15,7 +15,7 @@ environ.Env.read_env()
 # should really just keep data in cache
 def get_historical_prices(ticker: str):
     now = datetime.today() - timedelta(hours=7)
-    start = (now - timedelta(days=367 * 5)).strftime("%Y-%m-%d")
+    start = (now - timedelta(days=367 * 25)).strftime("%Y-%m-%d") # how far back should i try to go?
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d")
     cache_key = f"historical_prices_{ticker}_start:_{start}_end_{end}"
     cached_data = cache.get(cache_key)
@@ -81,11 +81,10 @@ def get_yfinance_data(ticker: str):
 
     if info["quoteType"] == "EQUITY":
         # dividend yield, forward 
-        financials["display_name"] =  info["displayName"]
         if info.get("dividendYield", None):
-            financials["dividendYield"] = info["dividendYield"]
+            financials["dividend_yield"] = info["dividendYield"]
         else:
-            financials["dividendYield"] = 0
+            financials["dividend_yield"] = 0
         quarterly_financials = yfinance.quarterly_financials
         financials["market_cap"] = info["marketCap"]
         financials["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum()

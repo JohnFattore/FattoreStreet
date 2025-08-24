@@ -22,7 +22,7 @@ export default function EquityInfo({ ticker }) {
   if (!assetInfo) {
     return <Alert variant="warning">No data available for {ticker}</Alert>;
   }
-
+console.log(assetInfo)
   return (
     <>
       <ListGroup>
@@ -57,6 +57,10 @@ export default function EquityInfo({ ticker }) {
         <ListGroup.Item>
           {"Market Capitalization: " +
             formatString(assetInfo.marketCap, "money")}
+        </ListGroup.Item>
+        <ListGroup.Item>
+          {"Annual Dividend Yield: " +
+            formatString(assetInfo.dividendYield / 100, "percent")}
         </ListGroup.Item>
         <ListGroup.Item>
           {"Price to Earnings Ratio: " +

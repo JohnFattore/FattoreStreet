@@ -30,7 +30,6 @@ export interface IQuote {
 
 export interface IEquityInfo {
     ticker: string;
-    displayName: string;
     shortName: string;
     longName: string;
     type: string;
