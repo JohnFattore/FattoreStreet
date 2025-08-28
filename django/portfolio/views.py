@@ -5,12 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from .serializers import AssetSerializer
 from .permissions import IsOwner
 from .models import Asset
-import yfinance as yf
 from datetime import datetime
 import environ
-from django.core.cache import cache
 from .helper import get_realtime_price, get_yfinance_data, is_market_open, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates
-from decimal import Decimal
 env = environ.Env()
 environ.Env.read_env()
 
@@ -65,15 +62,17 @@ class AssetInfoRetrieveView(APIView):
         data = []
         errors = []
         dates = get_market_reference_dates()
+        all_financials = get_yfinance_data(ticker_list)
+        all_prices = get_historical_prices(ticker_list)
         for ticker in ticker_list:
             try:
-                historical_prices = get_historical_prices(ticker)
+                historical_prices = all_prices[ticker]
                 reference_prices = {}
                 for label, date in dates.items():
                     price = historical_prices.get(date.strftime("%Y-%m-%d"), None)
                     reference_prices[label] = price
 
-                financials = get_yfinance_data(ticker)
+                financials = all_financials[ticker]
                 price = 0
                 percent_change_daily = 0
                 if financials["type"] == "MUTUALFUND":
@@ -102,7 +101,7 @@ class AssetHistoricalPricesRetrieveView(APIView):
         ticker = request.query_params.get("ticker")
         if (ticker == None):
             raise serializers.ValidationError({"ticker": "This field is required."})
-        prices = get_historical_prices(ticker)
+        prices = get_historical_prices([ticker])[ticker]
         output = []
         for date, price in prices.items():
             output.append({"date": date, "value": price})

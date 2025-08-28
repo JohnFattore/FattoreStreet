@@ -26,14 +26,14 @@ class AssetSerializer(serializers.ModelSerializer):
 
     def get_buy_price(self, obj):
         try:
-            prices = get_historical_prices(obj.ticker)
+            prices = get_historical_prices([obj.ticker])[obj.ticker]
             return prices[obj.buy_date.strftime("%Y-%m-%d")] * obj.shares
         except Exception as e:
             return None  # or str(e)
 
     def get_buy_SnP500(self, obj):
         try:
-            prices = get_historical_prices("SPY")
+            prices = get_historical_prices(["SPY"])["SPY"]
             return prices[obj.buy_date.strftime("%Y-%m-%d")] 
         except Exception as e:
             return None  # or str(e)
@@ -41,7 +41,7 @@ class AssetSerializer(serializers.ModelSerializer):
     def get_sell_price(self, obj):
         if obj.sell_date:
             try:
-                prices = get_historical_prices(obj.ticker)
+                prices = get_historical_prices([obj.ticker])[obj.ticker]
                 return prices[obj.sell_date.strftime("%Y-%m-%d")] * obj.shares
             except Exception as e:
                 return None
@@ -50,7 +50,7 @@ class AssetSerializer(serializers.ModelSerializer):
     def get_sell_SnP500(self, obj):
         if obj.sell_date:
             try:
-                prices = get_historical_prices("SPY")
+                prices = get_historical_prices(["SPY"])["SPY"]
                 return prices[obj.sell_date.strftime("%Y-%m-%d")] 
             except Exception as e:
                 return None

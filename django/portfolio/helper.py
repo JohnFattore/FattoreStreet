@@ -6,27 +6,32 @@ import requests
 import environ
 import pandas_market_calendars as mcal
 import pandas as pd
-from .choices import ASSET_TYPES, EXCHANGES, MARKETS
+#from .choices import ASSET_TYPES, EXCHANGES, MARKETS
 
 # Initialise environment variables
 env = environ.Env()
 environ.Env.read_env()
 
-# should really just keep data in cache
-def get_historical_prices(ticker: str):
+def get_historical_prices(tickers: list[str]):
     now = datetime.today() - timedelta(hours=7)
     start = (now - timedelta(days=367 * 25)).strftime("%Y-%m-%d") # how far back should i try to go?
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d")
-    cache_key = f"historical_prices_{ticker}_start:_{start}_end_{end}"
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        prices = cached_data
-    else:
-        yfinance = yf.Ticker(ticker)
-        data = yfinance.history(start=start, end=end)
-        prices = data[["Close"]]
-        prices = {idx.strftime("%Y-%m-%d"): Decimal(row["Close"]) for idx, row in prices.iterrows()}
-        cache.set(cache_key, prices, timeout=60 * 60 * 24)
+    prices = {}
+    uncached_tickers = []
+    for ticker in tickers:
+        cache_key = f"historical_prices_{ticker}_start:_{start}_end:_{end}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            prices[ticker] = cached_data
+        else:
+            uncached_tickers.append(ticker)
+    yfinance = yf.Tickers(" ".join(uncached_tickers))
+    for ticker in uncached_tickers:
+        data = yfinance.tickers[ticker].history(start=start, end=end)
+        ticker_prices = data[["Close"]]
+        ticker_prices = {idx.strftime("%Y-%m-%d"): Decimal(row["Close"]) for idx, row in ticker_prices.iterrows()}
+        cache.set(cache_key, ticker_prices, timeout=60 * 60 * 24)
+        prices[ticker] = ticker_prices
     return prices
 
 def get_realtime_price(ticker: str):
@@ -45,55 +50,45 @@ def get_realtime_price(ticker: str):
     cache.set(cache_key, output, timeout=60)
     return output
 
-def get_yfinance_data(ticker: str):
-    cache_key = f"financials_{ticker}"
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        return cached_data
-    yfinance = yf.Ticker(ticker)
-    info = yfinance.info
-    market = info["market"]
-    if market not in {m[0] for m in MARKETS}:
-        raise Exception(f"Market {market} not recognized")
-
-    type = info["quoteType"]
-    if type not in {t[0] for t in ASSET_TYPES}:
-        raise Exception(f"type {type} not recognized")
-
-    exchange = info["fullExchangeName"]
-
-    if exchange in {"NasdaqGS", "NasdaqGM", "NasdaqCM", "Nasdaq"}:
-        exchange = "NASDAQ"
-    elif exchange in {"NYSEArca"}:
-        exchange = "NYSE"
-
-    if exchange not in {e[0] for e in EXCHANGES}:
-        raise Exception(f"exchange {exchange} not recognized")
-
-    financials = {
-        "ticker": ticker,
-        "short_name": info["shortName"],
-        "long_name": info["longName"],
-        "type": type,
-        "market": market,
-        "exchange": exchange
-    }
-
-    if info["quoteType"] == "EQUITY":
-        # dividend yield, forward 
-        if info.get("dividendYield", None):
-            financials["dividend_yield"] = info["dividendYield"]
+def get_yfinance_data(tickers: list[str]):
+    financials = {}
+    # only add non cached tickers in ticker list
+    uncached_tickers = []
+    for ticker in tickers:
+        cache_key = f"financials_{ticker}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            financials[ticker] = cached_data
         else:
-            financials["dividend_yield"] = 0
-        quarterly_financials = yfinance.quarterly_financials
-        financials["market_cap"] = info["marketCap"]
-        financials["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum()
-        financials["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
+            uncached_tickers.append(ticker)
+    yfinance = yf.Tickers(" ".join(uncached_tickers))
+    for ticker in uncached_tickers:
+        info = yfinance.tickers[ticker].info
 
-    elif info["quoteType"] in ("ETF", "MUTUALFUND"):
-        financials["expenseRatio"] = info["netExpenseRatio"] / 100
+        financial_data = {
+            "ticker": ticker,
+            "short_name": info["shortName"],
+            "long_name": info["longName"],
+            "type": info["quoteType"],
+            "market": info["market"],
+            "exchange": info["fullExchangeName"]
+        }
+        if info.get("dividendYield", None):
+            financial_data["dividend_yield"] = info["dividendYield"]
+        else:
+            financial_data["dividend_yield"] = 0
+        if info["quoteType"] == "EQUITY":
+            quarterly_financials = yfinance.tickers[ticker].quarterly_financials
+            financial_data["market_cap"] = info["marketCap"]
+            financial_data["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum()
+            financial_data["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
 
-    cache.set(cache_key, financials, timeout=60 * 60 * 24)
+        elif info["quoteType"] in ("ETF", "MUTUALFUND"):
+            financial_data["expenseRatio"] = info["netExpenseRatio"] / 100
+            
+        cache_key = f"financials_{ticker}"
+        cache.set(cache_key, financial_data, timeout=60 * 60 * 24)
+        financials[ticker] = financial_data
     return financials
 
 def get_fred_data(series_id: str, compute_yoy: bool = False):
@@ -169,3 +164,18 @@ def percent_change(current_price: Decimal, historical_price: Decimal):
         return (current_price - historical_price) / historical_price
     else:
         return "N/A"
+    
+def get_all_us_tickers():
+    # NASDAQ listed
+    nasdaq_url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt"
+    nasdaq_data = pd.read_csv(nasdaq_url, sep="|")
+    nasdaq_tickers = nasdaq_data['Symbol'].tolist()
+
+    # NYSE listed
+    nyse_url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/otherlisted.txt"
+    nyse_data = pd.read_csv(nyse_url, sep="|")
+    nyse_tickers = nyse_data['ACT Symbol'].tolist()
+
+    # Combine and remove duplicates
+    all_tickers = list(set(nasdaq_tickers + nyse_tickers))
+    return all_tickers

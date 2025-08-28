@@ -158,6 +158,7 @@ export const api = createApi({
               marketCap: item.market_cap,
               trailingPE: item.ttm_pe,
               expenseRatio: item.expenseRatio,
+              dividendYield: item.dividend_yield,
             };
           } else {
             throw new Error(

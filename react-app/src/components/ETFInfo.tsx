@@ -27,6 +27,9 @@ export default function ETFInfo({ ticker }) {
     <>
       <ListGroup>
         <ListGroup.Item>
+          {"Current Price: " + formatString(assetInfo.currentPrice, "money")}
+        </ListGroup.Item>
+        <ListGroup.Item>
           {"Percent Change Today: " +
             formatString(assetInfo.percentChangeDaily, "percent")}
         </ListGroup.Item>
@@ -56,6 +59,10 @@ export default function ETFInfo({ ticker }) {
         </ListGroup.Item>
         <ListGroup.Item>
           {"Expense Ratio: " + formatString(assetInfo.expenseRatio, "percent")}
+        </ListGroup.Item>
+        <ListGroup.Item>
+          {"Annual Dividend Yield: " +
+            formatString(assetInfo.dividendYield / 100, "percent")}
         </ListGroup.Item>
       </ListGroup>
     </>

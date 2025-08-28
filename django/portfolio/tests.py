@@ -3,7 +3,6 @@ from django.contrib.auth.models import User
 from rest_framework import status
 from portfolio.models import Asset
 from django.urls import reverse
-from datetime import date
 
 class BaseAssetTest(APITestCase):
     def setUp(self):
@@ -98,7 +97,16 @@ class AssetInfoTest(BaseAssetTest):
         response = self.client.get(self.url, data, format='json')
         self.assertEqual(response.status_code, 200)
 
-class QuoteTest(BaseAssetTest):
+class AssetPricesTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('asset-prices')
+
+    def test_quote(self):
+        data = {'ticker': "AAPL"}
+        response = self.client.get(self.url, data, format='json')
+        self.assertEqual(response.status_code, 200)
+
+class QuoteTest(APITestCase):
     def setUp(self):
         self.url = reverse('quote')
 
@@ -107,7 +115,7 @@ class QuoteTest(BaseAssetTest):
         response = self.client.get(self.url, data, format='json')
         self.assertEqual(response.status_code, 200)
 
-class FredDataTest(BaseAssetTest):
+class FredDataTest(APITestCase):
     def setUp(self):
         self.url = reverse('fred-data')
 

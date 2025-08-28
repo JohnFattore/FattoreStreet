@@ -56,7 +56,6 @@ export default function WatchListForm() {
   return (
     <>
       <Form onSubmit={handleSubmit(onSubmit)}>
-      <Form.Label>Ticker</Form.Label>
       <Form.Control {...register("ticker")} placeholder="Enter Ticker Here" />
       {errors.ticker && (
         <Alert variant="danger" role="tickerError">

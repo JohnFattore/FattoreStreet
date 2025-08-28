@@ -1,5 +1,5 @@
 from celery import shared_task
-from .helper import get_yfinance_data, get_fred_data
+from .helper import get_yfinance_data, get_fred_data, get_all_us_tickers
 
 @shared_task
 def load_fred_cache():
@@ -15,6 +15,13 @@ def load_fred_cache():
 
 @shared_task
 def load_yfinance_cache():
-    tickers = ["AAPL", "MSFT", "VTI", "VOO", "V"]
-    for ticker in tickers:
-        get_yfinance_data(ticker)
+    tickers = get_all_us_tickers()
+    print(f"Total tickers: {len(tickers)}")
+    print(tickers[:20])
+    batch_size = 3
+    batches = [tickers[i:i+batch_size] for i in range(0, 30, batch_size)]
+    for batch in batches:
+        try:
+            get_yfinance_data(batch)
+        except Exception as e:
+            print(f"{batch} errored with message: {e}")

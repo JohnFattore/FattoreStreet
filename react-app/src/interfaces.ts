@@ -69,6 +69,7 @@ export interface IETFInfo {
     marketCap: number;
     trailingPE: number;
     expenseRatio: number;
+    dividendYield: number,
 }
 
 export interface IAlbum {

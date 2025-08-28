@@ -1,12 +1,7 @@
 django/mysite/.env
 AWSCommands.txt
 .env
-django/mysite/__pycache__/
-django/users/__pycache__/
-django/portfolio/__pycache__/
-django/chatbot/__pycache__/
-django/indexes/__pycache__/
-django/restaurants/__pycache__/
+**/__pycache__/
 
 django/lib
 

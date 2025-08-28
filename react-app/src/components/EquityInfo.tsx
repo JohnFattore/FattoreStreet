@@ -22,10 +22,14 @@ export default function EquityInfo({ ticker }) {
   if (!assetInfo) {
     return <Alert variant="warning">No data available for {ticker}</Alert>;
   }
-console.log(assetInfo)
+  console.log(assetInfo);
   return (
     <>
       <ListGroup>
+        <ListGroup.Item>
+          {"Current Price: " +
+            formatString(assetInfo.currentPrice, "money")}
+        </ListGroup.Item>
         <ListGroup.Item>
           {"Percent Change Today: " +
             formatString(assetInfo.percentChangeDaily, "percent")}

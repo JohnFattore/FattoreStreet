@@ -18,10 +18,10 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
 'Load yfinance Cache': {
  'task': 'portfolio.tasks.load_yfinance_cache',
- 'schedule': crontab(hour=9, minute=0),
+ 'schedule': crontab(hour=0, minute=53),
    },
-'Load FRED Cache': {
- 'task': 'portfolio.tasks.load_fred_cache',
- 'schedule': crontab(hour=9, minute=5),
-   },
+#'Load FRED Cache': {
+# 'task': 'portfolio.tasks.load_fred_cache',
+# 'schedule': crontab(hour=9, minute=5),
+#   },
 }

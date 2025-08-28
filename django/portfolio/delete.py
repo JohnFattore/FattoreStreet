@@ -1,4 +1,5 @@
 import pandas as pd
+from .helper import get_yfinance_data
 
 def get_all_us_tickers():
     # NASDAQ listed
@@ -15,7 +16,8 @@ def get_all_us_tickers():
     all_tickers = list(set(nasdaq_tickers + nyse_tickers))
     return all_tickers
 
-if __name__ == "__main__":
     tickers = get_all_us_tickers()
     print(f"Total tickers: {len(tickers)}")
     print(tickers[:20])
+    for ticker in tickers[:20]:
+        get_yfinance_data(ticker)

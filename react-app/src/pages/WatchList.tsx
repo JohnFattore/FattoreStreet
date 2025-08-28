@@ -7,6 +7,7 @@ import BenchmarkTable from "../components/BenchmarkTable";
 import WatchListForm from "../components/WatchListForm";
 import FinnhubBanner from "../components/FinnhubBanner";
 import { Alert } from "react-bootstrap";
+import TickerSearchForm from "../components/TickerSearchForm";
 
 export default function WatchList() {
   const dispatch = useDispatch<AppDispatch>();
@@ -23,6 +24,7 @@ export default function WatchList() {
       <WatchListTable />
       {error && <Alert variant="danger">{error}</Alert>}
       <WatchListForm />
+      <TickerSearchForm />
       <FinnhubBanner />
     </>
   );
