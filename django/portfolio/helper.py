@@ -67,24 +67,26 @@ def get_yfinance_data(tickers: list[str]):
 
         financial_data = {
             "ticker": ticker,
-            "short_name": info["shortName"],
-            "long_name": info["longName"],
-            "type": info["quoteType"],
-            "market": info["market"],
-            "exchange": info["fullExchangeName"]
+            "short_name": info.get("shortName", ticker),
+            "long_name": info.get("longName", ticker),
+            "type": info.get("quoteType", "N/A"),
+            "market": info.get("market", "N/A"),
+            "exchange": info.get("fullExchangeName", "N/A")
         }
         if info.get("dividendYield", None):
             financial_data["dividend_yield"] = info["dividendYield"]
         else:
             financial_data["dividend_yield"] = 0
-        if info["quoteType"] == "EQUITY":
+        
+        quote_type = info.get("quoteType", "")
+        if quote_type == "EQUITY":
             quarterly_financials = yfinance.tickers[ticker].quarterly_financials
-            financial_data["market_cap"] = info["marketCap"]
-            financial_data["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum()
-            financial_data["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum()
+            financial_data["market_cap"] = info.get("marketCap", 0)
+            financial_data["net_income"] = quarterly_financials.loc["Net Income"].iloc[:4].sum() if "Net Income" in quarterly_financials.index else 0
+            financial_data["total_revenue"] = quarterly_financials.loc["Total Revenue"].iloc[:4].sum() if "Total Revenue" in quarterly_financials.index else 0
 
-        elif info["quoteType"] in ("ETF", "MUTUALFUND"):
-            financial_data["expenseRatio"] = info["netExpenseRatio"] / 100
+        elif quote_type in ("ETF", "MUTUALFUND"):
+            financial_data["expenseRatio"] = info.get("netExpenseRatio", 0) / 100
             
         cache_key = f"financials_{ticker}"
         cache.set(cache_key, financial_data, timeout=60 * 60 * 24)
