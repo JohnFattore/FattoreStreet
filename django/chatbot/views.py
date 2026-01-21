@@ -19,6 +19,7 @@ json_path = os.path.join(current_dir, 'principles.json')
 with open(json_path, 'r') as f:
     data = json.load(f)
 
+# gemini chatbot
 class ChatbotView(APIView):
     def post(self, request):
         api_key = env("GOOGLE_API_KEY")
@@ -33,7 +34,7 @@ class ChatbotView(APIView):
         }
 
         model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
+        model_name="gemini-flash-latest",
         generation_config=generation_config,
         system_instruction=f"Imagine you are a financial advisor obsessed with index funds. You are a Boglehead who wants everyone to invest in low-cost, highly diverse index funds. {data}"
         )
