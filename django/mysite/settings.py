@@ -84,7 +84,7 @@ if (env("DATABASE") == 'postgresDocker'):
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'postgres',
             'USER': 'postgres',
-            'PASSWORD': 'postgres',
+            'PASSWORD': env("POSTGRES_PASSWORD"),
             'HOST': 'postgres',
             'PORT': '5432',
         }
