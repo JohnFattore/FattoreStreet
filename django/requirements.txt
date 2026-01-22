@@ -29,7 +29,7 @@ yfinance==0.2.65
 # Redis library for Celery and Django
 redis==4.5.5
 # PyTorch for machine learning
-# torch==2.0.1
+torch==2.0.1 
 # pandas for numerical computations
 pandas==2.1.1
 numpy==1.26.0

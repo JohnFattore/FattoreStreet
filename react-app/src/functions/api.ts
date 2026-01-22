@@ -10,28 +10,28 @@ const axiosBaseQuery =
     data?: AxiosRequestConfig["data"];
     params?: AxiosRequestConfig["params"];
   }> =>
-  async ({ url, method, data, params }, api) => {
-    try {
-      const state = api.getState() as RootState;
-      const access = state.user.access;
-      const result = await axios({
-        url: import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL + url,
-        method,
-        data,
-        params: params,
-        headers: access ? { Authorization: `Bearer ${access}` } : undefined,
-      });
-      return { data: result.data };
-    } catch (axiosError) {
-      const err = axiosError as AxiosError;
-      return {
-        error: {
-          status: err.response?.status,
-          data: err.response?.data || err.message,
-        },
-      };
-    }
-  };
+    async ({ url, method, data, params }, api) => {
+      try {
+        const state = api.getState() as RootState;
+        const access = state.user.access;
+        const result = await axios({
+          url: import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL + url,
+          method,
+          data,
+          params: params,
+          headers: access ? { Authorization: `Bearer ${access}` } : undefined,
+        });
+        return { data: result.data };
+      } catch (axiosError) {
+        const err = axiosError as AxiosError;
+        return {
+          error: {
+            status: err.response?.status,
+            data: err.response?.data || err.message,
+          },
+        };
+      }
+    };
 
 export const api = createApi({
   reducerPath: "api",
@@ -65,6 +65,13 @@ export const api = createApi({
         data: newAsset,
       }),
       invalidatesTags: [{ type: "Assets", id: "LIST" }],
+    }),
+    createAccount: builder.mutation({
+      query: (newAccount) => ({
+        url: "accounts/",
+        method: "POST",
+        data: newAccount,
+      }),
     }),
     getAsset: builder.query<IAsset, number>({
       query: (id) => ({
@@ -211,5 +218,6 @@ export const {
   useDeleteAssetMutation,
   usePatchAssetMutation,
   useGetFredDataQuery,
-  useGetQuoteQuery
+  useGetQuoteQuery,
+  useCreateAccountMutation
 } = api;

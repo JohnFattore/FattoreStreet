@@ -3,7 +3,10 @@ AWSCommands.txt
 .env
 **/__pycache__/
 
-django/lib
+venv/
+.venv/
+env/
+.env/
 
 *.log
 deploy.sh

@@ -1,4 +1,5 @@
 import AssetForm from "../components/AssetForm";
+import CreateAccountForm from "../components/CreateAccountForm";
 import AssetTable from "../components/AssetTable";
 import { Row, Col, Accordion, Alert } from "react-bootstrap";
 import { useSelector } from "react-redux";
@@ -11,11 +12,12 @@ import { useGetAssetsQuery } from "../functions/api";
 
 export default function Portfolio() {
   const { username } = useSelector((state: RootState) => state.user);
-  const {data: assets} = useGetAssetsQuery();
+  const { data: assets } = useGetAssetsQuery();
   return (
     <>
       <Row>
         <Col>
+          <CreateAccountForm />
           <AssetForm />
         </Col>
         <Col>

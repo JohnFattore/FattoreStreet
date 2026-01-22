@@ -1,7 +1,14 @@
 from rest_framework import serializers
-from .models import Asset
+from .models import Asset, Account
 from django.utils import timezone
 from .helper import get_historical_prices, is_market_open
+
+class AccountSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Account
+        fields = ['id', 'name', 'account_type', 'user']
 
 # serializer for Asset Model
 class AssetSerializer(serializers.ModelSerializer):

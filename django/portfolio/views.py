@@ -2,14 +2,33 @@ from rest_framework import generics, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .serializers import AssetSerializer
+from .serializers import AssetSerializer, AccountSerializer
 from .permissions import IsOwner
-from .models import Asset
+from .models import Asset, Account
 from datetime import datetime
 import environ
 from .helper import get_realtime_price, get_yfinance_data, is_market_open, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates
 env = environ.Env()
 environ.Env.read_env()
+
+class AccountListCreateView(generics.ListCreateAPIView):
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get_queryset(self):
+        return Account.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class AccountRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get_queryset(self):
+        return Account.objects.filter(user=self.request.user)
 
 # API endpoint for 'get' assets and 'post' asset
 class AssetListCreateView(generics.ListCreateAPIView):
