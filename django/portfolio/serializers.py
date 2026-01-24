@@ -29,7 +29,8 @@ class AssetSerializer(serializers.ModelSerializer):
                   'sell_date',
                   'sell_price',
                   'sell_SnP500',
-                  'user']
+                  'user',
+                  'account']
 
     def get_buy_price(self, obj):
         try:

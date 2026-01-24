@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
-import { useGetAssetsQuery, useGetAssetInfosQuery } from "../functions/api";
+import { useGetAssetsQuery, useGetAssetInfosQuery, useGetAccountsQuery } from "../functions/api";
 import { formatString } from "../functions/helperFunctions";
 import { useState } from "react";
 import { SortableTable } from "./SortableTable";
@@ -9,6 +9,7 @@ import { IAsset } from "../interfaces";
 import AssetDeleteSellModal from "./AssetDeleteSellModal";
 
 export default function AssetTickerTable({ ticker }) {
+  const { access } = useSelector((state: RootState) => state.user);
   const {
     data: rawAllAssets,
     isLoading: assetLoading,
@@ -16,14 +17,20 @@ export default function AssetTickerTable({ ticker }) {
   } = useGetAssetsQuery();
   const allAssets = rawAllAssets ?? [];
   const assets = allAssets?.filter((a) => a.ticker === ticker);
+
+  const { data: accountsRaw, isLoading: accountsLoading, error: accountsError } = useGetAccountsQuery(undefined, {
+    skip: !access,
+  });
+  const accounts = accountsRaw ?? [];
+
   const {
     data: rawAssetInfos,
     isLoading: assetInfoLoading,
     error: assetInfoError,
   } = useGetAssetInfosQuery([ticker]);
   const assetInfos = rawAssetInfos ?? {};
-  const { access } = useSelector((state: RootState) => state.user);
-  const isLoading = assetLoading || assetInfoLoading;
+
+  const isLoading = assetLoading || assetInfoLoading || accountsLoading;
 
   const [selectedAsset, setSelectedAsset] = useState<IAsset>();
 
@@ -47,10 +54,12 @@ export default function AssetTickerTable({ ticker }) {
   const data: any[] = [];
   const info = assetInfos[ticker];
   for (const asset of assetsOwned) {
+    const account = accounts.find((a) => a.id === asset.account);
     data.push({
       id: asset.id,
       ticker: asset.ticker,
       shares: asset.shares,
+      accountName: account?.name ?? "N/A",
       buyDate: asset.buyDate,
       buyPrice: asset.buyPrice,
       currentPrice: asset.shares * info?.currentPrice,
@@ -63,6 +72,10 @@ export default function AssetTickerTable({ ticker }) {
     {
       label: "Ticker",
       sortKey: "ticker",
+    },
+    {
+      label: "Account",
+      sortKey: "accountName",
     },
     {
       label: "Shares",
@@ -100,11 +113,13 @@ export default function AssetTickerTable({ ticker }) {
       sortKey: "sellAsset",
       sortable: false,
       render: (row: any) => {
-        setSelectedAsset(assets.find((asset) => asset.id === row.id));
         return (
           <Button
-            onClick={handleShowSell}
-          >{`Sell ${selectedAsset?.ticker}`}</Button>
+            onClick={() => {
+              setSelectedAsset(assets.find((asset) => asset.id === row.id));
+              handleShowSell();
+            }}
+          >{`Sell ${ticker}`}</Button>
         );
       },
     },
@@ -113,11 +128,13 @@ export default function AssetTickerTable({ ticker }) {
       sortKey: "deleteAsset",
       sortable: false,
       render: (row: any) => {
-        setSelectedAsset(assets.find((asset) => asset.id === row.id));
         return (
           <Button
-            onClick={handleShowDelete}
-          >{`Delete ${selectedAsset?.ticker}`}</Button>
+            onClick={() => {
+              setSelectedAsset(assets.find((asset) => asset.id === row.id));
+              handleShowDelete();
+            }}
+          >{`Delete ${ticker}`}</Button>
         );
       },
     },
@@ -131,7 +148,7 @@ export default function AssetTickerTable({ ticker }) {
         columns={columns}
         initialSortKey="ticker"
         isLoading={isLoading}
-        errors={[assetError, assetInfoError]}
+        errors={[assetError, assetInfoError, accountsError]}
       />
       <AssetDeleteSellModal
         asset={selectedAsset}

@@ -37,7 +37,11 @@ class AssetListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsOwner]
     # return only the assets the user owns
     def get_queryset(self):
-        return Asset.objects.filter(user=self.request.user)
+        queryset = Asset.objects.filter(user=self.request.user)
+        account_id = self.request.query_params.get('account_id')
+        if account_id:
+            queryset = queryset.filter(account_id=account_id)
+        return queryset
 
     # user comes from different part of response as other data
     def perform_create(self, serializer):
@@ -48,7 +52,17 @@ class AssetListCreateView(generics.ListCreateAPIView):
         if not is_market_open(buy_date):
             raise serializers.ValidationError({"detail": f"Market closed on {buy_date}"})           
 
-        serializer.save(user=self.request.user, ticker=ticker, shares=shares, buy_date=buy_date)
+        account = None
+        account_id = self.request.data.get("account_id")
+        if account_id:
+            try:
+                account = Account.objects.get(id=account_id)
+                if account.user != self.request.user:
+                    raise serializers.ValidationError({"detail": "You do not own this account."})
+            except Account.DoesNotExist:
+                 raise serializers.ValidationError({"detail": "Account does not exist."})
+
+        serializer.save(user=self.request.user, ticker=ticker, shares=shares, buy_date=buy_date, account=account)
 
 # API endpoint for 'get' or 'delete' or "patch" asset, only the owner should be able to do this
 class AssetRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):

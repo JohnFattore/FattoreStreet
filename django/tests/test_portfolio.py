@@ -1,6 +1,6 @@
 from rest_framework import status
 from django.urls import reverse
-from portfolio.models import Asset
+from portfolio.models import Asset, Account
 from tests.base import BaseAPITestCase
 
 class AssetsTests(BaseAPITestCase):
@@ -11,6 +11,32 @@ class AssetsTests(BaseAPITestCase):
     def post_asset(self):
         data = {'ticker': 'SPY', 'shares': 10, 'buy_date': '2023-10-13'}
         return self.client.post(reverse('assets'), data, format='json')
+
+    def test_get_assets_filtered_by_account(self):
+        """Test retrieving assets filtered by account."""
+        self.authenticate_client()
+        # Create an account
+        account_data = {'name': 'Test Account', 'account_type': 'ROTH_IRA'}
+        self.client.post(reverse('accounts'), account_data, format='json')
+        account = Account.objects.get(name='Test Account')
+
+        # Asset 1 linked to account
+        asset1 = Asset.objects.create(ticker='MSFT', shares=5, buy_date='2023-01-02', user=self.user, account=account)
+        
+        # Asset 2 not linked (or linked to different account)
+        asset2 = Asset.objects.create(ticker='GOOG', shares=5, buy_date='2023-01-02', user=self.user)
+
+        # Filter by account
+        response = self.client.get(reverse('assets'), {'account_id': account.id})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['ticker'], 'MSFT')
+
+        # Get all assets
+        response = self.client.get(reverse('assets'))
+        # Should include SPY (from setUp/post if any - wait setUp doesn't create asset), MSFT, GOOG
+        # Wait, setUp defines self.url but doesn't create assets.
+        self.assertEqual(len(response.data), 2)
 
     def test_create_asset_unauthenticated(self):
         self.unauthenticate_client()

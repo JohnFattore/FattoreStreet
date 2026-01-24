@@ -7,7 +7,11 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { SortableTable } from "./SortableTable";
 
-export default function AssetTable() {
+interface Props {
+  accountId?: number;
+}
+
+export default function AssetTable({ accountId }: Props) {
   const navigate = useNavigate();
   const { access } = useSelector((state: RootState) => state.user);
   const {
@@ -15,7 +19,7 @@ export default function AssetTable() {
     refetch,
     isLoading: assetInfoLoading,
     error: assetError,
-  } = useGetAssetsQuery();
+  } = useGetAssetsQuery(accountId);
   const assets = assetsRaw ?? [];
   const tickers = [...new Set(assets.map((a) => a.ticker))];
   const {
@@ -59,7 +63,7 @@ export default function AssetTable() {
       currentPrice: info ? info.currentPrice * data.totalShares : null,
       percentChange: info
         ? (info.currentPrice * data.totalShares - data.totalCost) /
-          data.totalCost
+        data.totalCost
         : null,
       shortName: info?.shortName ?? "Error Loading Info",
       hasError: !info,

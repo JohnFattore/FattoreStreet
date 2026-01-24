@@ -36,12 +36,13 @@ const axiosBaseQuery =
 export const api = createApi({
   reducerPath: "api",
   baseQuery: axiosBaseQuery(),
-  tagTypes: ["Assets"],
+  tagTypes: ["Assets", "Accounts"],
   endpoints: (builder) => ({
-    getAssets: builder.query<IAsset[], void>({
-      query: () => ({
+    getAssets: builder.query<IAsset[], number | void>({
+      query: (accountId) => ({
         url: "assets/",
         method: "GET",
+        params: accountId ? { account_id: accountId } : undefined,
       }),
       transformResponse: (response: any[]): IAsset[] => {
         return response.map((item) => ({
@@ -49,14 +50,29 @@ export const api = createApi({
           ticker: item.ticker,
           shares: Number(item.shares),
           buyDate: item.buy_date,
-          buyPrice: item.buy_price,
-          snp500PriceBuy: item.buy_SnP500,
+          buyPrice: Number(item.buy_price),
+          snp500PriceBuy: Number(item.buy_SnP500),
           sellDate: item.sell_date,
-          sellPrice: item.sell_price,
-          snp500PriceSell: item.sell_SnP500,
+          sellPrice: item.sell_price ? Number(item.sell_price) : null,
+          snp500PriceSell: item.sell_SnP500 ? Number(item.sell_SnP500) : null,
+          account: item.account,
         }));
       },
       providesTags: [{ type: "Assets", id: "LIST" }],
+    }),
+    getAccounts: builder.query<{ id: number, name: string, account_type: string }[], void>({
+      query: () => ({
+        url: "accounts/",
+        method: "GET",
+      }),
+      providesTags: [{ type: "Accounts", id: "LIST" }],
+    }),
+    getAccount: builder.query<{ id: number, name: string, account_type: string }, number>({
+      query: (id) => ({
+        url: `accounts/${id}/`,
+        method: "GET",
+      }),
+      providesTags: (_result, _error, id) => [{ type: "Accounts", id }],
     }),
     postNewAsset: builder.mutation({
       query: (newAsset) => ({
@@ -72,6 +88,7 @@ export const api = createApi({
         method: "POST",
         data: newAccount,
       }),
+      invalidatesTags: [{ type: "Accounts", id: "LIST" }],
     }),
     getAsset: builder.query<IAsset, number>({
       query: (id) => ({
@@ -89,6 +106,7 @@ export const api = createApi({
           sellDate: response.sell_date,
           sellPrice: response.sell_price,
           snp500PriceSell: response.sell_SnP500,
+          account: response.account,
         };
       },
       providesTags: [],
@@ -219,5 +237,7 @@ export const {
   usePatchAssetMutation,
   useGetFredDataQuery,
   useGetQuoteQuery,
-  useCreateAccountMutation
+  useCreateAccountMutation,
+  useGetAccountsQuery,
+  useGetAccountQuery
 } = api;

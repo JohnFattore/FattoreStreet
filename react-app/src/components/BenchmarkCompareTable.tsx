@@ -1,7 +1,7 @@
 import { Button } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
-import { useGetAssetsQuery, useGetAssetInfosQuery, useGetQuoteQuery } from "../functions/api";
+import { useGetAssetsQuery, useGetAssetInfosQuery, useGetQuoteQuery, useGetAccountsQuery } from "../functions/api";
 import { formatString } from "../functions/helperFunctions";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -17,6 +17,12 @@ export default function BenchmarkCompareTable() {
     isLoading: assetLoading,
   } = useGetAssetsQuery();
   const assets = assetsRaw ?? [];
+
+  const { data: accountsRaw, isLoading: accountsLoading, error: accountsError } = useGetAccountsQuery(undefined, {
+    skip: !access,
+  });
+  const accounts = accountsRaw ?? [];
+
   const tickers = [...new Set(assets.map((a) => a.ticker))];
   const {
     data: assetInfosRaw,
@@ -36,9 +42,11 @@ export default function BenchmarkCompareTable() {
 
   const data = assets.map((asset) => {
     const info = assetInfos[asset.ticker];
+    const account = accounts.find((a) => a.id === asset.account);
     return {
       ticker: asset.ticker,
       shares: asset.shares,
+      accountName: account?.name ?? "N/A",
       buyDate: asset.buyDate,
       buyPrice: asset.buyPrice,
       sellDate: asset.sellDate ? asset.sellDate : "Not Sold",
@@ -63,6 +71,10 @@ export default function BenchmarkCompareTable() {
     {
       label: "Name",
       sortKey: "shortName",
+    },
+    {
+      label: "Account",
+      sortKey: "accountName",
     },
     {
       label: "Shares",
@@ -118,7 +130,7 @@ export default function BenchmarkCompareTable() {
   return (
     <>
       <h3>Assets vs S&P 500</h3>
-      <SortableTable data={data} columns={columns} initialSortKey="ticker" isLoading={assetLoading || assetInfoLoading} errors={[assetError, assetInfoError]}/>
+      <SortableTable data={data} columns={columns} initialSortKey="ticker" isLoading={assetLoading || assetInfoLoading || accountsLoading} errors={[assetError, assetInfoError, accountsError]} />
     </>
   );
 }

@@ -2,21 +2,48 @@ import { http } from "msw";
 
 export const handlers = [
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets"),
+    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("accounts/"),
+    () => {
+      return Response.json(
+        [
+          { id: 1, name: "Taxable Brokerage", account_type: "TAXABLE_ACCOUNT" },
+          { id: 2, name: "Roth IRA", account_type: "ROTH_IRA" },
+        ],
+        { status: 200 }
+      );
+    }
+  ),
+
+  http.get(
+    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"),
     () => {
       return Response.json(
         [
           {
             id: 223,
             ticker: "MSFT",
-            shares: "1.00000",
+            shares: "10.00000",
             buy_date: "2025-07-30",
-            buy_price: 513.239990234375,
-            buy_SnP500: 634.4600219726562,
+            buy_price: 300,
+            buy_SnP500: 400,
             sell_date: null,
             sell_price: null,
             sell_SnP500: null,
             user: 5,
+            account: 1,
+          },
+          {
+            id: 224,
+            ticker: "AAPL",
+            shares: "20.00000",
+            buy_date: "2025-07-30",
+            buy_price: 150,
+            buy_SnP500: 400,
+            sell_date: null,
+            sell_price: null,
+            sell_SnP500: null,
+            user: 5,
+            account: 2,
           },
         ],
         { status: 200 }
@@ -28,33 +55,30 @@ export const handlers = [
     import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-info/"),
     () => {
       return Response.json(
-        [
-          {
-            ticker: "MSFT",
-            short_name: "Microsoft Corporation",
-            long_name: "Microsoft Corporation",
-            type: "EQUITY",
-            market: "us_market",
-            exchange: "NASDAQ",
-            "1_week_ago": 522.0399780273438,
-            "1_month_ago": 510.04998779296875,
-            year_to_date: 419.88568115234375,
-            "1_year_ago": 416.0345458984375,
-            "3_years_ago": 283.5922546386719,
-            "5_years_ago": 202.62554931640625,
-            market_cap: 3866511802368,
-            net_income: 101832000000.0,
-            total_revenue: 281724000000.0,
-            current_price: 520.17,
-            percent_change_daily: -0.004421,
-            percent_change_weekly: -0.003582059049212978,
-            percent_change_monthly: 0.019841216447865028,
-            percent_change_YTD: 0.23883719628741246,
-            percent_change_yearly: 0.2503048247512216,
-            percent_change_3_years: 0.8342179361095545,
-            percent_change_5_years: 1.567149116954338,
-          },
-        ],
+        {
+          data: [
+            {
+              ticker: "MSFT",
+              short_name: "Microsoft Corporation",
+              long_name: "Microsoft Corporation",
+              type: "EQUITY",
+              market: "us_market",
+              exchange: "NASDAQ",
+              current_price: 500,
+              percent_change_daily: 0.02, // 2% up
+            },
+            {
+              ticker: "AAPL",
+              short_name: "Apple Inc.",
+              long_name: "Apple Inc.",
+              type: "EQUITY",
+              market: "us_market",
+              exchange: "NASDAQ",
+              current_price: 200,
+              percent_change_daily: -0.01, // 1% down
+            },
+          ]
+        },
         { status: 200 }
       );
     }

@@ -17,6 +17,7 @@ import { logout, clearErrors } from "./reducers/userReducer";
 import { useEffect } from "react";
 import Chatbot from "./pages/Chatbot";
 import AssetView from "./pages/AssetView";
+import AccountView from "./pages/AccountView";
 import Admin from "./pages/Admin";
 
 // react router for all our routes
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/entertainment" element={<Entertainment />} />
         <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/asset/:ticker" element={<AssetView />} />
+        <Route path="/account/:id" element={<AccountView />} />
         <Route path="/visualizer" element={<Visualizer />} />
         <Route path="/economic-indicators" element={<EconomicIndicators />} />
         <Route path="/react-admin" element={<Admin />} />

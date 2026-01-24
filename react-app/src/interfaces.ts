@@ -1,5 +1,5 @@
 export interface IAllocation {
-    ticker: string; 
+    ticker: string;
     shares: number;
 }
 
@@ -13,6 +13,7 @@ export interface IAsset {
     sellDate: string | null,
     sellPrice: number | null,
     snp500PriceSell: number | null,
+    account: number | null,
 }
 
 export interface ISnP500Price {
