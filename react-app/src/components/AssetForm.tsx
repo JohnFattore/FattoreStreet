@@ -1,4 +1,4 @@
-import { Form, Col, Row } from "react-bootstrap";
+import { Form, Col, Row, Button, Modal } from "react-bootstrap";
 import Alert from "react-bootstrap/Alert";
 import { useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
@@ -6,10 +6,10 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import LoginForm from "./LoginForm";
-import { usePostNewAssetMutation, useGetAccountsQuery } from "../functions/api";
-import { getErrorMessages } from "../functions/helperFunctions";
+import { usePostNewAssetMutation, useGetAccountsQuery, useLazyGetAssetInfosQuery } from "../functions/api";
+import { getErrorMessages, formatString } from "../functions/helperFunctions";
 import LoadingButton from "./LoadingButton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface IFormInput {
   ticker: string;
@@ -26,6 +26,17 @@ export default function AssetForm({ defaultAccountId }: AssetFormProps) {
   const [postNewAsset, { error, isLoading }] = usePostNewAssetMutation();
   const { access } = useSelector((state: RootState) => state.user);
   const { data: accounts } = useGetAccountsQuery(undefined, { skip: !access });
+  const [show, setShow] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [triggerAssetInfo] = useLazyGetAssetInfosQuery();
+
+  const handleClose = () => {
+    setShow(false);
+    setSuccess(null);
+    reset();
+  };
+  const handleShow = () => setShow(true);
 
   const schema = yup.object().shape({
     ticker: yup.string().required().uppercase(),
@@ -37,6 +48,7 @@ export default function AssetForm({ defaultAccountId }: AssetFormProps) {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<IFormInput>({
     resolver: yupResolver(schema),
@@ -54,12 +66,28 @@ export default function AssetForm({ defaultAccountId }: AssetFormProps) {
 
   //console.log(watch("ticker"))
   const onSubmit: SubmitHandler<IFormInput> = async (data) => {
-    await postNewAsset({
-      ticker: data.ticker,
-      shares: data.shares,
-      buy_date: data.buyDate,
-      account_id: data.accountId ? Number(data.accountId) : null,
-    });
+    setIsProcessing(true);
+    try {
+      const result: any = await postNewAsset({
+        ticker: data.ticker,
+        shares: data.shares,
+        buy_date: data.buyDate,
+        account_id: data.accountId ? Number(data.accountId) : null,
+      });
+
+      if ('data' in result) {
+        const assetData = result.data;
+        const infoResult = await triggerAssetInfo([data.ticker]);
+        const info = infoResult.data ? infoResult.data[data.ticker] : null;
+        const companyName = info?.shortName || data.ticker;
+
+        const message = `Successfully added ${companyName} (${data.ticker}) - ${data.shares} shares at ${formatString(assetData.buy_price, "money")} on ${data.buyDate}`;
+        setSuccess(message);
+        reset();
+      }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!access) {
@@ -73,74 +101,94 @@ export default function AssetForm({ defaultAccountId }: AssetFormProps) {
 
   return (
     <>
-      <h3>Add Assets</h3>
-      {error ? (
-        <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
-      ) : null}
-      <Form onSubmit={handleSubmit(onSubmit)}>
-        <Row>
-          <Col>
-            <Form.Control
-              size="lg"
-              {...register("ticker", {
-                required: true,
-              })}
-              placeholder="Ticker"
-            />
-            {errors.ticker && (
-              <Alert variant="danger" role="tickerError">
-                Error: Ticker text field is required
-              </Alert>
-            )}
-          </Col>
-          <Col>
-            <Form.Control
-              size="lg"
-              {...register("shares", {
-                required: true,
-              })}
-              placeholder="Shares"
-            />
-            {errors.shares && (
-              <Alert variant="danger" role="sharesError">
-                Error: Shares number field is required
-              </Alert>
-            )}
-          </Col>
-        </Row>
-        <Row>
-          <Col>
-            <Form.Control
-              type="date"
-              size="lg"
-              {...register("buyDate", {
-                required: true,
-              })}
-              placeholder="Buy Date"
-            />
-            {errors.buyDate && (
-              <Alert variant="danger" role="buyDateError">
-                Error: Buy date field is required
-              </Alert>
-            )}
-          </Col>
-          <Col>
-            <Form.Select
-              size="lg"
-              {...register("accountId")}
-              disabled={!!defaultAccountId}
-            >
-              <option value="">Select Account (Optional)</option>
-              {accounts?.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-        </Row>
-        <LoadingButton label={"Add to Portfolio"} loading={isLoading} />
-      </Form>
+      <Button variant="primary" onClick={handleShow} className="mb-3">
+        Add Asset
+      </Button>
+
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Asset</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {success && <Alert variant="success">{success}</Alert>}
+          {error ? (
+            <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
+          ) : null}
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            <Row>
+              <Col>
+                <Form.Control
+                  size="lg"
+                  {...register("ticker", {
+                    required: true,
+                  })}
+                  placeholder="Ticker"
+                  className="mb-3"
+                />
+                {errors.ticker && (
+                  <Alert variant="danger" role="tickerError">
+                    Error: Ticker text field is required
+                  </Alert>
+                )}
+              </Col>
+              <Col>
+                <Form.Control
+                  size="lg"
+                  {...register("shares", {
+                    required: true,
+                  })}
+                  placeholder="Shares"
+                  className="mb-3"
+                />
+                {errors.shares && (
+                  <Alert variant="danger" role="sharesError">
+                    Error: Shares number field is required
+                  </Alert>
+                )}
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Control
+                  type="date"
+                  size="lg"
+                  {...register("buyDate", {
+                    required: true,
+                  })}
+                  placeholder="Buy Date"
+                  className="mb-3"
+                />
+                {errors.buyDate && (
+                  <Alert variant="danger" role="buyDateError">
+                    Error: Buy date field is required
+                  </Alert>
+                )}
+              </Col>
+              <Col>
+                <Form.Select
+                  size="lg"
+                  {...register("accountId")}
+                  disabled={!!defaultAccountId}
+                  className="mb-3"
+                >
+                  <option value="">Select Account (Optional)</option>
+                  {accounts?.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+            </Row>
+            <div className="d-flex justify-content-end">
+              <Button variant="secondary" onClick={handleClose} className="me-2">
+                Close
+              </Button>
+              <LoadingButton label={"Add to Portfolio"} loading={isLoading || isProcessing} />
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </>
   );
 }

@@ -30,7 +30,6 @@ export default function AssetTickerSoldTable({ ticker }) {
   const {
     data: rawAssetInfos,
     isLoading: assetInfoLoading,
-    error: assetInfoError,
   } = useGetAssetInfosQuery([ticker]);
   const assetInfos = rawAssetInfos ?? {};
 
@@ -72,8 +71,8 @@ export default function AssetTickerSoldTable({ ticker }) {
       sellDate: asset.sellDate,
       sellPrice: asset.sellPrice,
       percentChange: (asset.sellPrice - asset.buyPrice) / asset.buyPrice,
-      shortName: info?.shortName ?? "Error Loading Info",
-      hasError: !info,
+      shortName: assetInfoLoading ? "Loading..." : (info?.shortName ?? "N/A"),
+      hasError: !info && !assetInfoLoading,
     };
   });
 
@@ -158,8 +157,8 @@ export default function AssetTickerSoldTable({ ticker }) {
         data={data}
         columns={columns}
         initialSortKey="ticker"
-        isLoading={isLoading}
-        errors={[assetError, assetInfoError, accountsError]}
+        isLoading={assetLoading || accountsLoading}
+        errors={[assetError, accountsError]}
       />
       <AssetDeleteSellModal
         asset={selectedAsset}

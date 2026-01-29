@@ -229,6 +229,7 @@ export const api = createApi({
 
 export const {
   useGetAssetInfosQuery,
+  useLazyGetAssetInfosQuery,
   useGetAssetPricesQuery,
   useGetAssetsQuery,
   usePostNewAssetMutation,

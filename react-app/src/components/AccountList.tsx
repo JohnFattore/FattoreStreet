@@ -28,11 +28,8 @@ export default function AccountList() {
     if (accountsError) return <Alert variant="danger">Error loading accounts</Alert>;
 
     const isLoading = accountsLoading || assetsLoading || assetInfosLoading;
-    // const _error = accountsError || assetsError || assetInfosError; // aggregate errors if needed, but for now simple check
 
     if (isLoading && !accounts) return <p>Loading data...</p>;
-
-
 
     return (
         <div className="mt-4">
@@ -50,16 +47,6 @@ export default function AccountList() {
                     </thead>
                     <tbody>
                         {accounts.map((account) => {
-                            // Calculate dynamic values here for now until I fix the interface issue above in a separate step if needed.
-                            // Actually, let's look at the assets.
-                            // The GetAssets endpoint returns assets. The serializer includes 'account'.
-                            // So the raw response has it.
-                            // But the TS transform removes it?
-                            // Let's assume I will fix api.ts in a moment.
-
-                            // For this step, I'll write the logic assuming asset has accountId.
-                            // I will need to update api.ts immediately after this.
-
                             let balance = 0;
                             let dayChange = 0;
                             let previousBalance = 0;
@@ -88,14 +75,19 @@ export default function AccountList() {
                             }
 
                             const dayChangePercent = previousBalance > 0 ? dayChange / previousBalance : 0;
+                            const isDataLoading = assetsLoading || assetInfosLoading;
 
                             return (
                                 <tr key={account.id}>
                                     <td>{account.name}</td>
                                     <td>{account.account_type.replace('_', ' ')}</td>
-                                    <td>{formatString(balance, "money")}</td>
+                                    <td>{isDataLoading ? "Loading..." : formatString(balance, "money")}</td>
                                     <td style={{ color: dayChange >= 0 ? "green" : "red" }}>
-                                        {formatString(dayChange, "money")} ({formatString(dayChangePercent, "percent")})
+                                        {isDataLoading ? "Loading..." : (
+                                            <>
+                                                {formatString(dayChange, "money")} ({formatString(dayChangePercent, "percent")})
+                                            </>
+                                        )}
                                     </td>
                                     <td>
                                         <Button

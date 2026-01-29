@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'indexes.apps.IndexesConfig',
     'restaurants.apps.RestaurantsConfig',
     'chatbot.apps.ChatbotConfig',
+    'changeflow.apps.ChangeflowConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

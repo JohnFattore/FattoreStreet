@@ -25,7 +25,6 @@ export default function AssetTable({ accountId }: Props) {
   const {
     data: assetInfosRaw,
     isLoading: assetLoading,
-    error: assetInfoError,
   } = useGetAssetInfosQuery(tickers, {
     skip: tickers.length === 0 || !access,
   });
@@ -65,8 +64,8 @@ export default function AssetTable({ accountId }: Props) {
         ? (info.currentPrice * data.totalShares - data.totalCost) /
         data.totalCost
         : null,
-      shortName: info?.shortName ?? "Error Loading Info",
-      hasError: !info,
+      shortName: assetLoading ? "Loading..." : (info?.shortName ?? "N/A"),
+      hasError: !info && !assetLoading,
     };
   });
 
@@ -101,17 +100,17 @@ export default function AssetTable({ accountId }: Props) {
       label: "Current Price",
       sortKey: "currentPrice",
       render: (row: any) =>
-        row.currentPrice !== null
+        assetLoading ? "Loading..." : (row.currentPrice !== null
           ? formatString(row.currentPrice, "money")
-          : "N/A",
+          : "N/A"),
     },
     {
       label: "Percent Change",
       sortKey: "percentChange",
       render: (row: any) =>
-        row.percentChange !== null
+        assetLoading ? "Loading..." : (row.percentChange !== null
           ? formatString(row.percentChange, "percent")
-          : "N/A",
+          : "N/A"),
     },
     {
       label: "View Asset",
@@ -132,8 +131,8 @@ export default function AssetTable({ accountId }: Props) {
         data={data}
         columns={columns}
         initialSortKey="ticker"
-        isLoading={isLoading}
-        errors={[assetError, assetInfoError]}
+        isLoading={assetInfoLoading}
+        errors={[assetError]}
       />
     </>
   );

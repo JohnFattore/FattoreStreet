@@ -26,7 +26,6 @@ export default function AssetTickerTable({ ticker }) {
   const {
     data: rawAssetInfos,
     isLoading: assetInfoLoading,
-    error: assetInfoError,
   } = useGetAssetInfosQuery([ticker]);
   const assetInfos = rawAssetInfos ?? {};
 
@@ -62,9 +61,10 @@ export default function AssetTickerTable({ ticker }) {
       accountName: account?.name ?? "N/A",
       buyDate: asset.buyDate,
       buyPrice: asset.buyPrice,
-      currentPrice: asset.shares * info?.currentPrice,
-      percentChange:
-        (asset.shares * info?.currentPrice - asset.buyPrice) / asset.buyPrice,
+      currentPrice: info ? asset.shares * info.currentPrice : null,
+      percentChange: info
+        ? (asset.shares * info.currentPrice - asset.buyPrice) / asset.buyPrice
+        : null,
     });
   }
 
@@ -96,17 +96,17 @@ export default function AssetTickerTable({ ticker }) {
       label: "Current Price",
       sortKey: "currentPrice",
       render: (row: any) =>
-        row.currentPrice !== null
+        assetInfoLoading ? "Loading..." : (row.currentPrice !== null
           ? formatString(row.currentPrice, "money")
-          : "N/A",
+          : "N/A"),
     },
     {
       label: "Percent Change",
       sortKey: "percentChange",
       render: (row: any) =>
-        row.percentChange !== null
+        assetInfoLoading ? "Loading..." : (row.percentChange !== null
           ? formatString(row.percentChange, "percent")
-          : "N/A",
+          : "N/A"),
     },
     {
       label: "Sell Asset",
@@ -147,8 +147,8 @@ export default function AssetTickerTable({ ticker }) {
         data={data}
         columns={columns}
         initialSortKey="ticker"
-        isLoading={isLoading}
-        errors={[assetError, assetInfoError, accountsError]}
+        isLoading={assetLoading || accountsLoading}
+        errors={[assetError, accountsError]}
       />
       <AssetDeleteSellModal
         asset={selectedAsset}

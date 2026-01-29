@@ -16,7 +16,6 @@ export default function AssetTable() {
   const {
     data: assetInfosRaw,
     isLoading: assetLoading,
-    error: assetInfoError,
   } = useGetAssetInfosQuery(tickers, {
     skip: tickers.length === 0 || !access,
   });
@@ -54,8 +53,8 @@ export default function AssetTable() {
       totalCost: data.totalCost,
       totalSalePrice: data.totalSellPrice,
       percentChange: (data.totalSellPrice - data.totalCost) / data.totalCost,
-      shortName: info?.shortName ?? "Error Loading Info",
-      hasError: !info,
+      shortName: assetLoading ? "Loading..." : (info?.shortName ?? "N/A"),
+      hasError: !info && !assetLoading,
     };
   });
 
@@ -90,7 +89,7 @@ export default function AssetTable() {
       label: "Total Sell Price",
       sortKey: "totalSalePrice",
       render: (row: any) => formatString(row.totalSalePrice, "money"),
-    },    
+    },
     {
       label: "Percent Change",
       sortKey: "percentChange",
@@ -112,7 +111,7 @@ export default function AssetTable() {
   return (
     <>
       <h3>Assets Sold</h3>
-      <SortableTable data={data} columns={columns} initialSortKey="ticker" isLoading={isLoading} errors={[assetError, assetInfoError]}/>
+      <SortableTable data={data} columns={columns} initialSortKey="ticker" isLoading={assetInfoLoading} errors={[assetError]} />
     </>
   );
 }
