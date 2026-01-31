@@ -10,7 +10,7 @@
 .dark-mode {
   --primary: #f2d492ff;
   --secondary: #202c39ff;
-  --tertiary: #202c39ff;  
+  --tertiary: #202c39ff;
 }
 
 //--tertiary: #b8b08dff;
@@ -35,7 +35,8 @@ body {
 //change nav bar text color
 .navbar {
   --bs-navbar-color: var(--primary);
-  --bs-navbar-hover-color: var(--secondary); /* Optional: Change hover color */
+  --bs-navbar-hover-color: var(--secondary);
+  /* Optional: Change hover color */
 }
 
 //change navbar hover colors

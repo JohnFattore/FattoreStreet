@@ -1,3 +1,7 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
+from .models import Interaction
 
-# Register your models here.
+@admin.register(Interaction)
+class InteractionAdmin(SimpleHistoryAdmin):
+    list_display = ('user', 'timestamp', 'input_text')

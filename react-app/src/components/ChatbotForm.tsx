@@ -20,12 +20,13 @@ export default function ChatbotForm() {
     });
 
     //useForm is fantastic for handling form state, functions such as onSubmit/onChange/onBlur, validation, and even flexibility for other UI libraries (using Controller)
-    const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>({
+    const { register, handleSubmit, reset, formState: { errors }, } = useForm<IFormInput>({
         resolver: yupResolver(schema)
     })
 
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
         dispatch(postChatbot(data.message))
+        reset();
     }
 
     return (
@@ -40,7 +41,7 @@ export default function ChatbotForm() {
 
                     </Col>
                 </Row>
-                <LoadingButton label={"Ask Chatbot"} loading={loading}/>
+                <LoadingButton label={"Ask Chatbot"} loading={loading} />
             </Form>
             {error && <Alert variant="danger">{error}</Alert>}
         </>

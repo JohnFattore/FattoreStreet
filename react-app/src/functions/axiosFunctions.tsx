@@ -74,8 +74,8 @@ export const postUser = createAsyncThunk(
     } catch (error: any) {
       return rejectWithValue(
         error.response.data.username ||
-          error.response.data.detail ||
-          "Registering user failed"
+        error.response.data.detail ||
+        "Registering user failed"
       );
     }
   }
@@ -273,8 +273,8 @@ export const postReview = createAsyncThunk(
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.detail ||
-          error.response?.data?.non_field_errors ||
-          "Adding Review failed"
+        error.response?.data?.non_field_errors ||
+        "Adding Review failed"
       );
     }
   }
@@ -350,6 +350,37 @@ export const getReview = async (id: number) => {
 }
   */
 
+// ... (previous code)
+
+export const getChatbot = createAsyncThunk(
+  "chatbot/getChatbot",
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const access = state.user.access;
+      const response = await axios.get(
+        import.meta.env.VITE_APP_DJANGO_CHATBOT_URL.concat("chatbot/"),
+        {
+          headers: {
+            Authorization: " Bearer ".concat(access),
+          },
+        }
+      );
+      // Transform response to IChatMessage[]
+      const history: any[] = [];
+      response.data.forEach((interaction: any) => {
+        history.push({ role: 'user', text: interaction.input_text, timestamp: interaction.timestamp });
+        history.push({ role: 'model', text: interaction.output_text, timestamp: interaction.timestamp });
+      });
+      return history;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.detail || "Getting chatbot history failed"
+      );
+    }
+  }
+);
+
 export const postChatbot = createAsyncThunk(
   "chatbot/postChatbot",
   async (message: string, { getState, rejectWithValue }) => {
@@ -367,13 +398,14 @@ export const postChatbot = createAsyncThunk(
           },
         }
       );
-      return response.data["message"];
+      return { role: 'model', text: response.data["message"] };
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.detail ||
-          error.response?.data?.non_field_errors ||
-          "Posting chatbot failed"
+        error.response?.data?.non_field_errors ||
+        "Posting chatbot failed"
       );
     }
   }
 );
+

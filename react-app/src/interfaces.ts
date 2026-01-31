@@ -1,3 +1,9 @@
+export interface IChatMessage {
+    role: 'user' | 'model';
+    text: string;
+    timestamp?: string;
+}
+
 export interface IAllocation {
     ticker: string;
     shares: number;
