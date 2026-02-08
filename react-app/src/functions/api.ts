@@ -1,6 +1,6 @@
 import { createApi, BaseQueryFn } from "@reduxjs/toolkit/query/react";
 import axios, { AxiosRequestConfig, AxiosError } from "axios";
-import { IAsset, IEquityInfo, IETFInfo } from "../interfaces";
+import { IAsset, IEquityInfo, IETFInfo, ISECData } from "../interfaces";
 import { RootState } from "../main";
 
 const axiosBaseQuery =
@@ -9,13 +9,14 @@ const axiosBaseQuery =
     method: AxiosRequestConfig["method"];
     data?: AxiosRequestConfig["data"];
     params?: AxiosRequestConfig["params"];
+    baseUrl?: string;
   }> =>
-    async ({ url, method, data, params }, api) => {
+    async ({ url, method, data, params, baseUrl }, api) => {
       try {
         const state = api.getState() as RootState;
         const access = state.user.access;
         const result = await axios({
-          url: import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL + url,
+          url: (baseUrl || import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL) + url,
           method,
           data,
           params: params,
@@ -224,6 +225,13 @@ export const api = createApi({
         params: { symbol: ticker },
       }),
     }),
+    getSecEdgarData: builder.query<ISECData, string>({
+      query: (ticker) => ({
+        url: `company-fact-sheet?ticker=${ticker}`,
+        method: "GET",
+        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+      }),
+    }),
   }),
 });
 
@@ -240,5 +248,6 @@ export const {
   useGetQuoteQuery,
   useCreateAccountMutation,
   useGetAccountsQuery,
-  useGetAccountQuery
+  useGetAccountQuery,
+  useGetSecEdgarDataQuery
 } = api;

@@ -19,6 +19,7 @@ import Chatbot from "./pages/Chatbot";
 import AssetView from "./pages/AssetView";
 import AccountView from "./pages/AccountView";
 import Admin from "./pages/Admin";
+import SECData from "./pages/SECData";
 
 // react router for all our routes
 export default function App() {
@@ -81,6 +82,7 @@ export default function App() {
         <Route path="/account/:id" element={<AccountView />} />
         <Route path="/visualizer" element={<Visualizer />} />
         <Route path="/economic-indicators" element={<EconomicIndicators />} />
+        <Route path="/sec-edgar/:ticker" element={<SECData />} />
         <Route path="/react-admin" element={<Admin />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>

@@ -16,7 +16,7 @@ export default function AssetView() {
     return <Alert variant="danger">Error</Alert>;
   }
   const { isLoading, error } = useGetAssetInfosQuery([ticker]);
-  const {data: prices} = useGetAssetPricesQuery(ticker)
+  const { data: prices } = useGetAssetPricesQuery(ticker)
   if (isLoading)
     return (
       <>
@@ -37,7 +37,8 @@ export default function AssetView() {
       <AssetInfo ticker={ticker} />
       <AssetTickerTable ticker={ticker} />
       <AssetTickerSoldTable ticker={ticker} />
-      <GenericLineChart data={prices} label={"Prices"}/>
+      <GenericLineChart data={prices} label={"Prices"} />
+      <Button variant="primary" onClick={() => navigate(`/sec-edgar/${ticker}`)}>SEC EDGAR Data</Button>
       <Button onClick={() => navigate("/portfolio")}>Back to Portfolio</Button>
       <Button onClick={() => navigate("/watchlist")}>Back to WatchList</Button>
     </>

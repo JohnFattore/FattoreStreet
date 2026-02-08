@@ -141,3 +141,13 @@ export interface IFavorite {
     comment: string;
     id: number;
 }
+
+export interface ISECData {
+    ticker: string;
+    cik: string;
+    ttmNetIncomeYoY: string;
+    latestQuarterEnd: string;
+    ttmRevenueYoY: string;
+    ttmNetIncome: string;
+    ttmRevenue: string;
+}
