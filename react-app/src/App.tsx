@@ -3,7 +3,6 @@ import TopNavigation from "./components/TopNavigation";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio";
 import Watchlist from "./pages/WatchList";
-import Register from "./pages/Register";
 import Entertainment from "./pages/Entertainment";
 import ErrorPage from "./components/ErrorPage";
 import Restaurants from "./pages/Restaurants";
@@ -20,6 +19,7 @@ import AssetView from "./pages/AssetView";
 import AccountView from "./pages/AccountView";
 import Admin from "./pages/Admin";
 import SECData from "./pages/SECData";
+import User from "./pages/User";
 
 // react router for all our routes
 export default function App() {
@@ -75,7 +75,6 @@ export default function App() {
           errorElement={<ErrorPage />}
         />
         <Route path="/watchlist" element={<Watchlist />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/entertainment" element={<Entertainment />} />
         <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/asset/:ticker" element={<AssetView />} />
@@ -83,6 +82,7 @@ export default function App() {
         <Route path="/visualizer" element={<Visualizer />} />
         <Route path="/economic-indicators" element={<EconomicIndicators />} />
         <Route path="/sec-edgar/:ticker" element={<SECData />} />
+        <Route path="/user" element={<User />} />
         <Route path="/react-admin" element={<Admin />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>

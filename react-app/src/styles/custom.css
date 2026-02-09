@@ -10315,6 +10315,10 @@ body {
   color: var(--primary);
   background-color: var(--secondary); }
 
+.modal-content {
+  background-color: var(--tertiary);
+  color: var(--primary); }
+
 .navbar {
   --bs-navbar-color: var(--primary);
   --bs-navbar-hover-color: var(--secondary);
@@ -10417,9 +10421,5 @@ img {
   background-color: var(--primary);
   border-color: var(--tertiary);
   border-radius: 5px; }
-
-.modal-content {
-  color: var(--primary);
-  background-color: var(--secondary); }
 
 /*# sourceMappingURL=custom.css.map */

@@ -6,11 +6,11 @@ import { AppDispatch, RootState } from "../main";
 import ReviewForm from '../components/restaurants/ReviewForm';
 import { useState } from 'react';
 import { IRestaurant } from '../interfaces';
-import { Button, Alert } from 'react-bootstrap';
+import { Alert, Button, Col, Container, Row } from 'react-bootstrap';
+import LoginModal from '../components/LoginModal';
 import ReviewTable from '../components/restaurants/ReviewTable';
 import ReviewMap from '../components/restaurants/ReviewMap'
 import RestaurantRecommendTable from '../components/restaurants/RestaurantRecommendTable'
-import LoginForm from '../components/LoginForm';
 
 export default function Restaurants() {
     const dispatch = useDispatch<AppDispatch>();
@@ -53,18 +53,32 @@ export default function Restaurants() {
         return <RestaurantRecommendTable setRestaurant={setRestaurant} />
     };
 
+    const [showLogin, setShowLogin] = useState(false);
+
     if (!access) {
-        return <>
-        <Alert>Login to see reviews and get recommendations</Alert>
-        <LoginForm/>
-        <RestaurantTable setRestaurant={setRestaurant} />
-        <p>Data provided by Yelp</p>
-        </>
+        return (
+            <Container className="mt-4">
+                <Row className="mb-4">
+                    <Col md={12} className="text-center">
+                        <Alert variant="info" className="py-5 shadow-sm">
+                            <h2 className="mb-4">Nashville Restaurant Explorer</h2>
+                            <p className="lead mb-4">Join our community to see personal reviews and get AI-powered recommendations.</p>
+                            <Button variant="primary" size="lg" onClick={() => setShowLogin(true)}>
+                                Sign In to Unlock Full Access
+                            </Button>
+                        </Alert>
+                    </Col>
+                </Row>
+                <LoginModal show={showLogin} onHide={() => setShowLogin(false)} />
+                <RestaurantTable setRestaurant={setRestaurant} />
+                <p className="text-muted text-center mt-3">Data provided by Yelp</p>
+            </Container>
+        );
     }
 
     return (
         <>
-        <h1>Nashville Restaurants</h1>
+            <h1>Nashville Restaurants</h1>
             <ReviewTable />
             <Button onClick={() => setShowMap(prev => !prev)}> {showMap ? 'Hide Map' : 'Show Map'} </Button>
             {showMap && <ReviewMap />}

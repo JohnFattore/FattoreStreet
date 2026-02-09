@@ -1,4 +1,4 @@
-import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
+import { Form, Button, Alert } from 'react-bootstrap';
 import { useForm /*, SubmitHandler*/ } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -17,7 +17,7 @@ interface IFormInput {
 
 export default function RegisterForm() {
     const dispatch = useDispatch<AppDispatch>();
-    const { username, access, loading, error } = useSelector((state: RootState) => state.user);
+    const { access, loading, error } = useSelector((state: RootState) => state.user);
 
     const schema = yup.object().shape({
         username: yup.string().required(),
@@ -36,50 +36,64 @@ export default function RegisterForm() {
             dispatch(setUserError("Passwords must match"))
         else {
             dispatch(postUser(data)).unwrap()
-            .then(() => {
-                dispatch(login({ username: data.username, password: data.password }))
-            })
+                .then(() => {
+                    dispatch(login({ username: data.username, password: data.password }))
+                })
         }
     }
 
     if (access) {
-        return <Alert variant="success">Welcome, {username}!</Alert>;
+        return null;
     }
 
-    return (<>
-        {error && <Alert variant="danger">{translateError(error)}</Alert>}
-        {loading && <Alert>Loading...</Alert>}
-        <Form onSubmit={handleSubmit(onSubmit)}>
-            <Row>
-                <Col sm={3}>
-                    <Form.Control size="lg" {...register("username", {
-                        required: true
-                    })} placeholder='Username' />
-                    {errors.username && <Alert variant='danger' role="usernameError">This field is required</Alert>}
+    return (
+        <div className="register-form-container">
+            {error && <Alert variant="danger">{translateError(error)}</Alert>}
+            {loading && <Alert variant="info">Loading...</Alert>}
+            <Form onSubmit={handleSubmit(onSubmit)}>
+                <Form.Group className="mb-3">
+                    <Form.Label>Username</Form.Label>
+                    <Form.Control
+                        {...register("username", { required: true })}
+                        placeholder='Enter username'
+                    />
+                    {errors.username && <Alert variant='danger' className="mt-2" role="usernameError">Username is required</Alert>}
+                </Form.Group>
 
-                </Col>
-                <Col sm={3}>
-                    <Form.Control type="password" size="lg" {...register("password", {
-                        required: true
-                    })} placeholder='Password' />
-                    {errors.password && <Alert variant='danger' role="passwordError">This field is required</Alert>}
-                </Col>
-                <Col sm={3}>
-                    <Form.Control type="password" size="lg" {...register("password2", {
-                        required: true
-                    })} placeholder='Password (again)' />
-                    {errors.password && <Alert variant='danger' role="passwordError">This field is required</Alert>}
-                </Col>
-                <Col sm={3}>
-                    <Form.Control size="lg" {...register("email", {
-                        required: true
-                    })} placeholder='Email' />
-                    {errors.email && <Alert variant='danger' role="emailError">This field is required</Alert>}
-                </Col>
-            </Row>
+                <Form.Group className="mb-3">
+                    <Form.Label>Email</Form.Label>
+                    <Form.Control
+                        {...register("email", { required: true })}
+                        placeholder='Enter email'
+                    />
+                    {errors.email && <Alert variant='danger' className="mt-2" role="emailError">Valid email is required</Alert>}
+                </Form.Group>
 
-            <Button type="submit" disabled={loading}>Register</Button>
-        </Form>
-    </>
+                <Form.Group className="mb-3">
+                    <Form.Label>Password</Form.Label>
+                    <Form.Control
+                        type="password"
+                        {...register("password", { required: true })}
+                        placeholder='Enter password'
+                    />
+                    {errors.password && <Alert variant='danger' className="mt-2" role="passwordError">Password is required</Alert>}
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                    <Form.Label>Confirm Password</Form.Label>
+                    <Form.Control
+                        type="password"
+                        {...register("password2", { required: true })}
+                        placeholder='Confirm password'
+                    />
+                </Form.Group>
+
+                <div className="d-grid gap-2">
+                    <Button variant="success" type="submit" disabled={loading}>
+                        {loading ? 'Creating Account...' : 'Register Account'}
+                    </Button>
+                </div>
+            </Form>
+        </div>
     );
 }

@@ -18,6 +18,7 @@ react-app/node_modules
 react-app/dist
 .env.*
 react-app/coverage
+react-app/.sass-cache
 
 machineLearning/huggingFace.txt
 

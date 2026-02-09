@@ -21,9 +21,7 @@ release.properties
 .vscode/
 
 # Project specific
-private/
 .env
-aapl_facts.json
 
 # Log files
 *.log

@@ -1,6 +1,6 @@
 import { createApi, BaseQueryFn } from "@reduxjs/toolkit/query/react";
 import axios, { AxiosRequestConfig, AxiosError } from "axios";
-import { IAsset, IEquityInfo, IETFInfo, ISECData } from "../interfaces";
+import { IAsset, IEquityInfo, IETFInfo, ISECData, ISECQuartersResponse } from "../interfaces";
 import { RootState } from "../main";
 
 const axiosBaseQuery =
@@ -215,10 +215,7 @@ export const api = createApi({
         data: seriesList,
       }),
     }),
-    getQuote: builder.query<
-      any,
-      string
-    >({
+    getQuote: builder.query<any, string>({
       query: (ticker) => ({
         url: "quote/",
         method: "GET",
@@ -228,6 +225,13 @@ export const api = createApi({
     getSecEdgarData: builder.query<ISECData, string>({
       query: (ticker) => ({
         url: `company-fact-sheet?ticker=${ticker}`,
+        method: "GET",
+        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+      }),
+    }),
+    getSecQuarters: builder.query<ISECQuartersResponse, string>({
+      query: (ticker) => ({
+        url: `quarters?ticker=${ticker}`,
         method: "GET",
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
       }),
@@ -249,5 +253,6 @@ export const {
   useCreateAccountMutation,
   useGetAccountsQuery,
   useGetAccountQuery,
-  useGetSecEdgarDataQuery
+  useGetSecEdgarDataQuery,
+  useGetSecQuartersQuery
 } = api;

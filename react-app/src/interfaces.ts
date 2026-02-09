@@ -145,9 +145,52 @@ export interface IFavorite {
 export interface ISECData {
     ticker: string;
     cik: string;
-    ttmNetIncomeYoY: string;
-    latestQuarterEnd: string;
-    ttmRevenueYoY: string;
     ttmNetIncome: string;
     ttmRevenue: string;
+    ttmOperatingCashFlow: string;
+    ttmOperatingIncome: string;
+    ttmGrossProfit: string;
+    ttmNetIncomeYoY: string;
+    ttmRevenueYoY: string;
+    latestAssets: string;
+    latestLiabilities: string;
+    latestEquity: string;
+    latestInventory: string;
+    latestCash: string;
+    latestEps: string;
+    netMargin: string;
+    grossMargin: string;
+    debtToAssets: string;
+    cashToLiabilities: string;
+    roA: string;
+    ocfToNetIncome: string;
+    latestQuarterEnd: string;
+}
+
+export interface IQuarter {
+    year: number;
+    quarter: string;
+    periodStart: string;
+    periodEnd: string;
+    revenues: number;
+    netIncomeLoss: number;
+    operatingIncomeLoss: number;
+    grossProfit: number;
+    epsBasic: number;
+    epsDiluted: number;
+    assets: number;
+    liabilities: number;
+    equity: number;
+    cash: number;
+    receivables: number;
+    inventory: number;
+    ocf: number;
+    dividends: number;
+    buybacks: number;
+}
+
+export interface ISECQuartersResponse {
+    ticker: string;
+    cik: string;
+    quarters: IQuarter[];
 }

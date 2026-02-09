@@ -18,7 +18,7 @@ Ensure you have the following installed on your machine:
 
 ```bash
 git clone https://github.com/JohnFattore/FattoreStreet.git
-cd Portfolio-Manager-Backend
+cd FattoreStreet
 ```
 
 ### 2. Backend Setup (Django)
