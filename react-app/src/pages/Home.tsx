@@ -1,23 +1,23 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import heroImage from "../images/hero.png";
 
 export default function Home() {
     return (
         <div className="home-page">
             {/* Hero Section */}
-            <div className="hero-section text-center py-5 mb-5" style={{
-                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${heroImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                color: 'white',
-                borderRadius: '15px',
-                minHeight: '400px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center'
-            }}>
+            <div
+                className="hero-section text-center py-5 mb-5"
+                style={{
+                    background: "radial-gradient(circle at top left, var(--quaternary), var(--tertiary))",
+                    color: "white",
+                    borderRadius: "15px",
+                    minHeight: "400px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
                 <h1 className="display-3 fw-bold mb-3">Master Your Financial Future</h1>
                 <p className="lead mb-4 px-3" style={{ maxWidth: '800px' }}>
                     Welcome to Fattore Street. We empower investors with the knowledge and tools to harness the power of low-cost index funds and smart portfolio management.
@@ -108,7 +108,7 @@ export default function Home() {
                         <Card className="h-100 shadow-sm transition-hover">
                             <Card.Body>
                                 <div className="fs-1 mb-3 text-primary">🍔</div>
-                                <Card.Title className="fw-bold">Nashville Lifestyle</Card.Title>
+                                <Card.Title className="fw-bold">Nashville Restaurants</Card.Title>
                                 <Card.Text>
                                     Because life isn't just about investing. Explore our curated Nashville restaurant recommender for the best dining experiences in Music City.
                                 </Card.Text>

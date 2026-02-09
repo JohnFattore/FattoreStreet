@@ -9,7 +9,7 @@ interface LoginModalProps {
 export default function LoginModal({ show, onHide }: LoginModalProps) {
     return (
         <Modal show={show} onHide={onHide} centered backdrop="static">
-            <Modal.Header closeButton>
+            <Modal.Header closeButton className="theme-header-quaternary">
                 <Modal.Title>Sign In</Modal.Title>
             </Modal.Header>
             <Modal.Body>

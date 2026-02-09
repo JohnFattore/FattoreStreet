@@ -1,12 +1,27 @@
 :root {
   --primary: #202c39ff;
   --secondary: #f2d492ff;
-  --tertiary: #c3d898; }
+  --tertiary: #c3d898;
+  --quaternary: #6b8b9e; }
 
 .dark-mode {
   --primary: #f2d492ff;
   --secondary: #202c39ff;
-  --tertiary: #202c39ff; }
+  --tertiary: #202c39ff;
+  --quaternary: #6b8b9e; }
+
+/* Theme utility classes (prefer these over inline styles) */
+.theme-header-quaternary {
+  background-color: var(--quaternary) !important;
+  color: var(--secondary) !important; }
+
+.theme-bg-quaternary {
+  background-color: var(--quaternary) !important; }
+
+.theme-protected-box {
+  background-color: var(--tertiary) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important; }
 
 /*!
  * Bootstrap  v5.3.7 (https://getbootstrap.com/)

@@ -13,14 +13,18 @@ export default function User() {
                 <Row className="justify-content-center">
                     <Col md={6}>
                         <Card className="shadow-sm border-0 mb-4">
-                            <Card.Header as="h5" className="bg-primary text-white">Sign In</Card.Header>
+                            <Card.Header as="h5" className="theme-header-quaternary">
+                                Sign In
+                            </Card.Header>
                             <Card.Body>
                                 <LoginForm />
                             </Card.Body>
                         </Card>
 
                         <Card className="shadow-sm border-0">
-                            <Card.Header as="h5" className="bg-success text-white">Create Account</Card.Header>
+                            <Card.Header as="h5" className="theme-header-quaternary">
+                                Create Account
+                            </Card.Header>
                             <Card.Body>
                                 <RegisterForm />
                             </Card.Body>
@@ -36,7 +40,9 @@ export default function User() {
             <Row className="justify-content-center">
                 <Col md={8}>
                     <Card className="shadow-sm border-0">
-                        <Card.Header as="h5" className="bg-primary text-white">User Profile</Card.Header>
+                        <Card.Header as="h5" className="theme-header-quaternary">
+                            User Profile
+                        </Card.Header>
                         <Card.Body>
                             <div className="text-center mb-4">
                                 <div className="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: '100px', height: '100px' }}>

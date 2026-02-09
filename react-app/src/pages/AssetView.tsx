@@ -37,7 +37,11 @@ export default function AssetView() {
       <AssetInfo ticker={ticker} />
       <AssetTickerTable ticker={ticker} />
       <AssetTickerSoldTable ticker={ticker} />
-      <GenericLineChart data={prices} label={"Prices"} />
+      <GenericLineChart
+        data={prices}
+        label="Price history"
+        description="Historical price performance for this asset over the selected period."
+      />
       <Button variant="primary" onClick={() => navigate(`/sec-edgar/${ticker}`)}>SEC EDGAR Data</Button>
       <Button onClick={() => navigate("/portfolio")}>Back to Portfolio</Button>
       <Button onClick={() => navigate("/watchlist")}>Back to WatchList</Button>

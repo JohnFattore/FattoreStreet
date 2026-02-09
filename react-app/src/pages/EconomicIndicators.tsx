@@ -29,7 +29,7 @@ export default function EconomicIndicators() {
   }
 
   return (
-    <Container fluid className="py-4 px-4 bg-light min-vh-100">
+    <Container fluid className="py-4 px-4 min-vh-100 theme-bg-quaternary">
       <div className="mb-5">
         <h1 className="display-5 fw-bold text-dark">Economic Indicators</h1>
         <p className="lead text-muted">
