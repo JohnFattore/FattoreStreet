@@ -90,7 +90,7 @@ export default function RegisterForm() {
 
                 <div className="d-grid gap-2">
                     <Button variant="success" type="submit" disabled={loading}>
-                        {loading ? 'Creating Account...' : 'Register Account'}
+                        {loading ? 'Creating User...' : 'Register User'}
                     </Button>
                 </div>
             </Form>

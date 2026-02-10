@@ -1,7 +1,6 @@
 import Spike from '../components/entertainment/SpikeImg';
 import ExternalLinks from '../components/entertainment/ExternalLinks';
 import { IAlbum, IRatio } from '../interfaces';
-import Fees from '../components/entertainment/Fees';
 import AlbumTable from '../components/entertainment/AlbumTable';
 import RatioTable from '../components/entertainment/RatioTable';
 import { useDispatch, useSelector } from "react-redux";
@@ -119,8 +118,6 @@ export default function Entertainment() {
             <RatioTable ratios={ratios} />
             <h1>10 10/10 Albums</h1>
             <AlbumTable albums={albums} />
-            <h3>Fees are costing me in my 401k</h3>
-            <Fees/>
             <Spike />
         </>
     );

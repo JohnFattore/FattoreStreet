@@ -23,7 +23,7 @@ export default function User() {
 
                         <Card className="shadow-sm border-0">
                             <Card.Header as="h5" className="theme-header-quaternary">
-                                Create Account
+                                Create User
                             </Card.Header>
                             <Card.Body>
                                 <RegisterForm />
@@ -56,7 +56,7 @@ export default function User() {
                                 <ListGroup.Item className="d-flex justify-content-between align-items-center px-0">
                                     <div>
                                         <h6 className="mb-0">Username</h6>
-                                        <small className="text-muted">Unique identifier for your account</small>
+                                        <small className="text-muted">Unique identifier for your user profile</small>
                                     </div>
                                     <span>{username}</span>
                                 </ListGroup.Item>
@@ -69,7 +69,7 @@ export default function User() {
                                 </ListGroup.Item>
                                 <ListGroup.Item className="d-flex justify-content-between align-items-center px-0">
                                     <div>
-                                        <h6 className="mb-0">Account Status</h6>
+                                        <h6 className="mb-0">User Status</h6>
                                         <small className="text-muted">Authentication level</small>
                                     </div>
                                     <span className="text-success">Logged In</span>

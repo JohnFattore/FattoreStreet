@@ -20,9 +20,10 @@ interface IFormInput {
 
 interface AssetFormProps {
   defaultAccountId?: number;
+  defaultTicker?: string;
 }
 
-export default function AssetForm({ defaultAccountId }: AssetFormProps) {
+export default function AssetForm({ defaultAccountId, defaultTicker }: AssetFormProps) {
   const [postNewAsset, { error, isLoading }] = usePostNewAssetMutation();
   const { access } = useSelector((state: RootState) => state.user);
   const { data: accounts } = useGetAccountsQuery(undefined, { skip: !access });
@@ -53,16 +54,20 @@ export default function AssetForm({ defaultAccountId }: AssetFormProps) {
   } = useForm<IFormInput>({
     resolver: yupResolver(schema),
     defaultValues: {
-      accountId: defaultAccountId
+      accountId: defaultAccountId,
+      ticker: defaultTicker
     }
   });
 
-  // Update form value if defaultAccountId changes
+  // Update form values if defaults change
   useEffect(() => {
     if (defaultAccountId) {
       setValue("accountId", defaultAccountId);
     }
-  }, [defaultAccountId, setValue]);
+    if (defaultTicker) {
+      setValue("ticker", defaultTicker);
+    }
+  }, [defaultAccountId, defaultTicker, setValue]);
 
   //console.log(watch("ticker"))
   const onSubmit: SubmitHandler<IFormInput> = async (data) => {
@@ -123,6 +128,7 @@ export default function AssetForm({ defaultAccountId }: AssetFormProps) {
                     required: true,
                   })}
                   placeholder="Ticker"
+                  disabled={!!defaultTicker}
                   className="mb-3"
                 />
                 {errors.ticker && (

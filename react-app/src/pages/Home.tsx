@@ -18,13 +18,14 @@ export default function Home() {
                     alignItems: "center",
                 }}
             >
-                <h1 className="display-3 fw-bold mb-3">Master Your Financial Future</h1>
-                <p className="lead mb-4 px-3" style={{ maxWidth: '800px' }}>
+                <h1 className="display-3 fw-bold mb-3 text-secondary-theme">Master Your Financial Future</h1>
+                <p className="lead mb-4 px-3 text-secondary-theme" style={{ maxWidth: '800px' }}>
                     Welcome to Fattore Street. We empower investors with the knowledge and tools to harness the power of low-cost index funds and smart portfolio management.
                 </p>
                 <div className="d-flex gap-3">
-                    <Button as={Link as any} to="/portfolio" variant="primary" size="lg">Get Started</Button>
-                    <Button as={Link as any} to="/visualizer" variant="outline-light" size="lg">Explore Data</Button>
+                    <Button as={Link as any} to="/user" variant="primary" size="lg">Get Started</Button>
+                    <Button as={Link as any} to="/watchlist" variant="outline-light" size="lg">Explore Data</Button>
+                    <Button as={Link as any} to="/chatbot" variant="outline-light" size="lg">Chat with AI</Button>
                 </div>
             </div>
 
@@ -121,7 +122,7 @@ export default function Home() {
 
             {/* Footer Note */}
             <div className="mt-5 text-center text-muted border-top pt-4">
-                <p>New to index fund investing? <Link to="/user">Create an account</Link> to start building your portfolio today.</p>
+                <p>New to index fund investing? <Link to="/user">Create a user</Link> to start building your portfolio today.</p>
             </div>
         </div>
     );

@@ -23,6 +23,9 @@
   color: var(--primary) !important;
   border-color: var(--primary) !important; }
 
+.text-secondary-theme {
+  color: var(--primary) !important; }
+
 /*!
  * Bootstrap  v5.3.7 (https://getbootstrap.com/)
  * Copyright 2011-2025 The Bootstrap Authors
@@ -10333,6 +10336,10 @@ body {
 .modal-content {
   background-color: var(--tertiary);
   color: var(--primary); }
+
+.modal-header {
+  background-color: var(--quaternary);
+  color: var(--secondary); }
 
 .navbar {
   --bs-navbar-color: var(--primary);
