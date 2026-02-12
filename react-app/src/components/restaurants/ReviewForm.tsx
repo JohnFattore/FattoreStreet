@@ -1,4 +1,4 @@
-import { Form, Button, Col, Row, Alert } from 'react-bootstrap';
+import { Form, Button, Col, Row, Alert, Modal } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -24,7 +24,13 @@ const RATING_CHOICES = [
     { value: 5, label: "5 - Excellent" },
 ];
 
-export default function ReviewForm({ restaurant }) {
+interface ReviewFormProps {
+    restaurant: any;
+    show: boolean;
+    onHide: () => void;
+}
+
+export default function ReviewForm({ restaurant, show, onHide }: ReviewFormProps) {
     const dispatch = useDispatch<AppDispatch>();
     const { loading, error } = useSelector((state: RootState) => state.reviews);
     const [submission, setSubmission] = useState()
@@ -35,7 +41,7 @@ export default function ReviewForm({ restaurant }) {
     });
 
     //useForm is fantastic for handling form state, functions such as onSubmit/onChange/onBlur, validation, and even flexibility for other UI libraries (using Controller)
-    const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>({
+    const { register, handleSubmit, reset, formState: { errors }, } = useForm<IFormInput>({
         resolver: yupResolver(schema)
     })
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
@@ -50,43 +56,61 @@ export default function ReviewForm({ restaurant }) {
             id: 1
         }))
         setSubmission(restaurant.name)
+        reset();
     }
 
-    return (
-        <>
-            <h3>{restaurant.id == 0 ? "Select Restaurant to Review" : "Review for " + restaurant.name}</h3>
-            <Form onSubmit={handleSubmit(onSubmit)}>
-                <Row>
-                    <Col sm={3}>
-                        <Form.Select
-                            size="lg"
-                            {...register("rating", { required: true })}
-                            aria-label="Rating"
-                        >
-                            <option value="" disabled>
-                                Select a rating
-                            </option>
-                            {RATING_CHOICES.map(({ value, label }) => (
-                                <option key={value} value={value}>
-                                    {label}
-                                </option>
-                            ))}
-                        </Form.Select>
-                        {errors.comment && <Alert variant='danger' role="commentError">This field is required</Alert>}
-                    </Col>
-                    <Col sm={9}>
-                        <Form.Control size="lg" {...register("comment", {
-                            required: true
-                        })} placeholder='Comment' />
-                        {errors.comment && <Alert variant='danger' role="commentError">This field is required</Alert>}
+    const handleClose = () => {
+        reset();
+        setSubmission(undefined);
+        onHide();
+    };
 
-                    </Col>
-                </Row>
-                <Button type="submit" disabled={restaurant.id == 0 || loading}>Submit Review</Button>
-            </Form>
-            {error && <Alert variant="danger">{error}</Alert>}
-            {submission && error != 'You have already reviewed this restaurant.' && <Alert>{"Review for ".concat(submission, " submitted")}</Alert>}
-        </>
+    return (
+        <Modal show={show} onHide={handleClose}>
+            <Modal.Header closeButton>
+                <Modal.Title>
+                    {restaurant.id == 0 ? "Select Restaurant to Review" : "Review for " + restaurant.name}
+                </Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Form onSubmit={handleSubmit(onSubmit)}>
+                    <Row>
+                        <Col sm={3}>
+                            <Form.Select
+                                size="lg"
+                                {...register("rating", { required: true })}
+                                aria-label="Rating"
+                            >
+                                <option value="" disabled>
+                                    Select a rating
+                                </option>
+                                {RATING_CHOICES.map(({ value, label }) => (
+                                    <option key={value} value={value}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            {errors.rating && <Alert variant='danger' role="ratingError">This field is required</Alert>}
+                        </Col>
+                        <Col sm={9}>
+                            <Form.Control size="lg" {...register("comment", {
+                                required: true
+                            })} placeholder='Comment' />
+                            {errors.comment && <Alert variant='danger' role="commentError">This field is required</Alert>}
+
+                        </Col>
+                    </Row>
+                    <div className="d-flex justify-content-end mt-3">
+                        <Button variant="secondary" onClick={handleClose} className="me-2">
+                            Close
+                        </Button>
+                        <Button type="submit" disabled={restaurant.id == 0 || loading}>Submit Review</Button>
+                    </div>
+                </Form>
+                {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
+                {submission && error != 'You have already reviewed this restaurant.' && <Alert className="mt-3">{"Review for ".concat(submission, " submitted")}</Alert>}
+            </Modal.Body>
+        </Modal>
 
     );
 }

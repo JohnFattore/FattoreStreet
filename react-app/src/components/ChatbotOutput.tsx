@@ -18,7 +18,7 @@ export default function ChatbotOutput() {
                 <div key={index} style={{
                     alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
                     backgroundColor: msg.role === 'user' ? 'var(--primary)' : 'var(--tertiary)',
-                    color: msg.role === 'user' ? 'var(--secondary)' : 'black',
+                    color: msg.role === 'user' ? 'var(--secondary)' : 'var(--primary)',
                     padding: '10px',
                     borderRadius: '10px',
                     margin: '5px',

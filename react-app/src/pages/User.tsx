@@ -1,18 +1,21 @@
-import { useSelector } from "react-redux";
-import { RootState } from "../main";
 import LoginForm from "../components/LoginForm";
 import RegisterForm from "../components/RegisterForm";
 import { Container, Row, Col, Card, ListGroup } from "react-bootstrap";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from '../main';
+import { Button } from 'react-bootstrap';
+import { setUserDarkMode } from '../reducers/userReducer';
 
 export default function User() {
     const { username, access, darkMode } = useSelector((state: RootState) => state.user);
+    const dispatch = useDispatch<AppDispatch>();
 
     if (!access) {
         return (
-            <Container className="mt-5">
+            <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
-                        <Card className="shadow-sm border-0 mb-4">
+                        <Card>
                             <Card.Header as="h5" className="theme-header-quaternary">
                                 Sign In
                             </Card.Header>
@@ -21,7 +24,7 @@ export default function User() {
                             </Card.Body>
                         </Card>
 
-                        <Card className="shadow-sm border-0">
+                        <Card>
                             <Card.Header as="h5" className="theme-header-quaternary">
                                 Create User
                             </Card.Header>
@@ -36,49 +39,43 @@ export default function User() {
     }
 
     return (
-        <Container className="mt-5">
+        <Container>
             <Row className="justify-content-center">
                 <Col md={8}>
-                    <Card className="shadow-sm border-0">
+                    <Card>
                         <Card.Header as="h5" className="theme-header-quaternary">
                             User Profile
                         </Card.Header>
                         <Card.Body>
-                            <div className="text-center mb-4">
-                                <div className="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: '100px', height: '100px' }}>
-                                    <h1 className="display-4 mb-0 text-primary">{username.charAt(0).toUpperCase()}</h1>
-                                </div>
-                                <h2 className="mt-3">{username}</h2>
-                                <p className="text-muted">Fattore Street Member</p>
+                            <div>
+                                <h2>{username}</h2>
+                                <p>Fattore Street Member</p>
                             </div>
 
                             <ListGroup variant="flush">
                                 <ListGroup.Item className="d-flex justify-content-between align-items-center px-0">
                                     <div>
-                                        <h6 className="mb-0">Username</h6>
-                                        <small className="text-muted">Unique identifier for your user profile</small>
+                                        <h6>Username</h6>
+                                        <small>Unique identifier for your user profile</small>
                                     </div>
                                     <span>{username}</span>
                                 </ListGroup.Item>
                                 <ListGroup.Item className="d-flex justify-content-between align-items-center px-0">
                                     <div>
-                                        <h6 className="mb-0">Theme Preference</h6>
-                                        <small className="text-muted">Your current visual mode</small>
+                                        <h6>Theme Preference</h6>
+                                        <small>Your current visual mode</small>
                                     </div>
-                                    <span className="badge bg-secondary">{darkMode ? "Dark Mode" : "Light Mode"}</span>
+                                    <Button onClick={() => dispatch(setUserDarkMode(!darkMode))}> {darkMode ? "Light Mode" : "Dark Mode"} </Button>
                                 </ListGroup.Item>
                                 <ListGroup.Item className="d-flex justify-content-between align-items-center px-0">
                                     <div>
-                                        <h6 className="mb-0">User Status</h6>
-                                        <small className="text-muted">Authentication level</small>
+                                        <h6>User Status</h6>
+                                        <small>Authentication level</small>
                                     </div>
-                                    <span className="text-success">Logged In</span>
+                                    <span>Logged In</span>
                                 </ListGroup.Item>
                             </ListGroup>
                         </Card.Body>
-                        <Card.Footer className="bg-white border-0 text-center pb-4">
-                            <p className="text-muted small">Manage your settings and preferences here in the future.</p>
-                        </Card.Footer>
                     </Card>
                 </Col>
             </Row>

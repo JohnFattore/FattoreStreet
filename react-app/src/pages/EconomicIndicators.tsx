@@ -22,7 +22,7 @@ export default function EconomicIndicators() {
 
   if (error) {
     return (
-      <Container className="mt-4">
+      <Container>
         <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
       </Container>
     );
@@ -31,8 +31,8 @@ export default function EconomicIndicators() {
   return (
     <Container fluid className="py-4 px-4 min-vh-100 theme-bg-quaternary">
       <div className="mb-5">
-        <h1 className="display-5 fw-bold text-dark">Economic Indicators</h1>
-        <p className="lead text-muted">
+        <h1>Economic Indicators</h1>
+        <p>
           Monitoring key macroeconomic metrics to understand market conditions and trends.
         </p>
       </div>

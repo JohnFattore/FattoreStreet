@@ -13,9 +13,9 @@ import {
 export default function GenericLineChart({ data, label, description, strokeColor = "#8884d8", height = 300 }) {
   if (!data) {
     return (
-      <Card className="h-100 shadow-sm border-0">
-        <Card.Body className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: height + 100 }}>
-          <Card.Title className="text-muted mb-4">{label}</Card.Title>
+      <Card>
+        <Card.Body style={{ minHeight: height + 100 }}>
+          <Card.Title>{label}</Card.Title>
           <Spinner animation="border" variant="primary" />
         </Card.Body>
       </Card>
@@ -23,12 +23,12 @@ export default function GenericLineChart({ data, label, description, strokeColor
   }
 
   return (
-    <Card className="h-100 shadow-sm border-0 overflow-hidden transition-hover">
-      <Card.Body className="p-4 d-flex flex-column">
-        <Card.Title className="fw-bold mb-4 text-dark">
+    <Card>
+      <Card.Body>
+        <Card.Title>
           {label}
         </Card.Title>
-        <div className="flex-grow-1" style={{ width: "100%", height }}>
+        <div style={{ width: "100%", height }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -65,7 +65,7 @@ export default function GenericLineChart({ data, label, description, strokeColor
         </div>
         {description && (
           <div className="mt-4 pt-3 border-top">
-            <p className="text-muted mb-0" style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
+            <p style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
               {description}
             </p>
           </div>

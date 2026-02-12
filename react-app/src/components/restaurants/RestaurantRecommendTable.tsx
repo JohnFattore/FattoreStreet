@@ -15,7 +15,7 @@ const fields = [
     //{ name: "Categories", type: "text", field: "categories" },
     { name: "Stars", type: "number", field: "stars" },
     { name: "Review Count", type: "text", field: "review_count" },
-    //{ name: "Create Review", type: "text", field: "createReview" },
+    { name: "Create Review", type: "text", field: "createReview" },
     //{ name: "Yelp ID", type: "text", field: "yelp_id" },
 ]
 
@@ -45,7 +45,7 @@ export default function RestaurantRecommendTable({ setRestaurant }) {
 
     return (
         <>
-        <h3>Recommended Restaurants</h3>
+            <h3>Recommended Restaurants</h3>
             <Table>
                 <thead>
                     <tr>

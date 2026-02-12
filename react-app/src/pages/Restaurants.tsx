@@ -36,7 +36,14 @@ export default function Restaurants() {
         id: 0
     });
 
+    const [showReviewModal, setShowReviewModal] = useState(false);
     const [showMap, setShowMap] = useState(false);
+
+    // Function to handle opening the review modal
+    const handleOpenReviewModal = (selectedRestaurant: IRestaurant) => {
+        setRestaurant(selectedRestaurant);
+        setShowReviewModal(true);
+    };
 
     const renderRecommendations = () => {
 
@@ -50,7 +57,7 @@ export default function Restaurants() {
 
         if (loading) return <Alert>Loading Restaurant Recommendations</Alert>;
 
-        return <RestaurantRecommendTable setRestaurant={setRestaurant} />
+        return <RestaurantRecommendTable setRestaurant={handleOpenReviewModal} />
     };
 
     if (!access) {
@@ -61,7 +68,7 @@ export default function Restaurants() {
                     message="Join our community to see personal reviews and get AI-powered recommendations."
                     buttonText="Sign In to Unlock Full Access"
                 />
-                <RestaurantTable setRestaurant={setRestaurant} />
+                <RestaurantTable setRestaurant={handleOpenReviewModal} />
                 <p className="text-muted text-center mt-3">Data provided by Yelp</p>
             </>
         );
@@ -74,8 +81,12 @@ export default function Restaurants() {
             <Button onClick={() => setShowMap(prev => !prev)}> {showMap ? 'Hide Map' : 'Show Map'} </Button>
             {showMap && <ReviewMap />}
             {renderRecommendations()}
-            <ReviewForm restaurant={restaurant} />
-            <RestaurantTable setRestaurant={setRestaurant} />
+            <ReviewForm
+                restaurant={restaurant}
+                show={showReviewModal}
+                onHide={() => setShowReviewModal(false)}
+            />
+            <RestaurantTable setRestaurant={handleOpenReviewModal} />
             <p>Data provided by Yelp</p>
         </>
     )
