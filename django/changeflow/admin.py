@@ -4,6 +4,6 @@ from .models import ChangeRequest
 
 @admin.register(ChangeRequest)
 class ChangeRequestAdmin(SimpleHistoryAdmin):
-    list_display = ('title', 'status', 'priority', 'created_at')
+    list_display = ('id', 'title', 'status', 'priority', 'created_at')
     list_filter = ('status', 'priority')
-    search_fields = ('title', 'description')
+    search_fields = ('title', 'description', 'solution')

@@ -3,6 +3,11 @@ from .models import Asset, Account
 from django.utils import timezone
 from .helper import get_historical_prices, is_market_open
 
+
+class FredSeriesItemSerializer(serializers.Serializer):
+    series_id = serializers.CharField()
+    compute_yoy = serializers.BooleanField(default=False)
+
 class AccountSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
 

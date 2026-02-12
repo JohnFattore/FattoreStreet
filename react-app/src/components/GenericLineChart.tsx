@@ -7,10 +7,22 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  Legend,
   ResponsiveContainer,
 } from "recharts";
 
-export default function GenericLineChart({ data, label, description, strokeColor = "#8884d8", height = 300 }) {
+/**
+ * Single-line usage:  <GenericLineChart data={[...]} label="Title" strokeColor="#007bff" />
+ * Multi-line overlay: <GenericLineChart data={mergedData} label="Title" lines={[{ dataKey: "a", color: "#007bff", name: "A" }, ...]} />
+ */
+export default function GenericLineChart({ data, label, description, strokeColor = "#8884d8", height = 300, lines }: {
+  data: any;
+  label: string;
+  description: string;
+  strokeColor?: string;
+  height?: number;
+  lines?: { dataKey: string; color: string; name: string }[];
+}) {
   if (!data) {
     return (
       <Card>
@@ -52,14 +64,32 @@ export default function GenericLineChart({ data, label, description, strokeColor
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                 }}
               />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={strokeColor}
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ r: 6, strokeWidth: 0 }}
-              />
+              {lines ? (
+                <>
+                  <Legend />
+                  {lines.map((line) => (
+                    <Line
+                      key={line.dataKey}
+                      type="monotone"
+                      dataKey={line.dataKey}
+                      name={line.name}
+                      stroke={line.color}
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                  ))}
+                </>
+              ) : (
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={strokeColor}
+                  strokeWidth={3}
+                  dot={false}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>

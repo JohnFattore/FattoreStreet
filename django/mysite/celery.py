@@ -14,14 +14,15 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 
-# game should reset at the beginning of before hours trading on first trading day of the week (usually monday)
+app.conf.timezone = 'US/Eastern'
+
 app.conf.beat_schedule = {
-'Load yfinance Cache': {
- 'task': 'portfolio.tasks.load_yfinance_cache',
- 'schedule': crontab(hour=0, minute=53),
-   },
-#'Load FRED Cache': {
-# 'task': 'portfolio.tasks.load_fred_cache',
-# 'schedule': crontab(hour=9, minute=5),
-#   },
+    'Load yfinance Cache': {
+        'task': 'portfolio.tasks.load_yfinance_cache',
+        'schedule': crontab(hour=4, minute=0),
+    },
+    'Load FRED Cache': {
+        'task': 'portfolio.tasks.load_fred_cache',
+        'schedule': crontab(hour=4, minute=0),
+    },
 }

@@ -2,7 +2,7 @@ from rest_framework import generics, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .serializers import AssetSerializer, AccountSerializer
+from .serializers import AssetSerializer, AccountSerializer, FredSeriesItemSerializer
 from .permissions import IsOwner
 from .models import Asset, Account
 from datetime import datetime
@@ -139,11 +139,6 @@ class AssetHistoricalPricesRetrieveView(APIView):
         for date, price in prices.items():
             output.append({"date": date, "value": price})
         return Response(output)
-
-# should go in serializer file
-class FredSeriesItemSerializer(serializers.Serializer):
-    series_id = serializers.CharField()
-    compute_yoy = serializers.BooleanField(default=False)
 
 class FredDataRetrieveView(APIView):
     def post(self, request):

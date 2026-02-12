@@ -18,6 +18,7 @@ class ChangeRequest(models.Model):
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    solution = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
     data = models.JSONField(default=dict, blank=True, help_text="Structured data for the request")
