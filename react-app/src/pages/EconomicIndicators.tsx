@@ -63,9 +63,9 @@ export default function EconomicIndicators() {
     return [...map.values()].sort((a, b) => (a.date > b.date ? 1 : -1));
   }, [data]);
 
-  // Merge CPI YoY, Core PCE YoY, and 10Y Breakeven Inflation by date for overlay chart
-  const inflationOverlay = useMemo(() => {
-    if (!data?.["CPIAUCSL"] || !data?.["PCEPILFE"] || !data?.["T10YIE"]) return null;
+  // Merge CPI YoY and Core PCE YoY by date for overlay chart
+  const cpiPceOverlay = useMemo(() => {
+    if (!data?.["CPIAUCSL"] || !data?.["PCEPILFE"]) return null;
     const map = new Map<string, any>();
     for (const pt of data["CPIAUCSL"]) {
       map.set(pt.date, { date: pt.date, "CPI": pt.value });
@@ -73,11 +73,6 @@ export default function EconomicIndicators() {
     for (const pt of data["PCEPILFE"]) {
       const existing = map.get(pt.date) ?? { date: pt.date };
       existing["Core PCE"] = pt.value;
-      map.set(pt.date, existing);
-    }
-    for (const pt of data["T10YIE"]) {
-      const existing = map.get(pt.date) ?? { date: pt.date };
-      existing["Breakeven"] = pt.value;
       map.set(pt.date, existing);
     }
     return [...map.values()].sort((a, b) => (a.date > b.date ? 1 : -1));
@@ -160,14 +155,21 @@ export default function EconomicIndicators() {
         </Col>
         <Col xl={4} lg={6} md={12}>
           <GenericLineChart
-            data={inflationOverlay}
-            label="Inflation Measures (CPI / Core PCE / Breakeven)"
-            description="Headline CPI, the Fed's preferred Core PCE, and the market-implied 10-year breakeven inflation rate — three lenses on price stability."
+            data={cpiPceOverlay}
+            label="CPI vs Core PCE (YoY)"
+            description="Headline CPI and the Fed's preferred Core PCE inflation measure side by side — comparing consumer price changes with the metric that drives monetary policy."
             lines={[
               { dataKey: "CPI", color: "#dc3545", name: "CPI YoY" },
               { dataKey: "Core PCE", color: "#6f42c1", name: "Core PCE YoY" },
-              { dataKey: "Breakeven", color: "#17a2b8", name: "10Y Breakeven" },
             ]}
+          />
+        </Col>
+        <Col xl={4} lg={6} md={12}>
+          <GenericLineChart
+            data={data["T10YIE"]}
+            label="10-Year Breakeven Inflation Rate"
+            description="The market's expected average inflation over the next 10 years, derived from the spread between nominal Treasuries and TIPS."
+            strokeColor="#17a2b8"
           />
         </Col>
 
