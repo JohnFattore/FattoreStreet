@@ -7,7 +7,7 @@ from .permissions import IsOwner
 from .models import Asset, Account
 from datetime import datetime
 import environ
-from .helper import get_realtime_price, get_yfinance_data, is_market_open, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates
+from .helper import get_realtime_price, get_yfinance_data, is_market_open, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates, QuoteFetchError
 env = environ.Env()
 environ.Env.read_env()
 

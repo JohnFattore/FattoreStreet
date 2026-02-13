@@ -199,11 +199,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 #    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=1),
 #}
 
-# might have to be a env variable, this is gonna be a continued problem
-CELERY_RESULT_BACKEND = env("REDIS_URL") #'redis://localhost:6379'
-CELERY_BROKER_URL = env("REDIS_URL") #'redis://localhost:6379'
-# production
-# CELERY_RESULT_BACKEND = 'redis://redis:6379'
-# CELERY_BROKER_URL = 'redis://redis:6379'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_RESULT_EXTENDED = True
+CELERY_RESULT_EXPIRES = timedelta(days=90)
+CELERY_BROKER_URL = env("REDIS_URL")
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
