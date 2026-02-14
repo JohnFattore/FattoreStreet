@@ -30,7 +30,7 @@ public class MainController {
     private final FinancialService financialService;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @org.springframework.beans.factory.annotation.Value("${ADMIN_API_KEY:default-secret-key}")
+    @org.springframework.beans.factory.annotation.Value("${ADMIN_API_KEY:spike}")
     private String adminApiKey;
 
     public MainController(WebService webService, AssetService assetService, AssetRepository assetRepository,

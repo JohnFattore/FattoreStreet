@@ -96,19 +96,19 @@ public class QuarterService {
     public void batchUpsertQuarters(Integer year, Integer qtr, Collection<Quarter> incoming) {
         // One query: load all existing rows for this year+quarter
         List<Quarter> existingQuarters = quarterRepository.findByYearAndQuarter(year, qtr);
-        Map<String, Quarter> existingMap = existingQuarters.stream()
-                .filter(q -> q.getAsset() != null && q.getPeriodStart() != null && q.getPeriodEnd() != null)
+        // Key by cik only (year+quarter already filtered by query)
+        Map<Long, Quarter> existingMap = existingQuarters.stream()
+                .filter(q -> q.getAsset() != null)
                 .collect(Collectors.toMap(
-                        q -> q.getAsset().getCik() + "|" + q.getPeriodStart() + "|" + q.getPeriodEnd(),
+                        q -> q.getAsset().getCik(),
                         q -> q,
                         (a, b) -> a));
 
         List<Quarter> toSave = new ArrayList<>();
         for (Quarter newQ : incoming) {
-            if (newQ.getAsset() == null || newQ.getPeriodStart() == null || newQ.getPeriodEnd() == null)
+            if (newQ.getAsset() == null || newQ.getYear() == null || newQ.getQuarter() == null)
                 continue;
-            String key = newQ.getAsset().getCik() + "|" + newQ.getPeriodStart() + "|" + newQ.getPeriodEnd();
-            Quarter existing = existingMap.get(key);
+            Quarter existing = existingMap.get(newQ.getAsset().getCik());
             if (existing != null) {
                 updateQuarterFields(existing, newQ);
                 toSave.add(existing);

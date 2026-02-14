@@ -137,7 +137,7 @@ public class EdgarService {
     private Map<String, Object> syncFrames(String period, Map<Long, Asset> assetMap, long fundsSkipped)
             throws Exception {
         // Phase 1: collect all data points into an in-memory map, merging fields
-        // Key: "cik|periodStart|periodEnd"
+        // Key: "cik|year|quarter"
         Map<String, Quarter> collected = new HashMap<>();
         Integer parsedYear = null;
         Integer parsedQtr = null;
@@ -205,17 +205,27 @@ public class EdgarService {
                             ? (valNode.isFloatingPointNumber() ? valNode.asDouble() : valNode.asLong())
                             : null;
 
-                    // Merge into collected map
-                    String key = cik + "|" + start + "|" + end;
+                    // Skip if year/quarter unknown
+                    if (year == 0 || qtr == 0)
+                        continue;
+
+                    // Merge into collected map keyed by cik|year|quarter
+                    String key = cik + "|" + year + "|" + qtr;
                     Quarter quarter = collected.get(key);
                     if (quarter == null) {
                         quarter = new Quarter();
                         quarter.setAsset(asset);
+                        quarter.setYear(year);
+                        quarter.setQuarter(qtr);
                         quarter.setPeriodStart(start);
                         quarter.setPeriodEnd(end);
-                        quarter.setYear(year != 0 ? year : null);
-                        quarter.setQuarter(qtr != 0 ? qtr : null);
                         collected.put(key, quarter);
+                    } else {
+                        // Widen the period range
+                        if (start.isBefore(quarter.getPeriodStart()))
+                            quarter.setPeriodStart(start);
+                        if (end.isAfter(quarter.getPeriodEnd()))
+                            quarter.setPeriodEnd(end);
                     }
                     setQuarterField(quarter, fc.fieldName, value);
                 }
