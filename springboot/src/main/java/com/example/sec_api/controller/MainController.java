@@ -80,16 +80,11 @@ public class MainController {
             }
         }
 
-        List<String> snp500Tickers = webService.getSnP500List();
-        Set<String> snp500Set = new HashSet<>(snp500Tickers);
-
         Map<Integer, Map<String, String>> secTickers = webService.fetchSecTickers();
-        // assetRepository.deleteAll();
+        int equityCount = 0;
+        int fundCount = 0;
         for (Map<String, String> secTicker : secTickers.values()) {
             String ticker = secTicker.get("ticker");
-            if (!snp500Set.contains(ticker)) {
-                continue;
-            }
             Asset asset = new Asset();
             asset.setCik(Long.parseLong(secTicker.get("cik_str")));
             Boolean isFund = tickerToType.get(ticker);
@@ -103,8 +98,13 @@ public class MainController {
             listing.setTitle(secTicker.get("title"));
             listing.setAsset(asset);
             listingService.createOrUpdateListing(listing);
+            if (isFund) {
+                fundCount++;
+            } else {
+                equityCount++;
+            }
         }
-        return ResponseEntity.ok("S&P 500 Loaded: " + snp500Set.size() + " tickers processed.");
+        return ResponseEntity.ok("All US tickers loaded: " + equityCount + " equities, " + fundCount + " ETFs/funds.");
     }
 
     @GetMapping("/admin/test")
@@ -229,14 +229,13 @@ public class MainController {
             return "N/A";
         return String.format("%.2f%%", (Double) val * 100);
     }
-
+/*
     @GetMapping("/admin/quarters")
     public ResponseEntity<?> financials(@org.springframework.web.bind.annotation.RequestHeader(value = "X-Admin-Key", required = false) String key) {
         if (adminApiKey != null && !adminApiKey.equals(key)) {
             return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
         }
-        List<String> snp500Tickers = webService.getSnP500List();
-        List<Asset> assets = assetRepository.findByTickersIn(snp500Tickers);
+        List<Asset> assets = assetRepository.findByIsFund(false);
         List<String> errors = Collections.synchronizedList(new ArrayList<String>());
 
         assets.parallelStream().forEach(asset -> {
@@ -246,9 +245,11 @@ public class MainController {
                 errors.add("cik:" + asset.getCik() + " error: " + e.getMessage());
             }
         });
-        return ResponseEntity.ok(errors.isEmpty() ? "Success" : String.join("\n", errors));
+        int fundsSkipped = assetRepository.findByIsFund(true).size();
+        String summary = "Processed " + assets.size() + " equities. Skipped " + fundsSkipped + " ETFs/funds.";
+        return ResponseEntity.ok(errors.isEmpty() ? summary : summary + "\nErrors:\n" + String.join("\n", errors));
     }
-
+*/
     @GetMapping("/admin/sync-frames")
     public ResponseEntity<?> syncFrames(@org.springframework.web.bind.annotation.RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(required = false) String period,
@@ -258,21 +259,30 @@ public class MainController {
             return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
         }
         try {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> report;
+            String scope;
             if (full) {
-                edgarService.syncSnp500FramesFull();
-                return ResponseEntity.ok("Syncing all frames since 2009. This may take a while.");
+                report = edgarService.syncFramesFull();
+                scope = "all frames since 2009";
             } else if (period != null) {
-                edgarService.syncSnp500Frames(period);
-                return ResponseEntity.ok("Syncing frames for period: " + period);
+                report = edgarService.syncFrames(period);
+                scope = "period " + period;
             } else if (year != null) {
-                edgarService.syncSnp500FramesByYear(year);
-                return ResponseEntity.ok("Syncing frames for year: " + year);
+                report = edgarService.syncFramesByYear(year);
+                scope = "year " + year;
             } else {
                 return ResponseEntity.badRequest().body("Either period, year, or full=true must be provided");
             }
+            long elapsed = System.currentTimeMillis() - startTime;
+            long minutes = elapsed / 60000;
+            long seconds = (elapsed % 60000) / 1000;
+            String duration = minutes > 0 ? minutes + "m " + seconds + "s" : seconds + "." + (elapsed % 1000) / 100 + "s";
+            String message = "Synced " + report.get("equitiesProcessed") + " equities for " + scope
+                    + ". Skipped " + report.get("fundsSkipped") + " ETFs/funds. Completed in " + duration + ".";
+            return ResponseEntity.ok(message);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error syncing frames: " + e.getMessage());
         }
     }
-
 }

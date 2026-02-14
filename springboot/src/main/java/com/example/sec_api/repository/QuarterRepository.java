@@ -13,4 +13,6 @@ public interface QuarterRepository extends JpaRepository<Quarter, Long> {
     Optional<Quarter> findByAssetAndYearAndQuarter(Asset asset, Integer year, Integer quarter);
 
     List<Quarter> findByAsset(Asset asset);
+
+    List<Quarter> findByYearAndQuarter(Integer year, Integer quarter);
 }

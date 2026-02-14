@@ -1,21 +1,21 @@
 import RestaurantTable from '../components/restaurants/RestaurantTable';
 import { useEffect } from 'react';
-import { getRestaurants, getReviews, getRestaurantRecommendations } from '../functions/axiosFunctions';
+import { getRestaurants, getReviews } from '../functions/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../main";
 import ReviewForm from '../components/restaurants/ReviewForm';
 import { useState } from 'react';
 import { IRestaurant } from '../interfaces';
-import { Alert, Button } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
 import LoginRequired from '../components/LoginRequired';
 import ReviewTable from '../components/restaurants/ReviewTable';
 import ReviewMap from '../components/restaurants/ReviewMap'
-import RestaurantRecommendTable from '../components/restaurants/RestaurantRecommendTable'
+//import RestaurantRecommendTable from '../components/restaurants/RestaurantRecommendTable'
 
 export default function Restaurants() {
     const dispatch = useDispatch<AppDispatch>();
     const { access } = useSelector((state: RootState) => state.user);
-    const { restaurants, loading } = useSelector((state: RootState) => state.restaurantRecommend);
+    //const { restaurants, loading } = useSelector((state: RootState) => state.restaurantRecommend);
 
     useEffect(() => {
         dispatch(getRestaurants());
@@ -44,7 +44,7 @@ export default function Restaurants() {
         setRestaurant(selectedRestaurant);
         setShowReviewModal(true);
     };
-
+/*
     const renderRecommendations = () => {
 
         if (restaurants.length === 0 && !loading) {
@@ -59,7 +59,7 @@ export default function Restaurants() {
 
         return <RestaurantRecommendTable setRestaurant={handleOpenReviewModal} />
     };
-
+*/
     if (!access) {
         return (
             <>
@@ -80,7 +80,7 @@ export default function Restaurants() {
             <ReviewTable />
             <Button onClick={() => setShowMap(prev => !prev)}> {showMap ? 'Hide Map' : 'Show Map'} </Button>
             {showMap && <ReviewMap />}
-            {renderRecommendations()}
+            {/*{renderRecommendations()}*/}
             <ReviewForm
                 restaurant={restaurant}
                 show={showReviewModal}

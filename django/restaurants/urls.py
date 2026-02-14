@@ -8,5 +8,5 @@ urlpatterns = [
     path('api/review-update/<int:pk>/', views.ReviewUpdateView.as_view(), name="reviewUpdate"),
     path('api/review/<int:pk>/', views.ReviewRetrieveDestroyView.as_view(), name="review"),
     path('api/yelp-load/', views.YelpLoadView.as_view(), name="yelpLoad"),
-    path('api/restaurant-recommend/', views.RestaurantRecommenderView.as_view(), name="restaurantRecommend"),
+    #path('api/restaurant-recommend/', views.RestaurantRecommenderView.as_view(), name="restaurantRecommend"),
 ]

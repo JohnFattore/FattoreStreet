@@ -7,8 +7,8 @@ ENV PYTHONUNBUFFERED=1
 
 # install dependencies first for better layer caching
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt --no-cache-dir && \
-    pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip3 install -r requirements.txt --no-cache-dir
+#    pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 # copy the rest of the app
 COPY . .

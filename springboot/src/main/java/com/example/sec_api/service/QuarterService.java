@@ -1,11 +1,13 @@
 package com.example.sec_api.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.sec_api.model.Asset;
 import com.example.sec_api.model.Quarter;
 import com.example.sec_api.repository.QuarterRepository;
@@ -80,6 +82,33 @@ public class QuarterService {
         for (Quarter newQ : consolidatedNew.values()) {
             Quarter existing = existingMap.get(newQ.getPeriodStart() + "|" + newQ.getPeriodEnd());
 
+            if (existing != null) {
+                updateQuarterFields(existing, newQ);
+                toSave.add(existing);
+            } else {
+                toSave.add(newQ);
+            }
+        }
+        quarterRepository.saveAll(toSave);
+    }
+
+    @Transactional
+    public void batchUpsertQuarters(Integer year, Integer qtr, Collection<Quarter> incoming) {
+        // One query: load all existing rows for this year+quarter
+        List<Quarter> existingQuarters = quarterRepository.findByYearAndQuarter(year, qtr);
+        Map<String, Quarter> existingMap = existingQuarters.stream()
+                .filter(q -> q.getAsset() != null && q.getPeriodStart() != null && q.getPeriodEnd() != null)
+                .collect(Collectors.toMap(
+                        q -> q.getAsset().getCik() + "|" + q.getPeriodStart() + "|" + q.getPeriodEnd(),
+                        q -> q,
+                        (a, b) -> a));
+
+        List<Quarter> toSave = new ArrayList<>();
+        for (Quarter newQ : incoming) {
+            if (newQ.getAsset() == null || newQ.getPeriodStart() == null || newQ.getPeriodEnd() == null)
+                continue;
+            String key = newQ.getAsset().getCik() + "|" + newQ.getPeriodStart() + "|" + newQ.getPeriodEnd();
+            Quarter existing = existingMap.get(key);
             if (existing != null) {
                 updateQuarterFields(existing, newQ);
                 toSave.add(existing);

@@ -28,3 +28,7 @@ awscliv2.zip
 aws/
 
 kubernetes/
+
+nginx/static/admin/
+django/static/admin/
+nginx/dist/

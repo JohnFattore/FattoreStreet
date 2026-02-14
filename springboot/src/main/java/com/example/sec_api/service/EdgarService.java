@@ -90,27 +90,57 @@ public class EdgarService {
         this.assetRepository = assetRepository;
     }
 
-    public void syncSnp500FramesByYear(int year) throws Exception {
+    // --- Public entry points (load assets once, pass to syncFrames) ---
+
+    public Map<String, Object> syncFramesByYear(int year) throws Exception {
+        Map<Long, Asset> assetMap = loadAssetMap();
+        long fundsSkipped = assetRepository.countByIsFund(true);
+        int equities = 0;
         for (int q = 1; q <= 4; q++) {
-            syncSnp500Frames("CY" + year + "Q" + q);
+            Map<String, Object> report = syncFrames("CY" + year + "Q" + q, assetMap, fundsSkipped);
+            equities = (int) report.get("equitiesProcessed");
         }
+        return Map.of("equitiesProcessed", equities, "fundsSkipped", fundsSkipped);
     }
 
-    public void syncSnp500FramesByYearRange(int startYear, int endYear) throws Exception {
+    public Map<String, Object> syncFramesByYearRange(int startYear, int endYear) throws Exception {
+        Map<Long, Asset> assetMap = loadAssetMap();
+        long fundsSkipped = assetRepository.countByIsFund(true);
+        Map<String, Object> report = Map.of("equitiesProcessed", 0, "fundsSkipped", fundsSkipped);
         for (int y = startYear; y <= endYear; y++) {
-            syncSnp500FramesByYear(y);
+            for (int q = 1; q <= 4; q++) {
+                report = syncFrames("CY" + y + "Q" + q, assetMap, fundsSkipped);
+            }
         }
+        return report;
     }
 
-    public void syncSnp500FramesFull() throws Exception {
+    public Map<String, Object> syncFramesFull() throws Exception {
         int currentYear = LocalDate.now().getYear();
-        syncSnp500FramesByYearRange(2009, currentYear);
+        return syncFramesByYearRange(2009, currentYear);
     }
 
-    public void syncSnp500Frames(String period) throws Exception {
-        List<String> snp500Tickers = webService.getSnP500List();
-        List<Asset> snp500Assets = assetRepository.findByTickersIn(snp500Tickers);
-        Map<Long, Asset> assetMap = snp500Assets.stream().collect(Collectors.toMap(Asset::getCik, a -> a));
+    /** Convenience overload for direct callers (e.g. controller with a single period). */
+    public Map<String, Object> syncFrames(String period) throws Exception {
+        Map<Long, Asset> assetMap = loadAssetMap();
+        long fundsSkipped = assetRepository.countByIsFund(true);
+        return syncFrames(period, assetMap, fundsSkipped);
+    }
+
+    // --- Core implementation ---
+
+    private Map<Long, Asset> loadAssetMap() {
+        List<Asset> allAssets = assetRepository.findByIsFund(false);
+        return allAssets.stream().collect(Collectors.toMap(Asset::getCik, a -> a));
+    }
+
+    private Map<String, Object> syncFrames(String period, Map<Long, Asset> assetMap, long fundsSkipped)
+            throws Exception {
+        // Phase 1: collect all data points into an in-memory map, merging fields
+        // Key: "cik|periodStart|periodEnd"
+        Map<String, Quarter> collected = new HashMap<>();
+        Integer parsedYear = null;
+        Integer parsedQtr = null;
 
         for (FrameConcept fc : FRAME_CONCEPTS) {
             try {
@@ -139,11 +169,6 @@ public class EdgarService {
                             continue;
                     }
 
-                    Quarter quarter = new Quarter();
-                    quarter.setAsset(asset);
-                    quarter.setPeriodStart(start);
-                    quarter.setPeriodEnd(end);
-
                     int year = 0;
                     int qtr = 0;
                     if (node.has("fy")) {
@@ -151,8 +176,6 @@ public class EdgarService {
                     } else if (period != null && period.startsWith("CY")) {
                         year = Integer.parseInt(period.substring(2, 6));
                     }
-                    quarter.setYear(year != 0 ? year : null);
-
                     if (node.has("fp")) {
                         String fp = node.get("fp").asText();
                         if (fp.equalsIgnoreCase("Q1"))
@@ -170,20 +193,43 @@ public class EdgarService {
                             // ignore
                         }
                     }
-                    quarter.setQuarter(qtr != 0 ? qtr : null);
+
+                    // Track the period's year/quarter for the batch upsert lookup
+                    if (parsedYear == null && year != 0)
+                        parsedYear = year;
+                    if (parsedQtr == null && qtr != 0)
+                        parsedQtr = qtr;
 
                     JsonNode valNode = node.get("val");
                     Object value = valNode.isNumber()
                             ? (valNode.isFloatingPointNumber() ? valNode.asDouble() : valNode.asLong())
                             : null;
 
+                    // Merge into collected map
+                    String key = cik + "|" + start + "|" + end;
+                    Quarter quarter = collected.get(key);
+                    if (quarter == null) {
+                        quarter = new Quarter();
+                        quarter.setAsset(asset);
+                        quarter.setPeriodStart(start);
+                        quarter.setPeriodEnd(end);
+                        quarter.setYear(year != 0 ? year : null);
+                        quarter.setQuarter(qtr != 0 ? qtr : null);
+                        collected.put(key, quarter);
+                    }
                     setQuarterField(quarter, fc.fieldName, value);
-                    quarterService.createOrUpdateQuarter(quarter);
                 }
             } catch (Exception e) {
                 System.err.println("Error syncing concept " + fc.tag + " for " + period + ": " + e.getMessage());
             }
         }
+
+        // Phase 2: batch upsert all collected quarters
+        if (!collected.isEmpty() && parsedYear != null && parsedQtr != null) {
+            quarterService.batchUpsertQuarters(parsedYear, parsedQtr, collected.values());
+        }
+
+        return Map.of("equitiesProcessed", assetMap.size(), "fundsSkipped", fundsSkipped);
     }
 
     private void setQuarterField(Quarter q, String field, Object val) {

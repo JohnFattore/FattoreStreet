@@ -15,7 +15,7 @@ interface IFormInput {
   ticker: string;
   shares: number;
   buyDate: string;
-  accountId?: number | null;
+  accountId: number;
 }
 
 interface AssetFormProps {
@@ -43,7 +43,7 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
     ticker: yup.string().required().uppercase(),
     shares: yup.number().required().positive(),
     buyDate: yup.string().required(),
-    accountId: yup.number().optional().nullable().transform((value, originalValue) => originalValue === "" ? null : value),
+    accountId: yup.number().required("Account is required").transform((value, originalValue) => originalValue === "" ? undefined : value),
   });
   const {
     register,
@@ -77,7 +77,7 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
         ticker: data.ticker,
         shares: data.shares,
         buy_date: data.buyDate,
-        account_id: data.accountId ? Number(data.accountId) : null,
+        account_id: Number(data.accountId),
       });
 
       if ('data' in result) {
@@ -177,13 +177,18 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
                   disabled={!!defaultAccountId}
                   className="mb-3"
                 >
-                  <option value="">Select Account (Optional)</option>
+                  <option value="">Select Account</option>
                   {accounts?.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
                     </option>
                   ))}
                 </Form.Select>
+                {errors.accountId && (
+                  <Alert variant="danger" role="accountIdError">
+                    Error: An account must be selected
+                  </Alert>
+                )}
               </Col>
             </Row>
             <div className="d-flex justify-content-end">
