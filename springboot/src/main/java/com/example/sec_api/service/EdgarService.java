@@ -83,6 +83,13 @@ public class EdgarService {
             new FrameConcept("us-gaap", "PaymentsForRepurchaseOfCommonStock", "USD",
                     "paymentsForRepurchaseOfCommonStock", false));
 
+    private static class AnnualData {
+        int fiscalYear;
+        LocalDate periodStart;
+        LocalDate periodEnd;
+        Map<String, Number> fields = new HashMap<>();
+    }
+
     public EdgarService(WebService webService, QuarterService quarterService,
             com.example.sec_api.repository.AssetRepository assetRepository) {
         this.webService = webService;
@@ -90,58 +97,45 @@ public class EdgarService {
         this.assetRepository = assetRepository;
     }
 
-    // --- Public entry points (load assets once, pass to syncFrames) ---
-
-    public Map<String, Object> syncFramesByYear(int year) throws Exception {
-        Map<Long, Asset> assetMap = loadAssetMap();
-        long fundsSkipped = assetRepository.countByIsFund(true);
-        int equities = 0;
-        for (int q = 1; q <= 4; q++) {
-            Map<String, Object> report = syncFrames("CY" + year + "Q" + q, assetMap, fundsSkipped);
-            equities = (int) report.get("equitiesProcessed");
-        }
-        return Map.of("equitiesProcessed", equities, "fundsSkipped", fundsSkipped);
-    }
-
-    public Map<String, Object> syncFramesByYearRange(int startYear, int endYear) throws Exception {
-        Map<Long, Asset> assetMap = loadAssetMap();
-        long fundsSkipped = assetRepository.countByIsFund(true);
-        Map<String, Object> report = Map.of("equitiesProcessed", 0, "fundsSkipped", fundsSkipped);
-        for (int y = startYear; y <= endYear; y++) {
-            for (int q = 1; q <= 4; q++) {
-                report = syncFrames("CY" + y + "Q" + q, assetMap, fundsSkipped);
-            }
-        }
-        return report;
-    }
+    // --- Public entry point ---
 
     public Map<String, Object> syncFramesFull() throws Exception {
-        int currentYear = LocalDate.now().getYear();
-        return syncFramesByYearRange(2009, currentYear);
-    }
-
-    /** Convenience overload for direct callers (e.g. controller with a single period). */
-    public Map<String, Object> syncFrames(String period) throws Exception {
         Map<Long, Asset> assetMap = loadAssetMap();
         long fundsSkipped = assetRepository.countByIsFund(true);
-        return syncFrames(period, assetMap, fundsSkipped);
+        int currentYear = LocalDate.now().getYear();
+
+        // Phase 1: Collect all quarterly frames (2009 to present)
+        Map<String, Quarter> collected = new HashMap<>();
+        for (int y = 2009; y <= currentYear; y++) {
+            for (int q = 1; q <= 4; q++) {
+                collectFrames("CY" + y + "Q" + q, assetMap, collected);
+            }
+        }
+
+        // Phase 2: Fetch annual frames and derive missing quarters
+        for (int y = 2009; y <= currentYear; y++) {
+            Map<Long, AnnualData> annualTotals = collectAnnualTotals(y, assetMap);
+            deriveFromAnnualTotals(collected, annualTotals, assetMap);
+        }
+
+        // Phase 3: Persist everything
+        persistCollected(collected);
+
+        return Map.of("equitiesProcessed", assetMap.size(), "fundsSkipped", fundsSkipped);
     }
 
-    // --- Core implementation ---
+    // --- Private implementation ---
 
     private Map<Long, Asset> loadAssetMap() {
         List<Asset> allAssets = assetRepository.findByIsFund(false);
         return allAssets.stream().collect(Collectors.toMap(Asset::getCik, a -> a));
     }
 
-    private Map<String, Object> syncFrames(String period, Map<Long, Asset> assetMap, long fundsSkipped)
-            throws Exception {
-        // Phase 1: collect all data points into an in-memory map, merging fields
-        // Key: "cik|year|quarter"
-        Map<String, Quarter> collected = new HashMap<>();
-        Integer parsedYear = null;
-        Integer parsedQtr = null;
-
+    /**
+     * Collects quarterly frame data for a single period (e.g. "CY2024Q3") into
+     * the provided map. Does not persist -- caller is responsible for that.
+     */
+    private void collectFrames(String period, Map<Long, Asset> assetMap, Map<String, Quarter> collected) {
         for (FrameConcept fc : FRAME_CONCEPTS) {
             try {
                 String framePeriod = fc.isInstant ? period + "I" : period;
@@ -173,7 +167,7 @@ public class EdgarService {
                     int qtr = 0;
                     if (node.has("fy")) {
                         year = node.get("fy").asInt();
-                    } else if (period != null && period.startsWith("CY")) {
+                    } else if (period.startsWith("CY")) {
                         year = Integer.parseInt(period.substring(2, 6));
                     }
                     if (node.has("fp")) {
@@ -186,19 +180,13 @@ public class EdgarService {
                             qtr = 3;
                         else if (fp.equalsIgnoreCase("FY") || fp.equalsIgnoreCase("Q4"))
                             qtr = 4;
-                    } else if (period != null && period.length() >= 8) {
+                    } else if (period.length() >= 8) {
                         try {
                             qtr = Integer.parseInt(period.substring(7, 8));
                         } catch (Exception e) {
                             // ignore
                         }
                     }
-
-                    // Track the period's year/quarter for the batch upsert lookup
-                    if (parsedYear == null && year != 0)
-                        parsedYear = year;
-                    if (parsedQtr == null && qtr != 0)
-                        parsedQtr = qtr;
 
                     JsonNode valNode = node.get("val");
                     Object value = valNode.isNumber()
@@ -230,16 +218,151 @@ public class EdgarService {
                     setQuarterField(quarter, fc.fieldName, value);
                 }
             } catch (Exception e) {
-                System.err.println("Error syncing concept " + fc.tag + " for " + period + ": " + e.getMessage());
+                System.err.println("Error collecting concept " + fc.tag + " for " + period + ": " + e.getMessage());
             }
         }
+    }
 
-        // Phase 2: batch upsert all collected quarters
-        if (!collected.isEmpty() && parsedYear != null && parsedQtr != null) {
-            quarterService.batchUpsertQuarters(parsedYear, parsedQtr, collected.values());
+    /**
+     * Fetches annual frame data (CY{year}) for all flow concepts and returns
+     * per-CIK annual totals including fiscal year period dates.
+     */
+    private Map<Long, AnnualData> collectAnnualTotals(int year, Map<Long, Asset> assetMap) {
+        Map<Long, AnnualData> annualMap = new HashMap<>();
+        for (FrameConcept fc : FRAME_CONCEPTS) {
+            if (fc.isInstant)
+                continue; // Only flow concepts need annual derivation
+            try {
+                String framePeriod = "CY" + year;
+                String json = webService.fetchXbrlFrames(fc.taxonomy, fc.tag, fc.unit, framePeriod);
+                JsonNode root = mapper.readTree(json);
+                JsonNode dataNode = root.get("data");
+                if (dataNode == null || !dataNode.isArray())
+                    continue;
+
+                for (JsonNode node : dataNode) {
+                    Long cik = node.get("cik").asLong();
+                    if (!assetMap.containsKey(cik))
+                        continue;
+
+                    String startStr = node.has("start") ? node.get("start").asText() : null;
+                    String endStr = node.get("end").asText();
+                    if (startStr == null)
+                        continue; // Flow concepts must have a start date
+
+                    JsonNode valNode = node.get("val");
+                    if (valNode == null || !valNode.isNumber())
+                        continue;
+
+                    Number value = valNode.isFloatingPointNumber() ? valNode.asDouble() : valNode.asLong();
+
+                    AnnualData data = annualMap.get(cik);
+                    if (data == null) {
+                        data = new AnnualData();
+                        data.fiscalYear = node.has("fy") ? node.get("fy").asInt() : year;
+                        data.periodStart = LocalDate.parse(startStr);
+                        data.periodEnd = LocalDate.parse(endStr);
+                        annualMap.put(cik, data);
+                    } else {
+                        // Widen period range across concepts
+                        LocalDate start = LocalDate.parse(startStr);
+                        LocalDate end = LocalDate.parse(endStr);
+                        if (start.isBefore(data.periodStart))
+                            data.periodStart = start;
+                        if (end.isAfter(data.periodEnd))
+                            data.periodEnd = end;
+                    }
+                    data.fields.put(fc.fieldName, value);
+                }
+            } catch (Exception e) {
+                System.err.println("Error collecting annual " + fc.tag + " for CY" + year + ": " + e.getMessage());
+            }
         }
+        return annualMap;
+    }
 
-        return Map.of("equitiesProcessed", assetMap.size(), "fundsSkipped", fundsSkipped);
+    /**
+     * Derives missing quarterly values from annual totals. Cross-year aware:
+     * uses the annual filing's fiscal year (fy) to look up the 4 fiscal quarters
+     * (fy Q1-Q4), matching how collectFrames stores data using SEC's fy/fp fields.
+     * Derivation is per-field: for each flow field, if exactly 3 of 4 quarters
+     * have a value, the missing one is computed as annual - sum(3 known).
+     */
+    private void deriveFromAnnualTotals(Map<String, Quarter> collected, Map<Long, AnnualData> annualTotals,
+            Map<Long, Asset> assetMap) {
+        for (Map.Entry<Long, AnnualData> entry : annualTotals.entrySet()) {
+            Long cik = entry.getKey();
+            AnnualData annual = entry.getValue();
+            Asset asset = assetMap.get(cik);
+            if (asset == null)
+                continue;
+
+            // Look up the 4 fiscal quarters (fy Q1-Q4) matching how collectFrames stores data
+            int fy = annual.fiscalYear;
+            String[] keys = new String[4];
+            Quarter[] quarters = new Quarter[4];
+            for (int q = 0; q < 4; q++) {
+                keys[q] = cik + "|" + fy + "|" + (q + 1);
+                quarters[q] = collected.get(keys[q]);
+            }
+
+            // For each flow field, derive the missing value if exactly 1 of 4 is absent
+            for (FrameConcept fc : FRAME_CONCEPTS) {
+                if (fc.isInstant)
+                    continue;
+
+                Number annualVal = annual.fields.get(fc.fieldName);
+                if (annualVal == null)
+                    continue;
+
+                int missingIndex = -1;
+                int missingCount = 0;
+                double sum = 0;
+                for (int i = 0; i < 4; i++) {
+                    Number qVal = quarters[i] != null ? getQuarterField(quarters[i], fc.fieldName) : null;
+                    if (qVal == null) {
+                        missingCount++;
+                        missingIndex = i;
+                    } else {
+                        sum += qVal.doubleValue();
+                    }
+                }
+
+                if (missingCount != 1)
+                    continue;
+
+                double derivedVal = annualVal.doubleValue() - sum;
+
+                // Ensure the Quarter object exists in the collected map
+                if (quarters[missingIndex] == null) {
+                    int mQtr = missingIndex + 1; // 1-based
+                    Quarter derived = new Quarter();
+                    derived.setAsset(asset);
+                    derived.setYear(fy);
+                    derived.setQuarter(mQtr);
+                    derived.setPeriodStart(annual.periodStart);
+                    derived.setPeriodEnd(annual.periodEnd);
+                    collected.put(keys[missingIndex], derived);
+                    quarters[missingIndex] = derived;
+                }
+
+                setQuarterField(quarters[missingIndex], fc.fieldName, derivedVal);
+            }
+        }
+    }
+
+    /**
+     * Persists all collected quarters to the database, grouped by (year, quarter).
+     */
+    private void persistCollected(Map<String, Quarter> collected) {
+        Map<String, List<Quarter>> groups = collected.values().stream()
+                .collect(Collectors.groupingBy(q -> q.getYear() + "|" + q.getQuarter()));
+        for (Map.Entry<String, List<Quarter>> entry : groups.entrySet()) {
+            String[] parts = entry.getKey().split("\\|");
+            int year = Integer.parseInt(parts[0]);
+            int qtr = Integer.parseInt(parts[1]);
+            quarterService.batchUpsertQuarters(year, qtr, entry.getValue());
+        }
     }
 
     private void setQuarterField(Quarter q, String field, Object val) {
@@ -292,6 +415,22 @@ public class EdgarService {
                 q.setPaymentsForRepurchaseOfCommonStock(num.longValue());
                 break;
         }
+    }
+
+    private Number getQuarterField(Quarter q, String field) {
+        return switch (field) {
+            case "revenues" -> q.getRevenues();
+            case "netIncomeLoss" -> q.getNetIncomeLoss();
+            case "operatingIncomeLoss" -> q.getOperatingIncomeLoss();
+            case "grossProfit" -> q.getGrossProfit();
+            case "earningsPerShareBasic" -> q.getEarningsPerShareBasic();
+            case "earningsPerShareDiluted" -> q.getEarningsPerShareDiluted();
+            case "netCashProvidedByUsedInOperatingActivities" ->
+                    q.getNetCashProvidedByUsedInOperatingActivities();
+            case "paymentsOfDividends" -> q.getPaymentsOfDividends();
+            case "paymentsForRepurchaseOfCommonStock" -> q.getPaymentsForRepurchaseOfCommonStock();
+            default -> null;
+        };
     }
 
     public void updateFinancials(Asset asset) throws Exception {

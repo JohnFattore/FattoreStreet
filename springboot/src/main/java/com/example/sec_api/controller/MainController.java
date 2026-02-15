@@ -251,34 +251,18 @@ public class MainController {
     }
 */
     @GetMapping("/admin/sync-frames")
-    public ResponseEntity<?> syncFrames(@org.springframework.web.bind.annotation.RequestHeader(value = "X-Admin-Key", required = false) String key,
-            @RequestParam(required = false) String period,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false, defaultValue = "false") boolean full) {
+    public ResponseEntity<?> syncFrames(@org.springframework.web.bind.annotation.RequestHeader(value = "X-Admin-Key", required = false) String key) {
         if (adminApiKey != null && !adminApiKey.equals(key)) {
             return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
         }
         try {
             long startTime = System.currentTimeMillis();
-            Map<String, Object> report;
-            String scope;
-            if (full) {
-                report = edgarService.syncFramesFull();
-                scope = "all frames since 2009";
-            } else if (period != null) {
-                report = edgarService.syncFrames(period);
-                scope = "period " + period;
-            } else if (year != null) {
-                report = edgarService.syncFramesByYear(year);
-                scope = "year " + year;
-            } else {
-                return ResponseEntity.badRequest().body("Either period, year, or full=true must be provided");
-            }
+            Map<String, Object> report = edgarService.syncFramesFull();
             long elapsed = System.currentTimeMillis() - startTime;
             long minutes = elapsed / 60000;
             long seconds = (elapsed % 60000) / 1000;
             String duration = minutes > 0 ? minutes + "m " + seconds + "s" : seconds + "." + (elapsed % 1000) / 100 + "s";
-            String message = "Synced " + report.get("equitiesProcessed") + " equities for " + scope
+            String message = "Synced " + report.get("equitiesProcessed") + " equities (all frames since 2009)"
                     + ". Skipped " + report.get("fundsSkipped") + " ETFs/funds. Completed in " + duration + ".";
             return ResponseEntity.ok(message);
         } catch (Exception e) {

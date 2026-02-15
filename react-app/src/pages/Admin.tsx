@@ -4,26 +4,8 @@ import { useSelector } from "react-redux";
 import { RootState } from '../main';
 import { Button, Form, Alert, Spinner, Card } from 'react-bootstrap';
 
-const adminPost = async (url: string, token: string) => {
-    try {
-        await axios.post(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat(url, "/"),
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                }
-            }
-        )
-        return (`Successfully posted to ${url}`)
-    }
-    catch (error) {
-        throw error;
-    }
-}
-
-type SyncMode = 'period' | 'year' | 'full';
-
 export default function Admin() {
-    const { username, access } = useSelector((state: RootState) => state.user)
+    const { username } = useSelector((state: RootState) => state.user)
 
     // Shared API key state
     const [apiKey, setApiKey] = useState('');
@@ -34,9 +16,6 @@ export default function Admin() {
     const [loadError, setLoadError] = useState<string | null>(null);
 
     // Sync Frames state
-    const [syncMode, setSyncMode] = useState<SyncMode>('period');
-    const [period, setPeriod] = useState('');
-    const [year, setYear] = useState('');
     const [syncLoading, setSyncLoading] = useState(false);
     const [syncResult, setSyncResult] = useState<string | null>(null);
     const [syncError, setSyncError] = useState<string | null>(null);
@@ -68,14 +47,8 @@ export default function Admin() {
         setSyncResult(null);
         setSyncError(null);
         try {
-            const params: Record<string, string | boolean> = {};
-            if (syncMode === 'period') params.period = period;
-            else if (syncMode === 'year') params.year = year;
-            else params.full = true;
-
             const res = await axios.get(`${springbootUrl}admin/sync-frames`, {
                 headers: { 'X-Admin-Key': apiKey },
-                params,
             });
             setSyncResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: any) {
@@ -85,27 +58,10 @@ export default function Admin() {
         }
     };
 
-    const djangoUrls = ["snp500-price-create",
-        "update-cost-basis",
-        "asset-info-create",
-        "asset-update-info"
-    ]
-
     return (
         <div className="p-3" style={{ maxWidth: 600 }}>
             <h2>Welcome Spike</h2>
 
-            {/* Django Admin Buttons */}
-            <Card className="mb-4 p-3">
-                <h5>Django Admin</h5>
-                <div className="d-flex flex-wrap gap-2">
-                    {djangoUrls.map((url) => (
-                        <Button key={url} onClick={() => adminPost(url, access)}>{url}</Button>
-                    ))}
-                </div>
-            </Card>
-
-            {/* Shared API Key */}
             <Card className="mb-4 p-3">
                 <h5>Spring Boot Admin</h5>
                 <Form.Group className="mb-3">
@@ -135,53 +91,12 @@ export default function Admin() {
                 {/* Sync Frames */}
                 <Card className="p-3">
                     <h6>Sync Frames</h6>
-                    <p className="text-muted mb-2">Sync SEC EDGAR financial frames for equities.</p>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Mode</Form.Label>
-                        <Form.Select
-                            value={syncMode}
-                            onChange={(e) => setSyncMode(e.target.value as SyncMode)}
-                        >
-                            <option value="period">Period</option>
-                            <option value="year">Year</option>
-                            <option value="full">Full Sync</option>
-                        </Form.Select>
-                    </Form.Group>
-
-                    {syncMode === 'period' && (
-                        <Form.Group className="mb-3">
-                            <Form.Label>Period</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="e.g. CY2024Q1"
-                                value={period}
-                                onChange={(e) => setPeriod(e.target.value)}
-                            />
-                        </Form.Group>
-                    )}
-
-                    {syncMode === 'year' && (
-                        <Form.Group className="mb-3">
-                            <Form.Label>Year</Form.Label>
-                            <Form.Control
-                                type="number"
-                                placeholder="e.g. 2024"
-                                value={year}
-                                onChange={(e) => setYear(e.target.value)}
-                            />
-                        </Form.Group>
-                    )}
-
+                    <p className="text-muted mb-2">Full sync of all SEC EDGAR financial frames (2009 to present).</p>
                     <Button
                         onClick={handleSyncFrames}
-                        disabled={
-                            syncLoading ||
-                            !apiKey ||
-                            (syncMode === 'period' && !period) ||
-                            (syncMode === 'year' && !year)
-                        }
+                        disabled={syncLoading || !apiKey}
                     >
-                        {syncLoading ? <><Spinner size="sm" className="me-2" />Syncing...</> : 'Sync Frames'}
+                        {syncLoading ? <><Spinner size="sm" className="me-2" />Syncing...</> : 'Full Sync'}
                     </Button>
                     {syncResult && <Alert variant="success" className="mt-2">{syncResult}</Alert>}
                     {syncError && <Alert variant="danger" className="mt-2">{syncError}</Alert>}
