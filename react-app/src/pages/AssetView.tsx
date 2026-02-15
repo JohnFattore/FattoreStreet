@@ -7,7 +7,7 @@ import TickerHeader from "../components/TickerHeader";
 import AssetTickerSoldTable from "../components/AssetTickerSoldTable";
 import AssetForm from "../components/AssetForm";
 import { useGetAssetInfosQuery, useGetAssetPricesQuery } from "../functions/api";
-import { getErrorMessages } from "../functions/helperFunctions";
+import { getApiErrorMessages } from "../functions/helperFunctions";
 import GenericLineChart from "../components/GenericLineChart";
 import LoadingModal from "../components/LoadingModal";
 
@@ -30,7 +30,7 @@ export default function AssetView() {
     return (
       <>
         <h3>{ticker} View</h3>
-        <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
+        <Alert variant="danger">{getApiErrorMessages(error)}</Alert>
       </>
     );
   return (

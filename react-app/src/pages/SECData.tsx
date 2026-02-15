@@ -4,6 +4,8 @@ import { Alert, Spinner, Card, Container, Row, Col, Button, Table } from "react-
 import { formatString } from "../functions/helperFunctions";
 import { SortableTable } from "../components/SortableTable";
 import { IQuarter } from "../interfaces";
+import YFinanceQuartersTable from "../components/YFinanceQuartersTable";
+import QuarterlyComparison from "../components/QuarterlyComparison";
 
 export default function SECData() {
     const { ticker } = useParams<{ ticker: string }>();
@@ -266,6 +268,10 @@ export default function SECData() {
                     </Card>
                 </Col>
             </Row>
+
+            <YFinanceQuartersTable ticker={ticker || ""} />
+
+            <QuarterlyComparison ticker={ticker || ""} />
 
             <Alert variant="info" className="mt-4">
                 This data is fetched directly from the SEC EDGAR database via the Fattore Street API.

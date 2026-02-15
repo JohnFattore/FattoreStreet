@@ -8,7 +8,7 @@ import 'leaflet.awesome-markers';
 
 export default function ReviewMap() {
 
-    const mapRef = useRef(null);
+    const mapRef = useRef<L.Map | null>(null);
 
     const greenIcon = L.AwesomeMarkers.icon({
         icon: 'star',

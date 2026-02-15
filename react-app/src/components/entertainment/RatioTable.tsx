@@ -1,10 +1,12 @@
 import Table from 'react-bootstrap/Table';
 import { formatString } from '../../functions/helperFunctions';
+import { IRatio } from '../../interfaces';
 
-// function is for simple calculations, function2 is for more complex operations
-function RatioRow({ ratio, fields }) {
+interface Field { name: string; type: string; }
 
-    let attributes: any[] = [
+function RatioRow({ ratio, fields }: { ratio: IRatio; fields: Field[] }) {
+
+    const attributes: string[] = [
         ratio.name,
         ratio.formula,
         ratio.description
@@ -22,7 +24,7 @@ function RatioRow({ ratio, fields }) {
         </tr>)
 }
 
-export default function RatioTable({ratios}) {
+export default function RatioTable({ratios}: {ratios: IRatio[]}) {
 
     const fields = [
         {name: "Name", type: "text"},
@@ -44,7 +46,7 @@ export default function RatioTable({ratios}) {
                 </tr>
             </thead>
             <tbody>
-                {ratios.map((ratio) => (
+                {ratios.map((ratio: IRatio) => (
                     <RatioRow key={ratio.name} ratio={ratio} fields={fields} />
                 ))}
             </tbody>

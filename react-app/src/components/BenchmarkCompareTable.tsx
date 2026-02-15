@@ -50,11 +50,11 @@ export default function BenchmarkCompareTable() {
       buyDate: asset.buyDate,
       buyPrice: asset.buyPrice,
       sellDate: asset.sellDate ? asset.sellDate : "Not Sold",
-      sellCurrentPrice: asset.sellPrice ? asset.sellPrice : info?.currentPrice * asset.shares,
+      sellCurrentPrice: asset.sellPrice ? asset.sellPrice : (info?.currentPrice ?? 0) * asset.shares,
       change: asset.sellPrice
         ? (asset.sellPrice - asset.buyPrice) / asset.buyPrice
-        : ((info?.currentPrice * asset.shares) - asset.buyPrice) / asset.buyPrice,
-      snp500Change: asset.snp500PriceSell ? (asset.snp500PriceSell - asset.snp500PriceBuy) / asset.snp500PriceBuy : (quote?.price - asset.snp500PriceBuy) / asset.snp500PriceBuy,
+        : (((info?.currentPrice ?? 0) * asset.shares) - asset.buyPrice) / asset.buyPrice,
+      snp500Change: asset.snp500PriceSell ? (asset.snp500PriceSell - asset.snp500PriceBuy) / asset.snp500PriceBuy : quote?.price ? (quote.price - asset.snp500PriceBuy) / asset.snp500PriceBuy : null,
       shortName: info?.shortName ?? "Error Loading Info",
       hasError: !info,
     };

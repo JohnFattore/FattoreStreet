@@ -12,7 +12,7 @@ export default function Education() {
 
     const brokerageRows = brokerages.map((brokerage) => (
         <tr key={brokerage.id}>
-            {["name", "mmf", "us", "inter"].map((property) => (
+            {(["name", "mmf", "us", "inter"] as const).map((property) => (
                 <td key={property}>{brokerage[property]}</td>
             ))}
         </tr>))
@@ -23,7 +23,7 @@ export default function Education() {
 
     const taxAccountRows = taxAccounts.map((taxAccount) => (
         <tr key={taxAccount.id}>
-            {["name", "initialInvest", "cashOut"].map((property) => (
+            {(["name", "initialInvest", "cashOut"] as const).map((property) => (
                 <td key={property}>{taxAccount[property]}</td>
             ))}
         </tr>))

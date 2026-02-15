@@ -6,6 +6,7 @@ from .serializers import IndexMemberSerializer
 class IndexMemberListAPI(generics.ListAPIView):
     serializer_class = IndexMemberSerializer
     queryset = IndexMember.objects.all().select_related("stock")
+    permission_classes = [permissions.AllowAny]
 
 class IndexMemberUpdateAPI(generics.UpdateAPIView):
     serializer_class = IndexMemberSerializer

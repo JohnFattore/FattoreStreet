@@ -1,13 +1,15 @@
 from rest_framework import generics, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .serializers import AssetSerializer, AccountSerializer, FredSeriesItemSerializer
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .serializers import AssetSerializer, AccountSerializer, FredSeriesItemSerializer, TickerQuerySerializer, SymbolQuerySerializer
 from .permissions import IsOwner
 from .models import Asset, Account
-from datetime import datetime
+import logging
 import environ
-from .helper import get_realtime_price, get_yfinance_data, is_market_open, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates, QuoteFetchError
+from .helper import get_realtime_price, get_yfinance_data, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates, get_quarterly_data, QuoteFetchError
+
+logger = logging.getLogger(__name__)
 env = environ.Env()
 environ.Env.read_env()
 
@@ -43,15 +45,7 @@ class AssetListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(account_id=account_id)
         return queryset
 
-    # user comes from different part of response as other data
     def perform_create(self, serializer):
-        ticker = self.request.data["ticker"]        
-        shares = self.request.data["shares"]
-        buy_date = datetime.strptime(self.request.data["buy_date"], "%Y-%m-%d").date()
-        # should just check some list of stock market open / closed
-        if not is_market_open(buy_date):
-            raise serializers.ValidationError({"detail": f"Market closed on {buy_date}"})           
-
         account = None
         account_id = self.request.data.get("account_id")
         if account_id:
@@ -60,9 +54,9 @@ class AssetListCreateView(generics.ListCreateAPIView):
                 if account.user != self.request.user:
                     raise serializers.ValidationError({"detail": "You do not own this account."})
             except Account.DoesNotExist:
-                 raise serializers.ValidationError({"detail": "Account does not exist."})
+                raise serializers.ValidationError({"detail": "Account does not exist."})
 
-        serializer.save(user=self.request.user, ticker=ticker, shares=shares, buy_date=buy_date, account=account)
+        serializer.save(user=self.request.user, account=account)
 
 # API endpoint for 'get' or 'delete' or "patch" asset, only the owner should be able to do this
 class AssetRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
@@ -74,23 +68,28 @@ class AssetRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return Asset.objects.filter(user=self.request.user)
 
 class QuoteRetrieveView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
-        symbol = request.query_params.get("symbol")
-        if (symbol == None):
-            raise serializers.ValidationError({"symbol": "This field is required."})
+        qs = SymbolQuerySerializer(data=request.query_params)
+        qs.is_valid(raise_exception=True)
+        symbol = qs.validated_data["symbol"]
         try:
             data = get_realtime_price(symbol)
+        except QuoteFetchError as e:
+            raise serializers.ValidationError({"symbol": str(e)})
         except Exception as e:
-            raise serializers.ValidationError({"symbol": e})
+            logger.exception("Unexpected error fetching quote for %s", symbol)
+            raise serializers.ValidationError({"symbol": str(e)})
         return Response(data)
 
 class AssetInfoRetrieveView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         tickers = request.query_params.get("tickers")
-        if (tickers == None):
+        if not tickers:
             raise serializers.ValidationError({"tickers": "This field is required."})
-        ticker_list = tickers.split(",")
-        if len(ticker_list) == 1 and ticker_list[0] == "":
+        ticker_list = [t.strip() for t in tickers.split(",") if t.strip()]
+        if not ticker_list:
             raise serializers.ValidationError({"tickers": "This field must contain at least 1 ticker."})
         data = []
         errors = []
@@ -124,23 +123,38 @@ class AssetInfoRetrieveView(APIView):
                 financials["percent_change_5_years"] = percent_change(price, reference_prices["5_years_ago"])
                 data.append(financials)
             except Exception as e:
+                logger.exception("Error processing ticker %s in asset-info", ticker)
                 errors.append({"ticker": ticker, "error": str(e)})
-                # make this error better
                 continue        
         return Response({"data": data, "errors": errors})
 
 class AssetHistoricalPricesRetrieveView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
-        ticker = request.query_params.get("ticker")
-        if (ticker == None):
-            raise serializers.ValidationError({"ticker": "This field is required."})
+        qs = TickerQuerySerializer(data=request.query_params)
+        qs.is_valid(raise_exception=True)
+        ticker = qs.validated_data["ticker"]
         prices = get_historical_prices([ticker])[ticker]
         output = []
         for date, price in prices.items():
             output.append({"date": date, "value": price})
         return Response(output)
 
+class QuarterlyDataRetrieveView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        qs = TickerQuerySerializer(data=request.query_params)
+        qs.is_valid(raise_exception=True)
+        ticker = qs.validated_data["ticker"]
+        try:
+            data = get_quarterly_data(ticker)
+        except Exception as e:
+            logger.exception("Error fetching quarterly data for %s", ticker)
+            raise serializers.ValidationError({"ticker": str(e)})
+        return Response(data)
+
 class FredDataRetrieveView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = FredSeriesItemSerializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)

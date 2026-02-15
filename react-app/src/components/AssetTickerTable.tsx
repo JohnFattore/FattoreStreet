@@ -8,7 +8,7 @@ import { Button } from "react-bootstrap";
 import { IAsset } from "../interfaces";
 import AssetDeleteSellModal from "./AssetDeleteSellModal";
 
-export default function AssetTickerTable({ ticker }) {
+export default function AssetTickerTable({ ticker }: { ticker: string }) {
   const { access } = useSelector((state: RootState) => state.user);
   const {
     data: rawAllAssets,
@@ -50,7 +50,7 @@ export default function AssetTickerTable({ ticker }) {
     return null;
   }
 
-  const data: any[] = [];
+  const data: Record<string, string | number | boolean | null>[] = [];
   const info = assetInfos[ticker];
   for (const asset of assetsOwned) {
     const account = accounts.find((a) => a.id === asset.account);

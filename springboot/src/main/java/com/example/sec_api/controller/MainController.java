@@ -1,6 +1,12 @@
 package com.example.sec_api.controller;
 
 import java.util.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.sec_api.service.WebService;
@@ -18,8 +24,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.ResponseEntity;
 
+@Validated
 @RestController
 public class MainController {
+
+    private static final Logger log = LoggerFactory.getLogger(MainController.class);
 
     private final WebService webService;
     private final AssetService assetService;
@@ -62,8 +71,7 @@ public class MainController {
                 Boolean isFund = "Y".equals(columns[6]);
                 tickerToType.put(columns[0], isFund);
             } else {
-                // skip or handle unexpected row format
-                System.out.println("Skipping malformed row: " + row);
+                log.warn("Skipping malformed NASDAQ row: {}", row);
             }
         }
 
@@ -75,8 +83,7 @@ public class MainController {
                 Boolean isFund = "Y".equals(columns[4]);
                 tickerToType.put(columns[0], isFund);
             } else {
-                // skip or handle unexpected row format
-                System.out.println("Skipping malformed row: " + row);
+                log.warn("Skipping malformed other-listed row: {}", row);
             }
         }
 
@@ -123,7 +130,8 @@ public class MainController {
     }
 
     @GetMapping("/quarters")
-    public ResponseEntity quarters(@RequestParam String ticker) {
+    public ResponseEntity quarters(
+            @RequestParam @NotBlank @Size(max = 10) @Pattern(regexp = "^[A-Z][A-Z0-9.\\-]*$", message = "Invalid ticker format") String ticker) {
         Asset asset = assetRepository.findByListings_Ticker(ticker);
         if (asset == null) {
             return ResponseEntity.notFound().build();
@@ -168,7 +176,8 @@ public class MainController {
     }
 
     @GetMapping("/company-fact-sheet")
-    public ResponseEntity companyFactSheet(@RequestParam String ticker) {
+    public ResponseEntity companyFactSheet(
+            @RequestParam @NotBlank @Size(max = 10) @Pattern(regexp = "^[A-Z][A-Z0-9.\\-]*$", message = "Invalid ticker format") String ticker) {
         Asset asset = assetRepository.findByListings_Ticker(ticker);
         if (asset == null) {
             return ResponseEntity.notFound().build();
@@ -266,6 +275,7 @@ public class MainController {
                     + ". Skipped " + report.get("fundsSkipped") + " ETFs/funds. Completed in " + duration + ".";
             return ResponseEntity.ok(message);
         } catch (Exception e) {
+            log.error("Error syncing frames", e);
             return ResponseEntity.internalServerError().body("Error syncing frames: " + e.getMessage());
         }
     }

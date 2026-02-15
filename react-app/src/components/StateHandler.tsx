@@ -1,13 +1,12 @@
 import { Spinner, Alert } from "react-bootstrap";
-import { getErrorMessages } from "../functions/helperFunctions";
+import { getApiErrorMessages } from "../functions/helperFunctions";
 
 type CardProps = {
   isLoading?: boolean;
-  errors?: any[],
+  errors?: unknown[],
   content: React.ReactNode;
 };
 
-// pass/check for access, pass in boolean stating if to show if no access... maybe
 export default function StateHandler({ isLoading = false, errors = [], content }: CardProps) {
   if (isLoading) {
     return (
@@ -16,7 +15,7 @@ export default function StateHandler({ isLoading = false, errors = [], content }
   }
   for (const error of errors) {
     if (error) {
-      return (<Alert variant="danger">{getErrorMessages(error["data"])}</Alert>)
+      return (<Alert variant="danger">{getApiErrorMessages(error)}</Alert>)
     }
   }
 

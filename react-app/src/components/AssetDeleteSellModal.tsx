@@ -1,10 +1,18 @@
-
 import { Button, Modal, Alert } from "react-bootstrap";
 import { useDeleteAssetMutation } from "../functions/api";
 import AssetSellForm from "./AssetSellForm";
-import { getErrorMessages } from "../functions/helperFunctions";
+import { getApiErrorMessages } from "../functions/helperFunctions";
+import { IAsset } from "../interfaces";
 
-export default function AssetDeleteSellModal({asset, showSell, showDelete, handleCloseSell, handleCloseDelete}) {
+interface Props {
+  asset: IAsset | undefined;
+  showSell: boolean;
+  showDelete: boolean;
+  handleCloseSell: () => void;
+  handleCloseDelete: () => void;
+}
+
+export default function AssetDeleteSellModal({asset, showSell, showDelete, handleCloseSell, handleCloseDelete}: Props) {
 
   const [deleteAsset, { error, isLoading }] = useDeleteAssetMutation();
 
@@ -32,7 +40,7 @@ export default function AssetDeleteSellModal({asset, showSell, showDelete, handl
         </Modal.Header>
         <Modal.Body>
           {error ? (
-            <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
+            <Alert variant="danger">{getApiErrorMessages(error)}</Alert>
           ) : null}
           {`Would you like to delete ${asset?.ticker}?`}
         </Modal.Body>

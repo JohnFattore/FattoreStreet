@@ -1,11 +1,14 @@
 from celery import shared_task
 from indexes.models import Stock, IndexMember
 import csv
+import logging
 import yfinance as yf
+
+logger = logging.getLogger(__name__)
 
 @shared_task
 def NASDAQFile():
-    print("Start Stock Load")
+    logger.info("Start Stock Load")
     skippedTickers = []
 
     # for stock in Stock.objects.all():
@@ -67,7 +70,8 @@ def NASDAQFile():
             stock.freeFloatMarketCap = freeFloat * float(yfinance.info["marketCap"])
             stock.freeFloat = freeFloat
             stock.save()
-        except:
+        except (KeyError, TypeError, ValueError) as e:
+            logger.warning("NASDAQFile: skipping ticker %s: %s", stock.ticker, e)
             skippedTickers.append(stock.ticker)
 
     # data fix GOOG and GOOGL
@@ -84,13 +88,13 @@ def NASDAQFile():
     ADR = ['CUK']
     Stock.objects.filter(ticker__in=Preferred).update(securityType="ADR")
 
-    print("Skipped Tickers", skippedTickers)
-    print("Finish Stock Load")
+    logger.info("Skipped Tickers: %s", skippedTickers)
+    logger.info("Finish Stock Load")
 
 @shared_task
 def createRussell1000():
 
-    print("Creating Index")
+    logger.info("Creating Index")
 
     i = 0
     totalMarketCap = 0
@@ -113,9 +117,7 @@ def createRussell1000():
 
         if (i == 1000):
             break
-    print("Index Complete")
-
-    print("I Love Indexing")
+    logger.info("Index Complete")
     myIndex = []
     for stock in IndexMember.objects.all():
         myIndex.append(stock.ticker)
@@ -138,8 +140,8 @@ def createRussell1000():
         if (ticker not in myIndex):
             InRussell1000NotInMyIndex.append(ticker)
 
-    print("In My Index, Not in Russell 1000", len(InMyIndexNotInRussell1000), InMyIndexNotInRussell1000)
-    print("In Russell 1000, Not in My Index", len(InRussell1000NotInMyIndex), InRussell1000NotInMyIndex)
+    logger.info("In My Index, Not in Russell 1000 (%d): %s", len(InMyIndexNotInRussell1000), InMyIndexNotInRussell1000)
+    logger.info("In Russell 1000, Not in My Index (%d): %s", len(InRussell1000NotInMyIndex), InRussell1000NotInMyIndex)
 
     for indexMember in IndexMember.objects.filter(ticker__in=InMyIndexNotInRussell1000):
         indexMember.outlier = True

@@ -1,12 +1,9 @@
-django/mysite/.env
 AWSCommands.txt
-.env
 **/__pycache__/
 
 venv/
 .venv/
-env/
-.env/
+
 
 *.log
 deploy.sh
@@ -16,7 +13,6 @@ django/restaurants/yelp_dataset
 
 react-app/node_modules
 react-app/dist
-.env.*
 react-app/coverage
 react-app/.sass-cache
 

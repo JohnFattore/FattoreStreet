@@ -7,13 +7,14 @@ import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import LoginForm from "./LoginForm";
 import { usePatchAssetMutation } from "../functions/api";
-import { getErrorMessages } from "../functions/helperFunctions";
+import { getApiErrorMessages } from "../functions/helperFunctions";
+import { IAsset } from "../interfaces";
 
 interface IFormInput {
   sellDate: string;
 }
 
-export default function AssetSellForm({ asset }) {
+export default function AssetSellForm({ asset }: { asset: IAsset | undefined }) {
   const [patchAsset, { error, isLoading }] = usePatchAssetMutation();
   const { access } = useSelector((state: RootState) => state.user);
 
@@ -49,7 +50,7 @@ export default function AssetSellForm({ asset }) {
   return (
     <Form onSubmit={handleSubmit(onSubmit)}>
       {error ? (
-        <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
+        <Alert variant="danger">{getApiErrorMessages(error)}</Alert>
       ) : null}
       <Form.Control
         type="date"

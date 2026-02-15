@@ -3,7 +3,7 @@ import { Row, Col, Alert, Container } from "react-bootstrap";
 import GenericLineChart from "../components/GenericLineChart";
 import LoadingModal from "../components/LoadingModal";
 import { useGetFredDataQuery } from "../functions/api";
-import { getErrorMessages } from "../functions/helperFunctions";
+import { getApiErrorMessages } from "../functions/helperFunctions";
 
 export default function EconomicIndicators() {
   const seriesList = [
@@ -46,7 +46,7 @@ export default function EconomicIndicators() {
   // Merge 2-year, 10-year, and 30-year treasury yield data by date for overlay chart
   const treasuryOverlay = useMemo(() => {
     if (!data?.["DGS2"] || !data?.["DGS10"] || !data?.["DGS30"]) return null;
-    const map = new Map<string, any>();
+    const map = new Map<string, Record<string, string | number>>();
     for (const pt of data["DGS2"]) {
       map.set(pt.date, { date: pt.date, "2-Year": pt.value });
     }
@@ -66,7 +66,7 @@ export default function EconomicIndicators() {
   // Merge CPI YoY and Core PCE YoY by date for overlay chart
   const cpiPceOverlay = useMemo(() => {
     if (!data?.["CPIAUCSL"] || !data?.["PCEPILFE"]) return null;
-    const map = new Map<string, any>();
+    const map = new Map<string, Record<string, string | number>>();
     for (const pt of data["CPIAUCSL"]) {
       map.set(pt.date, { date: pt.date, "CPI": pt.value });
     }
@@ -81,7 +81,7 @@ export default function EconomicIndicators() {
   // Merge 30-year and 15-year mortgage data by date for overlay chart
   const mortgageOverlay = useMemo(() => {
     if (!data?.["MORTGAGE30US"] || !data?.["MORTGAGE15US"]) return null;
-    const map = new Map<string, any>();
+    const map = new Map<string, Record<string, string | number>>();
     for (const pt of data["MORTGAGE30US"]) {
       map.set(pt.date, { date: pt.date, "30-Year": pt.value });
     }
@@ -98,10 +98,10 @@ export default function EconomicIndicators() {
     return <LoadingModal show={true} message="Fetching Economic Indicators..." />;
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <Container>
-        <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
+        <Alert variant="danger">{error ? getApiErrorMessages(error) : "No data available."}</Alert>
       </Container>
     );
   }

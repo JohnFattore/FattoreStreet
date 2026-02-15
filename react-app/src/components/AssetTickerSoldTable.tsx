@@ -12,7 +12,7 @@ import { IAsset } from "../interfaces";
 import { SortableTable } from "./SortableTable";
 import AssetDeleteSellModal from "./AssetDeleteSellModal";
 
-export default function AssetTickerSoldTable({ ticker }) {
+export default function AssetTickerSoldTable({ ticker }: { ticker: string }) {
   const { access } = useSelector((state: RootState) => state.user);
   const {
     data: rawAllAssets,

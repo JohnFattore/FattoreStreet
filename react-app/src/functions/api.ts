@@ -1,7 +1,60 @@
 import { createApi, BaseQueryFn } from "@reduxjs/toolkit/query/react";
 import axios, { AxiosRequestConfig, AxiosError } from "axios";
-import { IAsset, IEquityInfo, IETFInfo, ISECData, ISECQuartersResponse } from "../interfaces";
+import { IAsset, IEquityInfo, IETFInfo, ISECData, ISECQuartersResponse, IYFinanceQuarter } from "../interfaces";
 import { RootState } from "../main";
+
+/** Raw snake_case shape returned by Django for a single asset */
+interface IRawAsset {
+  id: number;
+  ticker: string;
+  shares: string | number;
+  buy_date: string;
+  buy_price: string | number | null;
+  buy_SnP500: string | number | null;
+  sell_date: string | null;
+  sell_price: string | number | null;
+  sell_SnP500: string | number | null;
+  account: number | null;
+}
+
+/** Raw snake_case shape returned by Django for asset-info items */
+interface IRawAssetInfoItem {
+  ticker: string;
+  short_name: string;
+  long_name: string;
+  type: string;
+  exchange: string;
+  market: string;
+  current_price: number;
+  percent_change_daily: number;
+  percent_change_weekly: number;
+  percent_change_monthly: number;
+  percent_change_YTD: number;
+  percent_change_yearly: number;
+  percent_change_3_years: number;
+  percent_change_5_years: number;
+  dividend_yield: number;
+  market_cap: number;
+  net_income: number;
+  total_revenue: number;
+  ttm_pe: number;
+  expenseRatio: number;
+}
+
+interface IAssetPrice {
+  date: string;
+  value: number;
+}
+
+interface IQuoteResponse {
+  price: number;
+  percent_change_daily: number;
+}
+
+interface IFredObservation {
+  date: string;
+  value: number;
+}
 
 const axiosBaseQuery =
   (): BaseQueryFn<{
@@ -45,7 +98,7 @@ export const api = createApi({
         method: "GET",
         params: accountId ? { account_id: accountId } : undefined,
       }),
-      transformResponse: (response: any[]): IAsset[] => {
+      transformResponse: (response: IRawAsset[]): IAsset[] => {
         return response.map((item) => ({
           id: item.id,
           ticker: item.ticker,
@@ -75,7 +128,7 @@ export const api = createApi({
       }),
       providesTags: (_result, _error, id) => [{ type: "Accounts", id }],
     }),
-    postNewAsset: builder.mutation({
+    postNewAsset: builder.mutation<IAsset, { ticker: string; shares: number; buy_date: string; account_id?: number }>({
       query: (newAsset) => ({
         url: "assets/",
         method: "POST",
@@ -83,7 +136,7 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: "Assets", id: "LIST" }],
     }),
-    createAccount: builder.mutation({
+    createAccount: builder.mutation<{ id: number; name: string; account_type: string }, { name: string; account_type: string }>({
       query: (newAccount) => ({
         url: "accounts/",
         method: "POST",
@@ -96,17 +149,17 @@ export const api = createApi({
         url: `assets/${id}`,
         method: "GET",
       }),
-      transformResponse: (response: any): IAsset => {
+      transformResponse: (response: IRawAsset): IAsset => {
         return {
           id: response.id,
           ticker: response.ticker,
           shares: Number(response.shares),
           buyDate: response.buy_date,
-          buyPrice: response.buy_price,
-          snp500PriceBuy: response.buy_SnP500,
+          buyPrice: Number(response.buy_price),
+          snp500PriceBuy: Number(response.buy_SnP500),
           sellDate: response.sell_date,
-          sellPrice: response.sell_price,
-          snp500PriceSell: response.sell_SnP500,
+          sellPrice: response.sell_price ? Number(response.sell_price) : null,
+          snp500PriceSell: response.sell_SnP500 ? Number(response.sell_SnP500) : null,
           account: response.account,
         };
       },
@@ -119,7 +172,7 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: "Assets", id: "LIST" }],
     }),
-    patchAsset: builder.mutation({
+    patchAsset: builder.mutation<IAsset, { id: number; [key: string]: unknown }>({
       query: ({ id, ...patch }) => ({
         url: `assets/${id}/`,
         method: "PATCH",
@@ -137,9 +190,9 @@ export const api = createApi({
         params: { tickers: tickers.join(",") },
       }),
       transformResponse: (
-        response: any
+        response: IRawAssetInfoItem[] | { data: IRawAssetInfoItem[] }
       ): Record<string, IEquityInfo | IETFInfo> => {
-        const items = Array.isArray(response) ? response : response.data; // handle only the non errored tickers
+        const items: IRawAssetInfoItem[] = Array.isArray(response) ? response : response.data;
         const result: Record<string, IEquityInfo | IETFInfo> = {};
         items.forEach((item) => {
           if (item.type === "EQUITY") {
@@ -196,7 +249,7 @@ export const api = createApi({
       },
     }),
     getAssetPrices: builder.query<
-      any,
+      IAssetPrice[],
       string
     >({
       query: (ticker) => ({
@@ -206,7 +259,7 @@ export const api = createApi({
       }),
     }),
     getFredData: builder.query<
-      any,
+      Record<string, IFredObservation[]>,
       { series_id: string; compute_yoy?: boolean }[]
     >({
       query: (seriesList) => ({
@@ -215,7 +268,7 @@ export const api = createApi({
         data: seriesList,
       }),
     }),
-    getQuote: builder.query<any, string>({
+    getQuote: builder.query<IQuoteResponse, string>({
       query: (ticker) => ({
         url: "quote/",
         method: "GET",
@@ -236,6 +289,13 @@ export const api = createApi({
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
       }),
     }),
+    getDjangoQuarters: builder.query<IYFinanceQuarter[], string>({
+      query: (ticker) => ({
+        url: "quarterly-data/",
+        method: "GET",
+        params: { ticker },
+      }),
+    }),
   }),
 });
 
@@ -254,5 +314,6 @@ export const {
   useGetAccountsQuery,
   useGetAccountQuery,
   useGetSecEdgarDataQuery,
-  useGetSecQuartersQuery
+  useGetSecQuartersQuery,
+  useGetDjangoQuartersQuery
 } = api;

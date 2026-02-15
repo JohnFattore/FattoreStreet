@@ -198,6 +198,111 @@ def percent_change(current_price: Decimal, historical_price: Decimal) -> Decimal
     else:
         return "N/A"
     
+_INCOME_STMT_FIELDS = {
+    "revenues": ["Total Revenue", "Revenue"],
+    "netIncomeLoss": ["Net Income", "Net Income Common Stockholders"],
+    "operatingIncomeLoss": ["Operating Income", "Operating Revenue"],
+    "grossProfit": ["Gross Profit"],
+    "earningsPerShareBasic": ["Basic EPS"],
+    "earningsPerShareDiluted": ["Diluted EPS"],
+}
+
+_BALANCE_SHEET_FIELDS = {
+    "assets": ["Total Assets"],
+    "liabilities": ["Total Liabilities Net Minority Interest", "Total Liab"],
+    "stockholdersEquity": ["Stockholders Equity", "Total Stockholder Equity"],
+    "cashAndCashEquivalentsAtCarryingValue": ["Cash And Cash Equivalents",
+                                               "Cash Cash Equivalents And Short Term Investments"],
+    "accountsReceivableNetCurrent": ["Accounts Receivable", "Net Receivables", "Receivables"],
+    "inventoryNet": ["Inventory"],
+}
+
+_CASHFLOW_FIELDS = {
+    "netCashProvidedByUsedInOperatingActivities": ["Operating Cash Flow",
+                                                    "Total Cash From Operating Activities",
+                                                    "Cash Flowsfromusedin Operating Activities Direct"],
+    "paymentsOfDividends": ["Common Stock Dividend Paid", "Payment Of Dividends",
+                            "Dividends Paid"],
+    "paymentsForRepurchaseOfCommonStock": ["Repurchase Of Capital Stock",
+                                           "Common Stock Repurchased"],
+}
+
+_CUTOFF_DATE = pd.Timestamp("2008-01-01")
+
+
+def _extract_value(df: pd.DataFrame, col, labels: list[str]):
+    """Return the first non-NaN value found for *labels* in *df* at column *col*."""
+    for label in labels:
+        if label in df.index:
+            val = df.at[label, col]
+            if pd.notna(val):
+                return val
+    return None
+
+
+def _quarter_from_date(dt) -> int:
+    """Return fiscal quarter (1-4) from a pandas Timestamp or date."""
+    return (dt.month - 1) // 3 + 1
+
+
+def get_quarterly_data(ticker: str) -> list[dict]:
+    cache_key = f"quarterly_data_{ticker}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    t = yf.Ticker(ticker)
+    income_stmt = t.quarterly_income_stmt
+    balance_sheet = t.quarterly_balance_sheet
+    cashflow = t.quarterly_cashflow
+
+    all_dates = set()
+    for df in (income_stmt, balance_sheet, cashflow):
+        if df is not None and not df.empty:
+            all_dates.update(df.columns)
+
+    all_dates = sorted([d for d in all_dates if d >= _CUTOFF_DATE])
+
+    quarters = []
+    for dt in all_dates:
+        record = {
+            "year": dt.year,
+            "quarter": _quarter_from_date(dt),
+            "periodEnd": dt.strftime("%Y-%m-%d"),
+        }
+
+        if income_stmt is not None and not income_stmt.empty and dt in income_stmt.columns:
+            for field, labels in _INCOME_STMT_FIELDS.items():
+                record[field] = _extract_value(income_stmt, dt, labels)
+        else:
+            for field in _INCOME_STMT_FIELDS:
+                record[field] = None
+
+        if balance_sheet is not None and not balance_sheet.empty and dt in balance_sheet.columns:
+            for field, labels in _BALANCE_SHEET_FIELDS.items():
+                record[field] = _extract_value(balance_sheet, dt, labels)
+        else:
+            for field in _BALANCE_SHEET_FIELDS:
+                record[field] = None
+
+        if cashflow is not None and not cashflow.empty and dt in cashflow.columns:
+            for field, labels in _CASHFLOW_FIELDS.items():
+                record[field] = _extract_value(cashflow, dt, labels)
+        else:
+            for field in _CASHFLOW_FIELDS:
+                record[field] = None
+
+        # Convert numpy types to native Python for JSON serialisation
+        for key, val in record.items():
+            if val is not None and hasattr(val, "item"):
+                record[key] = val.item()
+
+        quarters.append(record)
+
+    cache.set(cache_key, quarters, timeout=60 * 60 * 24)
+    return quarters
+
+
 def get_all_us_tickers() -> list[str]:
     try:
         # NASDAQ listed

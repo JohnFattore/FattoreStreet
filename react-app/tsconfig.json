@@ -9,7 +9,7 @@
     ],
     "module": "ESNext",
     "skipLibCheck": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "paths": {
       "react": [
         "./node_modules/@types/react"

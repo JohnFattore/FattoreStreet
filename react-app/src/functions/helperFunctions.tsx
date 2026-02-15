@@ -5,18 +5,26 @@ const friendlyFieldName = (field: string) => {
     .replace(/\b\w/g, c => c.toUpperCase()); // capitalize each word
 };
 
-export function getErrorMessages(errorData: any): string[] {
+/** Extract error messages from an RTK Query error (which has a `.data` property). */
+export function getApiErrorMessages(error: unknown): string[] {
+  if (error && typeof error === 'object' && 'data' in error) {
+    return getErrorMessages((error as { data: unknown }).data);
+  }
+  return getErrorMessages(error);
+}
+
+export function getErrorMessages(errorData: unknown): string[] {
   if (!errorData) return ["Something went wrong. Please try again."];
 
-  if (typeof errorData.detail === "string") {
-    return [errorData.detail];
-  }
-
-  if (typeof errorData === "object") {
-    return Object.entries(errorData).flatMap(([field, messages]) => {
+  if (typeof errorData === "object" && errorData !== null) {
+    const obj = errorData as Record<string, unknown>;
+    if (typeof obj.detail === "string") {
+      return [obj.detail];
+    }
+    return Object.entries(obj).flatMap(([field, messages]) => {
       const label = friendlyFieldName(field);
       if (Array.isArray(messages)) {
-        return messages.map(msg => `${label}: ${msg}`);
+        return messages.map((msg: unknown) => `${label}: ${msg}`);
       }
       return [`${label}: ${messages}`];
     });

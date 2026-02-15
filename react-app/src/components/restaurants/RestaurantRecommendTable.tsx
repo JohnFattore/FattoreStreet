@@ -19,7 +19,9 @@ const fields = [
     //{ name: "Yelp ID", type: "text", field: "yelp_id" },
 ]
 
-export default function RestaurantRecommendTable({ setRestaurant }) {
+import { IRestaurant } from '../../interfaces';
+
+export default function RestaurantRecommendTable({ setRestaurant }: { setRestaurant: (r: IRestaurant) => void }) {
     const { restaurants, loading, error, sort } = useSelector((state: RootState) => state.restaurantRecommend);
     const dispatch = useDispatch<AppDispatch>();
 

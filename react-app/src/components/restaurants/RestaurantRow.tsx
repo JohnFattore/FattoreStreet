@@ -1,7 +1,10 @@
 import { formatString } from "../../functions/helperFunctions";
 import { Button } from "react-bootstrap";
+import { IRestaurant } from "../../interfaces";
 
-export default function RestaurantRow({ fields, restaurant, setRestaurant }) {
+interface Field { name: string; type: string; field: string; }
+
+export default function RestaurantRow({ fields, restaurant, setRestaurant }: { fields: Field[]; restaurant: IRestaurant; setRestaurant: (r: IRestaurant) => void }) {
     let tableData: JSX.Element[] = [];
     for (let i = 0; i < fields.length; i++) {
         if (fields[i]["field"] == "createReview") {
@@ -18,7 +21,7 @@ export default function RestaurantRow({ fields, restaurant, setRestaurant }) {
             )
         }
         else {
-            tableData.push(<td key={i}>{formatString(restaurant[fields[i]["field"]], fields[i]["type"])}</td>)
+            tableData.push(<td key={i}>{formatString((restaurant as unknown as Record<string, string | number>)[fields[i]["field"]], fields[i]["type"])}</td>)
         }
     }
 

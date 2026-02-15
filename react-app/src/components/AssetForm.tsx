@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import LoginForm from "./LoginForm";
 import { usePostNewAssetMutation, useGetAccountsQuery, useLazyGetAssetInfosQuery } from "../functions/api";
-import { getErrorMessages, formatString } from "../functions/helperFunctions";
+import { getApiErrorMessages, formatString } from "../functions/helperFunctions";
 import LoadingButton from "./LoadingButton";
 import { useEffect, useState } from "react";
 
@@ -117,7 +117,7 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
         <Modal.Body>
           {success && <Alert variant="success">{success}</Alert>}
           {error ? (
-            <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>
+            <Alert variant="danger">{getApiErrorMessages(error)}</Alert>
           ) : null}
           <Form onSubmit={handleSubmit(onSubmit)}>
             <Row>

@@ -1,7 +1,10 @@
 from celery import shared_task
 import json
+import logging
 import os
 from .models import Restaurant
+
+logger = logging.getLogger(__name__)
 
 @shared_task
 def YelpLoad():
@@ -25,6 +28,6 @@ def YelpLoad():
                                                     stars=data["stars"],
                                                     review_count=data["review_count"]
                                                     )
-                except:
-                    print("line didnt work")
-        print("End Load")
+                except (json.JSONDecodeError, KeyError, TypeError) as e:
+                    logger.warning("YelpLoad: skipping line %d: %s", idx, e)
+        logger.info("YelpLoad: finished")

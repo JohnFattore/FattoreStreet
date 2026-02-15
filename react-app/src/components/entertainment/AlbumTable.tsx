@@ -1,10 +1,12 @@
 import Table from 'react-bootstrap/Table';
 import { formatString } from '../../functions/helperFunctions';
+import { IAlbum } from '../../interfaces';
 
-// function is for simple calculations, function2 is for more complex operations
-function AlbumRow({ album, fields }) {
+interface Field { name: string; type: string; }
 
-    let attributes: any[] = [
+function AlbumRow({ album, fields }: { album: IAlbum; fields: Field[] }) {
+
+    const attributes: (string | number)[] = [
         album.name,
         album.artist,
         album.year
@@ -22,7 +24,7 @@ function AlbumRow({ album, fields }) {
         </tr>)
 }
 
-export default function AlbumTable({albums}) {
+export default function AlbumTable({albums}: {albums: IAlbum[]}) {
 
     const fields = [
         {name: "Name", type: "text"},
@@ -44,7 +46,7 @@ export default function AlbumTable({albums}) {
                 </tr>
             </thead>
             <tbody>
-                {albums.map((album) => (
+                {albums.map((album: IAlbum) => (
                     <AlbumRow key={album.name} album={album} fields={fields} />
                 ))}
             </tbody>

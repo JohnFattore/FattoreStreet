@@ -1,7 +1,7 @@
 import CompanyLogo from "./CompanyLogo";
 import { Card, Row, Col } from "react-bootstrap";
 import { useGetAssetInfosQuery } from "../functions/api";
-export default function TickerHeader({ ticker }) {
+export default function TickerHeader({ ticker }: { ticker: string }) {
   const { data: assetInfos } = useGetAssetInfosQuery([ticker])
   const assetInfo = assetInfos ? assetInfos[ticker] : undefined
   if (!assetInfo) {

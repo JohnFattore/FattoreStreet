@@ -1,9 +1,9 @@
 import { Alert, ListGroup, Spinner } from "react-bootstrap";
-import { formatString, getErrorMessages } from "../functions/helperFunctions";
+import { formatString, getApiErrorMessages } from "../functions/helperFunctions";
 import { useGetAssetInfosQuery } from "../functions/api";
 import { IEquityInfo } from "../interfaces";
 
-export default function EquityInfo({ ticker }) {
+export default function EquityInfo({ ticker }: { ticker: string }) {
   const {
     data: assetInfos,
     error,
@@ -14,7 +14,7 @@ export default function EquityInfo({ ticker }) {
   }
 
   if (error) {
-    return <Alert variant="danger">{getErrorMessages(error["data"])}</Alert>;
+    return <Alert variant="danger">{getApiErrorMessages(error)}</Alert>;
   }
 
   const assetInfo = assetInfos ? (assetInfos[ticker] as IEquityInfo) : null;

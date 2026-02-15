@@ -8,7 +8,7 @@ interface IFormInput {
     search: string,
 }
 
-export default function RestaurantSearchBar({ setSearch }) {
+export default function RestaurantSearchBar({ setSearch }: { setSearch: (value: string) => void }) {
 
     const schema = yup.object().shape({
         search: yup.string().required(),

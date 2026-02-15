@@ -9,5 +9,6 @@ urlpatterns = [
     path('api/asset-info/', views.AssetInfoRetrieveView.as_view(), name='asset-info'),
     path('api/asset-prices/', views.AssetHistoricalPricesRetrieveView.as_view(), name='asset-prices'),
     path('api/quote/', views.QuoteRetrieveView.as_view(), name='quote'),
+    path('api/quarterly-data/', views.QuarterlyDataRetrieveView.as_view(), name='quarterly-data'),
     path('api/fred-data/', views.FredDataRetrieveView.as_view(), name='fred-data')
 ]

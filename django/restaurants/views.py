@@ -9,6 +9,7 @@ from .tasks import YelpLoad
 class RestaurantListCreateView(generics.ListCreateAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
+    permission_classes = [permissions.AllowAny]
     def get_queryset(self):
         return Restaurant.objects.filter(state=self.request.GET.get("state"), city=self.request.GET.get("city"))
 
@@ -28,6 +29,7 @@ class ReviewListView(generics.ListAPIView):
 class ReviewCreateView(generics.CreateAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -37,6 +39,7 @@ class ReviewUpdateView(generics.UpdateAPIView):
     permission_classes = [IsOwner]
 
 class YelpLoadView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         # Trigger the Celery task
         task = YelpLoad.delay()  # Asynchronously starts the task

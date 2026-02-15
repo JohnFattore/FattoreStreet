@@ -14,6 +14,7 @@ class UserCreateView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
 class SendEmailAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         send_mail(
             subject="Hello from Django",

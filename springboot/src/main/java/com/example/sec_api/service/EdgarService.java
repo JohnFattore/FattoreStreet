@@ -5,6 +5,8 @@ import com.example.sec_api.model.Quarter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -12,6 +14,8 @@ import java.util.*;
 
 @Service
 public class EdgarService {
+
+    private static final Logger log = LoggerFactory.getLogger(EdgarService.class);
 
     private final WebService webService;
     private final QuarterService quarterService;
@@ -218,7 +222,7 @@ public class EdgarService {
                     setQuarterField(quarter, fc.fieldName, value);
                 }
             } catch (Exception e) {
-                System.err.println("Error collecting concept " + fc.tag + " for " + period + ": " + e.getMessage());
+                log.warn("Error collecting concept {} for {}: {}", fc.tag, period, e.getMessage());
             }
         }
     }
@@ -250,6 +254,12 @@ public class EdgarService {
                     if (startStr == null)
                         continue; // Flow concepts must have a start date
 
+                    LocalDate start = LocalDate.parse(startStr);
+                    LocalDate end = LocalDate.parse(endStr);
+                    long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(start, end);
+                    if (daysDiff < 350 || daysDiff > 380)
+                        continue; // Only accept ~12-month annual periods
+
                     JsonNode valNode = node.get("val");
                     if (valNode == null || !valNode.isNumber())
                         continue;
@@ -260,13 +270,10 @@ public class EdgarService {
                     if (data == null) {
                         data = new AnnualData();
                         data.fiscalYear = node.has("fy") ? node.get("fy").asInt() : year;
-                        data.periodStart = LocalDate.parse(startStr);
-                        data.periodEnd = LocalDate.parse(endStr);
+                        data.periodStart = start;
+                        data.periodEnd = end;
                         annualMap.put(cik, data);
                     } else {
-                        // Widen period range across concepts
-                        LocalDate start = LocalDate.parse(startStr);
-                        LocalDate end = LocalDate.parse(endStr);
                         if (start.isBefore(data.periodStart))
                             data.periodStart = start;
                         if (end.isAfter(data.periodEnd))
@@ -275,18 +282,23 @@ public class EdgarService {
                     data.fields.put(fc.fieldName, value);
                 }
             } catch (Exception e) {
-                System.err.println("Error collecting annual " + fc.tag + " for CY" + year + ": " + e.getMessage());
+                log.warn("Error collecting annual {} for CY{}: {}", fc.tag, year, e.getMessage());
             }
         }
         return annualMap;
     }
 
+    private static final Set<String> NON_ADDITIVE_FIELDS = Set.of(
+            "earningsPerShareBasic", "earningsPerShareDiluted");
+
     /**
-     * Derives missing quarterly values from annual totals. Cross-year aware:
-     * uses the annual filing's fiscal year (fy) to look up the 4 fiscal quarters
-     * (fy Q1-Q4), matching how collectFrames stores data using SEC's fy/fp fields.
-     * Derivation is per-field: for each flow field, if exactly 3 of 4 quarters
-     * have a value, the missing one is computed as annual - sum(3 known).
+     * Derives missing quarterly values from annual totals using date-range-based
+     * quarter matching. The annual period (e.g. 2024-07-01 to 2025-06-30) is split
+     * into 4 calendar-quarter slots, and each slot is looked up in the collected map
+     * by its calendar year and quarter. This correctly handles companies with
+     * non-calendar fiscal years (e.g. MSFT ending June, AAPL ending September).
+     *
+     * EPS fields are skipped because they are not additive across quarters.
      */
     private void deriveFromAnnualTotals(Map<String, Quarter> collected, Map<Long, AnnualData> annualTotals,
             Map<Long, Asset> assetMap) {
@@ -297,18 +309,30 @@ public class EdgarService {
             if (asset == null)
                 continue;
 
-            // Look up the 4 fiscal quarters (fy Q1-Q4) matching how collectFrames stores data
-            int fy = annual.fiscalYear;
+            // Split the annual period into 4 calendar-quarter slots
+            LocalDate annualStart = annual.periodStart;
+            LocalDate[] slotStarts = new LocalDate[4];
+            LocalDate[] slotEnds = new LocalDate[4];
+            for (int i = 0; i < 4; i++) {
+                slotStarts[i] = annualStart.plusMonths(i * 3);
+                slotEnds[i] = annualStart.plusMonths((i + 1) * 3).minusDays(1);
+            }
+            slotEnds[3] = annual.periodEnd;
+
+            // Look up collected quarters by calendar year/quarter of each slot
             String[] keys = new String[4];
             Quarter[] quarters = new Quarter[4];
-            for (int q = 0; q < 4; q++) {
-                keys[q] = cik + "|" + fy + "|" + (q + 1);
-                quarters[q] = collected.get(keys[q]);
+            for (int i = 0; i < 4; i++) {
+                int calYear = slotEnds[i].getYear();
+                int calQtr = (slotEnds[i].getMonthValue() - 1) / 3 + 1;
+                keys[i] = cik + "|" + calYear + "|" + calQtr;
+                quarters[i] = collected.get(keys[i]);
             }
 
-            // For each flow field, derive the missing value if exactly 1 of 4 is absent
             for (FrameConcept fc : FRAME_CONCEPTS) {
                 if (fc.isInstant)
+                    continue;
+                if (NON_ADDITIVE_FIELDS.contains(fc.fieldName))
                     continue;
 
                 Number annualVal = annual.fields.get(fc.fieldName);
@@ -333,15 +357,15 @@ public class EdgarService {
 
                 double derivedVal = annualVal.doubleValue() - sum;
 
-                // Ensure the Quarter object exists in the collected map
                 if (quarters[missingIndex] == null) {
-                    int mQtr = missingIndex + 1; // 1-based
+                    int calYear = slotEnds[missingIndex].getYear();
+                    int calQtr = (slotEnds[missingIndex].getMonthValue() - 1) / 3 + 1;
                     Quarter derived = new Quarter();
                     derived.setAsset(asset);
-                    derived.setYear(fy);
-                    derived.setQuarter(mQtr);
-                    derived.setPeriodStart(annual.periodStart);
-                    derived.setPeriodEnd(annual.periodEnd);
+                    derived.setYear(calYear);
+                    derived.setQuarter(calQtr);
+                    derived.setPeriodStart(slotStarts[missingIndex]);
+                    derived.setPeriodEnd(slotEnds[missingIndex]);
                     collected.put(keys[missingIndex], derived);
                     quarters[missingIndex] = derived;
                 }

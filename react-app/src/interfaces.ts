@@ -194,3 +194,24 @@ export interface ISECQuartersResponse {
     cik: string;
     quarters: IQuarter[];
 }
+
+export interface IYFinanceQuarter {
+    year: number;
+    quarter: number;
+    periodEnd: string;
+    revenues: number | null;
+    netIncomeLoss: number | null;
+    operatingIncomeLoss: number | null;
+    grossProfit: number | null;
+    earningsPerShareBasic: number | null;
+    earningsPerShareDiluted: number | null;
+    assets: number | null;
+    liabilities: number | null;
+    stockholdersEquity: number | null;
+    cashAndCashEquivalentsAtCarryingValue: number | null;
+    accountsReceivableNetCurrent: number | null;
+    inventoryNet: number | null;
+    netCashProvidedByUsedInOperatingActivities: number | null;
+    paymentsOfDividends: number | null;
+    paymentsForRepurchaseOfCommonStock: number | null;
+}

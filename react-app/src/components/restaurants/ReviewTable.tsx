@@ -2,6 +2,7 @@ import Table from 'react-bootstrap/Table';
 import { formatString } from '../../functions/helperFunctions';
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../../main";
+import { IReview } from '../../interfaces';
 import { Alert } from 'react-bootstrap';
 import { setReviewSort } from '../../reducers/reviewReducer';
 import { deleteReview, patchReview } from '../../functions/axiosFunctions';
@@ -26,7 +27,7 @@ const RATING_CHOICES = [
     { value: 5, label: "5 - Excellent" },
 ];
 
-function ReviewRow({ review }) {
+function ReviewRow({ review }: { review: IReview }) {
     const dispatch = useDispatch<AppDispatch>();
     let tableData: JSX.Element[] = [];
     for (let i = 0; i < fields.length; i++) {
@@ -44,7 +45,7 @@ function ReviewRow({ review }) {
                 dispatch(patchReview(updatedReview))}}>{[fields[i]["field"]]}</td>)
         }
         else {
-            tableData.push(<td key={i}>{formatString(review[fields[i]["field"]], fields[i]["type"])}</td>)
+            tableData.push(<td key={i}>{formatString((review as unknown as Record<string, string | number>)[fields[i]["field"]], fields[i]["type"])}</td>)
         }
     }
 

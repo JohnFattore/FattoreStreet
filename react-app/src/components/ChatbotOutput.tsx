@@ -1,12 +1,14 @@
 import { useSelector } from "react-redux";
 import { RootState } from '../main';
+import { IChatMessage } from '../interfaces';
 import showdown from "showdown";
+import DOMPurify from "dompurify";
 
 function convertMarkdownToHtml(markdownText: string) {
     if (!markdownText) return "";
     const text = String(markdownText);
     const converter = new showdown.Converter();
-    return converter.makeHtml(text);
+    return DOMPurify.sanitize(converter.makeHtml(text));
 }
 
 export default function ChatbotOutput() {
@@ -14,7 +16,7 @@ export default function ChatbotOutput() {
 
     return (
         <div style={{ maxHeight: '600px', overflowY: 'auto', marginBottom: '20px', display: 'flex', flexDirection: 'column' }}>
-            {messages.map((msg: any, index: number) => (
+            {messages.map((msg: IChatMessage, index: number) => (
                 <div key={index} style={{
                     alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
                     backgroundColor: msg.role === 'user' ? 'var(--primary)' : 'var(--tertiary)',

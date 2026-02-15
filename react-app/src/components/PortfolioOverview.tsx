@@ -47,8 +47,8 @@ export default function PortfolioOverview() {
       marketCurrentTotal += asset.snp500PriceSell;
     } else {
       portfolioCurrentTotal +=
-        assetInfos[asset.ticker]?.currentPrice * asset.shares;
-      marketCurrentTotal += quote?.price;
+        (assetInfos[asset.ticker]?.currentPrice ?? 0) * asset.shares;
+      marketCurrentTotal += quote?.price ?? 0;
     }
   }
 

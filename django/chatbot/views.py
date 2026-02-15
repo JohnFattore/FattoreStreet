@@ -55,11 +55,9 @@ class ChatbotView(APIView):
             history.append({"role": "model", "parts": [interaction.output_text]})
 
         chat_session = model.start_chat(history=history)
-        # i should use a serializer, handle errors up front please instead of kicking down the road
-        user_message = self.request.data["message"]
-
-        if (user_message == ''):
-            return Response({"message": f"Input can't be blank"}, status=status.HTTP_400_BAD_REQUEST)
+        msg_serializer = ChatMessageSerializer(data=request.data)
+        msg_serializer.is_valid(raise_exception=True)
+        user_message = msg_serializer.validated_data["message"]
 
         response = chat_session.send_message(user_message)
         

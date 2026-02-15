@@ -16,7 +16,7 @@ import {
  * Multi-line overlay: <GenericLineChart data={mergedData} label="Title" lines={[{ dataKey: "a", color: "#007bff", name: "A" }, ...]} />
  */
 export default function GenericLineChart({ data, label, description, strokeColor = "#8884d8", height = 300, lines }: {
-  data: any;
+  data: object[] | null | undefined;
   label: string;
   description: string;
   strokeColor?: string;
