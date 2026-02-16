@@ -1,11 +1,14 @@
 from django.test import TestCase
+from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
 from .models import ChangeRequest
 
 class ChangeRequestAPITests(TestCase):
     def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
         self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
 
     def test_create_change_request(self):
         data = {

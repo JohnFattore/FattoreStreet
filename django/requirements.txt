@@ -5,7 +5,7 @@ django-cors-headers==4.2.0
 # API library
 djangorestframework==3.14.0
 # User authentication using tokens
-djangorestframework-simplejwt==5.3.0
+djangorestframework-simplejwt==5.5.1
 # Gunicorn HTTP server
 gunicorn==21.2.0
 # PostgreSQL to Python library
