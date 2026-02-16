@@ -119,12 +119,12 @@ export default function WatchListTable() {
     {
       label: "TTM Revenue",
       sortKey: "ttmRevenue",
-      render: (row: ISECData) => formatString(Number(row.ttmRevenue), "money"),
+      render: (row: ISECData) => row.ttmRevenue,
     },
     {
       label: "TTM Net Income",
       sortKey: "ttmNetIncome",
-      render: (row: ISECData) => formatString(Number(row.ttmNetIncome), "money"),
+      render: (row: ISECData) => row.ttmNetIncome,
     },
     {
       label: "Revenue YoY",
@@ -188,7 +188,7 @@ export default function WatchListTable() {
         </Button>
       </ButtonGroup>
 
-      <SortableTable
+      <SortableTable<any>
         data={isEdgar ? (edgarData || []) : dataArr}
         columns={isEdgar ? edgarColumns : performanceColumns}
         initialSortKey="ticker"
