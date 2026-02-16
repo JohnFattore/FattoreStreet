@@ -1,4 +1,4 @@
-import { http } from "msw";
+import { http, HttpResponse } from "msw";
 
 export const handlers = [
   http.get(
@@ -283,6 +283,185 @@ export const handlers = [
           },
         ],
         { status: 200 }
+      );
+    }
+  ),
+
+  // --- Spring Boot SEC EDGAR ---
+
+  http.get(
+    import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("company-fact-sheet"),
+    () => {
+      return Response.json(
+        {
+          ticker: "AAPL",
+          cik: "0000320193",
+          ttmNetIncome: "93736000000",
+          ttmRevenue: "383285000000",
+          ttmOperatingCashFlow: "110543000000",
+          ttmOperatingIncome: "114301000000",
+          ttmGrossProfit: "170782000000",
+          ttmNetIncomeYoY: "8.25%",
+          ttmRevenueYoY: "4.87%",
+          latestAssets: "364980000000",
+          latestLiabilities: "308030000000",
+          latestEquity: "56950000000",
+          latestInventory: "7286000000",
+          latestCash: "29943000000",
+          latestEps: "6.08",
+          netMargin: "24.46%",
+          grossMargin: "44.56%",
+          debtToAssets: "84.39%",
+          cashToLiabilities: "9.72%",
+          roA: "25.68%",
+          ocfToNetIncome: "117.93%",
+          latestQuarterEnd: "2024-12-28",
+        },
+        { status: 200 }
+      );
+    }
+  ),
+
+  http.get(
+    import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("quarters"),
+    () => {
+      return Response.json(
+        {
+          ticker: "AAPL",
+          cik: "0000320193",
+          quarters: [
+            {
+              year: 2024,
+              quarter: "Q4",
+              periodStart: "2024-09-29",
+              periodEnd: "2024-12-28",
+              revenues: 124300000000,
+              netIncomeLoss: 36330000000,
+              operatingIncomeLoss: 42832000000,
+              grossProfit: 58274000000,
+              epsBasic: 2.41,
+              epsDiluted: 2.40,
+              assets: 364980000000,
+              liabilities: 308030000000,
+              equity: 56950000000,
+              cash: 29943000000,
+              receivables: 66243000000,
+              inventory: 7286000000,
+              ocf: 29943000000,
+              dividends: 3800000000,
+              buybacks: 25000000000,
+            },
+          ],
+        },
+        { status: 200 }
+      );
+    }
+  ),
+
+  // --- Account detail ---
+
+  http.get(
+    new RegExp(
+      import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
+        "accounts/\\d+/"
+    ),
+    () => {
+      return Response.json(
+        { id: 1, name: "Taxable Brokerage", account_type: "TAXABLE_ACCOUNT" },
+        { status: 200 }
+      );
+    }
+  ),
+
+  // --- Asset prices ---
+
+  http.get(
+    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-prices/"),
+    () => {
+      return Response.json(
+        [
+          { date: "2024-01-02", value: 150.0 },
+          { date: "2024-01-03", value: 152.5 },
+          { date: "2024-01-04", value: 148.0 },
+        ],
+        { status: 200 }
+      );
+    }
+  ),
+
+  // --- Quarterly data (Django / yfinance) ---
+
+  http.get(
+    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quarterly-data/"),
+    () => {
+      return Response.json(
+        [
+          {
+            year: 2024,
+            quarter: 4,
+            periodEnd: "2024-12-28",
+            revenues: 124300000000,
+            netIncomeLoss: 36330000000,
+            operatingIncomeLoss: 42832000000,
+            grossProfit: 58274000000,
+            earningsPerShareBasic: 2.41,
+            earningsPerShareDiluted: 2.40,
+            assets: 364980000000,
+            liabilities: 308030000000,
+            stockholdersEquity: 56950000000,
+            cashAndCashEquivalentsAtCarryingValue: 29943000000,
+            accountsReceivableNetCurrent: 66243000000,
+            inventoryNet: 7286000000,
+            netCashProvidedByUsedInOperatingActivities: 29943000000,
+            paymentsOfDividends: 3800000000,
+            paymentsForRepurchaseOfCommonStock: 25000000000,
+          },
+        ],
+        { status: 200 }
+      );
+    }
+  ),
+
+  // --- Mutations ---
+
+  http.post(
+    import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("users/"),
+    () => {
+      return Response.json(
+        { id: 10, username: "newuser", email: "new@test.com" },
+        { status: 201 }
+      );
+    }
+  ),
+
+  http.post(
+    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("accounts/"),
+    () => {
+      return Response.json(
+        { id: 3, name: "New Account", account_type: "ROTH_IRA" },
+        { status: 201 }
+      );
+    }
+  ),
+
+  http.post(
+    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"),
+    () => {
+      return Response.json(
+        {
+          id: 300,
+          ticker: "VTI",
+          shares: "5.00000",
+          buy_date: "2024-01-15",
+          buy_price: 1100,
+          buy_SnP500: 480,
+          sell_date: null,
+          sell_price: null,
+          sell_SnP500: null,
+          user: 5,
+          account: 1,
+        },
+        { status: 201 }
       );
     }
   ),

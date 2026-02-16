@@ -1,47 +1,40 @@
-import { render, screen } from '@testing-library/react';
+// @vitest-environment jsdom
+import { screen } from '@testing-library/react';
+import { expect, describe, it } from 'vitest';
+import '@testing-library/jest-dom';
 import ChatbotOutput from '../src/components/ChatbotOutput';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
-import chatbotReducer from '../src/reducers/chatbotReducer';
-import userReducer from '../src/reducers/userReducer';
-
-const renderWithProviders = (
-    ui: React.ReactElement,
-    {
-        preloadedState = {},
-        store = configureStore({
-            reducer: { chatbot: chatbotReducer, user: userReducer },
-            preloadedState,
-        }),
-        ...renderOptions
-    } = {}
-) => {
-    return {
-        store, ...render(
-            <Provider store={store}>{ui}</Provider>,
-            renderOptions
-        )
-    }
-}
+import { renderWithProviders } from './testutils';
 
 describe('ChatbotOutput', () => {
-    test('renders user and model messages correctly', () => {
-        const initialState = {
+    it('renders user and model messages correctly', () => {
+        const preloadedState = {
             chatbot: {
                 loading: false,
                 messages: [
                     { role: 'user', text: 'Hello bot' },
-                    { role: 'model', text: 'Hello human' }
+                    { role: 'model', text: 'Hello human' },
                 ],
-                error: ''
-            }
+                error: '',
+            },
         };
 
-        renderWithProviders(<ChatbotOutput />, { preloadedState: initialState });
+        renderWithProviders(<ChatbotOutput />, { preloadedState });
 
-        expect(screen.getByText('Hello bot')).toBeTruthy();
-        // Model message is rendered via dangerouslySetInnerHTML, usually wrapped in divs by showdown
-        // But since we mock it or just expect text content if showdown returns valid HTML containing text
-        expect(screen.getByText(/Hello human/)).toBeTruthy();
+        expect(screen.getByText('Hello bot')).toBeInTheDocument();
+        expect(screen.getByText(/Hello human/)).toBeInTheDocument();
+    });
+
+    it('renders empty state when no messages exist', () => {
+        const preloadedState = {
+            chatbot: {
+                loading: false,
+                messages: [],
+                error: '',
+            },
+        };
+
+        const { container } = renderWithProviders(<ChatbotOutput />, { preloadedState });
+        const outputDiv = container.firstChild as HTMLElement;
+        expect(outputDiv.children).toHaveLength(0);
     });
 });

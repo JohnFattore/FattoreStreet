@@ -1,13 +1,14 @@
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APITestCase
 from django.contrib.auth.models import User
 from portfolio.models import Account
+from tests.base import BaseAPITestCase
 
-class AccountAPITests(APITestCase):
+
+class AccountAPITests(BaseAPITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpassword')
-        self.client.force_authenticate(user=self.user)
+        super().setUp()
+        self.authenticate_client()
         self.account_data = {'name': 'Test Account', 'account_type': 'TRADITIONAL_IRA'}
         self.response = self.client.post(reverse('accounts'), self.account_data, format='json')
 
@@ -49,14 +50,29 @@ class AccountAPITests(APITestCase):
     def test_permissions(self):
         """Test that user cannot see other users' accounts."""
         other_user = User.objects.create_user(username='otheruser', password='otherpassword')
-        other_account = Account.objects.create(name='Other Account', user=other_user)
-        
+        Account.objects.create(name='Other Account', user=other_user)
+
         response = self.client.get(reverse('accounts'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Should only see own account
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['name'], 'Test Account')
 
-        # Try to access other user's account
+    def test_access_other_users_account(self):
+        """Test that user cannot access another user's account detail."""
+        other_user = User.objects.create_user(username='otheruser', password='otherpassword')
+        other_account = Account.objects.create(name='Other Account', user=other_user)
         response = self.client.get(reverse('account', args=[other_account.id]))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_create_account_unauthenticated(self):
+        """Test that unauthenticated user cannot create an account."""
+        self.unauthenticate_client()
+        data = {'name': 'Unauthorized Account', 'account_type': 'ROTH_IRA'}
+        response = self.client.post(reverse('accounts'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_accounts_unauthenticated(self):
+        """Test that unauthenticated user cannot list accounts."""
+        self.unauthenticate_client()
+        response = self.client.get(reverse('accounts'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
