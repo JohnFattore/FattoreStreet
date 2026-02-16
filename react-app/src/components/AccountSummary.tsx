@@ -60,43 +60,43 @@ export default function AccountSummary({ accountId }: Props) {
       isLoading={isLoading}
       errors={[assetsError, assetInfoError]}
       content={
-        <Card className="mb-4 shadow-sm">
-          <Card.Body>
-            <Card.Title className="fw-bold mb-3">Account Summary</Card.Title>
-            <Row>
-              <Col md={4} className="mb-3 mb-md-0">
-                <div className="text-muted small">Total Cost Basis</div>
-                <div className="fs-5">
-                  {formatString(totalCostBasis, "money")}
-                </div>
-              </Col>
-              <Col md={4} className="mb-3 mb-md-0">
-                <div className="text-muted small">Total Current Value</div>
-                <div className="fs-5">
-                  {formatString(totalCurrentValue, "money")}
-                </div>
-              </Col>
-              <Col md={4}>
-                <div className="text-muted small">Total Percent Change</div>
-                <div
-                  className="fs-5"
-                  style={{
-                    color:
-                      totalPercentChange > 0
-                        ? "var(--bs-success)"
-                        : totalPercentChange < 0
-                        ? "var(--bs-danger)"
-                        : "inherit",
-                  }}
-                >
-                  {formatString(totalPercentChange, "percent")}
-                </div>
-              </Col>
-            </Row>
-          </Card.Body>
-        </Card>
+        <div className="account-summary">
+          <Card>
+            <Card.Body>
+              <Card.Title>Account Summary</Card.Title>
+              <Row>
+                <Col md={4}>
+                  <div>Total Cost Basis</div>
+                  <div>
+                    {formatString(totalCostBasis, "money")}
+                  </div>
+                </Col>
+                <Col md={4}>
+                  <div>Total Current Value</div>
+                  <div>
+                    {formatString(totalCurrentValue, "money")}
+                  </div>
+                </Col>
+                <Col md={4}>
+                  <div>Total Percent Change</div>
+                  <div
+                    style={{
+                      color:
+                        totalPercentChange > 0
+                          ? "var(--bs-success)"
+                          : totalPercentChange < 0
+                          ? "var(--bs-danger)"
+                          : "inherit",
+                    }}
+                  >
+                    {formatString(totalPercentChange, "percent")}
+                  </div>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+        </div>
       }
     />
   );
 }
-

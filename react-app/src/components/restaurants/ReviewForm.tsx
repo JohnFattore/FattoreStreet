@@ -66,7 +66,7 @@ export default function ReviewForm({ restaurant, show, onHide }: ReviewFormProps
     };
 
     return (
-        <Modal show={show} onHide={handleClose}>
+        <Modal show={show} onHide={handleClose} dialogClassName="review-form-modal">
             <Modal.Header closeButton>
                 <Modal.Title>
                     {restaurant.id == 0 ? "Select Restaurant to Review" : "Review for " + restaurant.name}
@@ -100,15 +100,15 @@ export default function ReviewForm({ restaurant, show, onHide }: ReviewFormProps
 
                         </Col>
                     </Row>
-                    <div className="d-flex justify-content-end mt-3">
-                        <Button variant="secondary" onClick={handleClose} className="me-2">
+                    <div>
+                        <Button variant="secondary" onClick={handleClose}>
                             Close
                         </Button>
                         <Button type="submit" disabled={restaurant.id == 0 || loading}>Submit Review</Button>
                     </div>
                 </Form>
-                {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
-                {submission && error != 'You have already reviewed this restaurant.' && <Alert className="mt-3">{"Review for ".concat(submission, " submitted")}</Alert>}
+                {error && <Alert variant="danger">{error}</Alert>}
+                {submission && error != 'You have already reviewed this restaurant.' && <Alert>{"Review for ".concat(submission, " submitted")}</Alert>}
             </Modal.Body>
         </Modal>
 

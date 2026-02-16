@@ -107,18 +107,18 @@ export default function EconomicIndicators() {
   }
 
   return (
-    <Container fluid className="py-4 px-4 min-vh-100 theme-bg-quaternary">
-      <div className="mb-5">
+    <Container fluid className="economic-indicators-page theme-bg-quaternary">
+      <div>
         <h1>Economic Indicators</h1>
         <p>
           Monitoring key macroeconomic metrics to understand market conditions and trends.
         </p>
       </div>
 
-      <Row className="g-5">
+      <Row>
         {/* ── Interest Rates & Yield Curve ── */}
         <Col xs={12}>
-          <h4 className="mb-0">Interest Rates &amp; Yield Curve</h4>
+          <h4>Interest Rates &amp; Yield Curve</h4>
         </Col>
         <Col xl={4} lg={6} md={12}>
           <GenericLineChart
@@ -151,7 +151,7 @@ export default function EconomicIndicators() {
 
         {/* ── Inflation ── */}
         <Col xs={12}>
-          <h4 className="mb-0">Inflation</h4>
+          <h4>Inflation</h4>
         </Col>
         <Col xl={4} lg={6} md={12}>
           <GenericLineChart
@@ -175,7 +175,7 @@ export default function EconomicIndicators() {
 
         {/* ── Labor Market ── */}
         <Col xs={12}>
-          <h4 className="mb-0">Labor Market</h4>
+          <h4>Labor Market</h4>
         </Col>
         <Col xl={4} lg={6} md={12}>
           <GenericLineChart
@@ -204,7 +204,7 @@ export default function EconomicIndicators() {
 
         {/* ── Economic Growth & Consumer ── */}
         <Col xs={12}>
-          <h4 className="mb-0">Economic Growth &amp; Consumer</h4>
+          <h4>Economic Growth &amp; Consumer</h4>
         </Col>
         <Col xl={4} lg={6} md={12}>
           <GenericLineChart
@@ -241,7 +241,7 @@ export default function EconomicIndicators() {
 
         {/* ── Housing ── */}
         <Col xs={12}>
-          <h4 className="mb-0">Housing</h4>
+          <h4>Housing</h4>
         </Col>
         <Col xl={4} lg={6} md={12}>
           <GenericLineChart
@@ -273,7 +273,7 @@ export default function EconomicIndicators() {
 
         {/* ── Financial Markets ── */}
         <Col xs={12}>
-          <h4 className="mb-0">Financial Markets</h4>
+          <h4>Financial Markets</h4>
         </Col>
         <Col xl={4} lg={6} md={12}>
           <GenericLineChart
@@ -302,7 +302,7 @@ export default function EconomicIndicators() {
 
         {/* ── Monetary Policy ── */}
         <Col xs={12}>
-          <h4 className="mb-0">Monetary Policy</h4>
+          <h4>Monetary Policy</h4>
         </Col>
         <Col xl={4} lg={6} md={12}>
           <GenericLineChart

@@ -35,26 +35,30 @@ export default function AccountView() {
 
     if (error) {
         return (
-            <Container className="mt-4">
-                <Alert variant="danger">Error loading account data. Please try again later.</Alert>
-            </Container>
+            <div className="account-view-page">
+                <Container>
+                    <Alert variant="danger">Error loading account data. Please try again later.</Alert>
+                </Container>
+            </div>
         );
     }
 
     return (
-        <Container className="mt-4">
-            <LoadingModal show={isLoading} />
+        <div className="account-view-page">
+            <Container>
+                <LoadingModal show={isLoading} />
 
-            {!isLoading && account && (
-                <>
-                    <AssetForm defaultAccountId={accountId} />
-                    <h1>{account.name}</h1>
-                    <h5 className="text-muted">{account.account_type.replace('_', ' ')}</h5>
-                    <hr />
-                    <AccountSummary accountId={accountId} />
-                    <AssetTable accountId={accountId} />
-                </>
-            )}
-        </Container>
+                {!isLoading && account && (
+                    <>
+                        <AssetForm defaultAccountId={accountId} />
+                        <h1>{account.name}</h1>
+                        <h5>{account.account_type.replace('_', ' ')}</h5>
+                        <hr />
+                        <AccountSummary accountId={accountId} />
+                        <AssetTable accountId={accountId} />
+                    </>
+                )}
+            </Container>
+        </div>
     );
 }

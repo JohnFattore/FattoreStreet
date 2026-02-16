@@ -1,0 +1,32 @@
+---
+description: Django and Django REST Framework conventions
+globs: django/**/*.py
+alwaysApply: false
+---
+
+# Django / DRF Conventions
+
+## Project Layout
+
+- App-based structure: `portfolio/`, `users/`, `chatbot/`, `restaurants/`, `indexes/`
+- Shared helper utilities live in `django/portfolio/helper.py`
+- Async tasks use Celery with Redis as the broker
+
+## Code Style
+
+- Follow PEP 8; use snake_case for all Python identifiers
+- Type hints on function signatures (e.g., `def foo(tickers: list[str]) -> dict:`)
+- Use `environ.Env` for environment variables, never hardcode secrets
+- Custom exceptions should be descriptive classes (e.g., `QuoteFetchError`)
+
+## API Patterns
+
+- Use DRF serializers for request/response validation
+- API responses use snake_case keys (the React frontend converts to camelCase)
+- Cache expensive external API calls (yfinance, FRED) using Django's cache framework with `cache.get` / `cache.set`
+- Use the `_partition_cached` helper pattern for batch lookups: split tickers into cached hits and uncached misses, fetch only the misses
+
+## Auth
+
+- JWT authentication via `djangorestframework-simplejwt`
+- Protected endpoints require `Authorization: Bearer <token>` header

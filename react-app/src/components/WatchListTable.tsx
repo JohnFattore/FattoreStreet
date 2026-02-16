@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { formatString } from "../functions/helperFunctions";
-import { IEquityInfo, IETFInfo } from "../interfaces";
-import { useGetAssetInfosQuery } from "../functions/api";
-import { Button } from "react-bootstrap";
+import { IEquityInfo, IETFInfo, ISECData } from "../interfaces";
+import { useGetAssetInfosQuery, useGetSecEdgarDataBatchQuery } from "../functions/api";
+import { Button, ButtonGroup } from "react-bootstrap";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "../main";
 import { removeTicker } from "../reducers/watchListReducer";
 import { useNavigate } from "react-router-dom";
 import { SortableTable } from "./SortableTable";
 
+type View = "performance" | "edgar";
+
 export default function WatchListTable() {
+  const [view, setView] = useState<View>("performance");
   const tickers = useSelector((state: RootState) => state.watchList.tickers);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -17,11 +21,41 @@ export default function WatchListTable() {
     skip: tickers.length === 0,
   });
 
-  const data = dataRaw ?? []
+  const {
+    data: edgarData,
+    isLoading: edgarLoading,
+    error: edgarError,
+  } = useGetSecEdgarDataBatchQuery(tickers, {
+    skip: tickers.length === 0 || view !== "edgar",
+  });
 
+  const data = dataRaw ?? [];
   const dataArr = Object.values(data as Record<string, IEquityInfo | IETFInfo>);
 
-  const columns = [
+  const actionColumns = [
+    {
+      label: "Remove",
+      sortKey: "remove",
+      sortable: false,
+      render: (row: any) => (
+        <Button size="sm" onClick={() => dispatch(removeTicker(row.ticker))}>
+          Remove
+        </Button>
+      ),
+    },
+    {
+      label: "View",
+      sortKey: "view",
+      sortable: false,
+      render: (row: any) => (
+        <Button size="sm" onClick={() => navigate(`/asset/${row.ticker}`)}>
+          View
+        </Button>
+      ),
+    },
+  ];
+
+  const performanceColumns = [
     {
       label: "Ticker",
       sortKey: "ticker",
@@ -73,27 +107,94 @@ export default function WatchListTable() {
       sortKey: "percentChange5Years",
       render: (row: any) => formatString(row.percentChange5Years, "percent"),
     },
-    {
-      label: "Remove",
-      sortKey: "remove",
-      sortable: false,
-      render: (row: any) => (
-        <Button onClick={() => dispatch(removeTicker(row.ticker))}>
-          {`Remove ${row.ticker}`}
-        </Button>
-      ),
-    },
-    {
-      label: "View Asset",
-      sortKey: "view",
-      sortable: false,
-      render: (row: any) => (
-        <Button onClick={() => navigate(`/asset/${row.ticker}`)}>
-          {`View ${row.ticker}`}
-        </Button>
-      ),
-    },
+    ...actionColumns,
   ];
 
-  return <SortableTable data={dataArr} columns={columns} initialSortKey="ticker" isLoading={isLoading} errors={[error]}/>;
+  const edgarColumns = [
+    {
+      label: "Ticker",
+      sortKey: "ticker",
+      render: (row: ISECData) => row.ticker,
+    },
+    {
+      label: "TTM Revenue",
+      sortKey: "ttmRevenue",
+      render: (row: ISECData) => formatString(Number(row.ttmRevenue), "money"),
+    },
+    {
+      label: "TTM Net Income",
+      sortKey: "ttmNetIncome",
+      render: (row: ISECData) => formatString(Number(row.ttmNetIncome), "money"),
+    },
+    {
+      label: "Revenue YoY",
+      sortKey: "ttmRevenueYoY",
+      render: (row: ISECData) => row.ttmRevenueYoY,
+    },
+    {
+      label: "Net Income YoY",
+      sortKey: "ttmNetIncomeYoY",
+      render: (row: ISECData) => row.ttmNetIncomeYoY,
+    },
+    {
+      label: "Net Margin",
+      sortKey: "netMargin",
+      render: (row: ISECData) => row.netMargin,
+    },
+    {
+      label: "Gross Margin",
+      sortKey: "grossMargin",
+      render: (row: ISECData) => row.grossMargin,
+    },
+    {
+      label: "ROA",
+      sortKey: "roA",
+      render: (row: ISECData) => row.roA,
+    },
+    {
+      label: "Debt / Assets",
+      sortKey: "debtToAssets",
+      render: (row: ISECData) => row.debtToAssets,
+    },
+    {
+      label: "Latest EPS",
+      sortKey: "latestEps",
+      render: (row: ISECData) => row.latestEps,
+    },
+    {
+      label: "Latest Quarter",
+      sortKey: "latestQuarterEnd",
+      render: (row: ISECData) => row.latestQuarterEnd,
+    },
+    ...actionColumns,
+  ];
+
+  const isEdgar = view === "edgar";
+
+  return (
+    <div className="watchlist-table">
+      <ButtonGroup>
+        <Button
+          variant={!isEdgar ? "primary" : "outline-primary"}
+          onClick={() => setView("performance")}
+        >
+          Performance
+        </Button>
+        <Button
+          variant={isEdgar ? "primary" : "outline-primary"}
+          onClick={() => setView("edgar")}
+        >
+          SEC Edgar
+        </Button>
+      </ButtonGroup>
+
+      <SortableTable
+        data={isEdgar ? (edgarData || []) : dataArr}
+        columns={isEdgar ? edgarColumns : performanceColumns}
+        initialSortKey="ticker"
+        isLoading={isEdgar ? edgarLoading : isLoading}
+        errors={[isEdgar ? edgarError : error]}
+      />
+    </div>
+  );
 }

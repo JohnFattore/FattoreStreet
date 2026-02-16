@@ -121,9 +121,9 @@ export default function QuarterlyComparison({ ticker }: { ticker: string }) {
     const field = COMPARE_FIELDS[selectedField];
 
     return (
-        <Row className="mt-4">
+        <Row className="quarterly-comparison">
             <Col md={12}>
-                <Card className="shadow-sm border-0">
+                <Card>
                     <Card.Header as="h5" className="bg-dark text-white">
                         SEC vs YFinance Comparison
                     </Card.Header>
@@ -134,7 +134,7 @@ export default function QuarterlyComparison({ ticker }: { ticker: string }) {
                             <Alert variant="danger">Error loading comparison data.</Alert>
                         ) : (
                             <>
-                                <Form.Group className="mb-3" style={{ maxWidth: 300 }}>
+                                <Form.Group style={{ maxWidth: 300 }}>
                                     <Form.Label>Metric</Form.Label>
                                     <Form.Select
                                         value={selectedField}
@@ -149,10 +149,10 @@ export default function QuarterlyComparison({ ticker }: { ticker: string }) {
                                     <thead>
                                         <tr>
                                             <th>Period</th>
-                                            <th className="text-end">SEC EDGAR</th>
-                                            <th className="text-end">YFinance</th>
-                                            <th className="text-end">Difference</th>
-                                            <th className="text-end">% Difference</th>
+                                            <th>SEC EDGAR</th>
+                                            <th>YFinance</th>
+                                            <th>Difference</th>
+                                            <th>% Difference</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -161,12 +161,12 @@ export default function QuarterlyComparison({ ticker }: { ticker: string }) {
                                             return (
                                                 <tr key={row.period} className={isMismatch ? "table-warning" : ""}>
                                                     <td>{row.period}</td>
-                                                    <td className="text-end">{formatValue(row.secValue, field.format)}</td>
-                                                    <td className="text-end">{formatValue(row.yfValue, field.format)}</td>
-                                                    <td className={`text-end ${isMismatch ? "text-danger fw-bold" : ""}`}>
+                                                    <td>{formatValue(row.secValue, field.format)}</td>
+                                                    <td>{formatValue(row.yfValue, field.format)}</td>
+                                                    <td className={isMismatch ? "text-danger fw-bold" : ""}>
                                                         {formatDiff(row.diff, field.format)}
                                                     </td>
-                                                    <td className={`text-end ${isMismatch ? "text-danger fw-bold" : ""}`}>
+                                                    <td className={isMismatch ? "text-danger fw-bold" : ""}>
                                                         {formatPctDiff(row.pctDiff)}
                                                     </td>
                                                 </tr>
@@ -174,7 +174,7 @@ export default function QuarterlyComparison({ ticker }: { ticker: string }) {
                                         })}
                                         {rows.length === 0 && (
                                             <tr>
-                                                <td colSpan={5} className="text-center text-muted">
+                                                <td colSpan={5}>
                                                     No overlapping quarters found.
                                                 </td>
                                             </tr>

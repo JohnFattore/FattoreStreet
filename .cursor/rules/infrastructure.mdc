@@ -1,0 +1,34 @@
+---
+description: Infrastructure conventions for Docker, Kubernetes, and Nginx
+globs: "{kubernetes/**,nginx/**,aws/**,**/Dockerfile,docker-compose*}"
+alwaysApply: false
+---
+
+# Infrastructure Conventions
+
+## Docker
+
+- Each service (`react-app`, `django`, `springboot`) has its own Dockerfile
+- Use multi-stage builds where applicable (e.g., Vite build stage then Nginx serve stage for the React app)
+
+## Kubernetes
+
+- Deployment manifests live in `kubernetes/`
+- `kubernetes/build.sh` builds container images; `kubernetes/run.sh` orchestrates deployment
+- Services: Django (Gunicorn), Spring Boot, React (Nginx), PostgreSQL, Redis
+
+## Nginx
+
+- Config in `nginx/nginx.conf`
+- Acts as a reverse proxy routing to the three services
+- Static frontend assets are served directly by Nginx
+
+## AWS
+
+- Configs in `aws/` target EC2/Fargate and RDS
+- Database connection strings and secrets come from environment variables, never hardcoded
+
+## General
+
+- Always use environment variables for service URLs, database credentials, and API keys
+- Keep infrastructure config declarative and version-controlled

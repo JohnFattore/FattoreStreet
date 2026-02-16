@@ -49,7 +49,7 @@ export default function CreateAccountForm() {
                 Create New Account
             </Button>
 
-            <Modal show={show} onHide={handleClose}>
+            <Modal show={show} onHide={handleClose} dialogClassName="create-account-modal">
                 <Modal.Header closeButton>
                     <Modal.Title>Create Account</Modal.Title>
                 </Modal.Header>
@@ -64,7 +64,6 @@ export default function CreateAccountForm() {
                                         required: true,
                                     })}
                                     placeholder="Account Name"
-                                    className="mb-3"
                                 />
                                 {errors.name && (
                                     <Alert variant="danger" role="nameError">
@@ -78,7 +77,6 @@ export default function CreateAccountForm() {
                                 <Form.Select
                                     size="lg"
                                     {...register("accountType", { required: true })}
-                                    className="mb-3"
                                 >
                                     <option value="OTHER">Other</option>
                                     <option value="ROTH_IRA">Roth IRA</option>
@@ -94,8 +92,8 @@ export default function CreateAccountForm() {
                                 )}
                             </Col>
                         </Row>
-                        <div className="d-flex justify-content-end">
-                            <Button variant="secondary" onClick={handleClose} className="me-2">
+                        <div>
+                            <Button variant="secondary" onClick={handleClose}>
                                 Close
                             </Button>
                             <LoadingButton label={"Create Account"} loading={isLoading} />

@@ -195,3 +195,437 @@ img {
   border-color: var(--tertiary);
   border-radius: 5px;
 }
+
+// ============ Global utility rules ============
+
+// Spinners inside buttons always get right margin
+.btn .spinner-grow,
+.btn .spinner-border {
+  margin-right: 0.5rem;
+}
+
+// Navbar: push nav links left
+.navbar .navbar-nav {
+  margin-right: auto;
+}
+
+// ============ Page/Component-scoped styles ============
+
+// -- SEC Data page --
+.sec-data-page {
+  .container {
+    margin-top: 1.5rem;
+  }
+
+  > .container > .spinner-border {
+    display: block;
+    margin: 0 auto;
+  }
+
+  > .container > .spinner-border + p {
+    text-align: center;
+  }
+
+  .card {
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+    border: 0;
+  }
+
+  > .container > .row:first-child {
+    margin-bottom: 1.5rem;
+    align-items: center;
+
+    > div:last-child {
+      text-align: end;
+    }
+  }
+
+  .card-body > .row p {
+    margin-bottom: 0.25rem;
+    color: var(--bs-secondary-color);
+  }
+
+  .table-sm td:last-child {
+    text-align: end;
+  }
+
+  > .container > .row:nth-child(n+2):nth-child(-n+4) {
+    margin-bottom: 1.5rem;
+  }
+
+  > .container > :nth-child(n+5) {
+    margin-top: 1.5rem;
+  }
+}
+
+// -- Home page --
+.home-page {
+  .hero-section {
+    text-align: center;
+    padding: 3rem 0;
+    margin-bottom: 3rem;
+    background: radial-gradient(circle at top left, var(--quaternary), var(--tertiary));
+    color: white;
+    border-radius: 15px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    h1 {
+      font-size: calc(1.525rem + 3.3vw);
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    > p {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+      padding: 0 1rem;
+      max-width: 800px;
+    }
+
+    > div:last-child {
+      display: flex;
+      gap: 1rem;
+    }
+  }
+
+  > .container {
+    margin-bottom: 3rem;
+  }
+
+  blockquote {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    border-left: none;
+
+    > p {
+      margin-bottom: 1.5rem;
+      font-style: italic;
+      font-size: calc(1.275rem + 0.3vw);
+    }
+  }
+
+  .blockquote-footer {
+    font-size: 1.25rem;
+  }
+
+  > .container + .container {
+    > h2 {
+      text-align: center;
+      margin-bottom: 3rem;
+      font-weight: 700;
+    }
+
+    > .row {
+      --bs-gutter-x: 1.5rem;
+      --bs-gutter-y: 1.5rem;
+    }
+  }
+
+  .card-body {
+    > div:first-child {
+      font-size: calc(1.375rem + 1.5vw);
+      margin-bottom: 1rem;
+      color: var(--bs-primary);
+    }
+
+    > .btn-link {
+      padding: 0;
+      text-decoration: none;
+    }
+  }
+
+  > div:last-child {
+    margin-top: 3rem;
+    text-align: center;
+    color: var(--bs-secondary-color);
+    border-top: 1px solid var(--bs-border-color);
+    padding-top: 1.5rem;
+  }
+}
+
+// -- Quarterly comparison --
+.quarterly-comparison {
+  margin-top: 1.5rem;
+
+  .card {
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+    border: 0;
+  }
+
+  .text-center .spinner-border {
+    display: block;
+    margin: 0 auto;
+  }
+
+  th:not(:first-child),
+  td:not(:first-child) {
+    text-align: end;
+  }
+
+  td[colspan] {
+    text-align: center;
+    color: var(--bs-secondary-color);
+  }
+}
+
+// -- YFinance quarters table --
+.yfinance-quarters {
+  margin-top: 1.5rem;
+
+  .card {
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+    border: 0;
+  }
+}
+
+// -- Admin page --
+.admin-page {
+  padding: 1rem;
+  max-width: 600px;
+
+  > .card {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+
+    > div:not(.card) {
+      margin-bottom: 1rem;
+    }
+
+    > .card {
+      padding: 1rem;
+      margin-bottom: 1rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  p {
+    color: var(--bs-secondary-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .alert {
+    margin-top: 0.5rem;
+  }
+}
+
+// -- Account summary --
+.account-summary {
+  .card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+  }
+
+  .card-title {
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .card-body .row > div:not(:last-child) {
+    margin-bottom: 1rem;
+
+    @media (min-width: 768px) {
+      margin-bottom: 0;
+    }
+  }
+
+  .card-body .row > div > div:first-child {
+    color: var(--bs-secondary-color);
+    font-size: 0.875em;
+  }
+
+  .card-body .row > div > div:last-child {
+    font-size: 1.25rem;
+  }
+}
+
+// -- Economic indicators page --
+.economic-indicators-page {
+  padding: 1.5rem;
+  min-height: 100vh;
+
+  > div:first-child {
+    margin-bottom: 3rem;
+  }
+
+  > .row {
+    --bs-gutter-x: 3rem;
+    --bs-gutter-y: 3rem;
+  }
+
+  h4 {
+    margin-bottom: 0;
+  }
+
+  // Chart description separator
+  .card-body > :last-child:not(:nth-child(2)) {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bs-border-color);
+  }
+}
+
+// -- Login and Register forms --
+.login-form-container,
+.register-form-container {
+  form > div:not(:last-child) {
+    margin-bottom: 1rem;
+  }
+
+  form .alert {
+    margin-top: 0.5rem;
+  }
+
+  form > div:last-child {
+    display: grid;
+    gap: 0.5rem;
+  }
+}
+
+// -- User page --
+.user-page {
+  .row {
+    justify-content: center;
+  }
+
+  .list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+// -- Asset form and Create account form modals --
+.asset-form-modal,
+.create-account-modal {
+  .form-control,
+  .form-select {
+    margin-bottom: 1rem;
+  }
+
+  form > div:last-child:not(.row) {
+    display: flex;
+    justify-content: flex-end;
+
+    > .btn:first-child {
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+// -- Review form modal --
+.review-form-modal {
+  form > div:last-child:not(.row) {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+
+    > .btn:first-child {
+      margin-right: 0.5rem;
+    }
+  }
+
+  form ~ .alert {
+    margin-top: 1rem;
+  }
+}
+
+// -- Loading modal --
+.loading-modal .modal-body {
+  text-align: center;
+  padding: 3rem;
+
+  .spinner-border {
+    margin-bottom: 1rem;
+  }
+
+  p {
+    margin-bottom: 0;
+  }
+}
+
+// -- Login required --
+.login-required {
+  margin-top: 3rem;
+  text-align: center;
+
+  .row {
+    justify-content: center;
+  }
+
+  .alert {
+    padding: 3rem;
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+
+    h2 {
+      margin-bottom: 1.5rem;
+    }
+
+    p {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+  }
+}
+
+// -- Ticker header --
+.ticker-header {
+  .row {
+    align-items: center;
+  }
+
+  .card-title {
+    font-size: calc(1.475rem + 2.7vw);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .col:first-child > div:last-child {
+    > span:first-child {
+      font-size: calc(1.525rem + 3.3vw);
+      font-weight: 700;
+    }
+
+    > span:last-child {
+      font-size: calc(1.325rem + 0.9vw);
+      margin-bottom: 0;
+      font-weight: 600;
+    }
+  }
+}
+
+// -- Account view page --
+.account-view-page {
+  .container {
+    margin-top: 1.5rem;
+  }
+
+  h5 {
+    color: var(--bs-secondary-color);
+  }
+}
+
+// -- Account list --
+.account-list {
+  margin-top: 1.5rem;
+}
+
+// -- Watchlist table --
+.watchlist-table > .btn-group {
+  margin-bottom: 1rem;
+}
+
+// -- Restaurants page --
+.restaurants-page > p:last-child {
+  color: var(--bs-secondary-color);
+  text-align: center;
+  margin-top: 1rem;
+}

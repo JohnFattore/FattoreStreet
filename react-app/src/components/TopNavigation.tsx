@@ -15,7 +15,7 @@ export default function TopNavigation() {
       <Container>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-          <Nav className="me-auto">
+          <Nav>
             <Nav.Link as={Link} to="/">Home</Nav.Link>
             <Nav.Link as={Link} to="/portfolio">Portfolio</Nav.Link>
             <Nav.Link as={Link} to="/visualizer">Visualizer</Nav.Link>

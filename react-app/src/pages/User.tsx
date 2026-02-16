@@ -12,8 +12,8 @@ export default function User() {
 
     if (!access) {
         return (
-            <Container>
-                <Row className="justify-content-center">
+            <Container className="user-page">
+                <Row>
                     <Col md={6}>
                         <Card>
                             <Card.Header as="h5" className="theme-header-quaternary">
@@ -39,8 +39,8 @@ export default function User() {
     }
 
     return (
-        <Container>
-            <Row className="justify-content-center">
+        <Container className="user-page">
+            <Row>
                 <Col md={8}>
                     <Card>
                         <Card.Header as="h5" className="theme-header-quaternary">
@@ -53,21 +53,21 @@ export default function User() {
                             </div>
 
                             <ListGroup variant="flush">
-                                <ListGroup.Item className="d-flex justify-content-between align-items-center px-0">
+                                <ListGroup.Item>
                                     <div>
                                         <h6>Username</h6>
                                         <small>Unique identifier for your user profile</small>
                                     </div>
                                     <span>{username}</span>
                                 </ListGroup.Item>
-                                <ListGroup.Item className="d-flex justify-content-between align-items-center px-0">
+                                <ListGroup.Item>
                                     <div>
                                         <h6>Theme Preference</h6>
                                         <small>Your current visual mode</small>
                                     </div>
                                     <Button onClick={() => dispatch(setUserDarkMode(!darkMode))}> {darkMode ? "Light Mode" : "Dark Mode"} </Button>
                                 </ListGroup.Item>
-                                <ListGroup.Item className="d-flex justify-content-between align-items-center px-0">
+                                <ListGroup.Item>
                                     <div>
                                         <h6>User Status</h6>
                                         <small>Authentication level</small>

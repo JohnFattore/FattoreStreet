@@ -53,14 +53,14 @@ public class EdgarService {
 
     private static class FrameConcept {
         String taxonomy;
-        String tag;
+        List<String> tags;
         String unit;
         String fieldName;
         boolean isInstant;
 
-        FrameConcept(String taxonomy, String tag, String unit, String fieldName, boolean isInstant) {
+        FrameConcept(String taxonomy, List<String> tags, String unit, String fieldName, boolean isInstant) {
             this.taxonomy = taxonomy;
-            this.tag = tag;
+            this.tags = tags;
             this.unit = unit;
             this.fieldName = fieldName;
             this.isInstant = isInstant;
@@ -68,23 +68,40 @@ public class EdgarService {
     }
 
     private static final List<FrameConcept> FRAME_CONCEPTS = List.of(
-            new FrameConcept("us-gaap", "Revenues", "USD", "revenues", false),
-            new FrameConcept("us-gaap", "NetIncomeLoss", "USD", "netIncomeLoss", false),
-            new FrameConcept("us-gaap", "OperatingIncomeLoss", "USD", "operatingIncomeLoss", false),
-            new FrameConcept("us-gaap", "GrossProfit", "USD", "grossProfit", false),
-            new FrameConcept("us-gaap", "EarningsPerShareBasic", "USD-per-shares", "earningsPerShareBasic", false),
-            new FrameConcept("us-gaap", "EarningsPerShareDiluted", "USD-per-shares", "earningsPerShareDiluted", false),
-            new FrameConcept("us-gaap", "Assets", "USD", "assets", true),
-            new FrameConcept("us-gaap", "Liabilities", "USD", "liabilities", true),
-            new FrameConcept("us-gaap", "StockholdersEquity", "USD", "stockholdersEquity", true),
-            new FrameConcept("us-gaap", "CashAndCashEquivalentsAtCarryingValue", "USD",
-                    "cashAndCashEquivalentsAtCarryingValue", true),
-            new FrameConcept("us-gaap", "AccountsReceivableNetCurrent", "USD", "accountsReceivableNetCurrent", true),
-            new FrameConcept("us-gaap", "InventoryNet", "USD", "inventoryNet", true),
-            new FrameConcept("us-gaap", "NetCashProvidedByUsedInOperatingActivities", "USD",
-                    "netCashProvidedByUsedInOperatingActivities", false),
-            new FrameConcept("us-gaap", "PaymentsOfDividends", "USD", "paymentsOfDividends", false),
-            new FrameConcept("us-gaap", "PaymentsForRepurchaseOfCommonStock", "USD",
+            new FrameConcept("us-gaap",
+                    List.of("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax",
+                            "SalesRevenueNet", "SalesRevenueGoodsNet", "SalesRevenueServicesNet"),
+                    "USD", "revenues", false),
+            new FrameConcept("us-gaap",
+                    List.of("NetIncomeLoss", "NetIncomeLossAvailableToCommonStockholdersBasic",
+                            "NetIncomeLossNet", "ProfitLoss"),
+                    "USD", "netIncomeLoss", false),
+            new FrameConcept("us-gaap", List.of("OperatingIncomeLoss"), "USD", "operatingIncomeLoss", false),
+            new FrameConcept("us-gaap", List.of("GrossProfit"), "USD", "grossProfit", false),
+            new FrameConcept("us-gaap", List.of("EarningsPerShareBasic"), "USD-per-shares", "earningsPerShareBasic",
+                    false),
+            new FrameConcept("us-gaap", List.of("EarningsPerShareDiluted"), "USD-per-shares",
+                    "earningsPerShareDiluted", false),
+            new FrameConcept("us-gaap", List.of("Assets"), "USD", "assets", true),
+            new FrameConcept("us-gaap", List.of("Liabilities"), "USD", "liabilities", true),
+            new FrameConcept("us-gaap", List.of("StockholdersEquity", "CommonStockholdersEquity"), "USD",
+                    "stockholdersEquity", true),
+            new FrameConcept("us-gaap",
+                    List.of("CashAndCashEquivalentsAtCarryingValue", "CashAndCashEquivalents"),
+                    "USD", "cashAndCashEquivalentsAtCarryingValue", true),
+            new FrameConcept("us-gaap", List.of("AccountsReceivableNetCurrent"), "USD",
+                    "accountsReceivableNetCurrent", true),
+            new FrameConcept("us-gaap", List.of("InventoryNet", "InventoryFinishedGoods"), "USD", "inventoryNet",
+                    true),
+            new FrameConcept("us-gaap",
+                    List.of("NetCashProvidedByUsedInOperatingActivities",
+                            "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"),
+                    "USD", "netCashProvidedByUsedInOperatingActivities", false),
+            new FrameConcept("us-gaap",
+                    List.of("PaymentsOfDividends", "PaymentsOfDividendsCommonStock",
+                            "PaymentsOfDividendsMinorityInterest"),
+                    "USD", "paymentsOfDividends", false),
+            new FrameConcept("us-gaap", List.of("PaymentsForRepurchaseOfCommonStock"), "USD",
                     "paymentsForRepurchaseOfCommonStock", false));
 
     private static class AnnualData {
@@ -141,88 +158,94 @@ public class EdgarService {
      */
     private void collectFrames(String period, Map<Long, Asset> assetMap, Map<String, Quarter> collected) {
         for (FrameConcept fc : FRAME_CONCEPTS) {
-            try {
-                String framePeriod = fc.isInstant ? period + "I" : period;
-                String json = webService.fetchXbrlFrames(fc.taxonomy, fc.tag, fc.unit, framePeriod);
-                JsonNode root = mapper.readTree(json);
-                JsonNode dataNode = root.get("data");
-                if (dataNode == null || !dataNode.isArray())
-                    continue;
-
-                for (JsonNode node : dataNode) {
-                    Long cik = node.get("cik").asLong();
-                    Asset asset = assetMap.get(cik);
-                    if (asset == null)
+            for (String tag : fc.tags) {
+                try {
+                    String framePeriod = fc.isInstant ? period + "I" : period;
+                    String json = webService.fetchXbrlFrames(fc.taxonomy, tag, fc.unit, framePeriod);
+                    JsonNode root = mapper.readTree(json);
+                    JsonNode dataNode = root.get("data");
+                    if (dataNode == null || !dataNode.isArray())
                         continue;
 
-                    String startStr = node.has("start") ? node.get("start").asText() : null;
-                    String endStr = node.get("end").asText();
-                    LocalDate start = startStr != null ? LocalDate.parse(startStr) : LocalDate.parse(endStr);
-                    LocalDate end = LocalDate.parse(endStr);
-
-                    // Strict filtering for ~3 month quarters (80 to 100 days) for flow concepts
-                    if (!fc.isInstant) {
-                        long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(start, end);
-                        if (daysDiff < 80 || daysDiff > 100)
+                    for (JsonNode node : dataNode) {
+                        Long cik = node.get("cik").asLong();
+                        Asset asset = assetMap.get(cik);
+                        if (asset == null)
                             continue;
-                    }
 
-                    int year = 0;
-                    int qtr = 0;
-                    if (node.has("fy")) {
-                        year = node.get("fy").asInt();
-                    } else if (period.startsWith("CY")) {
-                        year = Integer.parseInt(period.substring(2, 6));
-                    }
-                    if (node.has("fp")) {
-                        String fp = node.get("fp").asText();
-                        if (fp.equalsIgnoreCase("Q1"))
-                            qtr = 1;
-                        else if (fp.equalsIgnoreCase("Q2"))
-                            qtr = 2;
-                        else if (fp.equalsIgnoreCase("Q3"))
-                            qtr = 3;
-                        else if (fp.equalsIgnoreCase("FY") || fp.equalsIgnoreCase("Q4"))
-                            qtr = 4;
-                    } else if (period.length() >= 8) {
-                        try {
-                            qtr = Integer.parseInt(period.substring(7, 8));
-                        } catch (Exception e) {
-                            // ignore
+                        String startStr = node.has("start") ? node.get("start").asText() : null;
+                        String endStr = node.get("end").asText();
+                        LocalDate start = startStr != null ? LocalDate.parse(startStr) : LocalDate.parse(endStr);
+                        LocalDate end = LocalDate.parse(endStr);
+
+                        // Strict filtering for ~3 month quarters (80 to 100 days) for flow concepts
+                        if (!fc.isInstant) {
+                            long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(start, end);
+                            if (daysDiff < 80 || daysDiff > 100)
+                                continue;
+                        }
+
+                        int year = 0;
+                        int qtr = 0;
+                        if (node.has("fy")) {
+                            year = node.get("fy").asInt();
+                        } else if (period.startsWith("CY")) {
+                            year = Integer.parseInt(period.substring(2, 6));
+                        }
+                        if (node.has("fp")) {
+                            String fp = node.get("fp").asText();
+                            if (fp.equalsIgnoreCase("Q1"))
+                                qtr = 1;
+                            else if (fp.equalsIgnoreCase("Q2"))
+                                qtr = 2;
+                            else if (fp.equalsIgnoreCase("Q3"))
+                                qtr = 3;
+                            else if (fp.equalsIgnoreCase("FY") || fp.equalsIgnoreCase("Q4"))
+                                qtr = 4;
+                        } else if (period.length() >= 8) {
+                            try {
+                                qtr = Integer.parseInt(period.substring(7, 8));
+                            } catch (Exception e) {
+                                // ignore
+                            }
+                        }
+
+                        JsonNode valNode = node.get("val");
+                        Object value = valNode.isNumber()
+                                ? (valNode.isFloatingPointNumber() ? valNode.asDouble() : valNode.asLong())
+                                : null;
+
+                        // Skip if year/quarter unknown
+                        if (year == 0 || qtr == 0)
+                            continue;
+
+                        // Merge into collected map keyed by cik|year|quarter
+                        String key = cik + "|" + year + "|" + qtr;
+                        Quarter quarter = collected.get(key);
+                        if (quarter == null) {
+                            quarter = new Quarter();
+                            quarter.setAsset(asset);
+                            quarter.setYear(year);
+                            quarter.setQuarter(qtr);
+                            quarter.setPeriodStart(start);
+                            quarter.setPeriodEnd(end);
+                            collected.put(key, quarter);
+                        } else {
+                            // Widen the period range
+                            if (start.isBefore(quarter.getPeriodStart()))
+                                quarter.setPeriodStart(start);
+                            if (end.isAfter(quarter.getPeriodEnd()))
+                                quarter.setPeriodEnd(end);
+                        }
+                        // Only set if this CIK's quarter doesn't already have a value for this field
+                        if (getQuarterField(quarter, fc.fieldName) == null) {
+                            setQuarterField(quarter, fc.fieldName, value);
                         }
                     }
-
-                    JsonNode valNode = node.get("val");
-                    Object value = valNode.isNumber()
-                            ? (valNode.isFloatingPointNumber() ? valNode.asDouble() : valNode.asLong())
-                            : null;
-
-                    // Skip if year/quarter unknown
-                    if (year == 0 || qtr == 0)
-                        continue;
-
-                    // Merge into collected map keyed by cik|year|quarter
-                    String key = cik + "|" + year + "|" + qtr;
-                    Quarter quarter = collected.get(key);
-                    if (quarter == null) {
-                        quarter = new Quarter();
-                        quarter.setAsset(asset);
-                        quarter.setYear(year);
-                        quarter.setQuarter(qtr);
-                        quarter.setPeriodStart(start);
-                        quarter.setPeriodEnd(end);
-                        collected.put(key, quarter);
-                    } else {
-                        // Widen the period range
-                        if (start.isBefore(quarter.getPeriodStart()))
-                            quarter.setPeriodStart(start);
-                        if (end.isAfter(quarter.getPeriodEnd()))
-                            quarter.setPeriodEnd(end);
-                    }
-                    setQuarterField(quarter, fc.fieldName, value);
+                } catch (Exception e) {
+                    log.warn("Error collecting concept {} ({}) for {}: {}", fc.fieldName, tag, period,
+                            e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("Error collecting concept {} for {}: {}", fc.tag, period, e.getMessage());
             }
         }
     }
@@ -236,53 +259,59 @@ public class EdgarService {
         for (FrameConcept fc : FRAME_CONCEPTS) {
             if (fc.isInstant)
                 continue; // Only flow concepts need annual derivation
-            try {
-                String framePeriod = "CY" + year;
-                String json = webService.fetchXbrlFrames(fc.taxonomy, fc.tag, fc.unit, framePeriod);
-                JsonNode root = mapper.readTree(json);
-                JsonNode dataNode = root.get("data");
-                if (dataNode == null || !dataNode.isArray())
-                    continue;
-
-                for (JsonNode node : dataNode) {
-                    Long cik = node.get("cik").asLong();
-                    if (!assetMap.containsKey(cik))
+            for (String tag : fc.tags) {
+                try {
+                    String framePeriod = "CY" + year;
+                    String json = webService.fetchXbrlFrames(fc.taxonomy, tag, fc.unit, framePeriod);
+                    JsonNode root = mapper.readTree(json);
+                    JsonNode dataNode = root.get("data");
+                    if (dataNode == null || !dataNode.isArray())
                         continue;
 
-                    String startStr = node.has("start") ? node.get("start").asText() : null;
-                    String endStr = node.get("end").asText();
-                    if (startStr == null)
-                        continue; // Flow concepts must have a start date
+                    for (JsonNode node : dataNode) {
+                        Long cik = node.get("cik").asLong();
+                        if (!assetMap.containsKey(cik))
+                            continue;
 
-                    LocalDate start = LocalDate.parse(startStr);
-                    LocalDate end = LocalDate.parse(endStr);
-                    long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(start, end);
-                    if (daysDiff < 350 || daysDiff > 380)
-                        continue; // Only accept ~12-month annual periods
+                        String startStr = node.has("start") ? node.get("start").asText() : null;
+                        String endStr = node.get("end").asText();
+                        if (startStr == null)
+                            continue; // Flow concepts must have a start date
 
-                    JsonNode valNode = node.get("val");
-                    if (valNode == null || !valNode.isNumber())
-                        continue;
+                        LocalDate start = LocalDate.parse(startStr);
+                        LocalDate end = LocalDate.parse(endStr);
+                        long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(start, end);
+                        if (daysDiff < 350 || daysDiff > 380)
+                            continue; // Only accept ~12-month annual periods
 
-                    Number value = valNode.isFloatingPointNumber() ? valNode.asDouble() : valNode.asLong();
+                        JsonNode valNode = node.get("val");
+                        if (valNode == null || !valNode.isNumber())
+                            continue;
 
-                    AnnualData data = annualMap.get(cik);
-                    if (data == null) {
-                        data = new AnnualData();
-                        data.fiscalYear = node.has("fy") ? node.get("fy").asInt() : year;
-                        data.periodStart = start;
-                        data.periodEnd = end;
-                        annualMap.put(cik, data);
-                    } else {
-                        if (start.isBefore(data.periodStart))
+                        Number value = valNode.isFloatingPointNumber() ? valNode.asDouble() : valNode.asLong();
+
+                        AnnualData data = annualMap.get(cik);
+                        if (data == null) {
+                            data = new AnnualData();
+                            data.fiscalYear = node.has("fy") ? node.get("fy").asInt() : year;
                             data.periodStart = start;
-                        if (end.isAfter(data.periodEnd))
                             data.periodEnd = end;
+                            annualMap.put(cik, data);
+                        } else {
+                            if (start.isBefore(data.periodStart))
+                                data.periodStart = start;
+                            if (end.isAfter(data.periodEnd))
+                                data.periodEnd = end;
+                        }
+                        // Only set if this CIK doesn't already have a value for this field
+                        if (!data.fields.containsKey(fc.fieldName)) {
+                            data.fields.put(fc.fieldName, value);
+                        }
                     }
-                    data.fields.put(fc.fieldName, value);
+                } catch (Exception e) {
+                    log.warn("Error collecting annual {} ({}) for CY{}: {}", fc.fieldName, tag, year,
+                            e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("Error collecting annual {} for CY{}: {}", fc.tag, year, e.getMessage());
             }
         }
         return annualMap;

@@ -10,7 +10,6 @@ export default function LoadingButton({label, loading}: {label: string; loading:
             size="sm"
             role="status"
             aria-hidden="true"
-            className="me-2"
           />
           Loading...
         </>

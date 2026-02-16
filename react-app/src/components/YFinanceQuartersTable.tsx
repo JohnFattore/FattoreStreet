@@ -102,9 +102,9 @@ export default function YFinanceQuartersTable({ ticker }: { ticker: string }) {
     const { data, isLoading, error } = useGetDjangoQuartersQuery(ticker);
 
     return (
-        <Row className="mt-4">
+        <Row className="yfinance-quarters">
             <Col md={12}>
-                <Card className="shadow-sm border-0">
+                <Card>
                     <Card.Header as="h5" className="bg-dark text-white">
                         YFinance Quarterly Data
                     </Card.Header>
@@ -112,7 +112,8 @@ export default function YFinanceQuartersTable({ ticker }: { ticker: string }) {
                         <SortableTable
                             data={data || []}
                             columns={columns}
-                            initialSortKey="year"
+                            initialSortKey="periodEnd"
+                            initialSortDirection="desc"
                             isLoading={isLoading}
                             errors={[error]}
                         />

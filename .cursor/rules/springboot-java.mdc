@@ -1,0 +1,37 @@
+---
+description: Spring Boot and Java conventions for the SEC microservice
+globs: springboot/**/*.java
+alwaysApply: false
+---
+
+# Spring Boot / Java Conventions
+
+## Project Layout
+
+```
+springboot/src/main/java/com/example/sec_api/
+  controller/   # @RestController endpoints
+  service/      # @Service business logic
+  repository/   # @Repository JPA interfaces
+  model/        # @Entity JPA entities
+```
+
+## Code Style
+
+- Java 17 features are available (records, sealed classes, pattern matching, text blocks)
+- Use constructor injection (not field injection with `@Autowired`)
+- Logging via SLF4J: `private static final Logger log = LoggerFactory.getLogger(MyClass.class);`
+- Use `Map.ofEntries()` and `List.of()` for immutable collections
+- camelCase for fields and methods; service classes handle the business logic, controllers stay thin
+
+## SEC EDGAR Patterns
+
+- `EdgarService` is the core service; it maps SEC XBRL tags to normalized field names via `FIELD_TO_TAGS`
+- The `STOCK_FIELDS` set distinguishes balance-sheet (instant) fields from income/cash-flow (duration) fields
+- When adding new SEC data fields, add the mapping to `FIELD_TO_TAGS` and, if it's a balance-sheet field, to `STOCK_FIELDS`
+
+## Data Access
+
+- JPA + Hibernate with PostgreSQL
+- Use Spring Data repository interfaces; avoid raw SQL unless performance requires it
+- Reactive WebFlux (`WebService`) for external HTTP calls to SEC APIs

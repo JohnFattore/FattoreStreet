@@ -62,20 +62,20 @@ export default function Restaurants() {
 */
     if (!access) {
         return (
-            <>
+            <div className="restaurants-page">
                 <LoginRequired
                     title="Nashville Restaurant Explorer"
                     message="Join our community to see personal reviews and get AI-powered recommendations."
                     buttonText="Sign In to Unlock Full Access"
                 />
                 <RestaurantTable setRestaurant={handleOpenReviewModal} />
-                <p className="text-muted text-center mt-3">Data provided by Yelp</p>
-            </>
+                <p>Data provided by Yelp</p>
+            </div>
         );
     }
 
     return (
-        <>
+        <div className="restaurants-page">
             <h1>Nashville Restaurants</h1>
             <ReviewTable />
             <Button onClick={() => setShowMap(prev => !prev)}> {showMap ? 'Hide Map' : 'Show Map'} </Button>
@@ -88,6 +88,6 @@ export default function Restaurants() {
             />
             <RestaurantTable setRestaurant={handleOpenReviewModal} />
             <p>Data provided by Yelp</p>
-        </>
+        </div>
     )
 }

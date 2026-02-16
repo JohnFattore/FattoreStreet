@@ -110,7 +110,7 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
         Add Asset
       </Button>
 
-      <Modal show={show} onHide={handleClose}>
+      <Modal show={show} onHide={handleClose} dialogClassName="asset-form-modal">
         <Modal.Header closeButton>
           <Modal.Title>Add Asset</Modal.Title>
         </Modal.Header>
@@ -129,7 +129,6 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
                   })}
                   placeholder="Ticker"
                   disabled={!!defaultTicker}
-                  className="mb-3"
                 />
                 {errors.ticker && (
                   <Alert variant="danger" role="tickerError">
@@ -144,7 +143,6 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
                     required: true,
                   })}
                   placeholder="Shares"
-                  className="mb-3"
                 />
                 {errors.shares && (
                   <Alert variant="danger" role="sharesError">
@@ -162,7 +160,6 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
                     required: true,
                   })}
                   placeholder="Buy Date"
-                  className="mb-3"
                 />
                 {errors.buyDate && (
                   <Alert variant="danger" role="buyDateError">
@@ -175,7 +172,6 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
                   size="lg"
                   {...register("accountId")}
                   disabled={!!defaultAccountId}
-                  className="mb-3"
                 >
                   <option value="">Select Account</option>
                   {accounts?.map((account) => (
@@ -191,8 +187,8 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
                 )}
               </Col>
             </Row>
-            <div className="d-flex justify-content-end">
-              <Button variant="secondary" onClick={handleClose} className="me-2">
+            <div>
+              <Button variant="secondary" onClick={handleClose}>
                 Close
               </Button>
               <LoadingButton label={"Add to Portfolio"} loading={isLoading || isProcessing} />

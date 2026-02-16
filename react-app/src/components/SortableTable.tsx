@@ -13,6 +13,7 @@ type Props<T> = {
   data: T[];
   columns: Column<T>[];
   initialSortKey?: keyof T | string;
+  initialSortDirection?: "asc" | "desc";
   isLoading: boolean;
   errors: any[];
 };
@@ -21,6 +22,7 @@ export function SortableTable<T extends Record<string, any>>({
   data,
   columns,
   initialSortKey,
+  initialSortDirection = "asc",
   isLoading,
   errors,
 }: Props<T>) {
@@ -29,7 +31,7 @@ export function SortableTable<T extends Record<string, any>>({
     direction: "asc" | "desc";
   }>({
     key: initialSortKey || (columns[0]?.sortKey ?? ""),
-    direction: "asc",
+    direction: initialSortDirection,
   });
 
   const onSort = (key: keyof T | string) => {

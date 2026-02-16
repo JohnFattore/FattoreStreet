@@ -51,35 +51,35 @@ export default function RegisterForm() {
             {error && <Alert variant="danger">{translateError(error)}</Alert>}
             {loading && <Alert variant="info">Loading...</Alert>}
             <Form onSubmit={handleSubmit(onSubmit)}>
-                <Form.Group className="mb-3">
+                <Form.Group>
                     <Form.Label>Username</Form.Label>
                     <Form.Control
                         {...register("username", { required: true })}
                         placeholder='Enter username'
                     />
-                    {errors.username && <Alert variant='danger' className="mt-2" role="usernameError">Username is required</Alert>}
+                    {errors.username && <Alert variant='danger' role="usernameError">Username is required</Alert>}
                 </Form.Group>
 
-                <Form.Group className="mb-3">
+                <Form.Group>
                     <Form.Label>Email</Form.Label>
                     <Form.Control
                         {...register("email", { required: true })}
                         placeholder='Enter email'
                     />
-                    {errors.email && <Alert variant='danger' className="mt-2" role="emailError">Valid email is required</Alert>}
+                    {errors.email && <Alert variant='danger' role="emailError">Valid email is required</Alert>}
                 </Form.Group>
 
-                <Form.Group className="mb-3">
+                <Form.Group>
                     <Form.Label>Password</Form.Label>
                     <Form.Control
                         type="password"
                         {...register("password", { required: true })}
                         placeholder='Enter password'
                     />
-                    {errors.password && <Alert variant='danger' className="mt-2" role="passwordError">Password is required</Alert>}
+                    {errors.password && <Alert variant='danger' role="passwordError">Password is required</Alert>}
                 </Form.Group>
 
-                <Form.Group className="mb-3">
+                <Form.Group>
                     <Form.Label>Confirm Password</Form.Label>
                     <Form.Control
                         type="password"
@@ -88,7 +88,7 @@ export default function RegisterForm() {
                     />
                 </Form.Group>
 
-                <div className="d-grid gap-2">
+                <div>
                     <Button variant="success" type="submit" disabled={loading}>
                         {loading ? 'Creating User...' : 'Register User'}
                     </Button>

@@ -59,12 +59,12 @@ export default function Admin() {
     };
 
     return (
-        <div className="p-3" style={{ maxWidth: 600 }}>
+        <div className="admin-page">
             <h2>Welcome Spike</h2>
 
-            <Card className="mb-4 p-3">
+            <Card>
                 <h5>Spring Boot Admin</h5>
-                <Form.Group className="mb-3">
+                <Form.Group>
                     <Form.Label>Admin API Key</Form.Label>
                     <Form.Control
                         type="password"
@@ -75,31 +75,31 @@ export default function Admin() {
                 </Form.Group>
 
                 {/* Load Tickers */}
-                <Card className="mb-3 p-3">
+                <Card>
                     <h6>Load Tickers</h6>
-                    <p className="text-muted mb-2">Fetches all US tickers from NASDAQ and SEC EDGAR.</p>
+                    <p>Fetches all US tickers from NASDAQ and SEC EDGAR.</p>
                     <Button
                         onClick={handleLoadTickers}
                         disabled={loadLoading || !apiKey}
                     >
-                        {loadLoading ? <><Spinner size="sm" className="me-2" />Loading...</> : 'Load Tickers'}
+                        {loadLoading ? <><Spinner size="sm" />Loading...</> : 'Load Tickers'}
                     </Button>
-                    {loadResult && <Alert variant="success" className="mt-2">{loadResult}</Alert>}
-                    {loadError && <Alert variant="danger" className="mt-2">{loadError}</Alert>}
+                    {loadResult && <Alert variant="success">{loadResult}</Alert>}
+                    {loadError && <Alert variant="danger">{loadError}</Alert>}
                 </Card>
 
                 {/* Sync Frames */}
-                <Card className="p-3">
+                <Card>
                     <h6>Sync Frames</h6>
-                    <p className="text-muted mb-2">Full sync of all SEC EDGAR financial frames (2009 to present).</p>
+                    <p>Full sync of all SEC EDGAR financial frames (2009 to present).</p>
                     <Button
                         onClick={handleSyncFrames}
                         disabled={syncLoading || !apiKey}
                     >
-                        {syncLoading ? <><Spinner size="sm" className="me-2" />Syncing...</> : 'Full Sync'}
+                        {syncLoading ? <><Spinner size="sm" />Syncing...</> : 'Full Sync'}
                     </Button>
-                    {syncResult && <Alert variant="success" className="mt-2">{syncResult}</Alert>}
-                    {syncError && <Alert variant="danger" className="mt-2">{syncError}</Alert>}
+                    {syncResult && <Alert variant="success">{syncResult}</Alert>}
+                    {syncError && <Alert variant="danger">{syncError}</Alert>}
                 </Card>
             </Card>
         </div>

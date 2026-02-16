@@ -94,7 +94,7 @@ export default function GenericLineChart({ data, label, description, strokeColor
           </ResponsiveContainer>
         </div>
         {description && (
-          <div className="mt-4 pt-3 border-top">
+          <div>
             <p style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
               {description}
             </p>

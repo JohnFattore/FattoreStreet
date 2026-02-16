@@ -32,7 +32,7 @@ export default function AccountList() {
     if (isLoading && !accounts) return <p>Loading data...</p>;
 
     return (
-        <div className="mt-4">
+        <div className="account-list">
             <h3>{username}'s Accounts</h3>
             {accounts && accounts.length > 0 ? (
                 <Table striped bordered hover>

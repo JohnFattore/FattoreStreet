@@ -296,6 +296,23 @@ export const api = createApi({
         params: { ticker },
       }),
     }),
+    getSecEdgarDataBatch: builder.query<ISECData[], string[]>({
+      async queryFn(tickers, _queryApi, _extraOptions, fetchWithBQ) {
+        const results = await Promise.all(
+          tickers.map((ticker) =>
+            fetchWithBQ({
+              url: `company-fact-sheet?ticker=${ticker}`,
+              method: "GET",
+              baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+            })
+          )
+        );
+        const data = results
+          .filter((r) => r.data)
+          .map((r) => r.data as ISECData);
+        return { data };
+      },
+    }),
   }),
 });
 
@@ -315,5 +332,6 @@ export const {
   useGetAccountQuery,
   useGetSecEdgarDataQuery,
   useGetSecQuartersQuery,
-  useGetDjangoQuartersQuery
+  useGetDjangoQuartersQuery,
+  useGetSecEdgarDataBatchQuery,
 } = api;

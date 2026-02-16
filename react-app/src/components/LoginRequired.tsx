@@ -20,18 +20,18 @@ export default function LoginRequired({
   title,
   message,
   buttonText = "Sign In",
-  alertClassName = "p-5 shadow-sm theme-protected-box",
+  alertClassName = "theme-protected-box",
   defaultShowLogin = true,
 }: LoginRequiredProps) {
   const [showLogin, setShowLogin] = useState(defaultShowLogin);
 
   return (
-    <Container className="mt-5 text-center">
-      <Row className="justify-content-center">
+    <Container className="login-required">
+      <Row>
         <Col md={8}>
           <Alert variant="light" className={alertClassName}>
-            <h2 className="mb-4">{title}</h2>
-            <p className="lead mb-4">{message}</p>
+            <h2>{title}</h2>
+            <p>{message}</p>
             <Button
               variant="primary"
               size="lg"
@@ -46,4 +46,3 @@ export default function LoginRequired({
     </Container>
   );
 }
-

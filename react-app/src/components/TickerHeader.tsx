@@ -8,19 +8,19 @@ export default function TickerHeader({ ticker }: { ticker: string }) {
     return null
   }
   return (
-    <Card>
+    <Card className="ticker-header">
       <Card.Body>
-        <Row className="align-items-center">
+        <Row>
           <Col>
             <div>
               {assetInfo?.type} • {ticker}
             </div>
-            <Card.Title className="display-4 fw-bold mb-2">
+            <Card.Title>
               {assetInfo?.longName}
             </Card.Title>
             <div>
-              <span className="display-3 fw-bold">${assetInfo?.currentPrice.toFixed(2)}</span>
-              <span className={`h2 mb-0 fw-semibold ${assetInfo?.percentChangeDaily >= 0 ? 'text-success' : 'text-danger'}`}>
+              <span>${assetInfo?.currentPrice.toFixed(2)}</span>
+              <span className={assetInfo?.percentChangeDaily >= 0 ? 'text-success' : 'text-danger'}>
                 {assetInfo?.percentChangeDaily >= 0 ? '▲' : '▼'} {(assetInfo?.percentChangeDaily * 100).toFixed(2)}%
               </span>
             </div>

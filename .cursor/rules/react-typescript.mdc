@@ -1,0 +1,35 @@
+---
+description: React + TypeScript conventions for the frontend
+globs: react-app/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# React + TypeScript Conventions
+
+## Component Style
+
+- Functional components only; use hooks (`useState`, `useMemo`, `useEffect`)
+- Export named functions, not default exports: `export function MyComponent()`
+- Use TypeScript generics for reusable components (see `SortableTable<T>`)
+- Define prop types inline or as a `type` above the component
+
+## Styling — No className
+
+- **Do NOT add `className` to components.** Style React Bootstrap components globally in `react-app/src/styles/custom.scss` instead.
+- The project uses Bootstrap 5 via `react-bootstrap`. Use Bootstrap component props (`variant`, `size`, etc.) rather than custom CSS classes.
+- If a new style is needed, add it to `custom.scss` targeting the Bootstrap class or HTML element directly.
+- Theme colors use CSS custom properties: `--primary`, `--secondary`, `--tertiary`, `--quaternary` (with `.dark-mode` overrides).
+- Only use a `className` or `style` prop as a last resort when global styling is truly impossible.
+
+## State & Data Fetching
+
+- Use **RTK Query** (defined in `react-app/src/functions/api.ts`) for all API calls
+- Custom Axios base query handles JWT auth automatically from Redux state
+- Django responses are snake_case; use `transformResponse` to convert to camelCase interfaces
+- Spring Boot URLs use the `baseUrl` override in the query config
+- Interfaces live in `react-app/src/interfaces.ts`
+
+## Error Handling
+
+- Wrap data-dependent UI in `<StateHandler>` (handles loading spinners and error display)
+- RTK Query errors should flow through the existing `error` patterns, not be swallowed silently
