@@ -82,7 +82,7 @@ export default function AccountList() {
                                     <td>{account.name}</td>
                                     <td>{account.account_type.replace('_', ' ')}</td>
                                     <td>{isDataLoading ? "Loading..." : formatString(balance, "money")}</td>
-                                    <td style={{ color: dayChange >= 0 ? "green" : "red" }}>
+                                    <td className={dayChange >= 0 ? "text-success" : "text-danger"}>
                                         {isDataLoading ? "Loading..." : (
                                             <>
                                                 {formatString(dayChange, "money")} ({formatString(dayChangePercent, "percent")})

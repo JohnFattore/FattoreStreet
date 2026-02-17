@@ -79,16 +79,7 @@ export default function AccountSummary({ accountId }: Props) {
                 </Col>
                 <Col md={4}>
                   <div>Total Percent Change</div>
-                  <div
-                    style={{
-                      color:
-                        totalPercentChange > 0
-                          ? "var(--bs-success)"
-                          : totalPercentChange < 0
-                          ? "var(--bs-danger)"
-                          : "inherit",
-                    }}
-                  >
+                  <div className={totalPercentChange > 0 ? "text-success" : totalPercentChange < 0 ? "text-danger" : ""}>
                     {formatString(totalPercentChange, "percent")}
                   </div>
                 </Col>

@@ -15,15 +15,11 @@ export default function ChatbotOutput() {
     const { messages } = useSelector((state: RootState) => state.chatbot);
 
     return (
-        <div style={{ maxHeight: '600px', overflowY: 'auto', marginBottom: '20px', display: 'flex', flexDirection: 'column' }}>
+        <div className="overflow-auto mb-4 d-flex flex-column" style={{ maxHeight: '600px' }}>
             {messages.map((msg: IChatMessage, index: number) => (
-                <div key={index} style={{
-                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                <div key={index} className={`p-2 rounded-3 m-1 ${msg.role === 'user' ? 'align-self-end' : 'align-self-start'}`} style={{
                     backgroundColor: msg.role === 'user' ? 'var(--primary)' : 'var(--tertiary)',
                     color: msg.role === 'user' ? 'var(--secondary)' : 'var(--primary)',
-                    padding: '10px',
-                    borderRadius: '10px',
-                    margin: '5px',
                     maxWidth: '80%'
                 }}>
                     {msg.role === 'model' ? (

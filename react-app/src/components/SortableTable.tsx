@@ -84,7 +84,7 @@ export function SortableTable<T extends Record<string, any>>({
                 <th
                   key={label}
                   onClick={() => (sortable ? onSort(sortKey) : undefined)}
-                  style={{ cursor: sortable ? "pointer" : "default" }}
+                  role={sortable ? "button" : undefined}
                 >
                   {label}
                   {sortable && renderSortArrow(sortKey)}

@@ -57,5 +57,5 @@ export default function ReviewMap() {
         };
     }, [reviews, restaurants])
 
-    return <div id="map" style={{ height: '100vh' }}></div>;
+    return <div id="map" className="vh-100"></div>;
 };

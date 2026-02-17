@@ -15,11 +15,12 @@ alwaysApply: false
 
 ## Styling — No className
 
-- **Do NOT add `className` to components.** Style React Bootstrap components globally in `react-app/src/styles/custom.scss` instead.
+- **Do NOT add custom `className` to components.** Style React Bootstrap components globally in `react-app/src/styles/custom.scss` instead.
 - The project uses Bootstrap 5 via `react-bootstrap`. Use Bootstrap component props (`variant`, `size`, etc.) rather than custom CSS classes.
-- If a new style is needed, add it to `custom.scss` targeting the Bootstrap class or HTML element directly.
+- Bootstrap utility classes (`text-center`, `mb-3`, `d-flex`, `fw-bold`, etc.) are acceptable when they avoid the need for custom CSS. Prefer them over adding new rules to `custom.scss` for one-off spacing or layout tweaks.
+- If a new style is needed that utilities cannot express, add it to `custom.scss` targeting the Bootstrap class or HTML element directly.
 - Theme colors use CSS custom properties: `--primary`, `--secondary`, `--tertiary`, `--quaternary` (with `.dark-mode` overrides).
-- Only use a `className` or `style` prop as a last resort when global styling is truly impossible.
+- Only use a custom `className` or `style` prop as a last resort when global styling is truly impossible.
 
 ## State & Data Fetching
 
