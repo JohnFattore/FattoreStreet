@@ -1,6 +1,8 @@
 # API Reference
 
-The backend exposes a RESTful API built with Django REST Framework. The base URL for local development is `http://localhost:8000`.
+The backend is split across two services:
+- **Django** (REST Framework) -- base URL for local development: `http://localhost:8000`
+- **Spring Boot** (SEC EDGAR microservice) -- base URL for local development: `http://localhost:8080`
 
 ## 🔐 Authentication (Users)
 
@@ -55,3 +57,64 @@ Social feature for reviewing and sharing restaurant experiences.
 |--------|----------|-------------|
 | `GET` | `/indexes/api/index_members/` | List members of tracked market indexes. |
 | `PUT` | `/indexes/api/index_members_update/<pk>/` | Update index member data. |
+
+---
+
+# Spring Boot -- SEC EDGAR Microservice
+
+## 📄 SEC Financial Data
+
+Quarterly financial data sourced from SEC EDGAR XBRL filings.
+
+### List Quarters
+
+`GET /quarters?ticker={TICKER}`
+
+Returns all stored quarters for a specific ticker.
+
+**Parameters:**
+- `ticker` (Required): Stock ticker symbol (e.g., `AAPL`). Max 10 chars, uppercase.
+
+**Response:**
+```json
+{
+  "ticker": "AAPL",
+  "cik": "320193",
+  "quarters": [
+    {
+      "year": 2024, "quarter": 4, "periodStart": "2024-10-01", "periodEnd": "2024-12-31",
+      "revenues": 0, "netIncomeLoss": 0, "operatingIncomeLoss": 0, "grossProfit": 0,
+      "epsBasic": 0.0, "epsDiluted": 0.0,
+      "assets": 0, "liabilities": 0, "equity": 0, "cash": 0, "receivables": 0, "inventory": 0,
+      "ocf": 0, "dividends": 0, "buybacks": 0
+    }
+  ]
+}
+```
+
+### Company Fact Sheet
+
+`GET /company-fact-sheet?ticker={TICKER}`
+
+Provides a summary of trailing twelve months (TTM) performance and the latest balance sheet status.
+
+**Parameters:**
+- `ticker` (Required): Stock ticker symbol (e.g., `AAPL`). Max 10 chars, uppercase.
+
+**Response:**
+- `ticker`, `cik`
+- **TTM metrics:** `ttmNetIncome`, `ttmRevenue`, `ttmOperatingCashFlow`, `ttmOperatingIncome`, `ttmGrossProfit`
+- **YoY growth:** `ttmNetIncomeYoY`, `ttmRevenueYoY` (e.g., `"15.50%"`)
+- **Latest balance sheet:** `latestAssets`, `latestLiabilities`, `latestEquity`, `latestInventory`, `latestCash`, `latestEps`
+- **Ratios:** `netMargin`, `grossMargin`, `roA`, `debtToAssets`, `cashToLiabilities` (percentages), `ocfToNetIncome`
+- `latestQuarterEnd`: Date of the most recent quarter (`YYYY-MM-DD`)
+
+## 🔧 Admin Endpoints
+
+All admin endpoints require the `X-Admin-Key` header.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/load` | Load all US tickers from NASDAQ + SEC into the database. |
+| `GET` | `/admin/sync-frames` | Sync XBRL frame data from SEC (all frames since 2009). |
+| `GET` | `/admin/test` | Debug: fetch raw financial facts for Apple Inc. (CIK 320193). |

@@ -14,10 +14,11 @@ Update docs when a change affects any of the following:
 | Change Type | Files to Update |
 |---|---|
 | New/modified Django endpoint or URL pattern | `docs/API_REFERENCE.md` |
-| New/modified Spring Boot endpoint | `docs/API_REFERENCE.md` and `springboot/docs/API.md` |
+| New/modified Spring Boot endpoint | `docs/API_REFERENCE.md` |
 | New dependency added (pip, npm, maven) | The relevant app README (`django/README.md`, `react-app/README.md`, `springboot/README.md`) |
 | New app/service or major architectural change | `docs/ARCHITECTURE.md` and root `README.md` |
 | Changed setup steps, env vars, or run commands | `docs/GETTING_STARTED.md` and relevant app README |
+| Spring Boot config, build, or setup change | `springboot/README.md` |
 | New React page or route | `docs/ARCHITECTURE.md` (key directories section) |
 
 ## How to Update
