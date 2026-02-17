@@ -119,12 +119,12 @@ export default function WatchListTable() {
     {
       label: "TTM Revenue",
       sortKey: "ttmRevenue",
-      render: (row: ISECData) => row.ttmRevenue,
+      render: (row: ISECData) => formatString(row.ttmRevenue, "money"),
     },
     {
       label: "TTM Net Income",
       sortKey: "ttmNetIncome",
-      render: (row: ISECData) => row.ttmNetIncome,
+      render: (row: ISECData) => formatString(row.ttmNetIncome, "money"),
     },
     {
       label: "Revenue YoY",
@@ -147,19 +147,19 @@ export default function WatchListTable() {
       render: (row: ISECData) => row.grossMargin,
     },
     {
-      label: "ROA",
-      sortKey: "roA",
-      render: (row: ISECData) => row.roA,
+      label: "Assets",
+      sortKey: "latestAssets",
+      render: (row: ISECData) => formatString(row.latestAssets, "money"),
     },
     {
-      label: "Debt / Assets",
-      sortKey: "debtToAssets",
-      render: (row: ISECData) => row.debtToAssets,
+      label: "Liabilities",
+      sortKey: "latestLiabilities",
+      render: (row: ISECData) => formatString(row.latestLiabilities, "money"),
     },
     {
-      label: "Latest EPS",
-      sortKey: "latestEps",
-      render: (row: ISECData) => row.latestEps,
+      label: "Equity",
+      sortKey: "latestEquity",
+      render: (row: ISECData) => formatString(row.latestEquity, "money"),
     },
     {
       label: "Latest Quarter",

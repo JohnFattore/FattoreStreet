@@ -139,6 +139,11 @@ public class EdgarService {
             deriveFromAnnualTotals(collected, annualTotals, assetMap);
         }
 
+        // Phase 2.5: Derive missing balance sheet fields
+        for (Quarter q : collected.values()) {
+            deriveBalanceSheetFields(q);
+        }
+
         // Phase 3: Persist everything
         persistCollected(collected);
 
@@ -486,6 +491,23 @@ public class EdgarService {
         };
     }
 
+    private void deriveBalanceSheetFields(Quarter q) {
+        Long a = q.getAssets();
+        Long l = q.getLiabilities();
+        Long e = q.getStockholdersEquity();
+
+        int present = (a != null ? 1 : 0) + (l != null ? 1 : 0) + (e != null ? 1 : 0);
+        if (present != 2)
+            return;
+
+        if (a == null)
+            q.setAssets(l + e);
+        else if (l == null)
+            q.setLiabilities(a - e);
+        else
+            q.setStockholdersEquity(a - l);
+    }
+
     public void updateFinancials(Asset asset) throws Exception {
         String json = webService.fetchFinancials(asset.getCik());
         JsonNode root = mapper.readTree(json);
@@ -565,6 +587,8 @@ public class EdgarService {
                     getLong(facts, "netCashProvidedByUsedInOperatingActivities"));
             quarter.setPaymentsOfDividends(getLong(facts, "paymentsOfDividends"));
             quarter.setPaymentsForRepurchaseOfCommonStock(getLong(facts, "paymentsForRepurchaseOfCommonStock"));
+
+            deriveBalanceSheetFields(quarter);
 
             quarters.add(quarter);
         }
