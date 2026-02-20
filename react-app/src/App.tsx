@@ -19,6 +19,7 @@ import AssetView from "./pages/AssetView";
 import AccountView from "./pages/AccountView";
 import Admin from "./pages/Admin";
 import SECData from "./pages/SECData";
+import IexPricesView from "./pages/IexPricesView";
 import User from "./pages/User";
 
 // react router for all our routes
@@ -35,33 +36,34 @@ export default function App() {
     dispatch(clearErrors());
   }, [dispatch]);
 
-  // Response Interceptor
-  axios.interceptors.response.use(
-    (response) => {
-      return response; // Return the response if successful
-    },
-    async (error) => {
-      const originalRequest = error.config; // Capture the original request
-      if (
-        error.response?.status === 401 &&
-        refresh &&
-        error.response.data.detail != "Token is invalid or expired"
-      ) {
-        originalRequest._retry = true; // Prevent infinite retries
-        const result = await dispatch(refreshLogin()).unwrap();
-        originalRequest.headers["Authorization"] = `Bearer ${result.access}`;
-        return axios(originalRequest);
-      } else if (
-        error.response?.status === 401 &&
-        error.response.data.detail === "Token is invalid or expired"
-      ) {
-        dispatch(logout());
-        console.log("Token is not valid");
-      }
+  useEffect(() => {
+    const interceptorId = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        const detail = error.response?.data?.detail ?? "";
+        // Matches SimpleJWT messages like "Token is invalid or expired",
+        // "Token is expired", "token_not_valid", etc.
+        const isTokenError = /token.*(invalid|expired)/i.test(detail);
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          refresh &&
+          !isTokenError
+        ) {
+          originalRequest._retry = true;
+          const result = await dispatch(refreshLogin()).unwrap();
+          originalRequest.headers["Authorization"] = `Bearer ${result.access}`;
+          return axios(originalRequest);
+        } else if (error.response?.status === 401 && isTokenError) {
+          dispatch(logout());
+        }
 
-      return Promise.reject(error); // Handle response errors
-    }
-  );
+        return Promise.reject(error);
+      }
+    );
+    return () => axios.interceptors.response.eject(interceptorId);
+  }, [refresh, dispatch]);
 
   return (
     <div className="app-container">
@@ -82,6 +84,7 @@ export default function App() {
         <Route path="/visualizer" element={<Visualizer />} />
         <Route path="/economic-indicators" element={<EconomicIndicators />} />
         <Route path="/sec-edgar/:ticker" element={<SECData />} />
+        <Route path="/iex-prices/:ticker" element={<IexPricesView />} />
         <Route path="/user" element={<User />} />
         <Route path="/react-admin" element={<Admin />} />
         <Route path="*" element={<ErrorPage />} />
