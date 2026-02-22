@@ -358,6 +358,25 @@ export const handlers = [
     }
   ),
 
+  // --- IEX Prices (Spring Boot) ---
+
+  http.get(
+    import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("prices"),
+    () => {
+      return Response.json(
+        {
+          ticker: "AAPL",
+          prices: [
+            { date: "2025-03-15", open: 172.5, high: 174.2, low: 171.8, close: 173.9, volume: 45230 },
+            { date: "2025-03-14", open: 170.0, high: 172.0, low: 169.5, close: 171.5, volume: 38100 },
+            { date: "2025-03-13", open: 168.0, high: 170.5, low: 167.0, close: 170.0, volume: 42500 },
+          ],
+        },
+        { status: 200 }
+      );
+    }
+  ),
+
   // --- Account detail ---
 
   http.get(
@@ -380,9 +399,9 @@ export const handlers = [
     () => {
       return Response.json(
         [
-          { date: "2024-01-02", value: 150.0 },
-          { date: "2024-01-03", value: 152.5 },
-          { date: "2024-01-04", value: 148.0 },
+          { date: "2025-03-15", value: 174.0 },
+          { date: "2025-03-14", value: 171.0 },
+          { date: "2025-03-13", value: 169.5 },
         ],
         { status: 200 }
       );

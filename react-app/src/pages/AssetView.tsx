@@ -45,7 +45,8 @@ export default function AssetView() {
         description="Historical price performance for this asset over the selected period."
       />
       <AssetForm defaultTicker={ticker} />
-      <Button variant="primary" onClick={() => navigate(`/sec-edgar/${ticker}`)}>SEC EDGAR Data</Button>
+      <Button variant="primary" onClick={() => navigate(`/sec-edgar/${ticker}`)}>SEC EDGAR Data</Button>{" "}
+      <Button variant="outline-primary" onClick={() => navigate(`/iex-prices/${ticker}`)}>IEX Price History</Button>
       <Button onClick={() => navigate("/portfolio")}>Back to Portfolio</Button>
       <Button onClick={() => navigate("/watchlist")}>Back to WatchList</Button>
     </>

@@ -12,6 +12,7 @@ Monorepo with three services behind an Nginx reverse proxy:
 | `react-app/` | Frontend | React 18 + TypeScript + Vite | SPA with Redux Toolkit (RTK Query) |
 | `django/` | Backend API | Django 5 + DRF + Celery + Redis | Portfolio management, yfinance data, FRED data |
 | `springboot/` | Microservice | Spring Boot 3.4 + Java 17 + JPA | SEC EDGAR filings & quarterly data |
+| `llm/` | Local AI | llama.cpp + CUDA, stable-diffusion.cpp, Kokoro TTS | Qwen2.5-7B (chat), SD 1.5 (images), Kokoro-82M (TTS) |
 
 ## Key Architecture Details
 

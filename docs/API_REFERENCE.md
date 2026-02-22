@@ -109,6 +109,44 @@ Provides a summary of trailing twelve months (TTM) performance and the latest ba
 - **Ratios:** `netMargin`, `grossMargin`, `roA`, `debtToAssets`, `cashToLiabilities` (percentages), `ocfToNetIncome`
 - `latestQuarterEnd`: Date of the most recent quarter (`YYYY-MM-DD`)
 
+## 📈 IEX Daily Prices
+
+Historical daily OHLCV price data sourced from IEX exchange HIST files.
+
+### List Prices
+
+`GET /prices?ticker={TICKER}&start={DATE}&end={DATE}`
+
+Returns daily OHLCV prices for a specific ticker.
+
+**Parameters:**
+- `ticker` (Required): Stock ticker symbol (e.g., `AAPL`). Max 10 chars, uppercase.
+- `start` (Optional): Start date in `YYYY-MM-DD` format.
+- `end` (Optional): End date in `YYYY-MM-DD` format.
+
+**Response:**
+```json
+{
+  "ticker": "AAPL",
+  "prices": [
+    {
+      "date": "2025-03-15",
+      "open": 172.50,
+      "high": 174.20,
+      "low": 171.80,
+      "close": 173.90,
+      "adjustedOpen": 171.95,
+      "adjustedHigh": 173.65,
+      "adjustedLow": 171.25,
+      "adjustedClose": 173.35,
+      "volume": 45230
+    }
+  ]
+}
+```
+
+Adjusted prices account for stock splits and dividends detected from SEC EDGAR filings. If no corporate actions have been detected for a ticker, adjusted values equal the raw values.
+
 ## 🔧 Admin Endpoints
 
 All admin endpoints require the `X-Admin-Key` header.
@@ -117,4 +155,35 @@ All admin endpoints require the `X-Admin-Key` header.
 |--------|----------|-------------|
 | `GET` | `/admin/load` | Load all US tickers from NASDAQ + SEC into the database. |
 | `GET` | `/admin/sync-frames` | Sync XBRL frame data from SEC (all frames since 2009). |
+| `GET` | `/admin/load-prices` | Load IEX daily OHLCV CSV files from the configured data directory. |
+| `GET` | `/admin/load-hist?days=N` | Download IEX HIST TOPS PCAPs, parse trades, and insert raw OHLCV into DB. Default 252 days (~1 year). Does **not** trigger price adjustments. |
+| `GET` | `/admin/adjust-prices?ticker=X&force=false` | Detect splits/dividends from SEC and apply adjustment factors to OHLCV prices. Omit `ticker` to adjust all. Set `force=true` to re-fetch SEC data for all tickers (catches new splits/dividends). |
+| `GET` | `/admin/summarize-filings?ticker=X` | Fetch 10-K filings from SEC EDGAR, extract MD&A, and generate LLM summaries. Omit `ticker` for all equities. Requires llama.cpp server running. |
 | `GET` | `/admin/test` | Debug: fetch raw financial facts for Apple Inc. (CIK 320193). |
+
+## 📝 Filing Summaries
+
+### List Filing Summaries
+
+`GET /filing-summaries?ticker={TICKER}`
+
+Returns LLM-generated summaries of 10-K filings for a specific ticker.
+
+**Parameters:**
+- `ticker` (Required): Stock ticker symbol (e.g., `AAPL`). Max 10 chars, uppercase.
+
+**Response:**
+```json
+{
+  "ticker": "AAPL",
+  "summaries": [
+    {
+      "filingDate": "2024-10-31",
+      "accessionNumber": "0000320193-24-000123",
+      "summary": "Apple reported strong revenue growth..."
+    }
+  ]
+}
+```
+
+Summaries are generated from the Management's Discussion and Analysis (Item 7) section of each 10-K filing using a local Qwen 2.5-7B model via llama.cpp.

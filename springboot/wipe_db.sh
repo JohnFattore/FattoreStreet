@@ -12,6 +12,6 @@ fi
 echo "Wiping database: $DB_NAME..."
 
 # Drop tables and recreate them (handled by Hibernate update/create on restart)
-psql -h localhost -U $DB_USER -d $DB_NAME -c "DROP TABLE IF EXISTS quarters, listings, assets CASCADE;"
+psql -h localhost -U $DB_USER -d $DB_NAME -c "DROP TABLE IF EXISTS daily_prices, quarters, listings, assets CASCADE;"
 
 echo "Database wiped successfully."

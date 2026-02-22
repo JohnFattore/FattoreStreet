@@ -20,6 +20,7 @@ Update docs when a change affects any of the following:
 | Changed setup steps, env vars, or run commands | `docs/GETTING_STARTED.md` and relevant app README |
 | Spring Boot config, build, or setup change | `springboot/README.md` |
 | New React page or route | `docs/ARCHITECTURE.md` (key directories section) |
+| LLM setup, model, or script change | `llm/README.md` |
 
 ## How to Update
 

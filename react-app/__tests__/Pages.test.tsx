@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import React from 'react';
 import { screen } from '@testing-library/react';
 import { render } from '@testing-library/react';
 import { expect, describe, it } from 'vitest';
@@ -9,6 +10,8 @@ import Home from '../src/pages/Home';
 import SECData from '../src/pages/SECData';
 import AccountView from '../src/pages/AccountView';
 import Register from '../src/pages/Register';
+import IexPricesView from '../src/pages/IexPricesView';
+import PriceComparison from '../src/components/PriceComparison';
 import { renderWithProviders, createTestStore } from './testutils';
 
 const authenticatedState = {
@@ -107,5 +110,68 @@ describe('Register', () => {
         expect(screen.getByPlaceholderText('Enter username')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('Enter password')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('Enter email')).toBeInTheDocument();
+    });
+});
+
+describe('IexPricesView', () => {
+    it('renders daily price table for a ticker', async () => {
+        renderWithRoute(<IexPricesView />, {
+            path: '/iex-prices/:ticker',
+            initialEntry: '/iex-prices/AAPL',
+        });
+
+        expect(await screen.findByText('AAPL — IEX Daily Prices')).toBeInTheDocument();
+        expect(await screen.findByText('3 trading days from IEX exchange data.')).toBeInTheDocument();
+    });
+
+    it('renders OHLCV column headers', async () => {
+        renderWithRoute(<IexPricesView />, {
+            path: '/iex-prices/:ticker',
+            initialEntry: '/iex-prices/AAPL',
+        });
+
+        expect(await screen.findByText(/^Date/)).toBeInTheDocument();
+        expect(await screen.findByText(/^Open/)).toBeInTheDocument();
+        expect(await screen.findByText(/^High/)).toBeInTheDocument();
+        expect(await screen.findByText(/^Low/)).toBeInTheDocument();
+        expect(await screen.findByText(/^Close/)).toBeInTheDocument();
+        expect(await screen.findByText(/^Volume/)).toBeInTheDocument();
+    });
+
+    it('renders a Back button', async () => {
+        renderWithRoute(<IexPricesView />, {
+            path: '/iex-prices/:ticker',
+            initialEntry: '/iex-prices/AAPL',
+        });
+
+        expect(await screen.findByText('Back')).toBeInTheDocument();
+    });
+
+    it('renders the price comparison section', async () => {
+        renderWithRoute(<IexPricesView />, {
+            path: '/iex-prices/:ticker',
+            initialEntry: '/iex-prices/AAPL',
+        });
+
+        expect(await screen.findByText('IEX vs YFinance Price Comparison')).toBeInTheDocument();
+    });
+});
+
+describe('PriceComparison', () => {
+    it('renders column headers', async () => {
+        renderWithProviders(<PriceComparison ticker="AAPL" />);
+
+        expect(await screen.findByText('IEX Close')).toBeInTheDocument();
+        expect(screen.getByText('YFinance Close')).toBeInTheDocument();
+        expect(screen.getByText('Difference')).toBeInTheDocument();
+        expect(screen.getByText('% Difference')).toBeInTheDocument();
+    });
+
+    it('renders overlapping date rows with diff values', async () => {
+        renderWithProviders(<PriceComparison ticker="AAPL" />);
+
+        expect(await screen.findByText('2025-03-15')).toBeInTheDocument();
+        expect(await screen.findByText('2025-03-14')).toBeInTheDocument();
+        expect(await screen.findByText('2025-03-13')).toBeInTheDocument();
     });
 });

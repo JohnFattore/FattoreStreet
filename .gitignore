@@ -32,3 +32,11 @@ kubernetes/
 nginx/static/admin/
 django/static/admin/
 nginx/dist/
+
+springboot/data/
+
+llm/llama.cpp/
+llm/stable-diffusion.cpp/
+llm/models/
+llm/output/
+llm/input/

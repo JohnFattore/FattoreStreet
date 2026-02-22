@@ -1,5 +1,8 @@
 package com.example.sec_api.controller;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.sec_api.service.WebService;
 import com.example.sec_api.model.Asset;
+import com.example.sec_api.model.DailyPrice;
 import com.example.sec_api.repository.AssetRepository;
 import com.example.sec_api.service.AssetService;
 import com.example.sec_api.model.Listing;
@@ -19,6 +23,12 @@ import com.example.sec_api.model.Quarter;
 import com.example.sec_api.repository.QuarterRepository;
 import com.example.sec_api.service.EdgarService;
 import com.example.sec_api.service.FinancialService;
+import com.example.sec_api.service.PriceService;
+import com.example.sec_api.service.PriceAdjustmentService;
+import com.example.sec_api.service.IexHistService;
+import com.example.sec_api.service.FilingSummaryService;
+import com.example.sec_api.model.FilingSummary;
+import com.example.sec_api.repository.FilingSummaryRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,15 +47,26 @@ public class MainController {
     private final QuarterRepository quarterRepository;
     private final EdgarService edgarService;
     private final FinancialService financialService;
+    private final PriceService priceService;
+    private final PriceAdjustmentService priceAdjustmentService;
+    private final IexHistService iexHistService;
+    private final FilingSummaryService filingSummaryService;
+    private final FilingSummaryRepository filingSummaryRepository;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @org.springframework.beans.factory.annotation.Value("${ADMIN_API_KEY:spike}")
     private String adminApiKey;
 
+    @org.springframework.beans.factory.annotation.Value("${iex.data.dir:./data/iex_prices}")
+    private String iexDataDir;
+
     public MainController(WebService webService, AssetService assetService, AssetRepository assetRepository,
             ListingService listingService,
             QuarterRepository quarterRepository,
-            EdgarService edgarService, FinancialService financialService) {
+            EdgarService edgarService, FinancialService financialService,
+            PriceService priceService, PriceAdjustmentService priceAdjustmentService,
+            IexHistService iexHistService, FilingSummaryService filingSummaryService,
+            FilingSummaryRepository filingSummaryRepository) {
         this.webService = webService;
         this.assetService = assetService;
         this.assetRepository = assetRepository;
@@ -53,6 +74,11 @@ public class MainController {
         this.quarterRepository = quarterRepository;
         this.edgarService = edgarService;
         this.financialService = financialService;
+        this.priceService = priceService;
+        this.priceAdjustmentService = priceAdjustmentService;
+        this.iexHistService = iexHistService;
+        this.filingSummaryService = filingSummaryService;
+        this.filingSummaryRepository = filingSummaryRepository;
     }
 
     @GetMapping("/admin/load")
@@ -222,6 +248,166 @@ public class MainController {
         }
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/prices")
+    public ResponseEntity<?> prices(
+            @RequestParam @NotBlank @Size(max = 10) @Pattern(regexp = "^[A-Z][A-Z0-9.\\-]*$", message = "Invalid ticker format") String ticker,
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end) {
+
+        List<DailyPrice> prices;
+        if (start != null && end != null) {
+            prices = priceService.getPrices(ticker, LocalDate.parse(start), LocalDate.parse(end));
+        } else if (start != null) {
+            prices = priceService.getPrices(ticker, LocalDate.parse(start), LocalDate.now());
+        } else {
+            prices = priceService.getPrices(ticker);
+        }
+
+        List<Map<String, Object>> priceOutput = new ArrayList<>();
+        for (DailyPrice p : prices) {
+            Map<String, Object> pm = new LinkedHashMap<>();
+            pm.put("date", p.getTradeDate().toString());
+            pm.put("open", p.getOpenPrice());
+            pm.put("high", p.getHighPrice());
+            pm.put("low", p.getLowPrice());
+            pm.put("close", p.getClosePrice());
+            pm.put("adjustedOpen", p.getAdjustedOpen());
+            pm.put("adjustedHigh", p.getAdjustedHigh());
+            pm.put("adjustedLow", p.getAdjustedLow());
+            pm.put("adjustedClose", p.getAdjustedClose());
+            pm.put("volume", p.getVolume());
+            priceOutput.add(pm);
+        }
+
+        return ResponseEntity.ok(Map.of("ticker", ticker, "prices", priceOutput));
+    }
+
+    @GetMapping("/admin/load-prices")
+    public ResponseEntity<?> loadPrices(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Admin-Key", required = false) String key) {
+        if (adminApiKey != null && !adminApiKey.equals(key)) {
+            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
+        }
+        try {
+            long startTime = System.currentTimeMillis();
+            Path dataDir = Paths.get(iexDataDir);
+            Map<String, Object> result = priceService.loadAllCsvFiles(dataDir);
+            long elapsed = System.currentTimeMillis() - startTime;
+            long minutes = elapsed / 60000;
+            long seconds = (elapsed % 60000) / 1000;
+            String duration = minutes > 0 ? minutes + "m " + seconds + "s" : seconds + "." + (elapsed % 1000) / 100 + "s";
+            String message = "Loaded " + result.get("filesLoaded") + " files with "
+                    + result.get("recordsLoaded") + " price records in " + duration + ".";
+            return ResponseEntity.ok(message);
+        } catch (Exception e) {
+            log.error("Error loading price CSVs", e);
+            return ResponseEntity.internalServerError().body("Error loading prices: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/admin/load-hist")
+    public ResponseEntity<?> loadHist(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Admin-Key", required = false) String key,
+            @RequestParam(defaultValue = "252") int days) {
+        if (adminApiKey != null && !adminApiKey.equals(key)) {
+            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
+        }
+        try {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> result = iexHistService.loadHistData(days);
+            long elapsed = System.currentTimeMillis() - startTime;
+            long minutes = elapsed / 60000;
+            long seconds = (elapsed % 60000) / 1000;
+            String duration = minutes > 0 ? minutes + "m " + seconds + "s" : seconds + "." + (elapsed % 1000) / 100 + "s";
+            return ResponseEntity.ok(Map.of(
+                    "message", "IEX HIST load complete in " + duration,
+                    "processed", result.get("processed"),
+                    "skipped", result.get("skipped"),
+                    "notAvailable", result.get("notAvailable"),
+                    "errors", result.get("errors")
+            ));
+        } catch (Exception e) {
+            log.error("Error loading IEX HIST data", e);
+            return ResponseEntity.internalServerError().body("Error loading IEX HIST data: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/admin/adjust-prices")
+    public ResponseEntity<?> adjustPrices(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Admin-Key", required = false) String key,
+            @RequestParam(required = false) String ticker,
+            @RequestParam(defaultValue = "false") boolean force) {
+        if (adminApiKey != null && !adminApiKey.equals(key)) {
+            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
+        }
+        try {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> result;
+            if (ticker != null && !ticker.isBlank()) {
+                result = priceAdjustmentService.adjustTicker(ticker);
+            } else {
+                result = priceAdjustmentService.adjustAllTickers(force);
+            }
+            long elapsed = System.currentTimeMillis() - startTime;
+            long minutes = elapsed / 60000;
+            long seconds = (elapsed % 60000) / 1000;
+            String duration = minutes > 0 ? minutes + "m " + seconds + "s" : seconds + "." + (elapsed % 1000) / 100 + "s";
+            Map<String, Object> response = new LinkedHashMap<>(result);
+            response.put("duration", duration);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error adjusting prices", e);
+            return ResponseEntity.internalServerError().body("Error adjusting prices: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/admin/summarize-filings")
+    public ResponseEntity<?> summarizeFilings(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Admin-Key", required = false) String key,
+            @RequestParam(required = false) String ticker) {
+        if (adminApiKey != null && !adminApiKey.equals(key)) {
+            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
+        }
+        try {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> result;
+            if (ticker != null && !ticker.isBlank()) {
+                Asset asset = assetRepository.findByListings_Ticker(ticker.toUpperCase());
+                if (asset == null) {
+                    return ResponseEntity.notFound().build();
+                }
+                result = filingSummaryService.summarizeTicker(ticker.toUpperCase(), asset);
+            } else {
+                result = filingSummaryService.summarizeAll();
+            }
+            long elapsed = System.currentTimeMillis() - startTime;
+            long minutes = elapsed / 60000;
+            long seconds = (elapsed % 60000) / 1000;
+            String duration = minutes > 0 ? minutes + "m " + seconds + "s" : seconds + "." + (elapsed % 1000) / 100 + "s";
+            Map<String, Object> response = new LinkedHashMap<>(result);
+            response.put("duration", duration);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error summarizing filings", e);
+            return ResponseEntity.internalServerError().body("Error summarizing filings: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/filing-summaries")
+    public ResponseEntity<?> filingSummaries(
+            @RequestParam @NotBlank @Size(max = 10) @Pattern(regexp = "^[A-Z][A-Z0-9.\\-]*$", message = "Invalid ticker format") String ticker) {
+        List<FilingSummary> summaries = filingSummaryRepository.findByTickerOrderByFilingDateDesc(ticker);
+        List<Map<String, Object>> output = new ArrayList<>();
+        for (FilingSummary fs : summaries) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("filingDate", fs.getFilingDate().toString());
+            entry.put("accessionNumber", fs.getAccessionNumber());
+            entry.put("summary", fs.getSummary());
+            output.add(entry);
+        }
+        return ResponseEntity.ok(Map.of("ticker", ticker, "summaries", output));
     }
 
     private String formatNumber(Object val) {

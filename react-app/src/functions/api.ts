@@ -1,6 +1,6 @@
 import { createApi, BaseQueryFn } from "@reduxjs/toolkit/query/react";
 import axios, { AxiosRequestConfig, AxiosError } from "axios";
-import { IAsset, IEquityInfo, IETFInfo, ISECData, ISECQuartersResponse, IYFinanceQuarter } from "../interfaces";
+import { IAsset, IEquityInfo, IETFInfo, IIexPricesResponse, ISECData, ISECQuartersResponse, IYFinanceQuarter } from "../interfaces";
 import { RootState } from "../main";
 
 /** Raw snake_case shape returned by Django for a single asset */
@@ -313,6 +313,13 @@ export const api = createApi({
         return { data };
       },
     }),
+    getIexPrices: builder.query<IIexPricesResponse, string>({
+      query: (ticker) => ({
+        url: `prices?ticker=${ticker}`,
+        method: "GET",
+        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+      }),
+    }),
   }),
 });
 
@@ -334,4 +341,5 @@ export const {
   useGetSecQuartersQuery,
   useGetDjangoQuartersQuery,
   useGetSecEdgarDataBatchQuery,
+  useGetIexPricesQuery,
 } = api;

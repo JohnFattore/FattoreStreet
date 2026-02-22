@@ -1,9 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from decimal import Decimal
 from datetime import date
+from django.test import TestCase, override_settings
 from rest_framework import status
 from django.urls import reverse
 from portfolio.models import Asset, Account
+from portfolio.tasks import load_iex_hist, refresh_corporate_actions
 from tests.base import BaseAPITestCase
 
 MOCK_PRICES = {
@@ -281,3 +283,98 @@ class QuarterlyDataTest(BaseAPITestCase):
     def test_quarterly_data_missing_ticker(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 400)
+
+
+@override_settings(
+    SPRINGBOOT_INTERNAL_URL="http://springboot:8080",
+    ADMIN_API_KEY="test-key",
+)
+class LoadIexHistTaskTest(TestCase):
+
+    @patch("portfolio.tasks.requests.get")
+    def test_calls_springboot_with_correct_params(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"processed": 3, "skipped": 2, "errors": 0}
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        result = load_iex_hist(days=10)
+
+        mock_get.assert_called_once_with(
+            "http://springboot:8080/admin/load-hist",
+            params={"days": 10},
+            headers={"X-Admin-Key": "test-key"},
+            timeout=7200,
+        )
+        self.assertEqual(result["processed"], 3)
+
+    @patch("portfolio.tasks.requests.get")
+    def test_uses_default_days(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"processed": 1}
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        load_iex_hist()
+
+        call_kwargs = mock_get.call_args
+        self.assertEqual(call_kwargs.kwargs["params"]["days"], 5)
+
+    @patch("portfolio.tasks.requests.get")
+    def test_handles_request_failure(self, mock_get):
+        from requests.exceptions import ConnectionError
+        mock_get.side_effect = ConnectionError("Connection refused")
+
+        result = load_iex_hist(days=5)
+
+        self.assertIn("error", result)
+
+
+@override_settings(
+    SPRINGBOOT_INTERNAL_URL="http://springboot:8080",
+    ADMIN_API_KEY="test-key",
+)
+class RefreshCorporateActionsTaskTest(TestCase):
+
+    @patch("portfolio.tasks.requests.get")
+    def test_calls_springboot_with_force_false(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "tickersProcessed": 10, "skippedNoAsset": 5,
+            "totalSplits": 2, "totalDividends": 8, "totalPricesUpdated": 500,
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        result = refresh_corporate_actions()
+
+        mock_get.assert_called_once_with(
+            "http://springboot:8080/admin/adjust-prices",
+            params={"force": "false"},
+            headers={"X-Admin-Key": "test-key"},
+            timeout=7200,
+        )
+        self.assertEqual(result["tickersProcessed"], 10)
+
+    @patch("portfolio.tasks.requests.get")
+    def test_calls_springboot_with_force_true(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"tickersProcessed": 50}
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        result = refresh_corporate_actions(force=True)
+
+        call_kwargs = mock_get.call_args
+        self.assertEqual(call_kwargs.kwargs["params"]["force"], "true")
+        self.assertEqual(result["tickersProcessed"], 50)
+
+    @patch("portfolio.tasks.requests.get")
+    def test_handles_request_failure(self, mock_get):
+        from requests.exceptions import ConnectionError
+        mock_get.side_effect = ConnectionError("Connection refused")
+
+        result = refresh_corporate_actions()
+
+        self.assertIn("error", result)

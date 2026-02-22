@@ -142,6 +142,20 @@ export interface IFavorite {
     id: number;
 }
 
+export interface IIexPrice {
+    date: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+}
+
+export interface IIexPricesResponse {
+    ticker: string;
+    prices: IIexPrice[];
+}
+
 export interface ISECData {
     ticker: string;
     cik: string;

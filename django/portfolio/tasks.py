@@ -1,6 +1,9 @@
 import logging
 
+import requests
 from celery import shared_task
+from django.conf import settings
+
 from .helper import get_yfinance_data, get_fred_data, get_all_us_tickers
 
 logger = logging.getLogger(__name__)
@@ -50,3 +53,48 @@ def load_yfinance_cache():
         "batches_failed": len(failed_batches),
         "failed_batches": failed_batches,
     }
+
+@shared_task
+def load_iex_hist(days: int = 5) -> dict:
+    base_url = settings.SPRINGBOOT_INTERNAL_URL
+    admin_key = settings.ADMIN_API_KEY
+    url = f"{base_url}/admin/load-hist"
+
+    logger.info(f"Triggering IEX HIST load for {days} days at {url}")
+    try:
+        response = requests.get(
+            url,
+            params={"days": days},
+            headers={"X-Admin-Key": admin_key},
+            timeout=7200,
+        )
+        response.raise_for_status()
+        result = response.json()
+        logger.info(f"IEX HIST load complete: {result}")
+        return result
+    except requests.RequestException as e:
+        logger.error(f"IEX HIST load failed: {e}")
+        return {"error": str(e)}
+
+
+@shared_task
+def refresh_corporate_actions(force: bool = False) -> dict:
+    base_url = settings.SPRINGBOOT_INTERNAL_URL
+    admin_key = settings.ADMIN_API_KEY
+    url = f"{base_url}/admin/adjust-prices"
+
+    logger.info(f"Triggering corporate actions refresh (force={force}) at {url}")
+    try:
+        response = requests.get(
+            url,
+            params={"force": str(force).lower()},
+            headers={"X-Admin-Key": admin_key},
+            timeout=7200,
+        )
+        response.raise_for_status()
+        result = response.json()
+        logger.info(f"Corporate actions refresh complete: {result}")
+        return result
+    except requests.RequestException as e:
+        logger.error(f"Corporate actions refresh failed: {e}")
+        return {"error": str(e)}

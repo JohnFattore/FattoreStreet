@@ -10,7 +10,6 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   }
-  // @ts-ignore
   global.ResizeObserver = ResizeObserver;
 });
 
