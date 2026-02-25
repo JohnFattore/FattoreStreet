@@ -142,6 +142,12 @@ export interface IFavorite {
     id: number;
 }
 
+export interface IFilingSummary {
+    filingDate: string;
+    accessionNumber: string;
+    summary: string;
+}
+
 export interface IIexPrice {
     date: string;
     open: number;

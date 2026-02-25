@@ -377,6 +377,32 @@ export const handlers = [
     }
   ),
 
+  // --- Filing Summaries (Spring Boot) ---
+
+  http.get(
+    import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("filing-summaries"),
+    () => {
+      return Response.json(
+        {
+          ticker: "AAPL",
+          summaries: [
+            {
+              filingDate: "2024-11-01",
+              accessionNumber: "0000320193-24-000123",
+              summary: "Apple reported strong revenue growth driven by iPhone and Services segments. Management highlighted continued investment in AI and machine learning capabilities across the product lineup.",
+            },
+            {
+              filingDate: "2023-11-03",
+              accessionNumber: "0000320193-23-000108",
+              summary: "Revenue declined slightly year-over-year due to macroeconomic headwinds. Services revenue reached an all-time high, partially offsetting hardware weakness.",
+            },
+          ],
+        },
+        { status: 200 }
+      );
+    }
+  ),
+
   // --- Account detail ---
 
   http.get(

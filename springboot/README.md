@@ -12,7 +12,8 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Ticker/CIK mapping from NASDAQ and SEC sources
 - Downloads and parses IEX HIST TOPS pcap/pcapng files into daily OHLCV prices (built-in binary parser, no external dependencies)
 - Detects stock splits and dividends from SEC EDGAR `EntityCommonStockSharesOutstanding` and `CommonStockDividendsPerShareDeclared`
-- Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV
+- Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
+- Fetches 10-K filings from SEC EDGAR, extracts the MD&A section, and generates ~500 word summaries via a local LLM (llama.cpp server)
 - Also supports loading pre-generated OHLCV CSV files
 
 ## Stack
@@ -42,6 +43,7 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 | `DB_PASSWORD` | `postgres` | Database password |
 | `ADMIN_API_KEY` | `spike` | Key for `X-Admin-Key` header on admin endpoints |
 | `IEX_DATA_DIR` | `./data/iex_prices` | Directory containing IEX daily OHLCV CSV files |
+| `LLM_SERVER_URL` | `http://localhost:8081` | URL of the llama.cpp server for 10-K summarization |
 
 ### Run Locally
 
@@ -74,13 +76,18 @@ curl -H "X-Admin-Key: spike" http://localhost:8080/admin/load-hist
 curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/load-hist?days=30"
 ```
 
-Dates already in the database are skipped automatically. After loading, the service automatically detects splits and dividends from SEC EDGAR and applies adjustment factors.
+Dates already in the database are skipped automatically. IEX load saves raw prices only — price adjustments run as a separate process.
 
-You can also manually trigger price adjustments:
+### Price Adjustments (Splits & Dividends)
+
+Corporate action detection and price adjustment is decoupled from IEX loading. Run it separately:
 
 ```bash
-# Adjust all tickers
+# Adjust all tickers (skips SEC re-fetch for tickers with existing actions)
 curl -H "X-Admin-Key: spike" http://localhost:8080/admin/adjust-prices
+
+# Force re-fetch from SEC for all tickers (catches new splits/dividends)
+curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/adjust-prices?force=true"
 
 # Adjust a single ticker
 curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/adjust-prices?ticker=AAPL"
@@ -91,6 +98,28 @@ You can also load pre-generated CSV files:
 ```bash
 curl -H "X-Admin-Key: spike" http://localhost:8080/admin/load-prices
 ```
+
+### 10-K Filing Summaries
+
+Fetches 10-K filings from SEC EDGAR, extracts the Management's Discussion and Analysis (Item 7) section, and generates ~500 word summaries using a local Qwen 2.5-7B model via llama.cpp.
+
+Requires the llama.cpp server to be running (see `llm/run-server.sh`):
+
+```bash
+# Summarize all equities with a CIK
+curl -H "X-Admin-Key: spike" http://localhost:8080/admin/summarize-filings
+
+# Summarize a single ticker
+curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/summarize-filings?ticker=AAPL"
+```
+
+Retrieve stored summaries via the public endpoint:
+
+```bash
+curl "http://localhost:8080/filing-summaries?ticker=AAPL"
+```
+
+Already-summarized filings (by accession number) are skipped on re-runs.
 
 ### Run Tests
 

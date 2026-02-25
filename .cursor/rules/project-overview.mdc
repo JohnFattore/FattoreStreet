@@ -5,7 +5,7 @@ alwaysApply: true
 
 # FattoreStreet - Project Overview
 
-Monorepo with three services behind an Nginx reverse proxy:
+Monorepo with three deployable services behind an Nginx reverse proxy, plus local AI tooling in `llm/`:
 
 | Service | Path | Stack | Purpose |
 |---------|------|-------|---------|

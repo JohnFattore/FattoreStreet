@@ -6,6 +6,7 @@ import { SortableTable } from "../components/SortableTable";
 import { IQuarter } from "../interfaces";
 import YFinanceQuartersTable from "../components/YFinanceQuartersTable";
 import QuarterlyComparison from "../components/QuarterlyComparison";
+import FilingSummaries from "../components/FilingSummaries";
 
 export default function SECData() {
     const { ticker } = useParams<{ ticker: string }>();
@@ -278,6 +279,8 @@ export default function SECData() {
                 <YFinanceQuartersTable ticker={ticker || ""} />
 
                 <QuarterlyComparison ticker={ticker || ""} />
+
+                <FilingSummaries ticker={ticker || ""} />
 
                 <Alert variant="info">
                     This data is fetched directly from the SEC EDGAR database via the Fattore Street API.

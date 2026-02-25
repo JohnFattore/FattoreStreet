@@ -26,7 +26,7 @@ public class FilingSummaryService {
     private static final Logger log = LoggerFactory.getLogger(FilingSummaryService.class);
     private static final String SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK%s.json";
     private static final String SEC_ARCHIVES_URL = "https://www.sec.gov/Archives/edgar/data/%d/%s/%s";
-    private static final int MAX_INPUT_WORDS = 2500;
+    private static final int MAX_INPUT_WORDS = 1800;
 
     private static final Pattern ITEM7_START = Pattern.compile(
             "(?i)item\\s*7\\.?\\s*(?:&#\\d+;|\\W)*management[''\\u2019]?s\\s+discussion",
@@ -35,11 +35,12 @@ public class FilingSummaryService {
             "(?i)item\\s*8\\.?\\s*(?:&#\\d+;|\\W)*financial\\s+statements",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_TAG = Pattern.compile("<[^>]+>");
+    private static final Pattern NUMERIC_ENTITY = Pattern.compile("&#(\\d+);");
     private static final Pattern WHITESPACE_RUNS = Pattern.compile("\\s{2,}");
 
     private static final String SUMMARY_SYSTEM_PROMPT =
             "You are a financial analyst. Summarize the following 10-K Management's Discussion and Analysis section " +
-            "in approximately 500 words. Focus on key business trends, revenue drivers, risks, and management's " +
+            "in approximately 200 words. Focus on key business trends, revenue drivers, risks, and management's " +
             "outlook. Be concise and factual.";
 
     private final FilingSummaryRepository filingSummaryRepository;
@@ -180,20 +181,34 @@ public class FilingSummaryService {
         String text = HTML_TAG.matcher(html).replaceAll(" ");
         text = text.replace("&nbsp;", " ").replace("&amp;", "&")
                    .replace("&lt;", "<").replace("&gt;", ">");
+        Matcher entityMatcher = NUMERIC_ENTITY.matcher(text);
+        StringBuilder sb = new StringBuilder();
+        while (entityMatcher.find()) {
+            int codePoint = Integer.parseInt(entityMatcher.group(1));
+            entityMatcher.appendReplacement(sb, Matcher.quoteReplacement(String.valueOf((char) codePoint)));
+        }
+        entityMatcher.appendTail(sb);
+        text = sb.toString();
         text = WHITESPACE_RUNS.matcher(text).replaceAll(" ").trim();
 
         Matcher startMatcher = ITEM7_START.matcher(text);
-        if (!startMatcher.find()) return null;
-        int start = startMatcher.start();
+        String mda = null;
+        while (startMatcher.find()) {
+            int start = startMatcher.start();
 
-        Matcher endMatcher = ITEM8_START.matcher(text);
-        int end = text.length();
-        if (endMatcher.find(start + 1)) {
-            end = endMatcher.start();
+            Matcher endMatcher = ITEM8_START.matcher(text);
+            int end = text.length();
+            if (endMatcher.find(start + 1)) {
+                end = endMatcher.start();
+            }
+
+            String candidate = text.substring(start, end).trim();
+            if (candidate.length() >= 1000) {
+                mda = candidate;
+                break;
+            }
         }
-
-        String mda = text.substring(start, end).trim();
-        return mda.isEmpty() ? null : mda;
+        return mda;
     }
 
     String truncateToWords(String text, int maxWords) {
@@ -211,7 +226,7 @@ public class FilingSummaryService {
                         Map.of("role", "system", "content", SUMMARY_SYSTEM_PROMPT),
                         Map.of("role", "user", "content", inputText)
                 ),
-                "max_tokens", 700,
+                "max_tokens", 350,
                 "temperature", 0.3
         );
 

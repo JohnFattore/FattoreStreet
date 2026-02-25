@@ -1,42 +1,100 @@
-docker run -d -p 6379:6379 redis
+# Django Backend API
 
-### Run Celery Beat Worker
-celery -A mysite worker --beat -E -n beat
+Django 5 + Django REST Framework backend providing portfolio management, market data, and supporting services.
 
-# Portfolio Manager, a Django RESTful API backend
-## Changing database schema
-Stage the migrations and commit changes to database. Portfolio is the name of the app.
+## Stack
+
+- Python 3, Django 5.0, Django REST Framework
+- PostgreSQL (via psycopg2)
+- Celery + Redis (async tasks & scheduling)
+- django-celery-beat (database-driven periodic tasks)
+- django-redis (caching layer)
+- SimpleJWT (authentication)
+- yfinance (market data)
+- FRED API (macroeconomic data)
+- Google Generative AI (chatbot)
+
+## Apps
+
+| App | Purpose |
+|-----|---------|
+| `portfolio` | Asset & account CRUD, yfinance prices/info, FRED data, quarterly financials |
+| `users` | User registration, JWT token management |
+| `chatbot` | Boglehead AI financial advisor (Google Gemini) |
+| `restaurants` | Restaurant reviews and recommendations |
+| `indexes` | Market index tracking |
+| `changeflow` | Changelog / change tracking |
+
+## Celery Tasks
+
+| Task | Schedule | Description |
+|------|----------|-------------|
+| `load_fred_cache` | Periodic | Pre-caches FRED economic series (DGS10, CPI, UNRATE, etc.) |
+| `load_yfinance_cache` | Periodic | Pre-caches yfinance data for all portfolio tickers |
+| `load_iex_hist` | Periodic | Triggers Spring Boot IEX HIST TOPS download (default 5 days) |
+| `refresh_corporate_actions` | Periodic | Triggers Spring Boot price adjustments (splits & dividends) |
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SECRET_KEY` | (required) | Django secret key |
+| `DEBUG` | `True` | Debug mode |
+| `DATABASE` | (required) | `postgresLocal` or `postgresDocker` |
+| `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
+| `REDIS_URL` | (required) | Redis connection URL (e.g. `redis://localhost:6379`) |
+| `SPRINGBOOT_INTERNAL_URL` | `http://springboot:8080` | Spring Boot base URL for Celery tasks |
+| `ADMIN_API_KEY` | `spike` | Key for Spring Boot `X-Admin-Key` header |
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10+
+- PostgreSQL
+- Redis
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
 ```
+
+### Database Migrations
+
+```bash
 python3 manage.py makemigrations
 python3 manage.py migrate
 ```
-## Running the development server
-    python3 manage.py runserver
 
-## Building images and deploying containers to production
-The kubernetes folder contains the necessary scripts for building and deployment. The build.sh script builds all containers, while the run.sh script runs the containers in production.
+### Run Dev Server
 
-## Gunicorn, NGINX, PostgreSQL, and Docker
- - Django based web app is run on a WSGI Gunicorn server
- - Revere proxy NGINX Server sits infront of Gunicorn server
- - PostgreSQL database server stores permanant data
- - All programs/apps are run in individual Docker containers
+```bash
+python3 manage.py runserver
+```
 
-## Hosting on AWS with EC2
-The whole project is hosted on a EC2 instance keeping the project cloud agnostic and cost effective.
+### Run Celery Worker + Beat
 
-## Testing
-Tests are broken up into three rough types: Unit, Integration, and End to End (E2E).
-The app is small now so not many E2E tests exist, just heavy integration tests
-Unit Tests use APIRequestFactory to test the view directly
-Integration Tests use APIClient to more wholy test the app
-E2E tests like integration tests use APIClient, but are more of a story... idk what ill do for these
+```bash
+docker run -d -p 6379:6379 redis
+celery -A mysite worker --beat -E -n beat
+```
 
-## Porfolio
-The main app in the project featuring a mock portfolio builder. Stocks can be bought/sold and their performance can be compared to popular benchmarks such as the S&P 500.
+### Run Tests
 
-## Chatbot
-A boglehead chatbot prompted to deliver investing advice based on buying and holding low cost index funds.
+```bash
+python3 manage.py test
+```
 
-## Restaurants
-This app allows users to write reviews for restaurants and then get recommendations based on their reviews.
+## Production
+
+- WSGI via Gunicorn
+- Nginx reverse proxy
+- PostgreSQL database
+- All services run in Docker containers
+- Kubernetes manifests in `kubernetes/`
+- Hosted on AWS EC2
+
+## Documentation
+
+- [API Reference](../docs/API_REFERENCE.md) (covers all endpoints for Django and Spring Boot)

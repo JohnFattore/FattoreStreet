@@ -12,6 +12,7 @@ import AccountView from '../src/pages/AccountView';
 import Register from '../src/pages/Register';
 import IexPricesView from '../src/pages/IexPricesView';
 import PriceComparison from '../src/components/PriceComparison';
+import FilingSummaries from '../src/components/FilingSummaries';
 import { renderWithProviders, createTestStore } from './testutils';
 
 const authenticatedState = {
@@ -87,6 +88,15 @@ describe('SECData', () => {
         });
 
         expect(await screen.findByText('Historical Quarterly Data')).toBeInTheDocument();
+    });
+
+    it('renders the filing summaries section', async () => {
+        renderWithRoute(<SECData />, {
+            path: '/sec-edgar/:ticker',
+            initialEntry: '/sec-edgar/AAPL',
+        });
+
+        expect(await screen.findByText('10-K Filing Summaries')).toBeInTheDocument();
     });
 });
 
@@ -173,5 +183,22 @@ describe('PriceComparison', () => {
         expect(await screen.findByText('2025-03-15')).toBeInTheDocument();
         expect(await screen.findByText('2025-03-14')).toBeInTheDocument();
         expect(await screen.findByText('2025-03-13')).toBeInTheDocument();
+    });
+});
+
+describe('FilingSummaries', () => {
+    it('renders filing summary rows', async () => {
+        renderWithProviders(<FilingSummaries ticker="AAPL" />);
+
+        expect(await screen.findByText('10-K Filing Summaries')).toBeInTheDocument();
+        expect(await screen.findByText('2024-11-01')).toBeInTheDocument();
+        expect(await screen.findByText('2023-11-03')).toBeInTheDocument();
+    });
+
+    it('renders accession numbers', async () => {
+        renderWithProviders(<FilingSummaries ticker="AAPL" />);
+
+        expect(await screen.findByText('0000320193-24-000123')).toBeInTheDocument();
+        expect(await screen.findByText('0000320193-23-000108')).toBeInTheDocument();
     });
 });

@@ -38,6 +38,12 @@ export default function Admin() {
     const [adjustTicker, setAdjustTicker] = useState('');
     const [adjustForce, setAdjustForce] = useState(false);
 
+    // Summarize Filings state
+    const [summaryLoading, setSummaryLoading] = useState(false);
+    const [summaryResult, setSummaryResult] = useState<string | null>(null);
+    const [summaryError, setSummaryError] = useState<string | null>(null);
+    const [summaryTicker, setSummaryTicker] = useState('');
+
     if (username != "spike") {
         return (<h1>Error</h1>)
     }
@@ -112,6 +118,26 @@ export default function Admin() {
             setAdjustError(err.response?.data || err.message || 'Request failed');
         } finally {
             setAdjustLoading(false);
+        }
+    };
+
+    const handleSummarizeFilings = async () => {
+        setSummaryLoading(true);
+        setSummaryResult(null);
+        setSummaryError(null);
+        try {
+            const params: Record<string, string> = {};
+            if (summaryTicker.trim()) params.ticker = summaryTicker.trim().toUpperCase();
+            const res = await axios.get(`${springbootUrl}admin/summarize-filings`, {
+                headers: { 'X-Admin-Key': apiKey },
+                params,
+                timeout: 0,
+            });
+            setSummaryResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
+        } catch (err: any) {
+            setSummaryError(err.response?.data || err.message || 'Request failed');
+        } finally {
+            setSummaryLoading(false);
         }
     };
 
@@ -227,6 +253,30 @@ export default function Admin() {
                     </Button>
                     {adjustResult && <Alert variant="success">{adjustResult}</Alert>}
                     {adjustError && <Alert variant="danger">{adjustError}</Alert>}
+                </Card>
+
+                {/* Summarize 10-K Filings */}
+                <Card>
+                    <h6>Summarize 10-K Filings</h6>
+                    <p>Fetch 10-K filings from SEC EDGAR and generate MD&A summaries via the local LLM.</p>
+                    <Form.Group className="mb-2">
+                        <Form.Label>Ticker (blank for all)</Form.Label>
+                        <Form.Control
+                            type="text"
+                            placeholder="e.g. AAPL"
+                            value={summaryTicker}
+                            onChange={(e) => setSummaryTicker(e.target.value)}
+                            style={{ width: '140px' }}
+                        />
+                    </Form.Group>
+                    <Button
+                        onClick={handleSummarizeFilings}
+                        disabled={summaryLoading || !apiKey}
+                    >
+                        {summaryLoading ? <><Spinner size="sm" /> Summarizing...</> : 'Summarize Filings'}
+                    </Button>
+                    {summaryResult && <Alert variant="success">{summaryResult}</Alert>}
+                    {summaryError && <Alert variant="danger">{summaryError}</Alert>}
                 </Card>
 
                 {/* Load IEX Prices (CSV) */}

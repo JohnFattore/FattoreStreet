@@ -15,7 +15,7 @@ For every changed file, check the applicable section:
 
 - [ ] No `className` on components -- styling belongs in `custom.scss` with page/component-scoped selectors
 - [ ] Functional components with hooks; no class components
-- [ ] Named exports (`export default function X`), not `export default () =>`
+- [ ] Prefer named exports (`export function X`); avoid anonymous default exports (`export default () =>`)
 - [ ] API calls use RTK Query from `functions/api.ts`, not raw fetch/axios
 - [ ] Data-dependent UI wrapped in `<StateHandler>`
 - [ ] Django responses converted from snake_case via `transformResponse`

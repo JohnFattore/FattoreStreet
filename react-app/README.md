@@ -1,38 +1,89 @@
 # React Front End
-This [react](https://react.dev/) app is developed using [Vite](https://vitejs.dev/). Notable libraies utilized inlclude [Vitest](https://vitest.dev/) and [react testing library](https://testing-library.com/) for testing, [react-hook-form](https://react-hook-form.com/) for forms, [Axios](https://axios-http.com/) for http requests, [react-bootstrap](https://react-bootstrap.netlify.app/) for component styling and [react router](https://reactrouter.com/en/main) for routing. [Typescript](https://www.typescriptlang.org/) is utlized because strongly typed variables are preferred and interface usage is encouraged.
 
-## HTTP requests: Axios
-Axios is used for all HTTP requests because it provides an easy to use asynchronous HTTP function. Fetch is a notable alternative to Axios that is built into Javascript. Axios is preferred because of its easy of use and support for interceptors. "src/components/AxiosFunctions.tsx contains all the HTTP requests used in the project except for the interceptors which can be found in App.tsx.
+SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vitejs.dev/).
 
-## Testing: Vitest
-The test runner utlizied is Vitest because of its smooth integration with Vite and similarities to more popular test runner [Jest](https://jestjs.io/). React testing library includes extra tools utlized for testing. Each page has its own testing file where all components are tested. Axios functions are tested independently and then mocked for the component tests. 
+## Stack
 
-## Forms: React Hook Form
-The library react-hook-form includes the function useForm, which is utilitzed for all forms. It helps handling form state, functions such as onSubmit/onChange/onBlur, and validation, It even has flexibility for UI libraries using Controller.
+| Concern | Library |
+|---------|---------|
+| Build & dev server | Vite |
+| Language | TypeScript (strict mode) |
+| Routing | React Router v6 |
+| State management | Redux Toolkit + RTK Query |
+| State persistence | redux-persist |
+| HTTP client | Axios (interceptors for JWT refresh) + RTK Query `axiosBaseQuery` |
+| Styling | React Bootstrap 5 + custom Sass theme (`custom.scss`) |
+| Forms | react-hook-form + yup validation |
+| Charts | Recharts |
+| Maps | Leaflet |
+| Testing | Vitest + React Testing Library + MSW |
 
-## Routing: React Router
-React router is used to simplify the process of naviating to a new page, which needs to be created using javascript.
+## Pages & Routes
 
-## Global State: Redux
-Redux offers an easy way to manage global state and reduces prop drilling. Redux is perferred over useContext + useReducer for its ease of use, although both manage global state in a similar fashion.
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Home | Landing page with feature cards |
+| `/portfolio` | Portfolio | Holdings overview, account balances, pie charts |
+| `/watchlist` | WatchList | Live price table with benchmarks |
+| `/asset/:ticker` | AssetView | Individual asset detail with equity/ETF info |
+| `/account/:id` | AccountView | Account holdings breakdown |
+| `/sec-edgar/:ticker` | SECData | SEC EDGAR financials, quarterly comparison, 10-K filing summaries |
+| `/iex-prices/:ticker` | IexPricesView | IEX daily OHLCV prices, IEX vs YFinance comparison |
+| `/visualizer` | Visualizer | Chart comparison tool |
+| `/economic-indicators` | EconomicIndicators | FRED macroeconomic data charts |
+| `/chatbot` | Chatbot | Boglehead AI financial advisor |
+| `/restaurants` | Restaurants | Restaurant reviews and map |
+| `/entertainment` | Entertainment | Music and media |
+| `/user` | User | User profile and settings |
+| `/react-admin` | Admin | Admin panel for triggering backend jobs |
 
-## UX Design: React Boostrap
-React bootstrap contains prestyles components based on the CSS/JS library [Bootstrap](https://getbootstrap.com/). [Sass](https://sass-lang.com/) is used to customize bootstrap to use our own custom colors/designs.
-To complile the custom CSS sheet, you can run either script. Top script compiles sass into css, bottom script will continously compile new changes. [MaterialUI](https://mui.com/material-ui/) is heavily considerred and might be phased in during the next UI redesign.
+## Key Components
 
-    sass src/styles/custom.scss src/styles/custom.css
+| Component | Used on | Purpose |
+|-----------|---------|---------|
+| `FilingSummaries` | SECData | Expandable table of 10-K MD&A summaries from LLM |
+| `QuarterlyComparison` | SECData | Side-by-side SEC vs YFinance quarterly data |
+| `YFinanceQuartersTable` | SECData | YFinance quarterly financials table |
+| `PriceComparison` | IexPricesView | IEX vs YFinance daily close comparison |
+| `SortableTable` | Multiple | Reusable sortable table with column config |
+| `AccountList` | Portfolio | Accounts with calculated balances |
+| `WatchListTable` | WatchList | Live-updating price grid |
 
-or (preferred)
+## API Layer (RTK Query)
 
-    sass --watch src/styles/custom.scss:src/styles/custom.css
+All API calls go through a single RTK Query API slice (`src/functions/api.ts`) using a custom `axiosBaseQuery`. Endpoints are split across two backends:
 
-## Serving app for each environment
-More details about deployment can be seen on the main README.md.
-### Development
-    npm run dev
+- **Django** (`VITE_APP_DJANGO_PORTFOLIO_URL`): assets, accounts, quotes, asset-prices, FRED data, quarterly data, asset-info
+- **Spring Boot** (`VITE_APP_SPRINGBOOT_URL`): SEC EDGAR fact sheets, quarters, IEX prices, filing summaries
 
-### Staging
-    npm run staging
+The `transformResponse` functions handle snake_case → camelCase conversion.
 
-### Production: Create javascript modules with Rollup
-    npm run build
+## Styling
+
+React Bootstrap with a custom Sass theme using CSS custom properties (`--primary`, `--secondary`, `--tertiary`, `--quaternary`) and dark-mode support.
+
+```bash
+# Compile once
+sass src/styles/custom.scss src/styles/custom.css
+
+# Watch mode (preferred)
+sass --watch src/styles/custom.scss:src/styles/custom.css
+```
+
+## Development
+
+```bash
+npm run dev        # local dev server
+npm run staging    # staging mode
+npm run build      # production build (tsc + vite)
+```
+
+## Testing
+
+```bash
+npx vitest --run   # single run
+npx vitest         # watch mode
+npm run test       # watch + UI + coverage
+```
+
+Tests use Vitest + React Testing Library + MSW. MSW handlers live in `__tests__/mocks/handlers.ts`. Test utilities (`renderWithProviders`, `createTestStore`) are in `__tests__/testutils.tsx`.
