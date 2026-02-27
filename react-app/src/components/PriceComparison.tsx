@@ -20,8 +20,8 @@ function formatPctDiff(pct: number | null): string {
 
 interface ComparisonRow {
     date: string;
-    iexClose: number | null;
-    yfClose: number | null;
+    iexAdjustedClose: number | null;
+    yfAdjustedClose: number | null;
     diff: number | null;
     pctDiff: number | null;
 }
@@ -34,7 +34,7 @@ export default function PriceComparison({ ticker }: { ticker: string }) {
         const iexMap = new Map<string, number>();
         if (iexData?.prices) {
             for (const p of iexData.prices) {
-                iexMap.set(p.date, p.close);
+                iexMap.set(p.date, p.adjustedClose ?? p.close);
             }
         }
 
@@ -49,19 +49,19 @@ export default function PriceComparison({ ticker }: { ticker: string }) {
         const result: ComparisonRow[] = [];
 
         for (const date of allDates) {
-            const iexClose = iexMap.get(date) ?? null;
-            const yfClose = yfMap.get(date) ?? null;
+            const iexAdjustedClose = iexMap.get(date) ?? null;
+            const yfAdjustedClose = yfMap.get(date) ?? null;
 
             let diff: number | null = null;
             let pctDiff: number | null = null;
-            if (iexClose != null && yfClose != null) {
-                diff = yfClose - iexClose;
-                if (iexClose !== 0) {
-                    pctDiff = (diff / Math.abs(iexClose)) * 100;
+            if (iexAdjustedClose != null && yfAdjustedClose != null) {
+                diff = yfAdjustedClose - iexAdjustedClose;
+                if (iexAdjustedClose !== 0) {
+                    pctDiff = (diff / Math.abs(iexAdjustedClose)) * 100;
                 }
             }
 
-            result.push({ date, iexClose, yfClose, diff, pctDiff });
+            result.push({ date, iexAdjustedClose, yfAdjustedClose, diff, pctDiff });
         }
 
         result.sort((a, b) => b.date.localeCompare(a.date));
@@ -76,7 +76,7 @@ export default function PriceComparison({ ticker }: { ticker: string }) {
             <Col md={12}>
                 <Card>
                     <Card.Header as="h5" className="bg-dark text-white">
-                        IEX vs YFinance Price Comparison
+                        IEX vs YFinance Adjusted Price Comparison
                     </Card.Header>
                     <Card.Body>
                         {isLoading ? (
@@ -88,8 +88,8 @@ export default function PriceComparison({ ticker }: { ticker: string }) {
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>IEX Close</th>
-                                        <th>YFinance Close</th>
+                                        <th>IEX Adjusted Close</th>
+                                        <th>YFinance Adjusted Close</th>
                                         <th>Difference</th>
                                         <th>% Difference</th>
                                     </tr>
@@ -100,8 +100,8 @@ export default function PriceComparison({ ticker }: { ticker: string }) {
                                         return (
                                             <tr key={row.date} className={isMismatch ? "table-warning" : ""}>
                                                 <td>{row.date}</td>
-                                                <td>{formatCurrency(row.iexClose)}</td>
-                                                <td>{formatCurrency(row.yfClose)}</td>
+                                                <td>{formatCurrency(row.iexAdjustedClose)}</td>
+                                                <td>{formatCurrency(row.yfAdjustedClose)}</td>
                                                 <td className={isMismatch ? "text-danger fw-bold" : ""}>
                                                     {formatCurrency(row.diff)}
                                                 </td>

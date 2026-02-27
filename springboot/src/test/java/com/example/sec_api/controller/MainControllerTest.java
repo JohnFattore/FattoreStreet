@@ -1,10 +1,13 @@
 package com.example.sec_api.controller;
 
 import com.example.sec_api.model.Asset;
+import com.example.sec_api.model.CorporateAction;
+import com.example.sec_api.model.CorporateAction.ActionType;
 import com.example.sec_api.model.DailyPrice;
 import com.example.sec_api.model.FilingSummary;
 import com.example.sec_api.model.Quarter;
 import com.example.sec_api.repository.AssetRepository;
+import com.example.sec_api.repository.CorporateActionRepository;
 import com.example.sec_api.repository.FilingSummaryRepository;
 import com.example.sec_api.repository.QuarterRepository;
 import com.example.sec_api.service.*;
@@ -41,6 +44,7 @@ class MainControllerTest {
     @MockitoBean private IexHistService iexHistService;
     @MockitoBean private FilingSummaryService filingSummaryService;
     @MockitoBean private FilingSummaryRepository filingSummaryRepository;
+    @MockitoBean private CorporateActionRepository corporateActionRepository;
 
     private Asset buildAsset(Long cik) {
         Asset a = new Asset();
@@ -256,6 +260,45 @@ class MainControllerTest {
     @Test
     void prices_missingTicker_returns400() throws Exception {
         mockMvc.perform(get("/prices"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void dividends_validTicker_returns200WithData() throws Exception {
+        CorporateAction d1 = new CorporateAction();
+        d1.setTicker("AAPL");
+        d1.setActionType(ActionType.DIVIDEND);
+        d1.setEffectiveDate(LocalDate.of(2025, 2, 10));
+        d1.setRatio(0.25);
+
+        CorporateAction d2 = new CorporateAction();
+        d2.setTicker("AAPL");
+        d2.setActionType(ActionType.DIVIDEND);
+        d2.setEffectiveDate(LocalDate.of(2025, 5, 12));
+        d2.setRatio(0.26);
+
+        CorporateAction split = new CorporateAction();
+        split.setTicker("AAPL");
+        split.setActionType(ActionType.SPLIT);
+        split.setEffectiveDate(LocalDate.of(2020, 8, 31));
+        split.setRatio(0.25);
+
+        when(corporateActionRepository.findByTicker("AAPL")).thenReturn(List.of(d2, split, d1));
+
+        mockMvc.perform(get("/dividends").param("ticker", "AAPL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ticker").value("AAPL"))
+                .andExpect(jsonPath("$.dividends").isArray())
+                .andExpect(jsonPath("$.dividends", hasSize(2)))
+                .andExpect(jsonPath("$.dividends[0].date").value("2025-02-10"))
+                .andExpect(jsonPath("$.dividends[0].value").value(0.25))
+                .andExpect(jsonPath("$.dividends[1].date").value("2025-05-12"))
+                .andExpect(jsonPath("$.dividends[1].value").value(0.26));
+    }
+
+    @Test
+    void dividends_missingTicker_returns400() throws Exception {
+        mockMvc.perform(get("/dividends"))
                 .andExpect(status().isBadRequest());
     }
 

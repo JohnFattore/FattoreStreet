@@ -57,6 +57,30 @@ public class WebService {
         return response.getBody();
     }
 
+    public String fetchSubmissions(Long cik) {
+        String paddedCik = String.format("%010d", cik);
+        String url = "https://data.sec.gov/submissions/CIK" + paddedCik + ".json";
+        ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                secEntity,
+                String.class);
+        return response.getBody();
+    }
+
+    public String fetchFilingDocument(Long cik, String accessionNumber, String primaryDocument) {
+        String cikNoPadding = String.valueOf(cik);
+        String accessionNoDashes = accessionNumber.replace("-", "");
+        String url = "https://www.sec.gov/Archives/edgar/data/" + cikNoPadding + "/"
+                + accessionNoDashes + "/" + primaryDocument;
+        ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                secEntity,
+                String.class);
+        return response.getBody();
+    }
+
     public String fetchXbrlFrames(String taxonomy, String tag, String unit, String period) {
         String url = String.format("https://data.sec.gov/api/xbrl/frames/%s/%s/%s/%s.json", taxonomy, tag, unit,
                 period);

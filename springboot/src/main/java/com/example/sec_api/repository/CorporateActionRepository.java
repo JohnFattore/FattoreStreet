@@ -2,6 +2,7 @@ package com.example.sec_api.repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import com.example.sec_api.model.CorporateAction;
@@ -12,6 +13,8 @@ public interface CorporateActionRepository extends JpaRepository<CorporateAction
     List<CorporateAction> findByTickerOrderByEffectiveDateDesc(String ticker);
 
     boolean existsByTickerAndActionTypeAndEffectiveDate(String ticker, ActionType actionType, LocalDate effectiveDate);
+
+    Optional<CorporateAction> findByTickerAndActionTypeAndEffectiveDate(String ticker, ActionType actionType, LocalDate effectiveDate);
 
     List<CorporateAction> findByTicker(String ticker);
 

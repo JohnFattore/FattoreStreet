@@ -7,7 +7,7 @@ from .permissions import IsOwner
 from .models import Asset, Account
 import logging
 import environ
-from .helper import get_realtime_price, get_yfinance_data, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates, get_quarterly_data, QuoteFetchError
+from .helper import get_realtime_price, get_yfinance_data, get_fred_data, percent_change, get_historical_prices, get_market_reference_dates, get_quarterly_data, get_historical_dividends, QuoteFetchError
 
 logger = logging.getLogger(__name__)
 env = environ.Env()
@@ -138,6 +138,20 @@ class AssetHistoricalPricesRetrieveView(APIView):
         output = []
         for date, price in prices.items():
             output.append({"date": date, "value": price})
+        return Response(output)
+
+
+class AssetHistoricalDividendsRetrieveView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        qs = TickerQuerySerializer(data=request.query_params)
+        qs.is_valid(raise_exception=True)
+        ticker = qs.validated_data["ticker"]
+        dividends = get_historical_dividends([ticker])[ticker]
+        output = []
+        for date, value in dividends.items():
+            output.append({"date": date, "value": value})
         return Response(output)
 
 class QuarterlyDataRetrieveView(APIView):

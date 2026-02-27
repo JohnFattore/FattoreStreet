@@ -1,6 +1,6 @@
 import { createApi, BaseQueryFn } from "@reduxjs/toolkit/query/react";
 import axios, { AxiosRequestConfig, AxiosError } from "axios";
-import { IAsset, IEquityInfo, IETFInfo, IFilingSummary, IIexPricesResponse, ISECData, ISECQuartersResponse, IYFinanceQuarter } from "../interfaces";
+import { IAsset, IDividendRow, IEquityInfo, IETFInfo, IFilingSummary, IIexDividendsResponse, IIexPricesResponse, ISECData, ISECQuartersResponse, IYFinanceQuarter } from "../interfaces";
 import { RootState } from "../main";
 
 /** Raw snake_case shape returned by Django for a single asset */
@@ -258,6 +258,13 @@ export const api = createApi({
         params: { ticker: ticker },
       }),
     }),
+    getAssetDividends: builder.query<IDividendRow[], string>({
+      query: (ticker) => ({
+        url: "asset-dividends/",
+        method: "GET",
+        params: { ticker },
+      }),
+    }),
     getFredData: builder.query<
       Record<string, IFredObservation[]>,
       { series_id: string; compute_yoy?: boolean }[]
@@ -320,6 +327,13 @@ export const api = createApi({
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
       }),
     }),
+    getIexDividends: builder.query<IIexDividendsResponse, string>({
+      query: (ticker) => ({
+        url: `dividends?ticker=${ticker}`,
+        method: "GET",
+        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+      }),
+    }),
     getFilingSummaries: builder.query<IFilingSummary[], string>({
       query: (ticker) => ({
         url: `filing-summaries?ticker=${ticker}`,
@@ -335,6 +349,7 @@ export const {
   useGetAssetInfosQuery,
   useLazyGetAssetInfosQuery,
   useGetAssetPricesQuery,
+  useGetAssetDividendsQuery,
   useGetAssetsQuery,
   usePostNewAssetMutation,
   useGetAssetQuery,
@@ -350,5 +365,6 @@ export const {
   useGetDjangoQuartersQuery,
   useGetSecEdgarDataBatchQuery,
   useGetIexPricesQuery,
+  useGetIexDividendsQuery,
   useGetFilingSummariesQuery,
 } = api;

@@ -55,11 +55,36 @@ def get_historical_prices(tickers: list[str]) -> dict:
     yfinance = yf.Tickers(" ".join(uncached_tickers))
     for ticker in uncached_tickers:
         data = yfinance.tickers[ticker].history(start=start, end=end)
-        ticker_prices = data[["Close"]]
-        ticker_prices = {idx.strftime("%Y-%m-%d"): Decimal(row["Close"]) for idx, row in ticker_prices.iterrows()}
+        price_column = "Adj Close" if "Adj Close" in data.columns else "Close"
+        ticker_prices = data[[price_column]]
+        ticker_prices = {idx.strftime("%Y-%m-%d"): Decimal(str(row[price_column])) for idx, row in ticker_prices.iterrows()}
         cache.set(_cache_key(ticker), ticker_prices, timeout=60 * 60 * 24)
         prices[ticker] = ticker_prices
     return prices
+
+
+def get_historical_dividends(tickers: list[str]) -> dict:
+    def _cache_key(ticker: str) -> str:
+        return f"historical_dividends_{ticker}"
+
+    dividends, uncached_tickers = _partition_cached(tickers, _cache_key)
+    if not uncached_tickers:
+        return dividends
+
+    yfinance = yf.Tickers(" ".join(uncached_tickers))
+    for ticker in uncached_tickers:
+        series = yfinance.tickers[ticker].dividends
+        if series is None or series.empty:
+            ticker_dividends = {}
+        else:
+            ticker_dividends = {
+                idx.strftime("%Y-%m-%d"): Decimal(str(value))
+                for idx, value in series.items()
+                if value is not None and value > 0
+            }
+        cache.set(_cache_key(ticker), ticker_dividends, timeout=60 * 60 * 24)
+        dividends[ticker] = ticker_dividends
+    return dividends
 
 def get_realtime_price(ticker: str) -> dict:
     cache_key = f"current_quote_{ticker}"

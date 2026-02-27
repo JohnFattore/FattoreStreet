@@ -1,11 +1,13 @@
 from unittest.mock import patch, MagicMock
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 from django.test import TestCase, override_settings
 from rest_framework import status
 from django.urls import reverse
+import pandas as pd
 from portfolio.models import Asset, Account
 from portfolio.tasks import load_iex_hist, refresh_corporate_actions
+from portfolio.helper import get_historical_dividends, get_historical_prices
 from tests.base import BaseAPITestCase
 
 MOCK_PRICES = {
@@ -219,6 +221,87 @@ class AssetPricesTest(BaseAPITestCase):
     def test_asset_prices_missing_ticker(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 400)
+
+
+class AssetDividendsTest(BaseAPITestCase):
+    """Tests for the asset-dividends endpoint (public, calls yfinance)."""
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse('asset-dividends')
+        patch("portfolio.views.get_historical_dividends", return_value={
+            "AAPL": {
+                "2025-02-10": Decimal("0.25"),
+                "2025-05-12": Decimal("0.26"),
+            }
+        }).start()
+        self.addCleanup(patch.stopall)
+
+    def test_asset_dividends(self):
+        response = self.client.get(self.url, {'ticker': 'AAPL'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertEqual(response.data[0]["date"], "2025-02-10")
+        self.assertEqual(Decimal(str(response.data[0]["value"])), Decimal("0.25"))
+
+    def test_asset_dividends_missing_ticker(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 400)
+
+
+class HistoricalPricesHelperTest(TestCase):
+    """Tests for yfinance historical price extraction."""
+
+    @patch("portfolio.helper.cache.set")
+    @patch("portfolio.helper.cache.get", return_value=None)
+    @patch("portfolio.helper.yf.Tickers")
+    @patch("portfolio.helper.datetime")
+    def test_uses_adjusted_close_when_available(
+        self,
+        mock_datetime,
+        mock_tickers,
+        _mock_cache_get,
+        _mock_cache_set,
+    ):
+        mock_datetime.now.return_value = datetime(2025, 1, 15, 10, 0, 0)
+
+        history_df = pd.DataFrame(
+            {
+                "Close": [Decimal("100.00"), Decimal("101.00")],
+                "Adj Close": [Decimal("95.00"), Decimal("96.00")],
+            },
+            index=pd.to_datetime(["2025-01-13", "2025-01-14"]),
+        )
+
+        mock_ticker = MagicMock()
+        mock_ticker.history.return_value = history_df
+        mock_tickers.return_value = MagicMock(tickers={"AAPL": mock_ticker})
+
+        result = get_historical_prices(["AAPL"])
+
+        self.assertEqual(result["AAPL"]["2025-01-13"], Decimal("95.00"))
+        self.assertEqual(result["AAPL"]["2025-01-14"], Decimal("96.00"))
+
+
+class HistoricalDividendsHelperTest(TestCase):
+    """Tests for yfinance historical dividend extraction."""
+
+    @patch("portfolio.helper.cache.set")
+    @patch("portfolio.helper.cache.get", return_value=None)
+    @patch("portfolio.helper.yf.Tickers")
+    def test_reads_dividend_series(self, mock_tickers, _mock_cache_get, _mock_cache_set):
+        series = pd.Series(
+            [Decimal("0.25"), Decimal("0.26")],
+            index=pd.to_datetime(["2025-02-10", "2025-05-12"]),
+        )
+        mock_ticker = MagicMock()
+        mock_ticker.dividends = series
+        mock_tickers.return_value = MagicMock(tickers={"AAPL": mock_ticker})
+
+        result = get_historical_dividends(["AAPL"])
+
+        self.assertEqual(result["AAPL"]["2025-02-10"], Decimal("0.25"))
+        self.assertEqual(result["AAPL"]["2025-05-12"], Decimal("0.26"))
 
 
 class QuoteTest(BaseAPITestCase):

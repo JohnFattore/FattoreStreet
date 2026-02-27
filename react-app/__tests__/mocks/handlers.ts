@@ -367,9 +367,26 @@ export const handlers = [
         {
           ticker: "AAPL",
           prices: [
-            { date: "2025-03-15", open: 172.5, high: 174.2, low: 171.8, close: 173.9, volume: 45230 },
-            { date: "2025-03-14", open: 170.0, high: 172.0, low: 169.5, close: 171.5, volume: 38100 },
-            { date: "2025-03-13", open: 168.0, high: 170.5, low: 167.0, close: 170.0, volume: 42500 },
+            { date: "2025-03-15", open: 172.5, high: 174.2, low: 171.8, close: 173.9, adjustedOpen: 171.95, adjustedHigh: 173.65, adjustedLow: 171.25, adjustedClose: 173.35, volume: 45230 },
+            { date: "2025-03-14", open: 170.0, high: 172.0, low: 169.5, close: 171.5, adjustedOpen: 169.45, adjustedHigh: 171.45, adjustedLow: 168.95, adjustedClose: 170.95, volume: 38100 },
+            { date: "2025-03-13", open: 168.0, high: 170.5, low: 167.0, close: 170.0, adjustedOpen: 167.45, adjustedHigh: 169.95, adjustedLow: 166.95, adjustedClose: 169.45, volume: 42500 },
+          ],
+        },
+        { status: 200 }
+      );
+    }
+  ),
+
+  http.get(
+    import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("dividends"),
+    () => {
+      return Response.json(
+        {
+          ticker: "AAPL",
+          dividends: [
+            { date: "2025-02-10", value: 0.25 },
+            { date: "2025-05-12", value: 0.26 },
+            { date: "2025-08-11", value: 0.26 },
           ],
         },
         { status: 200 }
@@ -428,6 +445,20 @@ export const handlers = [
           { date: "2025-03-15", value: 174.0 },
           { date: "2025-03-14", value: 171.0 },
           { date: "2025-03-13", value: 169.5 },
+        ],
+        { status: 200 }
+      );
+    }
+  ),
+
+  http.get(
+    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-dividends/"),
+    () => {
+      return Response.json(
+        [
+          { date: "2025-02-10", value: 0.25 },
+          { date: "2025-05-12", value: 0.26 },
+          { date: "2025-08-08", value: 0.26 },
         ],
         { status: 200 }
       );

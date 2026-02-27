@@ -5,6 +5,7 @@ import { getApiErrorMessages } from "../functions/helperFunctions";
 import { SortableTable } from "../components/SortableTable";
 import LoadingModal from "../components/LoadingModal";
 import PriceComparison from "../components/PriceComparison";
+import DividendComparison from "../components/DividendComparison";
 import { IIexPrice } from "../interfaces";
 
 const formatCurrency = (value: number | null | undefined) =>
@@ -23,24 +24,24 @@ const formatVolume = (value: number | null | undefined) =>
 const columns = [
   { label: "Date", sortKey: "date" as const },
   {
-    label: "Open",
-    sortKey: "open" as const,
-    render: (row: IIexPrice) => formatCurrency(row.open),
+    label: "Adj Open",
+    sortKey: "adjustedOpen" as const,
+    render: (row: IIexPrice) => formatCurrency(row.adjustedOpen ?? row.open),
   },
   {
-    label: "High",
-    sortKey: "high" as const,
-    render: (row: IIexPrice) => formatCurrency(row.high),
+    label: "Adj High",
+    sortKey: "adjustedHigh" as const,
+    render: (row: IIexPrice) => formatCurrency(row.adjustedHigh ?? row.high),
   },
   {
-    label: "Low",
-    sortKey: "low" as const,
-    render: (row: IIexPrice) => formatCurrency(row.low),
+    label: "Adj Low",
+    sortKey: "adjustedLow" as const,
+    render: (row: IIexPrice) => formatCurrency(row.adjustedLow ?? row.low),
   },
   {
-    label: "Close",
-    sortKey: "close" as const,
-    render: (row: IIexPrice) => formatCurrency(row.close),
+    label: "Adj Close",
+    sortKey: "adjustedClose" as const,
+    render: (row: IIexPrice) => formatCurrency(row.adjustedClose ?? row.close),
   },
   {
     label: "Volume",
@@ -81,8 +82,9 @@ export default function IexPricesView() {
     <Container className="mt-3">
       <h3>{ticker} — IEX Daily Prices</h3>
       <p className="text-muted">
-        {prices.length} trading day{prices.length !== 1 ? "s" : ""} from IEX exchange data.
+        {prices.length} trading day{prices.length !== 1 ? "s" : ""} of adjusted OHLCV data from IEX exchange prices.
       </p>
+      {/*
       <SortableTable
         data={prices}
         columns={columns}
@@ -91,7 +93,9 @@ export default function IexPricesView() {
         isLoading={false}
         errors={[]}
       />
+      */}
       <PriceComparison ticker={ticker} />
+      <DividendComparison ticker={ticker} />
       <div className="mt-3 mb-3">
         <Button variant="secondary" onClick={() => navigate(-1)}>
           Back

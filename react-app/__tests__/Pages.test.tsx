@@ -12,6 +12,7 @@ import AccountView from '../src/pages/AccountView';
 import Register from '../src/pages/Register';
 import IexPricesView from '../src/pages/IexPricesView';
 import PriceComparison from '../src/components/PriceComparison';
+import DividendComparison from '../src/components/DividendComparison';
 import FilingSummaries from '../src/components/FilingSummaries';
 import { renderWithProviders, createTestStore } from './testutils';
 
@@ -131,20 +132,20 @@ describe('IexPricesView', () => {
         });
 
         expect(await screen.findByText('AAPL — IEX Daily Prices')).toBeInTheDocument();
-        expect(await screen.findByText('3 trading days from IEX exchange data.')).toBeInTheDocument();
+        expect(await screen.findByText('3 trading days of adjusted OHLCV data from IEX exchange prices.')).toBeInTheDocument();
     });
 
-    it('renders OHLCV column headers', async () => {
+    it('renders adjusted OHLCV column headers', async () => {
         renderWithRoute(<IexPricesView />, {
             path: '/iex-prices/:ticker',
             initialEntry: '/iex-prices/AAPL',
         });
 
         expect(await screen.findByText(/^Date/)).toBeInTheDocument();
-        expect(await screen.findByText(/^Open/)).toBeInTheDocument();
-        expect(await screen.findByText(/^High/)).toBeInTheDocument();
-        expect(await screen.findByText(/^Low/)).toBeInTheDocument();
-        expect(await screen.findByText(/^Close/)).toBeInTheDocument();
+        expect(await screen.findByText(/^Adj Open/)).toBeInTheDocument();
+        expect(await screen.findByText(/^Adj High/)).toBeInTheDocument();
+        expect(await screen.findByText(/^Adj Low/)).toBeInTheDocument();
+        expect(await screen.findByText(/^Adj Close/)).toBeInTheDocument();
         expect(await screen.findByText(/^Volume/)).toBeInTheDocument();
     });
 
@@ -163,7 +164,16 @@ describe('IexPricesView', () => {
             initialEntry: '/iex-prices/AAPL',
         });
 
-        expect(await screen.findByText('IEX vs YFinance Price Comparison')).toBeInTheDocument();
+        expect(await screen.findByText('IEX vs YFinance Adjusted Price Comparison')).toBeInTheDocument();
+    });
+
+    it('renders the dividend comparison section', async () => {
+        renderWithRoute(<IexPricesView />, {
+            path: '/iex-prices/:ticker',
+            initialEntry: '/iex-prices/AAPL',
+        });
+
+        expect(await screen.findByText('Internal vs YFinance Dividend Comparison')).toBeInTheDocument();
     });
 });
 
@@ -171,8 +181,8 @@ describe('PriceComparison', () => {
     it('renders column headers', async () => {
         renderWithProviders(<PriceComparison ticker="AAPL" />);
 
-        expect(await screen.findByText('IEX Close')).toBeInTheDocument();
-        expect(screen.getByText('YFinance Close')).toBeInTheDocument();
+        expect(await screen.findByText('IEX Adjusted Close')).toBeInTheDocument();
+        expect(screen.getByText('YFinance Adjusted Close')).toBeInTheDocument();
         expect(screen.getByText('Difference')).toBeInTheDocument();
         expect(screen.getByText('% Difference')).toBeInTheDocument();
     });
@@ -200,5 +210,25 @@ describe('FilingSummaries', () => {
 
         expect(await screen.findByText('0000320193-24-000123')).toBeInTheDocument();
         expect(await screen.findByText('0000320193-23-000108')).toBeInTheDocument();
+    });
+});
+
+describe('DividendComparison', () => {
+    it('renders column headers', async () => {
+        renderWithProviders(<DividendComparison ticker="AAPL" />);
+
+        expect(await screen.findByText('Internal Date')).toBeInTheDocument();
+        expect(screen.getByText('Internal Dividend')).toBeInTheDocument();
+        expect(screen.getByText('YFinance Date')).toBeInTheDocument();
+        expect(screen.getByText('YFinance Dividend')).toBeInTheDocument();
+    });
+
+    it('renders dividend rows', async () => {
+        renderWithProviders(<DividendComparison ticker="AAPL" />);
+
+        const febRows = await screen.findAllByText('2025-02-10');
+        expect(febRows.length).toBeGreaterThan(0);
+        const mayRows = await screen.findAllByText('2025-05-12');
+        expect(mayRows.length).toBeGreaterThan(0);
     });
 });

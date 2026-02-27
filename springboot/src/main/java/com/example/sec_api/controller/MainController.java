@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.sec_api.service.WebService;
 import com.example.sec_api.model.Asset;
+import com.example.sec_api.model.CorporateAction;
 import com.example.sec_api.model.DailyPrice;
 import com.example.sec_api.repository.AssetRepository;
+import com.example.sec_api.repository.CorporateActionRepository;
 import com.example.sec_api.service.AssetService;
 import com.example.sec_api.model.Listing;
 import com.example.sec_api.service.ListingService;
@@ -52,6 +54,7 @@ public class MainController {
     private final IexHistService iexHistService;
     private final FilingSummaryService filingSummaryService;
     private final FilingSummaryRepository filingSummaryRepository;
+    private final CorporateActionRepository corporateActionRepository;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @org.springframework.beans.factory.annotation.Value("${ADMIN_API_KEY:spike}")
@@ -66,7 +69,8 @@ public class MainController {
             EdgarService edgarService, FinancialService financialService,
             PriceService priceService, PriceAdjustmentService priceAdjustmentService,
             IexHistService iexHistService, FilingSummaryService filingSummaryService,
-            FilingSummaryRepository filingSummaryRepository) {
+            FilingSummaryRepository filingSummaryRepository,
+            CorporateActionRepository corporateActionRepository) {
         this.webService = webService;
         this.assetService = assetService;
         this.assetRepository = assetRepository;
@@ -79,6 +83,7 @@ public class MainController {
         this.iexHistService = iexHistService;
         this.filingSummaryService = filingSummaryService;
         this.filingSummaryRepository = filingSummaryRepository;
+        this.corporateActionRepository = corporateActionRepository;
     }
 
     @GetMapping("/admin/load")
@@ -282,6 +287,25 @@ public class MainController {
         }
 
         return ResponseEntity.ok(Map.of("ticker", ticker, "prices", priceOutput));
+    }
+
+    @GetMapping("/dividends")
+    public ResponseEntity<?> dividends(
+            @RequestParam @NotBlank @Size(max = 10) @Pattern(regexp = "^[A-Z][A-Z0-9.\\-]*$", message = "Invalid ticker format") String ticker) {
+        List<CorporateAction> dividends = corporateActionRepository.findByTicker(ticker).stream()
+                .filter(a -> a.getActionType() == CorporateAction.ActionType.DIVIDEND)
+                .sorted(Comparator.comparing(CorporateAction::getEffectiveDate))
+                .toList();
+
+        List<Map<String, Object>> dividendOutput = new ArrayList<>();
+        for (CorporateAction action : dividends) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("date", action.getEffectiveDate().toString());
+            row.put("value", action.getRatio());
+            dividendOutput.add(row);
+        }
+
+        return ResponseEntity.ok(Map.of("ticker", ticker, "dividends", dividendOutput));
     }
 
     @GetMapping("/admin/load-prices")

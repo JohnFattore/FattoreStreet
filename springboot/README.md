@@ -12,6 +12,8 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Ticker/CIK mapping from NASDAQ and SEC sources
 - Downloads and parses IEX HIST TOPS pcap/pcapng files into daily OHLCV prices (built-in binary parser, no external dependencies)
 - Detects stock splits and dividends from SEC EDGAR `EntityCommonStockSharesOutstanding` and `CommonStockDividendsPerShareDeclared`
+- Normalizes SEC dividend facts into quarterly payouts (handles cumulative YTD reporting and fiscal-Q4 edge cases)
+- Derives dividend ex-dates from SEC 8-K record-date disclosures and settlement-regime logic (pre-2024-05-28 T+2, post-cutover T+1)
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
 - Fetches 10-K filings from SEC EDGAR, extracts the MD&A section, and generates ~500 word summaries via a local LLM (llama.cpp server)
 - Also supports loading pre-generated OHLCV CSV files
@@ -92,6 +94,15 @@ curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/adjust-prices?force=tr
 # Adjust a single ticker
 curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/adjust-prices?ticker=AAPL"
 ```
+
+Dividend ingestion behavior:
+- Normalizes dividend facts to per-quarter payouts before persistence.
+- Prefers true quarterly facts over cumulative rows for the same period end date (with form-priority tie-breaks).
+- Derives missing fiscal Q4 payouts from annual 10-K totals when quarter facts are absent.
+- Derives ex-dates from SEC 8-K record-date disclosures, including exhibit fallback parsing and filing-date-aware quarter sequencing.
+- Uses SEC-only fallback semantics (period-end placeholder) when no reliable record date can be extracted.
+- Converts older dividend amounts to current-share basis using detected forward splits, with canonical split-ratio snapping and 4-decimal rounding.
+- Uses `force=true` to reconcile existing corporate action rows with newly detected SEC data.
 
 You can also load pre-generated CSV files:
 

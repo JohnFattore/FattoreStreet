@@ -154,12 +154,26 @@ export interface IIexPrice {
     high: number;
     low: number;
     close: number;
+    adjustedOpen?: number;
+    adjustedHigh?: number;
+    adjustedLow?: number;
+    adjustedClose?: number;
     volume: number;
 }
 
 export interface IIexPricesResponse {
     ticker: string;
     prices: IIexPrice[];
+}
+
+export interface IDividendRow {
+    date: string;
+    value: number;
+}
+
+export interface IIexDividendsResponse {
+    ticker: string;
+    dividends: IDividendRow[];
 }
 
 export interface ISECData {

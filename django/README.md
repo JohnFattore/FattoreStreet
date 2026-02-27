@@ -18,7 +18,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 
 | App | Purpose |
 |-----|---------|
-| `portfolio` | Asset & account CRUD, yfinance prices/info, FRED data, quarterly financials |
+| `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/info, FRED data, quarterly financials |
 | `users` | User registration, JWT token management |
 | `chatbot` | Boglehead AI financial advisor (Google Gemini) |
 | `restaurants` | Restaurant reviews and recommendations |
