@@ -6,6 +6,7 @@ import reviewReducer from './reviewReducer'
 import locationReducer from './locationReducer'
 import restaurantRecommendReducer from './restaurantRecommendReducer'
 import chatbotReducer from './chatbotReducer'
+import adminSuccessBarReducer from './adminSuccessBarReducer'
 import { api } from '../functions/api' // adjust path as needed
 
 const rootReducer = combineReducers({
@@ -16,6 +17,7 @@ const rootReducer = combineReducers({
     user: userReducer,
     location: locationReducer,
     chatbot: chatbotReducer,
+    adminSuccessBar: adminSuccessBarReducer,
     [api.reducerPath]: api.reducer, // <- add this line
 });
 

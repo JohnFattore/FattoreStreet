@@ -169,11 +169,34 @@ export interface IIexPricesResponse {
 export interface IDividendRow {
     date: string;
     value: number;
+    rawValue?: number;
+    adjustedValue?: number;
+    source?: string;
+    formType?: string;
+    accessionNumber?: string;
+    recordDate?: string;
+    payDate?: string;
+    confidenceScore?: number;
 }
 
 export interface IIexDividendsResponse {
     ticker: string;
     dividends: IDividendRow[];
+}
+
+export interface ISplitRow {
+    date: string;
+    value?: number;
+    ratio?: number;
+    source?: string;
+    formType?: string;
+    accessionNumber?: string;
+    confidenceScore?: number;
+}
+
+export interface IIexSplitsResponse {
+    ticker: string;
+    splits: ISplitRow[];
 }
 
 export interface ISECData {

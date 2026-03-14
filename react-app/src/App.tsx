@@ -21,6 +21,7 @@ import Admin from "./pages/Admin";
 import SECData from "./pages/SECData";
 import IexPricesView from "./pages/IexPricesView";
 import User from "./pages/User";
+import AdminSuccessBar from "./pages/AdminSuccessBar";
 
 // react router for all our routes
 export default function App() {
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/economic-indicators" element={<EconomicIndicators />} />
         <Route path="/sec-edgar/:ticker" element={<SECData />} />
         <Route path="/iex-prices/:ticker" element={<IexPricesView />} />
+        <Route path="/react-admin/success-bar" element={<AdminSuccessBar />} />
         <Route path="/user" element={<User />} />
         <Route path="/react-admin" element={<Admin />} />
         <Route path="*" element={<ErrorPage />} />

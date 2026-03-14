@@ -18,12 +18,12 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 
 | App | Purpose |
 |-----|---------|
-| `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/info, FRED data, quarterly financials |
+| `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/splits/info, FRED data, quarterly financials |
 | `users` | User registration, JWT token management |
 | `chatbot` | Boglehead AI financial advisor (Google Gemini) |
 | `restaurants` | Restaurant reviews and recommendations |
 | `indexes` | Market index tracking |
-| `changeflow` | Changelog / change tracking |
+| `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
 
 ## Celery Tasks
 
@@ -98,3 +98,9 @@ python3 manage.py test
 ## Documentation
 
 - [API Reference](../docs/API_REFERENCE.md) (covers all endpoints for Django and Spring Boot)
+
+## User Deactivation Policy
+
+- User accounts should be deactivated (`is_active=False`) rather than hard-deleted in normal operations.
+- Django admin is configured to prioritize deactivate/reactivate actions and prevent user hard deletes.
+- User-linked records (including changeflow tickets) remain associated with the user while deactivated.

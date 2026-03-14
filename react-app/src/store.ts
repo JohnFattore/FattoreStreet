@@ -7,7 +7,7 @@ import { api } from './functions/api'
 const persistConfig = {
     key: 'root', // The key to store the data in storage
     storage, // The storage to use (localStorage or sessionStorage)
-    whitelist: ['user', 'location'], // Only persist the user reducer
+    whitelist: ['user', 'location', 'adminSuccessBar'], // Persist selected reducers
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

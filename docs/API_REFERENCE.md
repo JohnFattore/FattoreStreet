@@ -29,6 +29,7 @@ Management of financial assets and retrieving market data.
 | `GET` | `/portfolio/api/asset-info/` | Fetch live metadata for a ticker (e.g., name, sector). |
 | `GET` | `/portfolio/api/asset-prices/` | Get historical adjusted-close price data for charting (yfinance). |
 | `GET` | `/portfolio/api/asset-dividends/` | Get historical dividend events per ticker from yfinance. |
+| `GET` | `/portfolio/api/asset-splits/` | Get historical split events per ticker from yfinance. |
 | `GET` | `/portfolio/api/quote/` | Get the latest price quote. |
 | `GET` | `/portfolio/api/fred-data/` | Fetch economic data from Federal Reserve API. |
 
@@ -51,6 +52,14 @@ Social feature for reviewing and sharing restaurant experiences.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/chatbot/api/chatbot/` | Send a message to the AI investing assistant. |
+
+## 🧭 Changeflow (Tickets)
+
+Feedback and issue intake for authenticated users.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/changeflow/api/tickets/` | Submit a new feedback ticket for the logged-in user. |
 
 ## 📊 Indexes
 
@@ -162,11 +171,52 @@ Returns stored internal dividend events (corporate actions) for a specific ticke
 {
   "ticker": "AAPL",
   "dividends": [
-    { "date": "2025-02-10", "value": 0.25 },
-    { "date": "2025-05-12", "value": 0.26 }
+    {
+      "date": "2025-02-10",
+      "rawValue": 0.25,
+      "adjustedValue": 0.25,
+      "value": 0.25,
+      "source": "SEC_EQUITY_XBRL",
+      "formType": "8-K",
+      "accessionNumber": "0000320193-25-000010",
+      "recordDate": "2025-02-10",
+      "payDate": "2025-02-13",
+      "confidenceScore": 87.0
+    }
   ]
 }
 ```
+
+`value` is a backward-compatible alias of `adjustedValue`. Internally, dividend ingestion keeps both SEC raw quarterly values and split-adjusted values. Metadata fields (`source`, `formType`, `accessionNumber`, `recordDate`, `payDate`, `confidenceScore`) are optional and may be `null` for older rows.
+
+### List Splits
+
+`GET /splits?ticker={TICKER}`
+
+Returns stored internal split events (corporate actions) for a specific ticker.
+
+**Parameters:**
+- `ticker` (Required): Stock ticker symbol (e.g., `AAPL`). Max 10 chars, uppercase.
+
+**Response:**
+```json
+{
+  "ticker": "AAPL",
+  "splits": [
+    {
+      "date": "2020-08-31",
+      "ratio": 0.25,
+      "value": 0.25,
+      "source": "SEC_EQUITY_XBRL",
+      "formType": "8-K",
+      "accessionNumber": "0000320193-20-000096",
+      "confidenceScore": 93.0
+    }
+  ]
+}
+```
+
+`ratio` is the canonical split adjustment factor (`old_shares / new_shares`; e.g., `0.25` for a 4:1 forward split). `value` is provided as a compatibility alias.
 
 ## 🔧 Admin Endpoints
 
@@ -174,11 +224,22 @@ All admin endpoints require the `X-Admin-Key` header.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/admin/load` | Load all US tickers from NASDAQ + SEC into the database. |
+| `GET` | `/admin/asset-load?overwriteExisting=false` | Load all US tickers from SEC ticker endpoints (`company_tickers.json` and `company_tickers_mf.json`) into the database, then enrich ETF listings with SEC series/class identity mapping. |
 | `GET` | `/admin/sync-frames` | Sync XBRL frame data from SEC (all frames since 2009). |
 | `GET` | `/admin/load-prices` | Load IEX daily OHLCV CSV files from the configured data directory. |
 | `GET` | `/admin/load-hist?days=N` | Download IEX HIST TOPS PCAPs, parse trades, and insert raw OHLCV into DB. Default 252 days (~1 year). Does **not** trigger price adjustments. |
-| `GET` | `/admin/adjust-prices?ticker=X&force=false` | Detect splits/dividends from SEC and apply adjustment factors to OHLCV prices. Dividend facts are normalized to quarterly payouts (including fiscal-Q4 derivation from annual 10-K totals when needed), and ex-dividend dates are mapped from SEC 8-K record dates (pre-2024-05-28 T+2, post-cutover T+1) using filing metadata and exhibit fallback parsing. When record dates cannot be reliably recovered, SEC-only fallback keeps period-end placeholders. Split factors are snapped to canonical ratios before dividend back-adjustment. Omit `ticker` to adjust all. Set `force=true` to re-fetch SEC data for all tickers (reconciles existing actions and catches new splits/dividends). |
+| `GET` | `/admin/adjust-prices?ticker=X&force=false&etfOnly=false&equityOnly=false&minConfidence=70&validateWithYfinance=false` | Detect splits/dividends from SEC and apply adjustment factors to OHLCV prices. Supports ETF-only or equity-only batch mode and a minimum confidence threshold for ETF actions extracted from ETF filing forms (`497`, `485*`, `N-CSR/N-CSRS`). ETF detection scans the primary filing plus a capped set of likely exhibit/attachment documents, applies scored identity matching (ticker + class/series signals), and ranks amount/date candidates from sentence and table-like layouts. ETF date extraction now normalizes HTML/text blocks, supports additional formats (`MM-DD-YYYY`, `MM/DD/YY`, `YYYY/MM/DD`, abbreviated month labels), and can use low-confidence pay-date/filing-date fallbacks when explicit ex/record dates are missing. Dividend facts are normalized to quarterly payouts (including guarded fiscal-Q4 derivation from annual 10-K totals), and ex-dividend dates are mapped from SEC 8-K record dates (pre-2024-05-28 T+2, post-cutover T+1) using filing metadata and exhibit fallback parsing. When record dates cannot be reliably recovered, SEC-only fallback infers ex-dates from cadence/lag (with diagnostics) instead of quarter-end placeholders. Split factors are snapped to canonical ratios before dividend back-adjustment, and split effective dates prefer SEC 8-K filing/exhibit extraction (including archived submissions) over quarter-end-style shares facts when available. Persisted dividend rows keep both `rawValue` and `adjustedValue`; adjusted prices use `adjustedValue`. SEC fetches use bounded retries and configurable timeouts to avoid indefinite hangs during long scans. Omit `ticker` to adjust all. Set `force=true` to re-fetch SEC data for all tickers (reconciles existing actions and catches new splits/dividends). Set `validateWithYfinance=true` for diagnostics-only mismatch reporting against yfinance reference events (no writes from yfinance). |
+
+When ticker mode is used for a fund (`/admin/adjust-prices?ticker=VOO`), response may include:
+- `etfDiagnostics`: per-run ETF extraction diagnostics (`filingsConsidered`, `filingsFetched`, `candidateDocumentsScanned`, `identityMatched`, `amountExtracted`, `dateExtracted`, `belowConfidence`, `duplicates`, `saved`, `identityScoreBuckets`, `amountSourceCounts`, `dateResolutionPathCounts`, `dateSourceCounts`, `skipReasons`, `sampleSkips`, `sampleCreated`)
+  - `skipReasons` may include `date_missing` (no usable date signal found) and `below_confidence` (date found but filtered by `minConfidence`).
+- `equityDiagnostics`: per-run equity detection diagnostics (`split` and `dividend` parser-path counters, inserts/updates, and failure reason if SEC fetch fails).
+- `validationReport` (only when `validateWithYfinance=true`): diagnostics-only mismatch report with taxonomy `missing_in_sec`, `extra_in_sec`, `date_drift`, `amount_drift`.
+
+When batch mode is used, response may include:
+- `etfDiagnosticsSummary`: aggregate ETF diagnostics across scanned fund tickers with the same fields plus `fundTickersScanned`.
+- `equityDiagnosticsSummary`: aggregate equity parser-path counters and reconciliation activity across scanned equity tickers.
+- `validationSummary` (only when `validateWithYfinance=true`): aggregate mismatch totals and sample mismatch rows.
 | `GET` | `/admin/summarize-filings?ticker=X` | Fetch 10-K filings from SEC EDGAR, extract MD&A, and generate LLM summaries. Omit `ticker` for all equities. Requires llama.cpp server running. |
 | `GET` | `/admin/test` | Debug: fetch raw financial facts for Apple Inc. (CIK 320193). |
 

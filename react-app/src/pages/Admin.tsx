@@ -3,9 +3,11 @@ import axios from 'axios';
 import { useSelector } from "react-redux";
 import { RootState } from '../main';
 import { Button, Form, Alert, Spinner, Card } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 
 export default function Admin() {
     const { username } = useSelector((state: RootState) => state.user)
+    const navigate = useNavigate();
 
     // Shared API key state
     const [apiKey, setApiKey] = useState('');
@@ -37,6 +39,11 @@ export default function Admin() {
     const [adjustError, setAdjustError] = useState<string | null>(null);
     const [adjustTicker, setAdjustTicker] = useState('');
     const [adjustForce, setAdjustForce] = useState(false);
+    const [adjustEtfOnly, setAdjustEtfOnly] = useState(false);
+    const [adjustEquityOnly, setAdjustEquityOnly] = useState(false);
+    const [adjustMinConfidence, setAdjustMinConfidence] = useState('70');
+
+    const [loadOverwriteExisting, setLoadOverwriteExisting] = useState(false);
 
     // Summarize Filings state
     const [summaryLoading, setSummaryLoading] = useState(false);
@@ -50,17 +57,48 @@ export default function Admin() {
 
     const springbootUrl = import.meta.env.VITE_APP_SPRINGBOOT_URL;
 
+    const normalizeError = (err: any): string => {
+        const data = err?.response?.data;
+        if (typeof data === 'string' && data.trim()) return data;
+        if (data && typeof data === 'object') {
+            try {
+                return JSON.stringify(data);
+            } catch {
+                return 'Request failed';
+            }
+        }
+        if (typeof err?.message === 'string' && err.message.trim()) return err.message;
+        return 'Request failed';
+    };
+
     const handleLoadTickers = async () => {
         setLoadLoading(true);
         setLoadResult(null);
         setLoadError(null);
         try {
-            const res = await axios.get(`${springbootUrl}admin/load`, {
-                headers: { 'X-Admin-Key': apiKey },
-            });
+            const params: Record<string, string> = {};
+            if (loadOverwriteExisting) params.overwriteExisting = 'true';
+            let res;
+            try {
+                res = await axios.get(`${springbootUrl}admin/asset-load`, {
+                    headers: { 'X-Admin-Key': apiKey },
+                    params,
+                    timeout: 0,
+                });
+            } catch (assetLoadErr: any) {
+                // Backward-compatible fallback while older backend instances may still expose /admin/load.
+                if (assetLoadErr?.response?.status === 404) {
+                    res = await axios.get(`${springbootUrl}admin/load`, {
+                        headers: { 'X-Admin-Key': apiKey },
+                        timeout: 0,
+                    });
+                } else {
+                    throw assetLoadErr;
+                }
+            }
             setLoadResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: any) {
-            setLoadError(err.response?.data || err.message || 'Request failed');
+            setLoadError(normalizeError(err));
         } finally {
             setLoadLoading(false);
         }
@@ -76,7 +114,7 @@ export default function Admin() {
             });
             setSyncResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: any) {
-            setSyncError(err.response?.data || err.message || 'Request failed');
+            setSyncError(normalizeError(err));
         } finally {
             setSyncLoading(false);
         }
@@ -94,7 +132,7 @@ export default function Admin() {
             });
             setHistResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: any) {
-            setHistError(err.response?.data || err.message || 'Request failed');
+            setHistError(normalizeError(err));
         } finally {
             setHistLoading(false);
         }
@@ -108,6 +146,12 @@ export default function Admin() {
             const params: Record<string, string> = {};
             if (adjustTicker.trim()) params.ticker = adjustTicker.trim().toUpperCase();
             if (adjustForce) params.force = 'true';
+            if (adjustEtfOnly) params.etfOnly = 'true';
+            if (adjustEquityOnly) params.equityOnly = 'true';
+            const minConfidence = Number(adjustMinConfidence);
+            if (!Number.isNaN(minConfidence) && minConfidence >= 0) {
+                params.minConfidence = String(minConfidence);
+            }
             const res = await axios.get(`${springbootUrl}admin/adjust-prices`, {
                 headers: { 'X-Admin-Key': apiKey },
                 params,
@@ -115,7 +159,7 @@ export default function Admin() {
             });
             setAdjustResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: any) {
-            setAdjustError(err.response?.data || err.message || 'Request failed');
+            setAdjustError(normalizeError(err));
         } finally {
             setAdjustLoading(false);
         }
@@ -135,7 +179,7 @@ export default function Admin() {
             });
             setSummaryResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: any) {
-            setSummaryError(err.response?.data || err.message || 'Request failed');
+            setSummaryError(normalizeError(err));
         } finally {
             setSummaryLoading(false);
         }
@@ -151,7 +195,7 @@ export default function Admin() {
             });
             setPriceResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: any) {
-            setPriceError(err.response?.data || err.message || 'Request failed');
+            setPriceError(normalizeError(err));
         } finally {
             setPriceLoading(false);
         }
@@ -160,6 +204,11 @@ export default function Admin() {
     return (
         <div className="admin-page">
             <h2>Welcome Spike</h2>
+            <div className="mb-3">
+                <Button onClick={() => navigate("/react-admin/success-bar")} variant="outline-primary">
+                    Open Corporate Action Success Bar
+                </Button>
+            </div>
 
             <Card>
                 <h5>Spring Boot Admin</h5>
@@ -175,13 +224,20 @@ export default function Admin() {
 
                 {/* Load Tickers */}
                 <Card>
-                    <h6>Load Tickers</h6>
-                    <p>Fetches all US tickers from NASDAQ and SEC EDGAR.</p>
+                    <h6>Asset Load (with ETF enrichment)</h6>
+                    <p>Fetches all US tickers from SEC endpoints and enriches ETF listings with SEC series/class identity data.</p>
+                    <Form.Check
+                        className="mb-2"
+                        type="switch"
+                        label="Overwrite existing resolved ETF identities"
+                        checked={loadOverwriteExisting}
+                        onChange={(e) => setLoadOverwriteExisting(e.target.checked)}
+                    />
                     <Button
                         onClick={handleLoadTickers}
                         disabled={loadLoading || !apiKey}
                     >
-                        {loadLoading ? <><Spinner size="sm" />Loading...</> : 'Load Tickers'}
+                        {loadLoading ? <><Spinner size="sm" />Loading...</> : 'Asset Load'}
                     </Button>
                     {loadResult && <Alert variant="success">{loadResult}</Alert>}
                     {loadError && <Alert variant="danger">{loadError}</Alert>}
@@ -245,6 +301,39 @@ export default function Admin() {
                         checked={adjustForce}
                         onChange={(e) => setAdjustForce(e.target.checked)}
                     />
+                    <Form.Check
+                        className="mb-2"
+                        type="switch"
+                        label="ETF only"
+                        checked={adjustEtfOnly}
+                        onChange={(e) => {
+                            const enabled = e.target.checked;
+                            setAdjustEtfOnly(enabled);
+                            if (enabled) setAdjustEquityOnly(false);
+                        }}
+                    />
+                    <Form.Check
+                        className="mb-2"
+                        type="switch"
+                        label="Equity only"
+                        checked={adjustEquityOnly}
+                        onChange={(e) => {
+                            const enabled = e.target.checked;
+                            setAdjustEquityOnly(enabled);
+                            if (enabled) setAdjustEtfOnly(false);
+                        }}
+                    />
+                    <Form.Group className="mb-2">
+                        <Form.Label>ETF minimum confidence</Form.Label>
+                        <Form.Control
+                            type="number"
+                            value={adjustMinConfidence}
+                            onChange={(e) => setAdjustMinConfidence(e.target.value)}
+                            style={{ width: '140px' }}
+                            min={0}
+                            max={100}
+                        />
+                    </Form.Group>
                     <Button
                         onClick={handleAdjustPrices}
                         disabled={adjustLoading || !apiKey}
@@ -292,6 +381,7 @@ export default function Admin() {
                     {priceResult && <Alert variant="success">{priceResult}</Alert>}
                     {priceError && <Alert variant="danger">{priceError}</Alert>}
                 </Card>
+
             </Card>
         </div>
     );

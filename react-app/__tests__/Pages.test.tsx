@@ -11,8 +11,12 @@ import SECData from '../src/pages/SECData';
 import AccountView from '../src/pages/AccountView';
 import Register from '../src/pages/Register';
 import IexPricesView from '../src/pages/IexPricesView';
+import User from '../src/pages/User';
+import Admin from '../src/pages/Admin';
+import AdminSuccessBar from '../src/pages/AdminSuccessBar';
 import PriceComparison from '../src/components/PriceComparison';
 import DividendComparison from '../src/components/DividendComparison';
+import SplitComparison from '../src/components/SplitComparison';
 import FilingSummaries from '../src/components/FilingSummaries';
 import { renderWithProviders, createTestStore } from './testutils';
 
@@ -124,6 +128,53 @@ describe('Register', () => {
     });
 });
 
+describe("User", () => {
+    it("renders feedback ticket section for authenticated users", () => {
+        renderWithProviders(<User />, { preloadedState: authenticatedState });
+        expect(screen.getByText("Feedback Tickets")).toBeInTheDocument();
+        expect(screen.getByText("Submit Product Feedback")).toBeInTheDocument();
+    });
+});
+
+describe("Admin", () => {
+    it("renders success bar jump button for spike user", () => {
+        renderWithProviders(<Admin />, {
+            preloadedState: {
+                user: { access: "fake-token", refresh: "fake-refresh", username: "spike" },
+            },
+        });
+
+        expect(screen.getByText("Open Corporate Action Success Bar")).toBeInTheDocument();
+    });
+});
+
+describe("AdminSuccessBar", () => {
+    it("renders page title and empty-state table message", () => {
+        renderWithProviders(<AdminSuccessBar />, {
+            preloadedState: {
+                user: { access: "fake-token", refresh: "fake-refresh", username: "spike" },
+                adminSuccessBar: { tickers: [], error: "" },
+            },
+        });
+
+        expect(screen.getByText("Corporate Action Success Bar")).toBeInTheDocument();
+        expect(screen.getByText("No tickers added yet.")).toBeInTheDocument();
+    });
+
+    it("renders overview rows for persisted equity and ETF tickers", async () => {
+        renderWithProviders(<AdminSuccessBar />, {
+            preloadedState: {
+                user: { access: "fake-token", refresh: "fake-refresh", username: "spike" },
+                adminSuccessBar: { tickers: ["AAPL", "VOO"], error: "" },
+            },
+        });
+
+        expect(await screen.findByText("AAPL")).toBeInTheDocument();
+        expect(await screen.findByText("VOO")).toBeInTheDocument();
+        expect(await screen.findByText("Combined Success")).toBeInTheDocument();
+    });
+});
+
 describe('IexPricesView', () => {
     it('renders daily price table for a ticker', async () => {
         renderWithRoute(<IexPricesView />, {
@@ -135,18 +186,17 @@ describe('IexPricesView', () => {
         expect(await screen.findByText('3 trading days of adjusted OHLCV data from IEX exchange prices.')).toBeInTheDocument();
     });
 
-    it('renders adjusted OHLCV column headers', async () => {
+    it('renders adjusted price comparison column headers', async () => {
         renderWithRoute(<IexPricesView />, {
             path: '/iex-prices/:ticker',
             initialEntry: '/iex-prices/AAPL',
         });
 
-        expect(await screen.findByText(/^Date/)).toBeInTheDocument();
-        expect(await screen.findByText(/^Adj Open/)).toBeInTheDocument();
-        expect(await screen.findByText(/^Adj High/)).toBeInTheDocument();
-        expect(await screen.findByText(/^Adj Low/)).toBeInTheDocument();
-        expect(await screen.findByText(/^Adj Close/)).toBeInTheDocument();
-        expect(await screen.findByText(/^Volume/)).toBeInTheDocument();
+        expect(await screen.findByRole('columnheader', { name: /^Date$/ })).toBeInTheDocument();
+        expect(await screen.findByRole('columnheader', { name: 'IEX Adjusted Close' })).toBeInTheDocument();
+        expect(await screen.findByRole('columnheader', { name: 'YFinance Adjusted Close' })).toBeInTheDocument();
+        expect((await screen.findAllByRole('columnheader', { name: 'Difference' })).length).toBeGreaterThan(0);
+        expect(await screen.findByRole('columnheader', { name: '% Difference' })).toBeInTheDocument();
     });
 
     it('renders a Back button', async () => {
@@ -175,6 +225,15 @@ describe('IexPricesView', () => {
 
         expect(await screen.findByText('Internal vs YFinance Dividend Comparison')).toBeInTheDocument();
     });
+
+    it('renders the split comparison section', async () => {
+        renderWithRoute(<IexPricesView />, {
+            path: '/iex-prices/:ticker',
+            initialEntry: '/iex-prices/AAPL',
+        });
+
+        expect(await screen.findByText('Internal vs YFinance Split Comparison')).toBeInTheDocument();
+    });
 });
 
 describe('PriceComparison', () => {
@@ -193,6 +252,13 @@ describe('PriceComparison', () => {
         expect(await screen.findByText('2025-03-15')).toBeInTheDocument();
         expect(await screen.findByText('2025-03-14')).toBeInTheDocument();
         expect(await screen.findByText('2025-03-13')).toBeInTheDocument();
+    });
+
+    it('renders the within-5-percent overlap summary', async () => {
+        renderWithProviders(<PriceComparison ticker="AAPL" />);
+
+        expect(await screen.findByText(/Within 3%:/)).toBeInTheDocument();
+        expect(await screen.findByText(/3\/3 \(100\.00%\)/)).toBeInTheDocument();
     });
 });
 
@@ -230,5 +296,23 @@ describe('DividendComparison', () => {
         expect(febRows.length).toBeGreaterThan(0);
         const mayRows = await screen.findAllByText('2025-05-12');
         expect(mayRows.length).toBeGreaterThan(0);
+    });
+});
+
+describe('SplitComparison', () => {
+    it('renders column headers', async () => {
+        renderWithProviders(<SplitComparison ticker="AAPL" />);
+
+        expect(await screen.findByText('Internal Date')).toBeInTheDocument();
+        expect(screen.getByText('Internal Ratio')).toBeInTheDocument();
+        expect(screen.getByText('YFinance Date')).toBeInTheDocument();
+        expect(screen.getByText('YFinance Ratio')).toBeInTheDocument();
+    });
+
+    it('renders split rows', async () => {
+        renderWithProviders(<SplitComparison ticker="AAPL" />);
+
+        const augRows = await screen.findAllByText('2020-08-31');
+        expect(augRows.length).toBeGreaterThan(0);
     });
 });

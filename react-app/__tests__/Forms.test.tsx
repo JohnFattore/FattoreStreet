@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
+import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import { expect, describe, it } from 'vitest';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import CreateAccountForm from '../src/components/CreateAccountForm';
 import AssetForm from '../src/components/AssetForm';
+import TicketForm from '../src/components/TicketForm';
 import { renderWithProviders } from './testutils';
 
 const authenticatedState = {
@@ -72,5 +74,29 @@ describe('AssetForm', () => {
         const tickerInput = await screen.findByPlaceholderText('Ticker');
         expect(tickerInput).toHaveValue('AAPL');
         expect(tickerInput).toBeDisabled();
+    });
+});
+
+describe("TicketForm", () => {
+    it("shows validation errors when submitting empty form", async () => {
+        renderWithProviders(<TicketForm />, { preloadedState: authenticatedState });
+
+        await userEvent.click(screen.getByRole("button", { name: /submit ticket/i }));
+
+        expect(await screen.findByText("Title is required")).toBeInTheDocument();
+        expect(await screen.findByText("Description is required")).toBeInTheDocument();
+    });
+
+    it("submits a ticket and shows success message", async () => {
+        renderWithProviders(<TicketForm />, { preloadedState: authenticatedState });
+
+        await userEvent.type(screen.getByPlaceholderText("Short summary"), "Need mobile layout fix");
+        await userEvent.type(
+            screen.getByPlaceholderText("What happened, what you expected, and any helpful context"),
+            "Buttons overlap on screens below 360px."
+        );
+        await userEvent.click(screen.getByRole("button", { name: /submit ticket/i }));
+
+        expect(await screen.findByText("Thanks, your ticket was submitted.")).toBeInTheDocument();
     });
 });

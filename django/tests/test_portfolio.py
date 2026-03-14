@@ -7,7 +7,7 @@ from django.urls import reverse
 import pandas as pd
 from portfolio.models import Asset, Account
 from portfolio.tasks import load_iex_hist, refresh_corporate_actions
-from portfolio.helper import get_historical_dividends, get_historical_prices
+from portfolio.helper import get_historical_dividends, get_historical_prices, get_historical_splits
 from tests.base import BaseAPITestCase
 
 MOCK_PRICES = {
@@ -249,6 +249,32 @@ class AssetDividendsTest(BaseAPITestCase):
         self.assertEqual(response.status_code, 400)
 
 
+class AssetSplitsTest(BaseAPITestCase):
+    """Tests for the asset-splits endpoint (public, calls yfinance)."""
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse('asset-splits')
+        patch("portfolio.views.get_historical_splits", return_value={
+            "AAPL": {
+                "2020-08-31": Decimal("4"),
+                "2014-06-09": Decimal("7"),
+            }
+        }).start()
+        self.addCleanup(patch.stopall)
+
+    def test_asset_splits(self):
+        response = self.client.get(self.url, {'ticker': 'AAPL'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertEqual(response.data[0]["date"], "2020-08-31")
+        self.assertEqual(Decimal(str(response.data[0]["value"])), Decimal("4"))
+
+    def test_asset_splits_missing_ticker(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 400)
+
+
 class HistoricalPricesHelperTest(TestCase):
     """Tests for yfinance historical price extraction."""
 
@@ -302,6 +328,27 @@ class HistoricalDividendsHelperTest(TestCase):
 
         self.assertEqual(result["AAPL"]["2025-02-10"], Decimal("0.25"))
         self.assertEqual(result["AAPL"]["2025-05-12"], Decimal("0.26"))
+
+
+class HistoricalSplitsHelperTest(TestCase):
+    """Tests for yfinance historical split extraction."""
+
+    @patch("portfolio.helper.cache.set")
+    @patch("portfolio.helper.cache.get", return_value=None)
+    @patch("portfolio.helper.yf.Tickers")
+    def test_reads_split_series(self, mock_tickers, _mock_cache_get, _mock_cache_set):
+        series = pd.Series(
+            [Decimal("4"), Decimal("7")],
+            index=pd.to_datetime(["2020-08-31", "2014-06-09"]),
+        )
+        mock_ticker = MagicMock()
+        mock_ticker.splits = series
+        mock_tickers.return_value = MagicMock(tickers={"AAPL": mock_ticker})
+
+        result = get_historical_splits(["AAPL"])
+
+        self.assertEqual(result["AAPL"]["2020-08-31"], Decimal("4"))
+        self.assertEqual(result["AAPL"]["2014-06-09"], Decimal("7"))
 
 
 class QuoteTest(BaseAPITestCase):

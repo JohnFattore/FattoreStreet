@@ -28,14 +28,15 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/asset/:ticker` | AssetView | Individual asset detail with equity/ETF info |
 | `/account/:id` | AccountView | Account holdings breakdown |
 | `/sec-edgar/:ticker` | SECData | SEC EDGAR financials, quarterly comparison, 10-K filing summaries |
-| `/iex-prices/:ticker` | IexPricesView | IEX daily adjusted OHLCV prices plus side-by-side adjusted price and dividend comparisons vs YFinance |
+| `/iex-prices/:ticker` | IexPricesView | IEX daily adjusted OHLCV prices plus side-by-side adjusted price, dividend, and split comparisons vs YFinance |
+| `/react-admin/success-bar` | AdminSuccessBar | Per-ticker corporate-action success overview comparing Spring Boot vs YFinance price/dividend alignment using persisted manual ticker list |
 | `/visualizer` | Visualizer | Chart comparison tool |
-| `/economic-indicators` | EconomicIndicators | FRED macroeconomic data charts |
+| `/economic-indicators` | EconomicIndicators | FRED macroeconomic data charts with chart-level latest readings (date + value) |
 | `/chatbot` | Chatbot | Boglehead AI financial advisor |
 | `/restaurants` | Restaurants | Restaurant reviews and map |
 | `/entertainment` | Entertainment | Music and media |
 | `/user` | User | User profile and settings |
-| `/react-admin` | Admin | Admin panel for triggering backend jobs |
+| `/react-admin` | Admin | Admin panel for Spring jobs (asset load with ETF enrichment, frame sync, IEX ingest, and price-adjustment modes) |
 
 ## Key Components
 
@@ -46,16 +47,20 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `YFinanceQuartersTable` | SECData | YFinance quarterly financials table |
 | `PriceComparison` | IexPricesView | IEX vs YFinance daily adjusted-close comparison |
 | `DividendComparison` | IexPricesView | Internal corporate-action dividends vs YFinance dividends (nearest-date matching) |
+| `SplitComparison` | IexPricesView | Internal SEC split events vs YFinance split events (date-window matching with normalized split ratios) |
+| `AdminSuccessBar` | AdminSuccessBar | Aggregated per-ticker success bars for Spring Boot vs YFinance price/dividend parity |
 | `SortableTable` | Multiple | Reusable sortable table with column config |
 | `AccountList` | Portfolio | Accounts with calculated balances |
 | `WatchListTable` | WatchList | Live-updating price grid |
+| `TicketForm` | User | Authenticated feedback ticket submission form |
 
 ## API Layer (RTK Query)
 
 All API calls go through a single RTK Query API slice (`src/functions/api.ts`) using a custom `axiosBaseQuery`. Endpoints are split across two backends:
 
-- **Django** (`VITE_APP_DJANGO_PORTFOLIO_URL`): assets, accounts, quotes, asset-prices, asset-dividends, FRED data, quarterly data, asset-info
-- **Spring Boot** (`VITE_APP_SPRINGBOOT_URL`): SEC EDGAR fact sheets, quarters, IEX prices, dividends, filing summaries
+- **Django** (`VITE_APP_DJANGO_PORTFOLIO_URL`): assets, accounts, quotes, asset-prices, asset-dividends, asset-splits, FRED data, quarterly data, asset-info
+- **Django Changeflow** (`VITE_APP_DJANGO_CHANGEFLOW_URL`, optional fallback from portfolio URL): authenticated ticket submission (`tickets/`)
+- **Spring Boot** (`VITE_APP_SPRINGBOOT_URL`): SEC EDGAR fact sheets, quarters, IEX prices, dividends, splits, filing summaries
 
 The `transformResponse` functions handle snake_case → camelCase conversion.
 

@@ -6,6 +6,7 @@ import { SortableTable } from "../components/SortableTable";
 import LoadingModal from "../components/LoadingModal";
 import PriceComparison from "../components/PriceComparison";
 import DividendComparison from "../components/DividendComparison";
+import SplitComparison from "../components/SplitComparison";
 import { IIexPrice } from "../interfaces";
 
 const formatCurrency = (value: number | null | undefined) =>
@@ -96,6 +97,7 @@ export default function IexPricesView() {
       */}
       <PriceComparison ticker={ticker} />
       <DividendComparison ticker={ticker} />
+      <SplitComparison ticker={ticker} />
       <div className="mt-3 mb-3">
         <Button variant="secondary" onClick={() => navigate(-1)}>
           Back

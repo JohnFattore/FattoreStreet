@@ -35,3 +35,9 @@ springboot/src/main/java/com/example/sec_api/
 - JPA + Hibernate with PostgreSQL
 - Use Spring Data repository interfaces; avoid raw SQL unless performance requires it
 - Reactive WebFlux (`WebService`) for external HTTP calls to SEC APIs
+
+## External Data Licensing
+
+- Only add external data sources that are permitted for free commercial use.
+- Before integrating a new source, verify Terms of Use or license coverage for commercial use, storage, and redistribution.
+- If terms are unclear or restrictive, do not integrate the source.

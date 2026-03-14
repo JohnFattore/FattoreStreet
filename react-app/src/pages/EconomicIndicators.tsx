@@ -6,6 +6,34 @@ import { useGetFredDataQuery } from "../functions/api";
 import { getApiErrorMessages } from "../functions/helperFunctions";
 
 export default function EconomicIndicators() {
+  const seriesLabelMap: Record<string, string> = {
+    DGS2: "2Y",
+    DGS10: "10Y",
+    DGS30: "30Y",
+    T10Y2Y: "10Y-2Y Spread",
+    FEDFUNDS: "Fed Funds",
+    CPIAUCSL: "CPI YoY",
+    PCEPILFE: "Core PCE YoY",
+    T10YIE: "10Y Breakeven",
+    UNRATE: "Unemployment",
+    ICSA: "Jobless Claims",
+    PAYEMS: "Nonfarm Payrolls YoY",
+    GDP: "GDP YoY",
+    INDPRO: "Industrial Production YoY",
+    RSAFS: "Retail Sales YoY",
+    UMCSENT: "Consumer Sentiment",
+    MORTGAGE30US: "30Y Mortgage",
+    MORTGAGE15US: "15Y Mortgage",
+    CSUSHPINSA: "Home Prices YoY",
+    HOUST: "Housing Starts",
+    SP500: "S&P 500",
+    VIXCLS: "VIX",
+    BAMLH0A0HYM2: "HY Credit Spread",
+    DTWEXBGS: "USD Strength YoY",
+    M2SL: "M2 YoY",
+    WALCL: "Fed Balance Sheet YoY",
+  };
+
   const seriesList = [
     // Interest Rates & Yield Curve
     { series_id: "DGS2", compute_yoy: false },
@@ -42,6 +70,39 @@ export default function EconomicIndicators() {
   ];
 
   const { data, isLoading, error } = useGetFredDataQuery(seriesList);
+
+  const formatLatestDate = (date: string) =>
+    new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  const formatLatestValue = (value: number) =>
+    new Intl.NumberFormat(undefined, {
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  const getLatestReading = (seriesId: string, includeLabel = false, customLabel?: string) => {
+    if (!data) return undefined;
+    const observations = data[seriesId];
+    if (!observations || observations.length === 0) return undefined;
+
+    const latestPoint = observations.reduce((latest, current) =>
+      current.date > latest.date ? current : latest
+    );
+
+    const reading = `${formatLatestValue(latestPoint.value)} (${formatLatestDate(latestPoint.date)})`;
+    if (!includeLabel) return reading;
+    const label = customLabel ?? seriesLabelMap[seriesId] ?? seriesId;
+    return `${label}: ${reading}`;
+  };
+
+  const getLatestReadingGroup = (items: { seriesId: string; label?: string }[]) =>
+    items
+      .map((item) => getLatestReading(item.seriesId, true, item.label))
+      .filter(Boolean)
+      .join(" · ");
 
   // Merge 2-year, 10-year, and 30-year treasury yield data by date for overlay chart
   const treasuryOverlay = useMemo(() => {
@@ -125,6 +186,11 @@ export default function EconomicIndicators() {
             data={treasuryOverlay}
             label="Treasury Yields (2Y / 10Y / 30Y)"
             description="Comparison of short-, mid-, and long-term Treasury yields — a key window into the yield curve and economic outlook."
+            latestReading={getLatestReadingGroup([
+              { seriesId: "DGS2", label: "2Y" },
+              { seriesId: "DGS10", label: "10Y" },
+              { seriesId: "DGS30", label: "30Y" },
+            ])}
             lines={[
               { dataKey: "2-Year", color: "#20c997", name: "2-Year" },
               { dataKey: "10-Year", color: "#007bff", name: "10-Year" },
@@ -137,6 +203,7 @@ export default function EconomicIndicators() {
             data={data["T10Y2Y"]}
             label="Yield Curve Spread (10Y - 2Y)"
             description="The difference between 10-year and 2-year Treasury yields. Inversions (negative values) have preceded every US recession in modern history."
+            latestReading={getLatestReading("T10Y2Y")}
             strokeColor="#e83e8c"
           />
         </Col>
@@ -145,6 +212,7 @@ export default function EconomicIndicators() {
             data={data["FEDFUNDS"]}
             label="Federal Funds Rate"
             description="The interest rate at which depository institutions lend reserve balances to other institutions overnight."
+            latestReading={getLatestReading("FEDFUNDS")}
             strokeColor="#fd7e14"
           />
         </Col>
@@ -158,6 +226,10 @@ export default function EconomicIndicators() {
             data={cpiPceOverlay}
             label="CPI vs Core PCE (YoY)"
             description="Headline CPI and the Fed's preferred Core PCE inflation measure side by side — comparing consumer price changes with the metric that drives monetary policy."
+            latestReading={getLatestReadingGroup([
+              { seriesId: "CPIAUCSL", label: "CPI YoY" },
+              { seriesId: "PCEPILFE", label: "Core PCE YoY" },
+            ])}
             lines={[
               { dataKey: "CPI", color: "#dc3545", name: "CPI YoY" },
               { dataKey: "Core PCE", color: "#6f42c1", name: "Core PCE YoY" },
@@ -169,6 +241,7 @@ export default function EconomicIndicators() {
             data={data["T10YIE"]}
             label="10-Year Breakeven Inflation Rate"
             description="The market's expected average inflation over the next 10 years, derived from the spread between nominal Treasuries and TIPS."
+            latestReading={getLatestReading("T10YIE")}
             strokeColor="#17a2b8"
           />
         </Col>
@@ -182,6 +255,7 @@ export default function EconomicIndicators() {
             data={data["UNRATE"]}
             label="Unemployment Rate"
             description="The percentage of the total labor force that is unemployed and actively seeking employment."
+            latestReading={getLatestReading("UNRATE")}
             strokeColor="#6c757d"
           />
         </Col>
@@ -190,6 +264,7 @@ export default function EconomicIndicators() {
             data={data["ICSA"]}
             label="Initial Jobless Claims"
             description="Weekly count of new filings for unemployment insurance — a high-frequency leading indicator that spikes well before recessions."
+            latestReading={getLatestReading("ICSA")}
             strokeColor="#dc3545"
           />
         </Col>
@@ -198,6 +273,7 @@ export default function EconomicIndicators() {
             data={data["PAYEMS"]}
             label="Nonfarm Payrolls (YoY)"
             description="Year-over-year change in total nonfarm employment — the headline jobs number watched on the first Friday of every month."
+            latestReading={getLatestReading("PAYEMS")}
             strokeColor="#007bff"
           />
         </Col>
@@ -211,6 +287,7 @@ export default function EconomicIndicators() {
             data={data["GDP"]}
             label="US GDP Growth (YoY)"
             description="The total monetary or market value of all the finished goods and services produced within a country's borders."
+            latestReading={getLatestReading("GDP")}
             strokeColor="#28a745"
           />
         </Col>
@@ -219,6 +296,7 @@ export default function EconomicIndicators() {
             data={data["INDPRO"]}
             label="Industrial Production (YoY)"
             description="Year-over-year change in output from manufacturing, mining, and utilities — a broad measure of the real economy's production capacity."
+            latestReading={getLatestReading("INDPRO")}
             strokeColor="#20c997"
           />
         </Col>
@@ -227,6 +305,7 @@ export default function EconomicIndicators() {
             data={data["RSAFS"]}
             label="Retail Sales (YoY)"
             description="Year-over-year change in advance retail and food services sales — a direct measure of consumer spending strength."
+            latestReading={getLatestReading("RSAFS")}
             strokeColor="#fd7e14"
           />
         </Col>
@@ -235,6 +314,7 @@ export default function EconomicIndicators() {
             data={data["UMCSENT"]}
             label="Consumer Sentiment"
             description="University of Michigan Consumer Sentiment Index — a forward-looking gauge of consumer confidence and spending intentions."
+            latestReading={getLatestReading("UMCSENT")}
             strokeColor="#6f42c1"
           />
         </Col>
@@ -248,6 +328,10 @@ export default function EconomicIndicators() {
             data={mortgageOverlay}
             label="Mortgage Rates (15-Year vs 30-Year)"
             description="Comparison of 30-year and 15-year fixed mortgage rates, key drivers of housing affordability and refinancing decisions."
+            latestReading={getLatestReadingGroup([
+              { seriesId: "MORTGAGE30US", label: "30Y Fixed" },
+              { seriesId: "MORTGAGE15US", label: "15Y Fixed" },
+            ])}
             lines={[
               { dataKey: "30-Year", color: "#6f42c1", name: "30-Year Fixed" },
               { dataKey: "15-Year", color: "#e83e8c", name: "15-Year Fixed" },
@@ -259,6 +343,7 @@ export default function EconomicIndicators() {
             data={data["CSUSHPINSA"]}
             label="Home Prices (YoY)"
             description="S&P/Case-Shiller U.S. National Home Price Index year-over-year change — the benchmark for tracking residential real estate values."
+            latestReading={getLatestReading("CSUSHPINSA")}
             strokeColor="#28a745"
           />
         </Col>
@@ -267,6 +352,7 @@ export default function EconomicIndicators() {
             data={data["HOUST"]}
             label="Housing Starts"
             description="New privately-owned housing units started (thousands of units) — a leading indicator of construction activity and housing supply."
+            latestReading={getLatestReading("HOUST")}
             strokeColor="#17a2b8"
           />
         </Col>
@@ -280,6 +366,7 @@ export default function EconomicIndicators() {
             data={data["SP500"]}
             label="S&P 500"
             description="The S&P 500 index — a market-capitalization-weighted benchmark of 500 leading US publicly traded companies."
+            latestReading={getLatestReading("SP500")}
             strokeColor="#007bff"
           />
         </Col>
@@ -288,6 +375,7 @@ export default function EconomicIndicators() {
             data={data["VIXCLS"]}
             label="VIX (Volatility Index)"
             description="The CBOE Volatility Index — measures the market's expectation of 30-day forward-looking volatility, often called the 'fear gauge.'"
+            latestReading={getLatestReading("VIXCLS")}
             strokeColor="#dc3545"
           />
         </Col>
@@ -296,6 +384,7 @@ export default function EconomicIndicators() {
             data={data["BAMLH0A0HYM2"]}
             label="High Yield Credit Spread"
             description="ICE BofA US High Yield Option-Adjusted Spread — the yield premium investors demand over Treasuries to hold riskier corporate bonds. Widens sharply in recessions."
+            latestReading={getLatestReading("BAMLH0A0HYM2")}
             strokeColor="#fd7e14"
           />
         </Col>
@@ -309,6 +398,7 @@ export default function EconomicIndicators() {
             data={data["DTWEXBGS"]}
             label="USD Strength Index (YoY)"
             description="Measures the value of the US Dollar against a basket of currencies of major US trading partners."
+            latestReading={getLatestReading("DTWEXBGS")}
             strokeColor="#17a2b8"
           />
         </Col>
@@ -317,6 +407,7 @@ export default function EconomicIndicators() {
             data={data["M2SL"]}
             label="M2 Money Supply (YoY)"
             description="Year-over-year growth in the M2 money supply — a broad measure of money including cash, checking deposits, and easily convertible near-money."
+            latestReading={getLatestReading("M2SL")}
             strokeColor="#007bff"
           />
         </Col>
@@ -325,6 +416,7 @@ export default function EconomicIndicators() {
             data={data["WALCL"]}
             label="Fed Balance Sheet (YoY)"
             description="Year-over-year change in the Federal Reserve's total assets — a direct measure of quantitative easing and tightening."
+            latestReading={getLatestReading("WALCL")}
             strokeColor="#dc3545"
           />
         </Col>

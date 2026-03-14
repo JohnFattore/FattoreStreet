@@ -1,6 +1,19 @@
 import { createApi, BaseQueryFn } from "@reduxjs/toolkit/query/react";
 import axios, { AxiosRequestConfig, AxiosError } from "axios";
-import { IAsset, IDividendRow, IEquityInfo, IETFInfo, IFilingSummary, IIexDividendsResponse, IIexPricesResponse, ISECData, ISECQuartersResponse, IYFinanceQuarter } from "../interfaces";
+import {
+  IAsset,
+  IDividendRow,
+  IEquityInfo,
+  IETFInfo,
+  IFilingSummary,
+  IIexDividendsResponse,
+  IIexPricesResponse,
+  IIexSplitsResponse,
+  ISECData,
+  ISECQuartersResponse,
+  ISplitRow,
+  IYFinanceQuarter,
+} from "../interfaces";
 import { RootState } from "../main";
 
 /** Raw snake_case shape returned by Django for a single asset */
@@ -56,6 +69,26 @@ interface IFredObservation {
   value: number;
 }
 
+interface ITicketPayload {
+  title: string;
+  description: string;
+}
+
+interface ITicketResponse extends ITicketPayload {
+  id: number;
+  status: "OPEN" | "IN_REVIEW" | "CLOSED";
+  user: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const changeflowBaseUrl =
+  import.meta.env.VITE_APP_DJANGO_CHANGEFLOW_URL ||
+  import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
+    "/portfolio/api/",
+    "/changeflow/api/"
+  );
+
 const axiosBaseQuery =
   (): BaseQueryFn<{
     url: string;
@@ -63,8 +96,9 @@ const axiosBaseQuery =
     data?: AxiosRequestConfig["data"];
     params?: AxiosRequestConfig["params"];
     baseUrl?: string;
+    withAuth?: boolean;
   }> =>
-    async ({ url, method, data, params, baseUrl }, api) => {
+    async ({ url, method, data, params, baseUrl, withAuth = true }, api) => {
       try {
         const state = api.getState() as RootState;
         const access = state.user.access;
@@ -73,7 +107,7 @@ const axiosBaseQuery =
           method,
           data,
           params: params,
-          headers: access ? { Authorization: `Bearer ${access}` } : undefined,
+          headers: withAuth && access ? { Authorization: `Bearer ${access}` } : undefined,
         });
         return { data: result.data };
       } catch (axiosError) {
@@ -144,6 +178,14 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: "Accounts", id: "LIST" }],
     }),
+    postTicket: builder.mutation<ITicketResponse, ITicketPayload>({
+      query: (ticket) => ({
+        url: "tickets/",
+        method: "POST",
+        data: ticket,
+        baseUrl: changeflowBaseUrl,
+      }),
+    }),
     getAsset: builder.query<IAsset, number>({
       query: (id) => ({
         url: `assets/${id}`,
@@ -188,6 +230,7 @@ export const api = createApi({
         url: "asset-info/",
         method: "GET",
         params: { tickers: tickers.join(",") },
+        withAuth: false,
       }),
       transformResponse: (
         response: IRawAssetInfoItem[] | { data: IRawAssetInfoItem[] }
@@ -256,6 +299,7 @@ export const api = createApi({
         url: "asset-prices/",
         method: "GET",
         params: { ticker: ticker },
+        withAuth: false,
       }),
     }),
     getAssetDividends: builder.query<IDividendRow[], string>({
@@ -263,6 +307,15 @@ export const api = createApi({
         url: "asset-dividends/",
         method: "GET",
         params: { ticker },
+        withAuth: false,
+      }),
+    }),
+    getAssetSplits: builder.query<ISplitRow[], string>({
+      query: (ticker) => ({
+        url: "asset-splits/",
+        method: "GET",
+        params: { ticker },
+        withAuth: false,
       }),
     }),
     getFredData: builder.query<
@@ -334,6 +387,13 @@ export const api = createApi({
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
       }),
     }),
+    getIexSplits: builder.query<IIexSplitsResponse, string>({
+      query: (ticker) => ({
+        url: `splits?ticker=${ticker}`,
+        method: "GET",
+        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+      }),
+    }),
     getFilingSummaries: builder.query<IFilingSummary[], string>({
       query: (ticker) => ({
         url: `filing-summaries?ticker=${ticker}`,
@@ -350,6 +410,7 @@ export const {
   useLazyGetAssetInfosQuery,
   useGetAssetPricesQuery,
   useGetAssetDividendsQuery,
+  useGetAssetSplitsQuery,
   useGetAssetsQuery,
   usePostNewAssetMutation,
   useGetAssetQuery,
@@ -358,6 +419,7 @@ export const {
   useGetFredDataQuery,
   useGetQuoteQuery,
   useCreateAccountMutation,
+  usePostTicketMutation,
   useGetAccountsQuery,
   useGetAccountQuery,
   useGetSecEdgarDataQuery,
@@ -366,5 +428,6 @@ export const {
   useGetSecEdgarDataBatchQuery,
   useGetIexPricesQuery,
   useGetIexDividendsQuery,
+  useGetIexSplitsQuery,
   useGetFilingSummariesQuery,
 } = api;

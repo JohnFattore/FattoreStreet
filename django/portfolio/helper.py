@@ -86,6 +86,30 @@ def get_historical_dividends(tickers: list[str]) -> dict:
         dividends[ticker] = ticker_dividends
     return dividends
 
+
+def get_historical_splits(tickers: list[str]) -> dict:
+    def _cache_key(ticker: str) -> str:
+        return f"historical_splits_{ticker}"
+
+    splits, uncached_tickers = _partition_cached(tickers, _cache_key)
+    if not uncached_tickers:
+        return splits
+
+    yfinance = yf.Tickers(" ".join(uncached_tickers))
+    for ticker in uncached_tickers:
+        series = yfinance.tickers[ticker].splits
+        if series is None or series.empty:
+            ticker_splits = {}
+        else:
+            ticker_splits = {
+                idx.strftime("%Y-%m-%d"): Decimal(str(value))
+                for idx, value in series.items()
+                if value is not None and value > 0
+            }
+        cache.set(_cache_key(ticker), ticker_splits, timeout=60 * 60 * 24)
+        splits[ticker] = ticker_splits
+    return splits
+
 def get_realtime_price(ticker: str) -> dict:
     cache_key = f"current_quote_{ticker}"
     cached_data = cache.get(cache_key)

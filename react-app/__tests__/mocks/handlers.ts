@@ -1,5 +1,12 @@
 import { http } from "msw";
 
+const changeflowBaseUrl =
+  import.meta.env.VITE_APP_DJANGO_CHANGEFLOW_URL ||
+  import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
+    "/portfolio/api/",
+    "/changeflow/api/"
+  );
+
 export const handlers = [
   http.get(
     import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("accounts/"),
@@ -66,6 +73,18 @@ export const handlers = [
               exchange: "NASDAQ",
               current_price: 500,
               percent_change_daily: 0.02, // 2% up
+              percent_change_weekly: 0.03,
+              percent_change_monthly: 0.04,
+              percent_change_YTD: 0.05,
+              percent_change_yearly: 0.06,
+              percent_change_3_years: 0.2,
+              percent_change_5_years: 0.5,
+              dividend_yield: 0.008,
+              market_cap: 1000000000,
+              net_income: 100000000,
+              total_revenue: 500000000,
+              ttm_pe: 20,
+              expenseRatio: 0,
             },
             {
               ticker: "AAPL",
@@ -76,6 +95,40 @@ export const handlers = [
               exchange: "NASDAQ",
               current_price: 200,
               percent_change_daily: -0.01, // 1% down
+              percent_change_weekly: 0.01,
+              percent_change_monthly: 0.02,
+              percent_change_YTD: 0.03,
+              percent_change_yearly: 0.04,
+              percent_change_3_years: 0.15,
+              percent_change_5_years: 0.35,
+              dividend_yield: 0.006,
+              market_cap: 900000000,
+              net_income: 120000000,
+              total_revenue: 600000000,
+              ttm_pe: 18,
+              expenseRatio: 0,
+            },
+            {
+              ticker: "VOO",
+              short_name: "Vanguard S&P 500 ETF",
+              long_name: "Vanguard S&P 500 ETF",
+              type: "ETF",
+              market: "us_market",
+              exchange: "NYSEARCA",
+              current_price: 525,
+              percent_change_daily: 0.01,
+              percent_change_weekly: 0.02,
+              percent_change_monthly: 0.03,
+              percent_change_YTD: 0.05,
+              percent_change_yearly: 0.09,
+              percent_change_3_years: 0.28,
+              percent_change_5_years: 0.62,
+              dividend_yield: 0.014,
+              market_cap: 700000000,
+              net_income: 0,
+              total_revenue: 0,
+              ttm_pe: 24,
+              expenseRatio: 0.0003,
             },
           ]
         },
@@ -394,6 +447,22 @@ export const handlers = [
     }
   ),
 
+  http.get(
+    import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("splits"),
+    () => {
+      return Response.json(
+        {
+          ticker: "AAPL",
+          splits: [
+            { date: "2014-06-09", ratio: 0.1428571429, value: 0.1428571429 },
+            { date: "2020-08-31", ratio: 0.25, value: 0.25 },
+          ],
+        },
+        { status: 200 }
+      );
+    }
+  ),
+
   // --- Filing Summaries (Spring Boot) ---
 
   http.get(
@@ -459,6 +528,19 @@ export const handlers = [
           { date: "2025-02-10", value: 0.25 },
           { date: "2025-05-12", value: 0.26 },
           { date: "2025-08-08", value: 0.26 },
+        ],
+        { status: 200 }
+      );
+    }
+  ),
+
+  http.get(
+    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-splits/"),
+    () => {
+      return Response.json(
+        [
+          { date: "2014-06-09", value: 7 },
+          { date: "2020-08-31", value: 4 },
         ],
         { status: 200 }
       );
@@ -536,6 +618,24 @@ export const handlers = [
           sell_SnP500: null,
           user: 5,
           account: 1,
+        },
+        { status: 201 }
+      );
+    }
+  ),
+  http.post(
+    changeflowBaseUrl.concat("tickets/"),
+    async ({ request }) => {
+      const body = (await request.json()) as { title?: string; description?: string };
+      return Response.json(
+        {
+          id: 500,
+          title: body.title ?? "",
+          description: body.description ?? "",
+          status: "OPEN",
+          user: 5,
+          created_at: "2026-02-27T00:00:00Z",
+          updated_at: "2026-02-27T00:00:00Z",
         },
         { status: 201 }
       );

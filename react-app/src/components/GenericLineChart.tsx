@@ -15,10 +15,11 @@ import {
  * Single-line usage:  <GenericLineChart data={[...]} label="Title" strokeColor="#007bff" />
  * Multi-line overlay: <GenericLineChart data={mergedData} label="Title" lines={[{ dataKey: "a", color: "#007bff", name: "A" }, ...]} />
  */
-export default function GenericLineChart({ data, label, description, strokeColor = "#8884d8", height = 300, lines }: {
+export default function GenericLineChart({ data, label, description, latestReading, strokeColor = "#8884d8", height = 300, lines }: {
   data: object[] | null | undefined;
   label: string;
   description: string;
+  latestReading?: string;
   strokeColor?: string;
   height?: number;
   lines?: { dataKey: string; color: string; name: string }[];
@@ -99,6 +100,11 @@ export default function GenericLineChart({ data, label, description, strokeColor
               {description}
             </p>
           </div>
+        )}
+        {latestReading && (
+          <p className="text-muted small mb-0">
+            <strong>Latest reading:</strong> {latestReading}
+          </p>
         )}
       </Card.Body>
     </Card>

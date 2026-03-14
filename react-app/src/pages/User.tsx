@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../main';
 import { Button } from 'react-bootstrap';
 import { setUserDarkMode } from '../reducers/userReducer';
+import TicketForm from "../components/TicketForm";
 
 export default function User() {
     const { username, access, darkMode } = useSelector((state: RootState) => state.user);
@@ -75,6 +76,14 @@ export default function User() {
                                     <span>Logged In</span>
                                 </ListGroup.Item>
                             </ListGroup>
+                        </Card.Body>
+                    </Card>
+                    <Card className="mt-3">
+                        <Card.Header as="h5" className="theme-header-quaternary">
+                            Feedback Tickets
+                        </Card.Header>
+                        <Card.Body>
+                            <TicketForm />
                         </Card.Body>
                     </Card>
                 </Col>

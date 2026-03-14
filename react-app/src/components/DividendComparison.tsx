@@ -13,6 +13,7 @@ interface ComparisonRow {
 }
 
 const MATCH_WINDOW_DAYS = 3;
+const MIN_COMPARISON_DATE = "2016-01-01";
 
 const formatCurrency = (value: number | null): string => {
   if (value == null) return "---";
@@ -31,8 +32,12 @@ const buildRows = (myDividends: IDividendRow[], yfDividends: IDividendRow[]): Co
   const usedYfIndexes = new Set<number>();
   const rows: ComparisonRow[] = [];
 
-  const sortedMine = [...myDividends].sort((a, b) => a.date.localeCompare(b.date));
-  const sortedYf = [...yfDividends].sort((a, b) => a.date.localeCompare(b.date));
+  const sortedMine = myDividends
+    .filter((row) => row.date >= MIN_COMPARISON_DATE)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const sortedYf = yfDividends
+    .filter((row) => row.date >= MIN_COMPARISON_DATE)
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   for (const mine of sortedMine) {
     const mineDay = toEpochDay(mine.date);

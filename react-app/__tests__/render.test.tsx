@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import React from 'react';
 import { screen } from '@testing-library/react';
 import { act } from 'react';
 import { expect, describe, it } from 'vitest';
@@ -70,6 +71,7 @@ describe('EconomicIndicators', () => {
         expect(await screen.findByText('Economic Indicators')).toBeInTheDocument();
         expect(await screen.findByText('Inflation')).toBeInTheDocument();
         expect(await screen.findByText('Labor Market')).toBeInTheDocument();
+        expect(await screen.findAllByText(/Latest reading:/i)).not.toHaveLength(0);
     });
 });
 
