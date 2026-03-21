@@ -44,7 +44,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 | `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
 | `REDIS_URL` | (required) | Redis connection URL (e.g. `redis://localhost:6379`) |
 | `SPRINGBOOT_INTERNAL_URL` | `http://springboot:8080` | Spring Boot base URL for Celery tasks |
-| `ADMIN_API_KEY` | `spike` | Key for Spring Boot `X-Admin-Key` header |
+| `ADMIN_API_KEY` | (required) | Key for Spring Boot `X-Admin-Key` header |
 
 ## Getting Started
 

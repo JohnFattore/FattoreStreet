@@ -25,8 +25,8 @@ public class DividendRecordDateService {
 
     private static final Logger log = LoggerFactory.getLogger(DividendRecordDateService.class);
     private static final LocalDate T_PLUS_ONE_CUTOFF = LocalDate.of(2024, 5, 28);
-    private static final int MAX_8K_TO_SCAN = 250;
-    private static final int MAX_SPLIT_8K_TO_SCAN = 400;
+    private static final int MAX_DIVIDEND_FILINGS_TO_SCAN = 250;
+    private static final int MAX_SPLIT_FILINGS_TO_SCAN = 400;
     private static final int MAX_SUBMISSION_FILES_TO_SCAN = 48;
     private static final int MAX_EXHIBIT_DOCS_TO_SCAN = 6;
 
@@ -83,27 +83,29 @@ public class DividendRecordDateService {
             .toFormatter(Locale.US);
 
     private final WebService webService;
+    private final EdgarFilingDiscoveryService filingDiscoveryService;
     private final ObjectMapper mapper;
 
-    public DividendRecordDateService(WebService webService, ObjectMapper mapper) {
+    public DividendRecordDateService(
+            WebService webService,
+            EdgarFilingDiscoveryService filingDiscoveryService,
+            ObjectMapper mapper) {
         this.webService = webService;
+        this.filingDiscoveryService = filingDiscoveryService;
         this.mapper = mapper;
     }
 
     public List<RecordDateCandidate> fetchDividendRecordDates(Long cik) {
-        JsonNode root;
-        try {
-            root = mapper.readTree(webService.fetchSubmissions(cik));
-        } catch (Exception e) {
-            log.warn("Failed to fetch SEC submissions for CIK {}: {}", cik, e.getMessage());
-            return Collections.emptyList();
-        }
+        return scanDividendRecordDates(cik).candidates();
+    }
 
+    public RecordDateScanResult scanDividendRecordDates(Long cik) {
         Map<LocalDate, RecordDateCandidate> candidatesByDate = new HashMap<>();
-        List<EightKFiling> filings = collectEightKFilingRows(cik, root, MAX_8K_TO_SCAN);
-        log.info("[CIK {}] Dividend record-date scan starting: {} candidate 8-K filings", cik, filings.size());
+        FilingSelection selection = selectCandidateFilings(cik, false, MAX_DIVIDEND_FILINGS_TO_SCAN);
+        List<FilingCandidate> filings = selection.selected();
+        log.info("[CIK {}] Dividend record-date scan starting: {} candidate filings", cik, filings.size());
         int processed = 0;
-        for (EightKFiling filing : filings) {
+        for (FilingCandidate filing : filings) {
             processed++;
             if (processed == 1 || processed % 25 == 0 || processed == filings.size()) {
                 log.info("[CIK {}] Dividend record-date scan progress: {}/{} filings processed, {} unique candidates",
@@ -114,6 +116,14 @@ public class DividendRecordDateService {
                 List<ExtractedRecordDate> extracted = new ArrayList<>(
                         extractRecordDateCandidates(text, "primary:" + filing.primaryDocument()));
                 extracted.addAll(extractRecordDateCandidatesFromExhibits(cik, filing.accessionNumber(), text));
+                if (extracted.isEmpty()) {
+                    try {
+                        String fullSubmissionText = webService.fetchFullSubmissionText(cik, filing.accessionNumber());
+                        extracted.addAll(extractRecordDateCandidates(fullSubmissionText, "submission_txt"));
+                    } catch (Exception ignored) {
+                        // Fall back to primary/exhibit parsing only.
+                    }
+                }
                 if (extracted.isEmpty()) {
                     continue;
                 }
@@ -139,24 +149,21 @@ public class DividendRecordDateService {
                 .thenComparing(RecordDateCandidate::confidenceScore, Comparator.reverseOrder())
                 .thenComparing(RecordDateCandidate::filingDate));
         log.info("[CIK {}] Dividend record-date scan finished: {} unique candidates", cik, out.size());
-        return out;
+        return new RecordDateScanResult(out, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm());
     }
 
     public List<SplitDateCandidate> fetchSplitEffectiveDates(Long cik) {
-        JsonNode root;
-        try {
-            root = mapper.readTree(webService.fetchSubmissions(cik));
-        } catch (Exception e) {
-            log.warn("Failed to fetch SEC submissions for split-date scan CIK {}: {}", cik, e.getMessage());
-            return Collections.emptyList();
-        }
+        return scanSplitEffectiveDates(cik).candidates();
+    }
 
+    public SplitDateScanResult scanSplitEffectiveDates(Long cik) {
         Map<LocalDate, SplitDateCandidate> candidatesByDate = new HashMap<>();
         Map<String, Integer> splitIntentCounts = new TreeMap<>();
-        List<EightKFiling> filings = collectEightKFilingRows(cik, root, MAX_SPLIT_8K_TO_SCAN);
-        log.info("[CIK {}] Split effective-date scan starting: {} candidate 8-K filings", cik, filings.size());
+        FilingSelection selection = selectCandidateFilings(cik, true, MAX_SPLIT_FILINGS_TO_SCAN);
+        List<FilingCandidate> filings = selection.selected();
+        log.info("[CIK {}] Split effective-date scan starting: {} candidate filings", cik, filings.size());
         int processed = 0;
-        for (EightKFiling filing : filings) {
+        for (FilingCandidate filing : filings) {
             processed++;
             if (processed == 1 || processed % 25 == 0 || processed == filings.size()) {
                 log.info("[CIK {}] Split effective-date scan progress: {}/{} filings processed, {} unique candidates",
@@ -167,6 +174,14 @@ public class DividendRecordDateService {
                 List<ExtractedRecordDate> extracted = new ArrayList<>(
                         extractSplitDateCandidates(text, "primary:" + filing.primaryDocument()));
                 extracted.addAll(extractSplitDateCandidatesFromExhibits(cik, filing.accessionNumber(), text));
+                if (extracted.isEmpty()) {
+                    try {
+                        String fullSubmissionText = webService.fetchFullSubmissionText(cik, filing.accessionNumber());
+                        extracted.addAll(extractSplitDateCandidates(fullSubmissionText, "submission_txt"));
+                    } catch (Exception ignored) {
+                        // Fall back to primary/exhibit parsing only.
+                    }
+                }
                 if (extracted.isEmpty()) {
                     continue;
                 }
@@ -214,7 +229,7 @@ public class DividendRecordDateService {
             log.info("[CIK {}] Split candidate intent summary: {}", cik, intentSummary);
         }
         log.info("[CIK {}] Split effective-date scan finished: {} unique candidates", cik, out.size());
-        return out;
+        return new SplitDateScanResult(out, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm());
     }
 
     public LocalDate computeExDividendDate(LocalDate recordDate) {
@@ -417,6 +432,87 @@ public class DividendRecordDateService {
         return unescaped.replaceAll("\\s+", " ").trim();
     }
 
+    private FilingSelection selectCandidateFilings(Long cik, boolean splitMode, int maxToScan) {
+        List<EdgarFilingDiscoveryService.FilingMeta> discovered = Collections.emptyList();
+        try {
+            discovered = filingDiscoveryService.discoverFilings(cik);
+        } catch (Exception ignored) {
+            discovered = Collections.emptyList();
+        }
+        if (discovered.isEmpty()) {
+            try {
+                JsonNode root = mapper.readTree(webService.fetchSubmissions(cik));
+                List<EightKFiling> eightKFilings = collectEightKFilingRows(cik, root, maxToScan);
+                discovered = eightKFilings.stream()
+                        .map(f -> new EdgarFilingDiscoveryService.FilingMeta(
+                                f.accessionNumber(),
+                                "8-K",
+                                f.primaryDocument(),
+                                f.filingDate()))
+                        .toList();
+            } catch (Exception ignored) {
+                discovered = Collections.emptyList();
+            }
+        }
+        Map<String, Integer> discoveredByForm = new TreeMap<>();
+        Map<String, Integer> selectedByForm = new TreeMap<>();
+        Map<String, Integer> rejectedByForm = new TreeMap<>();
+        List<FilingCandidate> selected = new ArrayList<>();
+        for (EdgarFilingDiscoveryService.FilingMeta meta : discovered) {
+            String form = normalizeForm(meta.formType());
+            discoveredByForm.merge(form, 1, Integer::sum);
+            int score = splitMode ? splitFormScore(form) : dividendRecordFormScore(form);
+            if (score <= 0) {
+                rejectedByForm.merge(form, 1, Integer::sum);
+                continue;
+            }
+            selectedByForm.merge(form, 1, Integer::sum);
+            selected.add(new FilingCandidate(
+                    meta.accessionNumber(),
+                    meta.primaryDocument(),
+                    meta.filingDate(),
+                    form,
+                    score));
+        }
+        selected.sort(Comparator
+                .comparing(FilingCandidate::filingDate, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(FilingCandidate::formScore, Comparator.reverseOrder())
+                .thenComparing(FilingCandidate::accessionNumber));
+        if (selected.size() > Math.max(maxToScan, 0)) {
+            selected = new ArrayList<>(selected.subList(0, Math.max(maxToScan, 0)));
+        }
+        return new FilingSelection(selected, discoveredByForm, selectedByForm, rejectedByForm);
+    }
+
+    private int dividendRecordFormScore(String form) {
+        return switch (form) {
+            case "8-K", "8-K/A" -> 140;
+            case "DEF 14A", "DEFA14A" -> 110;
+            case "10-Q", "10-Q/A" -> 100;
+            case "10-K", "10-K/A" -> 95;
+            case "6-K", "20-F", "40-F" -> 90;
+            default -> 0;
+        };
+    }
+
+    private int splitFormScore(String form) {
+        return switch (form) {
+            case "8-K", "8-K/A" -> 145;
+            case "10-Q", "10-Q/A" -> 105;
+            case "10-K", "10-K/A" -> 100;
+            case "DEF 14A", "DEFA14A" -> 95;
+            case "6-K", "20-F", "40-F" -> 90;
+            default -> 0;
+        };
+    }
+
+    private String normalizeForm(String form) {
+        if (form == null || form.isBlank()) {
+            return "UNKNOWN";
+        }
+        return form.trim().toUpperCase(Locale.US);
+    }
+
     private List<EightKFiling> collectEightKFilingRows(Long cik, JsonNode submissionsRoot, int maxEightK) {
         List<EightKFiling> out = new ArrayList<>();
         Set<String> seenAccessions = new HashSet<>();
@@ -518,7 +614,7 @@ public class DividendRecordDateService {
                 .toList();
     }
 
-    private void logSplitCandidateRanking(Long cik, EightKFiling filing, List<ExtractedRecordDate> extracted) {
+    private void logSplitCandidateRanking(Long cik, FilingCandidate filing, List<ExtractedRecordDate> extracted) {
         List<ExtractedRecordDate> ranked = extracted.stream()
                 .sorted(candidateSelectionComparator().reversed())
                 .toList();
@@ -810,6 +906,17 @@ public class DividendRecordDateService {
             int intentRank,
             String confidenceLabel) {}
     private record EightKFiling(String accessionNumber, String primaryDocument, LocalDate filingDate) {}
+    private record FilingCandidate(
+            String accessionNumber,
+            String primaryDocument,
+            LocalDate filingDate,
+            String formType,
+            int formScore) {}
+    private record FilingSelection(
+            List<FilingCandidate> selected,
+            Map<String, Integer> discoveredByForm,
+            Map<String, Integer> selectedByForm,
+            Map<String, Integer> rejectedByForm) {}
 
     private enum SentenceIntent {
         GENERIC("SENTENCE_GENERIC", 0, 0),
@@ -851,5 +958,19 @@ public class DividendRecordDateService {
     }
 
     public record SplitDateCandidate(LocalDate effectiveDate, LocalDate filingDate, String accessionNumber, int confidenceScore) {
+    }
+
+    public record RecordDateScanResult(
+            List<RecordDateCandidate> candidates,
+            Map<String, Integer> discoveredByForm,
+            Map<String, Integer> selectedByForm,
+            Map<String, Integer> rejectedByForm) {
+    }
+
+    public record SplitDateScanResult(
+            List<SplitDateCandidate> candidates,
+            Map<String, Integer> discoveredByForm,
+            Map<String, Integer> selectedByForm,
+            Map<String, Integer> rejectedByForm) {
     }
 }

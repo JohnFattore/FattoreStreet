@@ -4,6 +4,10 @@ The backend is split across two services:
 - **Django** (REST Framework) -- base URL for local development: `http://localhost:8000`
 - **Spring Boot** (SEC EDGAR microservice) -- base URL for local development: `http://localhost:8080`
 
+## 📚 API documentation
+
+There is no machine-generated OpenAPI/Swagger in this repo right now. Use the endpoint tables below for Django and Spring Boot.
+
 ## 🔐 Authentication (Users)
 
 All protected endpoints require a valid JWT Access Token in the header:

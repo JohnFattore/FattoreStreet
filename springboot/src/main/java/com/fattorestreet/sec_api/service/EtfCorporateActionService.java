@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -33,7 +34,6 @@ import java.util.regex.Pattern;
 public class EtfCorporateActionService {
 
     private static final Logger log = LoggerFactory.getLogger(EtfCorporateActionService.class);
-    private static final Set<String> SUPPORTED_FORMS = Set.of("497", "485BPOS", "485APOS", "N-CSR", "N-CSRS");
     private static final int MAX_DOCUMENTS_PER_FILING = 8;
     private static final int MAX_TEXT_BYTES_PER_DOCUMENT = 1_250_000;
     private static final int MAX_SAMPLE_ROWS = 10;
@@ -78,18 +78,44 @@ public class EtfCorporateActionService {
     private final CorporateActionRepository corporateActionRepository;
     private final WebService webService;
     private final DividendRecordDateService dividendRecordDateService;
+    private final EdgarFilingDiscoveryService filingDiscoveryService;
     private final ObjectMapper objectMapper;
+    private final EtfIdentityEvaluator etfIdentityEvaluator;
+    private final EtfAmountExtractor etfAmountExtractor;
+    private final EtfDateExtractor etfDateExtractor;
+    private final EtfActionPersister etfActionPersister;
 
+    @Autowired
     public EtfCorporateActionService(ListingRepository listingRepository,
                                      CorporateActionRepository corporateActionRepository,
                                      WebService webService,
                                      DividendRecordDateService dividendRecordDateService,
+                                     EdgarFilingDiscoveryService filingDiscoveryService,
                                      ObjectMapper objectMapper) {
         this.listingRepository = listingRepository;
         this.corporateActionRepository = corporateActionRepository;
         this.webService = webService;
         this.dividendRecordDateService = dividendRecordDateService;
+        this.filingDiscoveryService = filingDiscoveryService;
         this.objectMapper = objectMapper;
+        this.etfIdentityEvaluator = new EtfIdentityEvaluator();
+        this.etfAmountExtractor = new EtfAmountExtractor();
+        this.etfDateExtractor = new EtfDateExtractor(dividendRecordDateService);
+        this.etfActionPersister = new EtfActionPersister(corporateActionRepository);
+    }
+
+    EtfCorporateActionService(ListingRepository listingRepository,
+                              CorporateActionRepository corporateActionRepository,
+                              WebService webService,
+                              DividendRecordDateService dividendRecordDateService,
+                              ObjectMapper objectMapper) {
+        this(
+                listingRepository,
+                corporateActionRepository,
+                webService,
+                dividendRecordDateService,
+                new EdgarFilingDiscoveryService(webService, objectMapper),
+                objectMapper);
     }
 
     public EtfDetectionReport detectAndPersist(String ticker, Long cik, int minConfidence) {
@@ -108,14 +134,21 @@ public class EtfCorporateActionService {
             return report;
         }
 
-        Map<String, FilingMeta> filingMetaByAccession = loadFilingMeta(cik);
-        List<FilingMeta> etfFilings = filingMetaByAccession.values().stream()
-                .filter(meta -> isSupportedEtfForm(meta.formType()))
+        List<FilingMeta> etfFilings = filingDiscoveryService.discoverFilings(cik).stream()
+                .map(meta -> new FilingMeta(meta.accessionNumber(), meta.formType(), meta.primaryDocument(), meta.filingDate()))
                 .sorted(Comparator.comparing(FilingMeta::filingDate, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
         report.filingsConsidered = etfFilings.size();
 
         for (FilingMeta filingMeta : etfFilings) {
+            String normalizedForm = normalizeForm(filingMeta.formType());
+            report.recordFormDiscovered(normalizedForm);
+            if (scoreEtfForm(normalizedForm) <= 0) {
+                report.recordFormRejected(normalizedForm);
+                report.incrementSkip("form_not_relevant", filingMeta.accessionNumber());
+                continue;
+            }
+            report.recordFormEligible(normalizedForm);
             if (isStaleFiling(filingMeta.filingDate())) {
                 report.incrementSkip("filing_stale", filingMeta.accessionNumber());
                 continue;
@@ -129,7 +162,7 @@ public class EtfCorporateActionService {
 
             String bestText = null;
             String bestDocument = null;
-            IdentitySignal bestIdentitySignal = null;
+            EtfIdentityEvaluator.IdentitySignal bestIdentitySignal = null;
             for (String documentName : candidateDocuments) {
                 String filingText;
                 try {
@@ -142,34 +175,61 @@ public class EtfCorporateActionService {
                     continue;
                 }
                 filingText = limitText(filingText);
-                IdentitySignal signal = evaluateIdentity(filingText, listing, ticker, filingMeta, documentName);
+                EtfIdentityEvaluator.IdentitySignal signal = etfIdentityEvaluator.evaluateIdentity(
+                        filingText,
+                        listing,
+                        ticker,
+                        filingMeta.formType(),
+                        documentName);
                 report.recordIdentityScore(signal.score());
-                if (bestIdentitySignal == null || signal.score > bestIdentitySignal.score) {
+                if (bestIdentitySignal == null || signal.score() > bestIdentitySignal.score()) {
                     bestIdentitySignal = signal;
                     bestText = filingText;
                     bestDocument = documentName;
                 }
             }
 
+            try {
+                String fullSubmissionText = webService.fetchFullSubmissionText(cik, filingMeta.accessionNumber());
+                if (fullSubmissionText != null && !fullSubmissionText.isBlank()) {
+                    report.filingsFetched++;
+                    String normalizedSubmissionText = limitText(fullSubmissionText);
+                    EtfIdentityEvaluator.IdentitySignal signal = etfIdentityEvaluator.evaluateIdentity(
+                            normalizedSubmissionText,
+                            listing,
+                            ticker,
+                            filingMeta.formType(),
+                            filingMeta.accessionNumber() + ".txt");
+                    report.recordIdentityScore(signal.score());
+                    if (bestIdentitySignal == null || signal.score() > bestIdentitySignal.score()) {
+                        bestIdentitySignal = signal;
+                        bestText = normalizedSubmissionText;
+                        bestDocument = filingMeta.accessionNumber() + ".txt";
+                    }
+                }
+            } catch (Exception ignored) {
+                // Full-submission fallback is optional.
+            }
+
             if (bestText == null || bestText.isBlank()) {
                 report.incrementSkip("document_fetch_failed_or_empty", filingMeta.accessionNumber());
                 continue;
             }
-            if (bestIdentitySignal == null || bestIdentitySignal.score < IDENTITY_MIN_SCORE) {
+            if (bestIdentitySignal == null || bestIdentitySignal.score() < IDENTITY_MIN_SCORE) {
                 report.incrementSkip("identity_mismatch", filingMeta.accessionNumber());
                 continue;
             }
             report.identityMatched++;
 
-            AmountCandidate amountCandidate = extractDividendAmount(bestText);
-            if (amountCandidate == null || amountCandidate.amount <= 0) {
+            EtfAmountExtractor.AmountCandidate amountCandidate = etfAmountExtractor.extractDividendAmount(bestText);
+            if (amountCandidate == null || amountCandidate.amount() <= 0) {
                 report.incrementSkip("amount_missing", filingMeta.accessionNumber());
                 continue;
             }
             report.amountExtracted++;
             report.recordAmountSource(amountCandidate.source());
 
-            EtfDateSignals dateSignals = extractEtfDateSignals(bestText, filingMeta.filingDate());
+            EtfDateExtractor.EtfDateSignals dateSignals = etfDateExtractor.extractEtfDateSignals(bestText, filingMeta.filingDate());
             if (dateSignals == null) {
                 report.incrementSkip("date_missing", filingMeta.accessionNumber());
                 continue;
@@ -191,43 +251,27 @@ public class EtfCorporateActionService {
                 continue;
             }
 
-            Optional<CorporateAction> existing = corporateActionRepository
-                    .findByTickerAndActionTypeAndEffectiveDateAndRatioAndSourceType(
-                            ticker,
-                            CorporateAction.ActionType.DIVIDEND,
-                            effectiveDate,
-                            amountCandidate.amount,
-                            CorporateAction.SourceType.SEC_ETF_FILING);
-            if (existing.isPresent()) {
+            EtfActionPersister.PersistResult persistResult = etfActionPersister.persistDividend(
+                    ticker,
+                    listing,
+                    filingMeta.formType(),
+                    filingMeta.accessionNumber(),
+                    effectiveDate,
+                    amountCandidate.amount(),
+                    dateSignals);
+            if (persistResult == EtfActionPersister.PersistResult.DUPLICATE) {
                 report.incrementSkip("duplicate", filingMeta.accessionNumber());
                 report.duplicates++;
                 continue;
             }
-
-            CorporateAction action = new CorporateAction();
-            action.setTicker(ticker);
-            action.setActionType(CorporateAction.ActionType.DIVIDEND);
-            action.setEffectiveDate(effectiveDate);
-            action.setRatio(amountCandidate.amount);
-            action.setRawDividend(amountCandidate.amount);
-            action.setAdjustedDividend(amountCandidate.amount);
-            action.setSourceType(CorporateAction.SourceType.SEC_ETF_FILING);
-            action.setFormType(filingMeta.formType());
-            action.setAccessionNumber(filingMeta.accessionNumber());
-            action.setRecordDate(dateSignals.recordDate());
-            action.setPayDate(dateSignals.payDate());
-            action.setConfidenceScore((double) dateSignals.confidenceScore());
-            action.setSecSeriesId(listing.getSecSeriesId());
-            action.setSecClassContractId(listing.getSecClassContractId());
-            corporateActionRepository.save(action);
             report.saved++;
             report.sampleCreated(
                     filingMeta.accessionNumber(),
                     filingMeta.formType(),
                     bestDocument,
                     effectiveDate,
-                    amountCandidate.amount,
-                    bestIdentitySignal.score);
+                    amountCandidate.amount(),
+                    bestIdentitySignal.score());
         }
 
         report.logSummary(log);
@@ -283,15 +327,28 @@ public class EtfCorporateActionService {
         return new IdentitySignal(score, matchedSignals);
     }
 
-    private boolean isSupportedEtfForm(String form) {
-        if (form == null) {
-            return false;
+    private int scoreEtfForm(String form) {
+        if (form == null || form.isBlank()) {
+            return 0;
         }
-        String normalized = form.toUpperCase(Locale.US);
-        if (SUPPORTED_FORMS.contains(normalized)) {
-            return true;
+        if (form.startsWith("497")) {
+            return 140;
         }
-        return normalized.startsWith("485");
+        if (form.startsWith("485") || form.equals("N-1A") || form.equals("N-1A/A")) {
+            return 130;
+        }
+        if (form.equals("N-CSR") || form.equals("N-CSRS")
+                || form.equals("N-CSR/A") || form.equals("N-CSRS/A")) {
+            return 115;
+        }
+        return 0;
+    }
+
+    private String normalizeForm(String form) {
+        if (form == null || form.isBlank()) {
+            return "UNKNOWN";
+        }
+        return form.trim().toUpperCase(Locale.US);
     }
 
     private AmountCandidate extractDividendAmount(String filingText) {
@@ -957,6 +1014,9 @@ public class EtfCorporateActionService {
         private final Map<String, Integer> amountSourceCounts = new LinkedHashMap<>();
         private final Map<String, Integer> dateResolutionPathCounts = new LinkedHashMap<>();
         private final Map<String, Integer> dateSourceCounts = new LinkedHashMap<>();
+        private final Map<String, Integer> formsDiscovered = new LinkedHashMap<>();
+        private final Map<String, Integer> formsEligible = new LinkedHashMap<>();
+        private final Map<String, Integer> formsRejected = new LinkedHashMap<>();
         private final List<Map<String, Object>> sampleSkips = new ArrayList<>();
         private final List<Map<String, Object>> sampleCreated = new ArrayList<>();
 
@@ -1075,6 +1135,27 @@ public class EtfCorporateActionService {
             dateSourceCounts.merge(source, 1, Integer::sum);
         }
 
+        public void recordFormDiscovered(String form) {
+            if (form == null || form.isBlank()) {
+                return;
+            }
+            formsDiscovered.merge(form, 1, Integer::sum);
+        }
+
+        public void recordFormEligible(String form) {
+            if (form == null || form.isBlank()) {
+                return;
+            }
+            formsEligible.merge(form, 1, Integer::sum);
+        }
+
+        public void recordFormRejected(String form) {
+            if (form == null || form.isBlank()) {
+                return;
+            }
+            formsRejected.merge(form, 1, Integer::sum);
+        }
+
         public Map<String, Object> toMap() {
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("ticker", ticker);
@@ -1093,6 +1174,9 @@ public class EtfCorporateActionService {
             out.put("amountSourceCounts", new LinkedHashMap<>(amountSourceCounts));
             out.put("dateResolutionPathCounts", new LinkedHashMap<>(dateResolutionPathCounts));
             out.put("dateSourceCounts", new LinkedHashMap<>(dateSourceCounts));
+            out.put("formsDiscovered", new LinkedHashMap<>(formsDiscovered));
+            out.put("formsEligible", new LinkedHashMap<>(formsEligible));
+            out.put("formsRejected", new LinkedHashMap<>(formsRejected));
             out.put("skipReasons", new LinkedHashMap<>(skipReasons));
             out.put("sampleSkips", new ArrayList<>(sampleSkips));
             out.put("sampleCreated", new ArrayList<>(sampleCreated));

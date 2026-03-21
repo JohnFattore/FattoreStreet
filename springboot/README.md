@@ -53,9 +53,10 @@ Before adding or changing any external data source:
 | `DB_URL` | `jdbc:postgresql://localhost:5432/sec-api` | PostgreSQL JDBC URL |
 | `DB_USERNAME` | `postgres` | Database username |
 | `DB_PASSWORD` | `postgres` | Database password |
-| `ADMIN_API_KEY` | `spike` | Key for `X-Admin-Key` header on admin endpoints |
+| `ADMIN_API_KEY` | (required) | Key for `X-Admin-Key` header on admin endpoints |
 | `IEX_DATA_DIR` | `./data/iex_prices` | Directory containing IEX daily OHLCV CSV files |
 | `LLM_SERVER_URL` | `http://localhost:8081` | URL of the llama.cpp server for 10-K summarization |
+| `DJANGO_PORTFOLIO_BASE_URL` | `http://localhost:8000/portfolio` | Base URL for Django portfolio API used by diagnostics-only yfinance validation |
 | `SEC_HTTP_CONNECT_TIMEOUT_MS` | `15000` | SEC API connect timeout (milliseconds) |
 | `SEC_HTTP_READ_TIMEOUT_MS` | `120000` | SEC API read timeout per request (milliseconds) |
 | `SEC_HTTP_RETRY_MAX_ATTEMPTS` | `3` | Max attempts for transient SEC failures (429/5xx/timeout) |
@@ -67,6 +68,8 @@ Before adding or changing any external data source:
 ```bash
 mvn spring-boot:run
 ```
+
+`springboot/.env` is auto-imported at startup (`spring.config.import=optional:file:.env[.properties]`) for local runs. Keep values unquoted (for example, `ADMIN_API_KEY=your-key`).
 
 The service starts on port **8080** by default.
 
@@ -87,10 +90,10 @@ The service downloads IEX HIST TOPS pcap files, parses them in-process using a c
 
 ```bash
 # Load ~1 year of IEX TOPS data (default 252 trading days)
-curl -H "X-Admin-Key: spike" http://localhost:8080/admin/load-hist
+curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/load-hist
 
 # Or specify a smaller window
-curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/load-hist?days=30"
+curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/load-hist?days=30"
 ```
 
 Dates already in the database are skipped automatically. IEX load saves raw prices only — price adjustments run as a separate process.
@@ -101,19 +104,19 @@ Corporate action detection and price adjustment is decoupled from IEX loading. R
 
 ```bash
 # Adjust all tickers (skips SEC re-fetch for tickers with existing actions)
-curl -H "X-Admin-Key: spike" http://localhost:8080/admin/adjust-prices
+curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/adjust-prices
 
 # Force re-fetch from SEC for all tickers (catches new splits/dividends)
-curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/adjust-prices?force=true"
+curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/adjust-prices?force=true"
 
 # Adjust ETFs only (SEC filing-derived ETF actions)
-curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/adjust-prices?etfOnly=true&minConfidence=75"
+curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/adjust-prices?etfOnly=true&minConfidence=75"
 
 # Adjust a single ticker
-curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/adjust-prices?ticker=AAPL"
+curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/adjust-prices?ticker=AAPL"
 
-# Optional diagnostics-only validation against yfinance reference events
-curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/adjust-prices?ticker=AAPL&force=true&validateWithYfinance=true"
+# Optional diagnostics-only validation against yfinance reference events (via Django portfolio API)
+curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/adjust-prices?ticker=AAPL&force=true&validateWithYfinance=true"
 ```
 
 Dividend ingestion behavior:
@@ -142,6 +145,7 @@ Dividend ingestion behavior:
   - batch mode: `equityDiagnosticsSummary`
   - includes split/date-path counters and dividend parser-path counters (facts parsed, normalized events, record-date path usage, fallback usage, inserts/updates).
 - Optional yfinance validation report (`validateWithYfinance=true`) is diagnostics-only:
+  - Spring Boot reads yfinance reference data from Django public endpoints (`/portfolio/api/asset-dividends/`, `/portfolio/api/asset-splits/`) configured by `DJANGO_PORTFOLIO_BASE_URL`.
   - ticker mode adds `validationReport`
   - batch mode adds `validationSummary`
   - mismatch taxonomy: `missing_in_sec`, `extra_in_sec`, `date_drift`, `amount_drift`
@@ -164,16 +168,16 @@ Asset load with integrated ETF identity enrichment:
 
 ```bash
 # Load equities/funds from SEC and enrich ETF series/class identity fields
-curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/asset-load"
+curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/asset-load"
 
 # Overwrite previously resolved ETF identity rows during load
-curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/asset-load?overwriteExisting=true"
+curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/asset-load?overwriteExisting=true"
 ```
 
 You can also load pre-generated CSV files:
 
 ```bash
-curl -H "X-Admin-Key: spike" http://localhost:8080/admin/load-prices
+curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/load-prices
 ```
 
 ### 10-K Filing Summaries
@@ -184,10 +188,10 @@ Requires the llama.cpp server to be running (see `llm/run-server.sh`):
 
 ```bash
 # Summarize all equities with a CIK
-curl -H "X-Admin-Key: spike" http://localhost:8080/admin/summarize-filings
+curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/summarize-filings
 
 # Summarize a single ticker
-curl -H "X-Admin-Key: spike" "http://localhost:8080/admin/summarize-filings?ticker=AAPL"
+curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/summarize-filings?ticker=AAPL"
 ```
 
 Retrieve stored summaries via the public endpoint:

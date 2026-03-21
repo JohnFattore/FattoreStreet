@@ -77,7 +77,9 @@ class PriceAdjustmentServiceTest {
                 ticker,
                 cik,
                 new EquityCorporateActionService.SplitDetectionStats(0, 0, savedActions, 0, 0),
-                new EquityCorporateActionService.DividendDetectionStats(0, 0, 0, 0, 0, 0, 0, 0),
+                new EquityCorporateActionService.DividendDetectionStats(
+                        0, 0, 0, 0, 0, 0, 0, 0,
+                        Map.of(), Map.of(), Map.of()),
                 null);
     }
 

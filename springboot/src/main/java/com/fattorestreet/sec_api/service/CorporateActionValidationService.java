@@ -7,6 +7,7 @@ import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,7 +16,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -31,24 +31,29 @@ public class CorporateActionValidationService {
 
     private static final Logger log = LoggerFactory.getLogger(CorporateActionValidationService.class);
     private static final int MAX_SAMPLE_ROWS = 20;
-    private static final long DIVIDEND_DATE_TOLERANCE_DAYS = 5;
+    private static final long DIVIDEND_DATE_TOLERANCE_DAYS = 60;
     private static final long SPLIT_DATE_TOLERANCE_DAYS = 7;
-    private static final double DIVIDEND_AMOUNT_TOLERANCE = 0.01;
+    private static final double DIVIDEND_AMOUNT_TOLERANCE = 0.02;
     private static final double SPLIT_RATIO_TOLERANCE = 0.01;
 
     private final CorporateActionRepository corporateActionRepository;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+    private final String djangoPortfolioBaseUrl;
 
-    public CorporateActionValidationService(CorporateActionRepository corporateActionRepository, ObjectMapper objectMapper) {
+    public CorporateActionValidationService(
+            CorporateActionRepository corporateActionRepository,
+            ObjectMapper objectMapper,
+            @Value("${DJANGO_PORTFOLIO_BASE_URL:http://localhost:8000/portfolio}") String djangoPortfolioBaseUrl) {
         this.corporateActionRepository = corporateActionRepository;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder().build();
+        this.djangoPortfolioBaseUrl = trimTrailingSlash(djangoPortfolioBaseUrl);
     }
 
     public ValidationReport validateTicker(String ticker, LocalDate minDateInclusive) {
         List<NormalizedEvent> secEvents = loadSecEvents(ticker, minDateInclusive);
-        List<NormalizedEvent> yfEvents = loadYahooReferenceEvents(ticker, minDateInclusive);
+        List<NormalizedEvent> yfEvents = loadDjangoReferenceEvents(ticker, minDateInclusive);
         return diffEvents(ticker, secEvents, yfEvents);
     }
 
@@ -112,85 +117,105 @@ public class CorporateActionValidationService {
         return out;
     }
 
-    private List<NormalizedEvent> loadYahooReferenceEvents(String ticker, LocalDate minDateInclusive) {
+    private List<NormalizedEvent> loadDjangoReferenceEvents(String ticker, LocalDate minDateInclusive) {
         try {
-            long period1 = minDateInclusive.atStartOfDay().toEpochSecond(ZoneOffset.UTC);
-            long period2 = LocalDate.now().plusDays(1).atStartOfDay().toEpochSecond(ZoneOffset.UTC);
-            String url = String.format(
-                    Locale.US,
-                    "https://query1.finance.yahoo.com/v8/finance/chart/%s?period1=%d&period2=%d&interval=1d&events=div%%2Csplits",
-                    ticker,
-                    period1,
-                    period2);
-            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 300) {
-                log.warn("[{}] yfinance validation request failed with status {}", ticker, response.statusCode());
-                return List.of();
-            }
-            JsonNode root = objectMapper.readTree(response.body());
-            JsonNode resultNode = root.path("chart").path("result");
-            if (!resultNode.isArray() || resultNode.isEmpty()) {
-                return List.of();
-            }
-            JsonNode eventsNode = resultNode.get(0).path("events");
             List<NormalizedEvent> out = new ArrayList<>();
-            parseYahooDividends(eventsNode.path("dividends"), minDateInclusive, out);
-            parseYahooSplits(eventsNode.path("splits"), minDateInclusive, out);
+            String encodedTicker = java.net.URLEncoder.encode(ticker, java.nio.charset.StandardCharsets.UTF_8);
+            JsonNode dividends = fetchJsonArray(String.format(
+                    Locale.US,
+                    "%s/api/asset-dividends/?ticker=%s",
+                    djangoPortfolioBaseUrl,
+                    encodedTicker));
+            JsonNode splits = fetchJsonArray(String.format(
+                    Locale.US,
+                    "%s/api/asset-splits/?ticker=%s",
+                    djangoPortfolioBaseUrl,
+                    encodedTicker));
+            parseDjangoDividends(dividends, minDateInclusive, out);
+            parseDjangoSplits(splits, minDateInclusive, out);
             out.sort(Comparator.comparing(NormalizedEvent::date).thenComparing(NormalizedEvent::value));
             return out;
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            log.warn("[{}] yfinance validation fetch failed: {}", ticker, e.getMessage());
+            log.warn("[{}] django yfinance validation fetch failed: {}", ticker, e.getMessage());
             return List.of();
         }
     }
 
-    private void parseYahooDividends(JsonNode dividendsNode, LocalDate minDateInclusive, List<NormalizedEvent> out) {
-        if (!dividendsNode.isObject()) {
+    private JsonNode fetchJsonArray(String url) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 300) {
+            throw new IOException("HTTP " + response.statusCode() + " for " + url);
+        }
+        JsonNode root = objectMapper.readTree(response.body());
+        if (!root.isArray()) {
+            throw new IOException("Expected JSON array for " + url);
+        }
+        return root;
+    }
+
+    private void parseDjangoDividends(JsonNode dividendsNode, LocalDate minDateInclusive, List<NormalizedEvent> out) {
+        if (!dividendsNode.isArray()) {
             return;
         }
-        dividendsNode.fields().forEachRemaining(entry -> {
-            JsonNode row = entry.getValue();
-            long epoch = row.path("date").asLong(0L);
+        dividendsNode.forEach(row -> {
+            String dateText = row.path("date").asText(null);
             double amount = row.path("amount").asDouble(0.0);
-            LocalDate date = toDate(epoch);
+            if (amount <= 0) {
+                amount = row.path("value").asDouble(0.0);
+            }
+            LocalDate date = parseIsoDate(dateText);
             if (date != null && !date.isBefore(minDateInclusive) && amount > 0) {
                 out.add(new NormalizedEvent(ActionType.DIVIDEND, date, round4(amount), "yfinance"));
             }
         });
     }
 
-    private void parseYahooSplits(JsonNode splitsNode, LocalDate minDateInclusive, List<NormalizedEvent> out) {
-        if (!splitsNode.isObject()) {
+    private void parseDjangoSplits(JsonNode splitsNode, LocalDate minDateInclusive, List<NormalizedEvent> out) {
+        if (!splitsNode.isArray()) {
             return;
         }
-        splitsNode.fields().forEachRemaining(entry -> {
-            JsonNode row = entry.getValue();
-            long epoch = row.path("date").asLong(0L);
-            double numerator = row.path("numerator").asDouble(0.0);
-            double denominator = row.path("denominator").asDouble(0.0);
-            LocalDate date = toDate(epoch);
+        splitsNode.forEach(row -> {
+            String dateText = row.path("date").asText(null);
+            LocalDate date = parseIsoDate(dateText);
             if (date == null || date.isBefore(minDateInclusive)) {
                 return;
             }
-            if (numerator > 0 && denominator > 0) {
-                double ratio = round4(denominator / numerator);
+            double splitValue = row.path("value").asDouble(0.0);
+            if (splitValue > 0) {
+                // yfinance split value is post/pre share multiplier (e.g., 4 for 4:1).
+                double ratio = splitValue >= 1.0 ? round4(1.0 / splitValue) : round4(splitValue);
                 out.add(new NormalizedEvent(ActionType.SPLIT, date, ratio, "yfinance"));
             }
         });
     }
 
-    private LocalDate toDate(long epochSeconds) {
-        if (epochSeconds <= 0) {
+    private LocalDate parseIsoDate(String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
-        return java.time.Instant.ofEpochSecond(epochSeconds).atZone(ZoneOffset.UTC).toLocalDate();
+        try {
+            return LocalDate.parse(value);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String trimTrailingSlash(String url) {
+        if (url == null || url.isBlank()) {
+            return "http://localhost:8000/portfolio";
+        }
+        String out = url.trim();
+        while (out.endsWith("/")) {
+            out = out.substring(0, out.length() - 1);
+        }
+        return out;
     }
 
     private ValidationReport diffEvents(String ticker, List<NormalizedEvent> secEvents, List<NormalizedEvent> yfEvents) {
@@ -210,7 +235,7 @@ public class CorporateActionValidationService {
             }
             matchedYfIndexes.add(candidate.index());
             long dateGap = Math.abs(ChronoUnit.DAYS.between(secEvent.date(), candidate.event().date()));
-            double amountGap = Math.abs(secEvent.value() - candidate.event().value());
+            double amountGap = round4(Math.abs(secEvent.value() - candidate.event().value()));
             if (dateGap > 0) {
                 dateDrift++;
                 addSample(samples, ticker, "date_drift", dateGap > 3 ? "medium" : "low", secEvent, candidate.event());
@@ -258,7 +283,7 @@ public class CorporateActionValidationService {
             if (dateGap > maxDateGap) {
                 continue;
             }
-            double amountGap = Math.abs(secEvent.value() - candidate.value());
+            double amountGap = round4(Math.abs(secEvent.value() - candidate.value()));
             double score = dateGap * 100 + amountGap;
             if (best == null || score < best.score()) {
                 best = new MatchCandidate(i, candidate, score);

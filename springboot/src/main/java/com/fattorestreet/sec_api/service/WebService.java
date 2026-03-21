@@ -115,6 +115,22 @@ public class WebService {
         return response.getBody();
     }
 
+    public String fetchCompanyConcept(Long cik, String taxonomy, String tag) {
+        String paddedCik = String.format("%010d", cik);
+        String safeTaxonomy = taxonomy == null ? "" : taxonomy.trim();
+        String safeTag = tag == null ? "" : tag.trim();
+        String url = "https://data.sec.gov/api/xbrl/companyconcept/CIK"
+                + paddedCik + "/" + safeTaxonomy + "/" + safeTag + ".json";
+        ResponseEntity<String> response = executeSecRequestWithRetry(
+                "SEC companyconcept CIK " + paddedCik + " " + safeTaxonomy + ":" + safeTag,
+                () -> restTemplate.exchange(
+                        url,
+                        HttpMethod.GET,
+                        secEntity,
+                        String.class));
+        return response.getBody();
+    }
+
     public String fetchSubmissions(Long cik) {
         String paddedCik = String.format("%010d", cik);
         String url = "https://data.sec.gov/submissions/CIK" + paddedCik + ".json";
@@ -163,6 +179,21 @@ public class WebService {
                 + accessionNoDashes + "/index.json";
         ResponseEntity<String> response = executeSecRequestWithRetry(
                 "SEC filing index " + accessionNumber,
+                () -> restTemplate.exchange(
+                        url,
+                        HttpMethod.GET,
+                        secEntity,
+                        String.class));
+        return response.getBody();
+    }
+
+    public String fetchFullSubmissionText(Long cik, String accessionNumber) {
+        String cikNoPadding = String.valueOf(cik);
+        String accessionNoDashes = accessionNumber.replace("-", "");
+        String url = "https://www.sec.gov/Archives/edgar/data/" + cikNoPadding + "/"
+                + accessionNoDashes + "/" + accessionNoDashes + ".txt";
+        ResponseEntity<String> response = executeSecRequestWithRetry(
+                "SEC full submission text " + accessionNumber,
                 () -> restTemplate.exchange(
                         url,
                         HttpMethod.GET,

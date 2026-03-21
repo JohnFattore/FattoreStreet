@@ -187,7 +187,7 @@ REST_FRAMEWORK = {
     # JWT authentication
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -206,4 +206,4 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 SPRINGBOOT_INTERNAL_URL = env("SPRINGBOOT_INTERNAL_URL", default="http://springboot:8080")
-ADMIN_API_KEY = env("ADMIN_API_KEY", default="spike")
+ADMIN_API_KEY = env("ADMIN_API_KEY")

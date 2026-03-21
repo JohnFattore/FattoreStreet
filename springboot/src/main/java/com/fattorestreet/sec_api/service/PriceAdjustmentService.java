@@ -94,7 +94,10 @@ public class PriceAdjustmentService {
         }
 
         List<CorporateAction> actions = corporateActionRepository.findByTickerOrderByEffectiveDateDesc(normalizedTicker);
-        boolean shouldFetchSec = force || actions.isEmpty();
+        boolean hasEquityDividends = actions.stream().anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
+        boolean shouldFetchSec = force
+                || actions.isEmpty()
+                || (!isFund && validateWithYfinance && !hasEquityDividends);
         int newActions;
         EtfCorporateActionService.EtfDetectionReport etfReport = null;
         EquityCorporateActionService.EquityDetectionReport equityReport = null;
@@ -202,8 +205,15 @@ public class PriceAdjustmentService {
 
             try {
                 boolean hasExistingActions = tickersWithExistingActions.contains(ticker);
-                boolean shouldFetchSec = force || !hasExistingActions;
                 boolean isFund = Boolean.TRUE.equals(asset.getIsFund());
+                List<CorporateAction> existingActions = hasExistingActions
+                        ? corporateActionRepository.findByTickerOrderByEffectiveDateDesc(ticker)
+                        : List.of();
+                boolean hasEquityDividends = existingActions.stream()
+                        .anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
+                boolean shouldFetchSec = force
+                        || !hasExistingActions
+                        || (!isFund && validateWithYfinance && !hasEquityDividends);
 
                 if (etfOnly && !isFund) {
                     continue;
