@@ -16,17 +16,24 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Derives dividend ex-dates from SEC 8-K record-date disclosures and settlement-regime logic (pre-2024-05-28 T+2, post-cutover T+1)
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
 - Fetches 10-K filings from SEC EDGAR, extracts the MD&A section, and generates ~500 word summaries via a local LLM (llama.cpp server)
-- Also supports loading pre-generated OHLCV CSV files
+- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild-fattore-50` (`X-Admin-Key`). **Fattore 50** is a Russell-style (float-adjusted cap rank) top-50 proxy, not an official FTSE Russell product; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist.
+
+## Java package layout
+
+Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebService`), `index`, `corporateaction` and `corporateaction.support`, `fundamentals`, `listing`, `filing`, `marketdata`, plus shared `controller`, `repository`, `model`, `config`, and `util`. The `index` package holds index membership listing, SEC facts parsing, and metrics refresh. Tests mirror those package names under `src/test/java`.
 
 ## Stack
 
 - Java 17, Spring Boot 3.4.2
 - Spring Data JPA + Hibernate (PostgreSQL)
-- Spring WebFlux (reactive HTTP client for SEC APIs)
+- Spring `RestTemplate`-based SEC client (`WebService` in `client` package)
 - Bean Validation (`spring-boot-starter-validation`)
-- Jackson CSV for IEX price CSV ingestion
 - Custom pcap/pcapng + IEX-TP binary parser using `ByteBuffer` for HIST TOPS trade extraction
 - Maven build, Docker multi-stage image
+
+### Database migrations (production)
+
+Use **[Flyway](https://flywaydb.org/)** for production schema changes: versioned migrations under `src/main/resources/db/migration`, applied at startup with `spring-boot-starter-data-jpa` + Flyway on the classpath. Today the app still uses Hibernate `spring.jpa.hibernate.ddl-auto=update` for convenience in dev; for production, prefer turning that off (`validate` or `none`) and driving DDL through Flyway so changes are explicit, reviewable, and repeatable.
 
 ## Data Licensing Policy
 
@@ -54,7 +61,7 @@ Before adding or changing any external data source:
 | `DB_USERNAME` | `postgres` | Database username |
 | `DB_PASSWORD` | `postgres` | Database password |
 | `ADMIN_API_KEY` | (required) | Key for `X-Admin-Key` header on admin endpoints |
-| `IEX_DATA_DIR` | `./data/iex_prices` | Directory containing IEX daily OHLCV CSV files |
+| (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore rebuild includes (tests may override; production should stay at 50). Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
 | `LLM_SERVER_URL` | `http://localhost:8081` | URL of the llama.cpp server for 10-K summarization |
 | `DJANGO_PORTFOLIO_BASE_URL` | `http://localhost:8000/portfolio` | Base URL for Django portfolio API used by diagnostics-only yfinance validation |
 | `SEC_HTTP_CONNECT_TIMEOUT_MS` | `15000` | SEC API connect timeout (milliseconds) |
@@ -98,6 +105,30 @@ curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/load-hist?day
 
 Dates already in the database are skipped automatically. IEX load saves raw prices only — price adjustments run as a separate process.
 
+### Market index metrics (IEX + SEC)
+
+`ListingIndexMetrics` is built from the latest IEX-derived `DailyPrice` per ticker and SEC companyfacts (`EntityCommonStockSharesOutstanding`, `EntityPublicFloat`, DEI country). Run after listings and daily prices exist.
+
+**Upgrading existing databases** (pre–`MarketIndex` FK): if `index_members` still has a legacy `market_index` text column, insert the matching `market_indexes` row if needed, backfill `market_index_id`, then drop the old column after verifying rows.
+
+```bash
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/refresh-stocks
+```
+
+Rebuild the Russell-style **Fattore 50** index (`FAT50`): creates or reuses the `MarketIndex` row, replaces `IndexMember` rows with the top 50 by float-adjusted market cap (weights sum to 100%). Optional: refresh metrics first.
+
+```bash
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild-fattore-50
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild-fattore-50?refreshMetrics=true"
+```
+
+List available indexes and fetch constituents:
+
+```bash
+curl "http://localhost:8080/indexes"
+curl "http://localhost:8080/index-members?code=FAT50"
+```
+
 ### Price Adjustments (Splits & Dividends)
 
 Corporate action detection and price adjustment is decoupled from IEX loading. Run it separately:
@@ -123,9 +154,10 @@ Dividend ingestion behavior:
 - Normalizes dividend facts to per-quarter payouts before persistence.
 - Prefers true quarterly facts over cumulative rows for the same period end date (with form-priority tie-breaks) and skips annual-only period-end leakage.
 - Derives missing fiscal Q4 payouts from annual 10-K totals when quarter facts are absent, with guardrails to reject implausible derived values.
-- Derives ex-dates from SEC 8-K record-date disclosures using weighted candidate extraction (primary filing + exhibit scan), filing-date gates, and global quarter-sequence assignment.
+- Carries **fiscal quarter-end** (XBRL) and **ex-dividend date** separately through detection; split-adjustment applies forward-split factors using ex-dates (Yahoo-aligned), not quarter-end alone.
+- Derives ex-dates from SEC 8-K record-date disclosures using weighted candidate extraction (primary filing + exhibit scan), filing-date gates, and global quarter-sequence assignment; when filings state an explicit **ex-dividend date**, that date is preferred when it plausibly follows the fiscal period end.
 - Uses confidence-aware inferred fallback ex-dates (cadence/lag based) when no reliable record date can be extracted, instead of persisting quarter-end placeholders.
-- Derives split effective dates from SEC 8-K filing/exhibit text when available (including archived SEC submission bundles), and falls back to SEC shares-jump detection dates with low-confidence logging when unresolved.
+- Derives split effective dates from SEC 8-K filing/exhibit text when available (including archived SEC submission bundles), and falls back to SEC shares-jump detection dates with low-confidence logging when unresolved. **Non-standard** forward ratios (e.g. 3:2, 4:3) are only persisted when a filing-derived split effective date aligns with the shares jump (guards against buybacks/secondaries).
 - Uses bounded SEC retries with configurable timeouts to prevent indefinite hangs during long reconciliation scans.
 - Stores both SEC raw and split-adjusted dividend values per event (`rawDividend`, `adjustedDividend`), while keeping `ratio` as a compatibility alias to adjusted values.
 - Allows multiple same-date dividend rows when amounts differ (e.g., regular + special) via uniqueness on (`ticker`, `action_type`, `effective_date`, `ratio`) plus a lookup index on (`ticker`, `action_type`, `effective_date`).
@@ -172,12 +204,6 @@ curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/asset-load"
 
 # Overwrite previously resolved ETF identity rows during load
 curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/asset-load?overwriteExisting=true"
-```
-
-You can also load pre-generated CSV files:
-
-```bash
-curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/load-prices
 ```
 
 ### 10-K Filing Summaries

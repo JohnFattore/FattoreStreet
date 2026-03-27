@@ -19,7 +19,6 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fattorestreet.com']
 INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'portfolio.apps.PortfolioConfig',
-    'indexes.apps.IndexesConfig',
     'restaurants.apps.RestaurantsConfig',
     'chatbot.apps.ChatbotConfig',
     'changeflow.apps.ChangeflowConfig',

@@ -10,7 +10,16 @@ import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
 import com.fattorestreet.sec_api.repository.QuarterRepository;
-import com.fattorestreet.sec_api.service.*;
+import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.filing.FilingSummaryService;
+import com.fattorestreet.sec_api.fundamentals.EdgarService;
+import com.fattorestreet.sec_api.fundamentals.FinancialService;
+import com.fattorestreet.sec_api.listing.AssetService;
+import com.fattorestreet.sec_api.listing.EtfIdentityService;
+import com.fattorestreet.sec_api.listing.ListingService;
+import com.fattorestreet.sec_api.marketdata.IexHistService;
+import com.fattorestreet.sec_api.marketdata.PriceService;
+import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +28,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -28,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest({AdminController.class, PublicController.class})
@@ -51,7 +62,8 @@ class MainControllerTest {
     @MockitoBean private FilingSummaryService filingSummaryService;
     @MockitoBean private FilingSummaryRepository filingSummaryRepository;
     @MockitoBean private CorporateActionRepository corporateActionRepository;
-
+    @MockitoBean private com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService;
+    @MockitoBean private com.fattorestreet.sec_api.index.Fattore50IndexRebuildService fattore50IndexRebuildService;
     private Asset buildAsset(Long cik) {
         Asset a = new Asset();
         a.setId(1L);
@@ -496,25 +508,6 @@ class MainControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // --- /admin/load-prices endpoint ---
-
-    @Test
-    void adminLoadPrices_validKey_returns200() throws Exception {
-        when(priceService.loadAllCsvFiles(any())).thenReturn(
-                Map.of("filesLoaded", 5, "recordsLoaded", 12000));
-
-        mockMvc.perform(get("/admin/load-prices").header("X-Admin-Key", "spike"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Loaded 5 files")))
-                .andExpect(content().string(containsString("12000 price records")));
-    }
-
-    @Test
-    void adminLoadPrices_invalidKey_returns401() throws Exception {
-        mockMvc.perform(get("/admin/load-prices").header("X-Admin-Key", "wrong-key"))
-                .andExpect(status().isUnauthorized());
-    }
-
     // --- /admin/load-hist endpoint ---
 
     @Test
@@ -663,6 +656,43 @@ class MainControllerTest {
     void adminSummarizeFilings_invalidKey_returns401() throws Exception {
         mockMvc.perform(get("/admin/summarize-filings").header("X-Admin-Key", "wrong-key"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // --- /admin/indexes/rebuild-fattore-50 ---
+
+    @Test
+    void rebuildFattore50_validKey_returns200() throws Exception {
+        when(fattore50IndexRebuildService.rebuild()).thenReturn(
+                new com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult(
+                        "FAT50", 50, false, BigDecimal.ONE, List.of("AAPL")));
+
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-50").header("X-Admin-Key", "spike"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rebuild.indexCode").value("FAT50"))
+                .andExpect(jsonPath("$.rebuild.memberCount").value(50))
+                .andExpect(jsonPath("$.duration").exists());
+    }
+
+    @Test
+    void rebuildFattore50_invalidKey_returns401() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-50").header("X-Admin-Key", "wrong-key"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rebuildFattore50_refreshMetrics_includesRefresh() throws Exception {
+        when(indexMetricsRefreshService.refreshAllListings()).thenReturn(
+                new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(10, 2, List.of("X:no_cik")));
+        when(fattore50IndexRebuildService.rebuild()).thenReturn(
+                new com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult(
+                        "FAT50", 3, true, BigDecimal.TEN, List.of("A", "B", "C")));
+
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-50")
+                        .param("refreshMetrics", "true")
+                        .header("X-Admin-Key", "spike"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.refresh.processed").value(10))
+                .andExpect(jsonPath("$.rebuild.partial").value(true));
     }
 
     // --- /filing-summaries endpoint ---

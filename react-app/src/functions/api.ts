@@ -12,6 +12,8 @@ import {
   ISECData,
   ISECQuartersResponse,
   ISplitRow,
+  IMarketIndex,
+  IIndexMemberRow,
   IYFinanceQuarter,
 } from "../interfaces";
 import { RootState } from "../main";
@@ -402,6 +404,25 @@ export const api = createApi({
       }),
       transformResponse: (response: { ticker: string; summaries: IFilingSummary[] }) => response.summaries,
     }),
+
+    getIndexes: builder.query<IMarketIndex[], void>({
+      query: () => ({
+        url: "indexes",
+        method: "GET",
+        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
+      }),
+    }),
+
+    getIndexMembers: builder.query<IIndexMemberRow[], string>({
+      query: (code) => ({
+        url: "index-members",
+        method: "GET",
+        params: { code },
+        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
+      }),
+    }),
   }),
 });
 
@@ -430,4 +451,6 @@ export const {
   useGetIexDividendsQuery,
   useGetIexSplitsQuery,
   useGetFilingSummariesQuery,
+  useGetIndexesQuery,
+  useGetIndexMembersQuery,
 } = api;

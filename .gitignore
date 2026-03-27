@@ -10,8 +10,6 @@ env/
 
 *.log
 deploy.sh
-machineLearning/yelp_dataset
-machineLearning/fred
 django/restaurants/yelp_dataset
 
 react-app/node_modules
@@ -20,7 +18,6 @@ react-app/dist
 react-app/coverage
 react-app/.sass-cache
 
-machineLearning/huggingFace.txt
 
 django/chatbot/secret.txt
 
@@ -40,3 +37,7 @@ llm/stable-diffusion.cpp/
 llm/models/
 llm/output/
 llm/input/
+
+llm/machineLearning/yelp_dataset
+llm/machineLearning/fred
+llm/machineLearning/huggingFace.txt

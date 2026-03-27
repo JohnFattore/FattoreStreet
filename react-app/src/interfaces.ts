@@ -199,6 +199,34 @@ export interface IIexSplitsResponse {
     splits: ISplitRow[];
 }
 
+export interface IMarketIndex {
+    code: string;
+    displayName: string;
+}
+
+export interface IIndexMemberStock {
+    ticker: string;
+    name: string;
+    marketCap: number;
+    volume: number;
+    volumeUSD: number;
+    freeFloat: number;
+    freeFloatMarketCap: number;
+    countryIncorp: string;
+    countryHQ: string;
+    securityType: string;
+    yearIPO: number;
+}
+
+export interface IIndexMemberRow {
+    id: number;
+    percent: number;
+    index: string;
+    outlier: boolean;
+    notes: string;
+    stock: IIndexMemberStock;
+}
+
 export interface ISECData {
     ticker: string;
     cik: string;

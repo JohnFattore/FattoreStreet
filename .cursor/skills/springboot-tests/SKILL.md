@@ -11,8 +11,8 @@ JUnit 5 (Jupiter) + Mockito + Spring Boot Test (`spring-boot-starter-test`)
 
 ## File Conventions
 
-- Tests mirror the main source tree: `springboot/src/test/java/com/example/sec_api/`
-- Example: class `com.example.sec_api.service.EdgarService` → test in `com/example/sec_api/service/EdgarServiceTest.java`
+- Tests mirror the main source tree: `springboot/src/test/java/com/fattorestreet/sec_api/`
+- Example: class `com.fattorestreet.sec_api.fundamentals.EdgarService` → test in `com/fattorestreet/sec_api/fundamentals/EdgarServiceTest.java`
 - Reference: `QuarterUtilsTest.java` for plain unit test style
 - Run: `cd springboot && mvn test`
 - Run single: `mvn -Dtest=EdgarServiceTest test`

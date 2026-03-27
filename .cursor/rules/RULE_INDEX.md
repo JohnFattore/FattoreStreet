@@ -19,7 +19,7 @@ Quick reference for project rules in `/.cursor/rules`.
 ## Scoped Rules
 
 - `react-typescript.mdc` (`react-app/**/*.{ts,tsx}`)
-  - React + TypeScript conventions, RTK Query patterns, and styling expectations.
+  - React + TypeScript conventions, RTK Query patterns, styling expectations, and keeping [`Admin.tsx`](react-app/src/pages/Admin.tsx) in sync with new Spring `/admin/*` endpoints (plus model “Affects” lines and tests).
 
 - `django-drf.mdc` (`django/**/*.py`)
   - Django/DRF conventions, API patterns, caching, and auth style.

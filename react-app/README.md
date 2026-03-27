@@ -27,6 +27,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/watchlist` | WatchList | Live price table with benchmarks |
 | `/asset/:ticker` | AssetView | Individual asset detail with equity/ETF info |
 | `/account/:id` | AccountView | Account holdings breakdown |
+| `/indexes` | Indexes | Browse computed indexes (e.g. Fattore 50) and view constituents, weights, and key metrics |
 | `/sec-edgar/:ticker` | SECData | SEC EDGAR financials, quarterly comparison, 10-K filing summaries |
 | `/iex-prices/:ticker` | IexPricesView | IEX daily adjusted OHLCV prices plus side-by-side adjusted price, dividend, and split comparisons vs YFinance |
 | `/react-admin/success-bar` | AdminSuccessBar | Per-ticker corporate-action success overview comparing Spring Boot vs YFinance price/dividend alignment using persisted manual ticker list |
@@ -36,7 +37,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/restaurants` | Restaurants | Restaurant reviews and map |
 | `/entertainment` | Entertainment | Music and media |
 | `/user` | User | User profile and settings |
-| `/react-admin` | Admin | Admin panel for Spring jobs (asset load with ETF enrichment, frame sync, IEX ingest, and price-adjustment modes) |
+| `/react-admin` | Admin | Admin panel for Spring sec-api jobs: asset load, frame sync, IEX ingest, price adjustments, 10-K summaries, index metrics refresh (`ListingIndexMetrics`), and Fattore 50 rebuild (`MarketIndex` / `IndexMember`); each action labels the main DB models it touches |
 
 ## Key Components
 
@@ -55,6 +56,8 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `TicketForm` | User | Authenticated feedback ticket submission form |
 
 ## API Layer (RTK Query)
+
+**Prefer RTK Query** for wiring the UI to backends: add endpoints to the shared API slice (`src/functions/api.ts`) with the custom `axiosBaseQuery` rather than one-off Axios calls in components or `axiosFunctions.tsx`. That keeps caching, invalidation, and auth refresh consistent.
 
 All API calls go through a single RTK Query API slice (`src/functions/api.ts`) using a custom `axiosBaseQuery`. Endpoints are split across two backends:
 

@@ -20,6 +20,7 @@ import AccountView from "./pages/AccountView";
 import Admin from "./pages/Admin";
 import SECData from "./pages/SECData";
 import IexPricesView from "./pages/IexPricesView";
+import Indexes from "./pages/Indexes";
 import User from "./pages/User";
 import AdminSuccessBar from "./pages/AdminSuccessBar";
 
@@ -84,6 +85,7 @@ export default function App() {
         <Route path="/account/:id" element={<AccountView />} />
         <Route path="/visualizer" element={<Visualizer />} />
         <Route path="/economic-indicators" element={<EconomicIndicators />} />
+        <Route path="/indexes" element={<Indexes />} />
         <Route path="/sec-edgar/:ticker" element={<SECData />} />
         <Route path="/iex-prices/:ticker" element={<IexPricesView />} />
         <Route path="/react-admin/success-bar" element={<AdminSuccessBar />} />

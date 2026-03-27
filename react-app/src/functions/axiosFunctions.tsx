@@ -93,37 +93,6 @@ export const getQuote = async (ticker: string) => {
   return response;
 };
 
-/********************************* Indexes *************************************/
-export const getIndexMembers = async () => {
-  const response = await axios.get(
-    import.meta.env.VITE_APP_DJANGO_INDEXES_URL.concat("index_members/")
-  );
-  return response;
-};
-
-export const patchIndexMembers = async (notes: string, id: number) => {
-  const response = await axios.patch(
-    import.meta.env.VITE_APP_DJANGO_INDEXES_URL.concat(
-      "index_members_update/",
-      id,
-      "/"
-    ),
-    {
-      notes: notes,
-      // 1 is a placeholder, this is actually set on the back end using the User object returned by the request
-      user: 1,
-    },
-    {
-      headers: {
-        Authorization: " Bearer ".concat(
-          sessionStorage.getItem("token") as string
-        ),
-      },
-    }
-  );
-  return response;
-};
-
 /********************************* Restaurants *************************************/
 export const getRestaurants = createAsyncThunk<IRestaurant[]>(
   "restaurants/getRestaurants",

@@ -65,16 +65,20 @@ Feedback and issue intake for authenticated users.
 |--------|----------|-------------|
 | `POST` | `/changeflow/api/tickets/` | Submit a new feedback ticket for the logged-in user. |
 
-## 📊 Indexes
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/indexes/api/index_members/` | List members of tracked market indexes. |
-| `PUT` | `/indexes/api/index_members_update/<pk>/` | Update index member data. |
-
 ---
 
 # Spring Boot -- SEC EDGAR Microservice
+
+## 📊 Market indexes
+
+**All index traffic is handled by Spring Boot (`sec-api`)** — Django is not involved in these routes or tables. Data lives in the `sec-api` PostgreSQL database. Metrics are refreshed from **IEX-derived** `DailyPrice` rows and **SEC** companyfacts (see `springboot/README.md`). Public routes use the same root-level style as other Spring endpoints (e.g. `/quarters`).
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/indexes` | None | List available market indexes (`code`, `displayName`). |
+| `GET` | `/index-members` | None | List index members with nested `stock` payload (listing + metrics). Optional query param `code` filters to a single index (e.g. `?code=FAT50`). |
+| `POST` | `/admin/indexes/refresh-stocks` | `X-Admin-Key` | Recompute `ListingIndexMetrics` for all non-fund listings (requires CIK, SEC companyfacts, and at least one daily price row per ticker). Response includes `skipReasonCounts` (aggregate counts by `skippedTickers` reason). |
+| `POST` | `/admin/indexes/rebuild-fattore-50` | `X-Admin-Key` | Rebuild Russell-style **Fattore 50** (`MarketIndex` code `FAT50`): top 50 listings by `free_float_market_cap`, cap-weighted `IndexMember` rows. Optional query param `refreshMetrics=true` runs `refresh-stocks` first. Response JSON: `rebuild` (`indexCode`, `memberCount`, `partial`, `totalFreeFloatMarketCap`, `tickers`), optional `refresh` (when param set), and `duration`. Not an official FTSE Russell index. |
 
 ## 📄 SEC Financial Data
 
@@ -230,7 +234,6 @@ All admin endpoints require the `X-Admin-Key` header.
 |--------|----------|-------------|
 | `GET` | `/admin/asset-load?overwriteExisting=false` | Load all US tickers from SEC ticker endpoints (`company_tickers.json` and `company_tickers_mf.json`) into the database, then enrich ETF listings with SEC series/class identity mapping. |
 | `GET` | `/admin/sync-frames` | Sync XBRL frame data from SEC (all frames since 2009). |
-| `GET` | `/admin/load-prices` | Load IEX daily OHLCV CSV files from the configured data directory. |
 | `GET` | `/admin/load-hist?days=N` | Download IEX HIST TOPS PCAPs, parse trades, and insert raw OHLCV into DB. Default 252 days (~1 year). Does **not** trigger price adjustments. |
 | `GET` | `/admin/adjust-prices?ticker=X&force=false&etfOnly=false&equityOnly=false&minConfidence=70&validateWithYfinance=false` | Detect splits/dividends from SEC and apply adjustment factors to OHLCV prices. Supports ETF-only or equity-only batch mode and a minimum confidence threshold for ETF actions extracted from ETF filing forms (`497`, `485*`, `N-CSR/N-CSRS`). ETF detection scans the primary filing plus a capped set of likely exhibit/attachment documents, applies scored identity matching (ticker + class/series signals), and ranks amount/date candidates from sentence and table-like layouts. ETF date extraction now normalizes HTML/text blocks, supports additional formats (`MM-DD-YYYY`, `MM/DD/YY`, `YYYY/MM/DD`, abbreviated month labels), and can use low-confidence pay-date/filing-date fallbacks when explicit ex/record dates are missing. Dividend facts are normalized to quarterly payouts (including guarded fiscal-Q4 derivation from annual 10-K totals), and ex-dividend dates are mapped from SEC 8-K record dates (pre-2024-05-28 T+2, post-cutover T+1) using filing metadata and exhibit fallback parsing. When record dates cannot be reliably recovered, SEC-only fallback infers ex-dates from cadence/lag (with diagnostics) instead of quarter-end placeholders. Split factors are snapped to canonical ratios before dividend back-adjustment, and split effective dates prefer SEC 8-K filing/exhibit extraction (including archived submissions) over quarter-end-style shares facts when available. Persisted dividend rows keep both `rawValue` and `adjustedValue`; adjusted prices use `adjustedValue`. SEC fetches use bounded retries and configurable timeouts to avoid indefinite hangs during long scans. Omit `ticker` to adjust all. Set `force=true` to re-fetch SEC data for all tickers (reconciles existing actions and catches new splits/dividends). Set `validateWithYfinance=true` for diagnostics-only mismatch reporting against yfinance reference events (no writes from yfinance). |
 

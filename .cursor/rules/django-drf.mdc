@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Project Layout
 
-- App-based structure: `portfolio/`, `users/`, `chatbot/`, `restaurants/`, `indexes/`
+- App-based structure: `portfolio/`, `users/`, `chatbot/`, `restaurants/`, `changeflow/`
 - Shared helper utilities live in `django/portfolio/helper.py`
 - Async tasks use Celery with Redis as the broker
 

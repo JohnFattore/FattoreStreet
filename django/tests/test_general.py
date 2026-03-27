@@ -5,7 +5,7 @@ from django.urls import reverse
 class GeneralHealthTest(BaseAPITestCase):
     def test_apps_installed(self):
         # Verify critical apps are installed
-        expected_apps = ['users', 'portfolio', 'restaurants', 'indexes', 'chatbot']
+        expected_apps = ['users', 'portfolio', 'restaurants', 'chatbot', 'changeflow']
         for app in expected_apps:
             self.assertTrue(apps.is_installed(app), f"{app} is not installed")
 

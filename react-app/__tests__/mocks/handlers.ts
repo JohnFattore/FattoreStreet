@@ -137,6 +137,43 @@ export const handlers = [
     }
   ),
 
+  // --- Spring Boot: indexes ---
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("indexes"), () => {
+    return Response.json([{ code: "FAT50", displayName: "Fattore 50" }], { status: 200 });
+  }),
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("index-members"), ({ request }) => {
+    const url = new URL(request.url);
+    const code = url.searchParams.get("code") || "";
+    if (code !== "FAT50") {
+      return Response.json([], { status: 200 });
+    }
+    return Response.json(
+      [
+        {
+          id: 1,
+          percent: 5.5,
+          index: "Fattore 50",
+          outlier: false,
+          notes: "",
+          stock: {
+            ticker: "AAPL",
+            name: "Apple",
+            marketCap: 1000000000,
+            volume: 1000000,
+            volumeUSD: 200000000,
+            freeFloat: 0.9,
+            freeFloatMarketCap: 900000000,
+            countryIncorp: "United States",
+            countryHQ: "United States",
+            securityType: "Common Stock",
+            yearIPO: 1980,
+          },
+        },
+      ],
+      { status: 200 }
+    );
+  }),
+
   http.get(
     import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quote/"),
     () => {

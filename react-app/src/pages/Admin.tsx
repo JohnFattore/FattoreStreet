@@ -22,11 +22,6 @@ export default function Admin() {
     const [syncResult, setSyncResult] = useState<string | null>(null);
     const [syncError, setSyncError] = useState<string | null>(null);
 
-    // Load Prices state
-    const [priceLoading, setPriceLoading] = useState(false);
-    const [priceResult, setPriceResult] = useState<string | null>(null);
-    const [priceError, setPriceError] = useState<string | null>(null);
-
     // Load HIST state
     const [histLoading, setHistLoading] = useState(false);
     const [histResult, setHistResult] = useState<string | null>(null);
@@ -44,6 +39,17 @@ export default function Admin() {
     const [adjustMinConfidence, setAdjustMinConfidence] = useState('70');
 
     const [loadOverwriteExisting, setLoadOverwriteExisting] = useState(false);
+
+    // Index metrics (ListingIndexMetrics) state
+    const [indexMetricsLoading, setIndexMetricsLoading] = useState(false);
+    const [indexMetricsResult, setIndexMetricsResult] = useState<string | null>(null);
+    const [indexMetricsError, setIndexMetricsError] = useState<string | null>(null);
+
+    // Fattore 50 rebuild (MarketIndex + IndexMember) state
+    const [fattore50Loading, setFattore50Loading] = useState(false);
+    const [fattore50Result, setFattore50Result] = useState<string | null>(null);
+    const [fattore50Error, setFattore50Error] = useState<string | null>(null);
+    const [fattore50RefreshMetricsFirst, setFattore50RefreshMetricsFirst] = useState(false);
 
     // Summarize Filings state
     const [summaryLoading, setSummaryLoading] = useState(false);
@@ -185,19 +191,41 @@ export default function Admin() {
         }
     };
 
-    const handleLoadPrices = async () => {
-        setPriceLoading(true);
-        setPriceResult(null);
-        setPriceError(null);
+    const handleRefreshIndexMetrics = async () => {
+        setIndexMetricsLoading(true);
+        setIndexMetricsResult(null);
+        setIndexMetricsError(null);
         try {
-            const res = await axios.get(`${springbootUrl}admin/load-prices`, {
-                headers: { 'X-Admin-Key': apiKey },
-            });
-            setPriceResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
+            const res = await axios.post(
+                `${springbootUrl}admin/indexes/refresh-stocks`,
+                {},
+                { headers: { 'X-Admin-Key': apiKey }, timeout: 0 },
+            );
+            setIndexMetricsResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: any) {
-            setPriceError(normalizeError(err));
+            setIndexMetricsError(normalizeError(err));
         } finally {
-            setPriceLoading(false);
+            setIndexMetricsLoading(false);
+        }
+    };
+
+    const handleRebuildFattore50 = async () => {
+        setFattore50Loading(true);
+        setFattore50Result(null);
+        setFattore50Error(null);
+        try {
+            const params: Record<string, string> = {};
+            if (fattore50RefreshMetricsFirst) params.refreshMetrics = 'true';
+            const res = await axios.post(
+                `${springbootUrl}admin/indexes/rebuild-fattore-50`,
+                {},
+                { headers: { 'X-Admin-Key': apiKey }, params, timeout: 0 },
+            );
+            setFattore50Result(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
+        } catch (err: any) {
+            setFattore50Error(normalizeError(err));
+        } finally {
+            setFattore50Loading(false);
         }
     };
 
@@ -226,6 +254,10 @@ export default function Admin() {
                 <Card>
                     <h6>Asset Load (with ETF enrichment)</h6>
                     <p>Fetches all US tickers from SEC endpoints and enriches ETF listings with SEC series/class identity data.</p>
+                    <p className="text-muted small mb-2">
+                        <strong>Affects (sec-api DB):</strong>{' '}
+                        <code>Asset</code>, <code>Listing</code>
+                    </p>
                     <Form.Check
                         className="mb-2"
                         type="switch"
@@ -247,6 +279,10 @@ export default function Admin() {
                 <Card>
                     <h6>Sync Frames</h6>
                     <p>Full sync of all SEC EDGAR financial frames (2009 to present).</p>
+                    <p className="text-muted small mb-2">
+                        <strong>Affects (sec-api DB):</strong>{' '}
+                        <code>Quarter</code> and related SEC frame data
+                    </p>
                     <Button
                         onClick={handleSyncFrames}
                         disabled={syncLoading || !apiKey}
@@ -261,6 +297,9 @@ export default function Admin() {
                 <Card>
                     <h6>Download IEX HIST</h6>
                     <p>Download IEX TOPS PCAPs, parse trades, and load OHLCV directly into the database.</p>
+                    <p className="text-muted small mb-2">
+                        <strong>Affects (sec-api DB):</strong> <code>DailyPrice</code>
+                    </p>
                     <Form.Group className="mb-2">
                         <Form.Label>Trading days</Form.Label>
                         <Form.Control
@@ -284,6 +323,10 @@ export default function Admin() {
                 <Card>
                     <h6>Adjust Prices (Splits & Dividends)</h6>
                     <p>Detect splits and dividends from SEC EDGAR and apply adjustment factors to OHLCV prices.</p>
+                    <p className="text-muted small mb-2">
+                        <strong>Affects (sec-api DB):</strong>{' '}
+                        <code>CorporateAction</code>, <code>DailyPrice</code>
+                    </p>
                     <Form.Group className="mb-2">
                         <Form.Label>Ticker (blank for all)</Form.Label>
                         <Form.Control
@@ -348,6 +391,9 @@ export default function Admin() {
                 <Card>
                     <h6>Summarize 10-K Filings</h6>
                     <p>Fetch 10-K filings from SEC EDGAR and generate MD&A summaries via the local LLM.</p>
+                    <p className="text-muted small mb-2">
+                        <strong>Affects (sec-api DB):</strong> <code>FilingSummary</code>
+                    </p>
                     <Form.Group className="mb-2">
                         <Form.Label>Ticker (blank for all)</Form.Label>
                         <Form.Control
@@ -368,18 +414,62 @@ export default function Admin() {
                     {summaryError && <Alert variant="danger">{summaryError}</Alert>}
                 </Card>
 
-                {/* Load IEX Prices (CSV) */}
+                {/* Index metrics + Fattore 50 */}
                 <Card>
-                    <h6>Load IEX Prices (CSV)</h6>
-                    <p>Ingest pre-generated IEX daily OHLCV CSV files from the server data directory.</p>
+                    <h6>Refresh index stock metrics</h6>
+                    <p>
+                        Recompute per-listing market cap, float, and volume fields from IEX daily prices and SEC
+                        companyfacts (run after listings and prices exist).
+                    </p>
+                    <p className="text-muted small mb-2">
+                        <strong>Affects (sec-api DB):</strong> <code>ListingIndexMetrics</code> (reads{' '}
+                        <code>Listing</code>, <code>Asset</code>, <code>DailyPrice</code>)
+                    </p>
                     <Button
-                        onClick={handleLoadPrices}
-                        disabled={priceLoading || !apiKey}
+                        onClick={handleRefreshIndexMetrics}
+                        disabled={indexMetricsLoading || !apiKey}
                     >
-                        {priceLoading ? <><Spinner size="sm" />Loading...</> : 'Load Prices'}
+                        {indexMetricsLoading ? (
+                            <>
+                                <Spinner size="sm" /> Refreshing…
+                            </>
+                        ) : (
+                            'Refresh index metrics'
+                        )}
                     </Button>
-                    {priceResult && <Alert variant="success">{priceResult}</Alert>}
-                    {priceError && <Alert variant="danger">{priceError}</Alert>}
+                    {indexMetricsResult && <Alert variant="success">{indexMetricsResult}</Alert>}
+                    {indexMetricsError && <Alert variant="danger">{indexMetricsError}</Alert>}
+                </Card>
+
+                <Card>
+                    <h6>Rebuild Fattore 50 index</h6>
+                    <p>
+                        Russell-style top 50 by float-adjusted market cap: upserts <code>MarketIndex</code>{' '}
+                        <code>FAT50</code> and replaces <code>IndexMember</code> rows (cap weights). Not an official
+                        FTSE Russell index.
+                    </p>
+                    <p className="text-muted small mb-2">
+                        <strong>Affects (sec-api DB):</strong> <code>MarketIndex</code>, <code>IndexMember</code> (ranks
+                        from <code>ListingIndexMetrics</code>)
+                    </p>
+                    <Form.Check
+                        className="mb-2"
+                        type="switch"
+                        label="Run refresh index metrics first (same as Refresh index metrics above)"
+                        checked={fattore50RefreshMetricsFirst}
+                        onChange={(e) => setFattore50RefreshMetricsFirst(e.target.checked)}
+                    />
+                    <Button onClick={handleRebuildFattore50} disabled={fattore50Loading || !apiKey}>
+                        {fattore50Loading ? (
+                            <>
+                                <Spinner size="sm" /> Rebuilding…
+                            </>
+                        ) : (
+                            'Rebuild Fattore 50'
+                        )}
+                    </Button>
+                    {fattore50Result && <Alert variant="success">{fattore50Result}</Alert>}
+                    {fattore50Error && <Alert variant="danger">{fattore50Error}</Alert>}
                 </Card>
 
             </Card>

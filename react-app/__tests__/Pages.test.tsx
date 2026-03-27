@@ -14,6 +14,7 @@ import IexPricesView from '../src/pages/IexPricesView';
 import User from '../src/pages/User';
 import Admin from '../src/pages/Admin';
 import AdminSuccessBar from '../src/pages/AdminSuccessBar';
+import Indexes from '../src/pages/Indexes';
 import PriceComparison from '../src/components/PriceComparison';
 import DividendComparison from '../src/components/DividendComparison';
 import SplitComparison from '../src/components/SplitComparison';
@@ -145,6 +146,27 @@ describe("Admin", () => {
         });
 
         expect(screen.getByText("Open Corporate Action Success Bar")).toBeInTheDocument();
+    });
+
+    it("renders index admin actions and model hints for spike user", () => {
+        renderWithProviders(<Admin />, {
+            preloadedState: {
+                user: { access: "fake-token", refresh: "fake-refresh", username: "spike" },
+            },
+        });
+
+        expect(screen.getByRole("button", { name: /Refresh index metrics/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /Rebuild Fattore 50/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /Refresh index stock metrics/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /Rebuild Fattore 50 index/i })).toBeInTheDocument();
+        expect(screen.getAllByText(/ListingIndexMetrics/i).length).toBeGreaterThanOrEqual(1);
+    });
+});
+
+describe("Indexes", () => {
+    it("renders the page heading", () => {
+        renderWithProviders(<Indexes />);
+        expect(screen.getByText("Indexes")).toBeInTheDocument();
     });
 });
 

@@ -22,8 +22,18 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 | `users` | User registration, JWT token management |
 | `chatbot` | Boglehead AI financial advisor (Google Gemini) |
 | `restaurants` | Restaurant reviews and recommendations |
-| `indexes` | Market index tracking |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
+
+Market index membership APIs live in the Spring Boot service (`sec-api`), not in Django.
+
+If you still have legacy `indexes_*` tables in PostgreSQL from an older deploy, drop them after migrating traffic to Spring (optional one-time):
+
+```sql
+DROP TABLE IF EXISTS indexes_historicalindexmember CASCADE;
+DROP TABLE IF EXISTS indexes_historicalstock CASCADE;
+DROP TABLE IF EXISTS indexes_indexmember CASCADE;
+DROP TABLE IF EXISTS indexes_stock CASCADE;
+```
 
 ## Celery Tasks
 

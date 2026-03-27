@@ -58,6 +58,7 @@ graph TD
     - **`src/components/`**: Reusable UI components.
     - **`src/pages/`**: Main application views.
     - **`src/store/`**: Redux state slices.
+- **`springboot/`**: Spring Boot `sec-api` service (SEC EDGAR data, IEX-derived daily prices, and market index membership under `/index-members` and `/admin/indexes/*`).
 - **`kubernetes/`**: Scripts and configs for K8s deployment.
 - **`aws/`**: AWS specific configuration files.
 

@@ -9,12 +9,22 @@ alwaysApply: false
 ## Project Layout
 
 ```
-springboot/src/main/java/com/example/sec_api/
-  controller/   # @RestController endpoints
-  service/      # @Service business logic
-  repository/   # @Repository JPA interfaces
-  model/        # @Entity JPA entities
+springboot/src/main/java/com/fattorestreet/sec_api/
+  controller/           # @RestController endpoints
+  client/               # SEC HTTP client (WebService)
+  index/                # index membership, metrics refresh
+  corporateaction/      # dividends/splits, validation, price adjustment, filing discovery
+  corporateaction/support/  # parsers, extractors, persisters (non-@Service helpers)
+  fundamentals/         # EdgarService, quarters, financial metrics
+  listing/              # assets, listings, ETF identity enrichment
+  filing/               # 10-K MD&A fetch / LLM summary
+  marketdata/           # daily prices, IEX HIST ingest
+  repository/           # Spring Data JPA
+  model/                # @Entity JPA entities
+  config/, util/          # shared helpers
 ```
+
+Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
 
 ## Code Style
 
@@ -34,7 +44,7 @@ springboot/src/main/java/com/example/sec_api/
 
 - JPA + Hibernate with PostgreSQL
 - Use Spring Data repository interfaces; avoid raw SQL unless performance requires it
-- Reactive WebFlux (`WebService`) for external HTTP calls to SEC APIs
+- `WebService` in `client` uses `RestTemplate` for external HTTP calls to SEC APIs
 
 ## External Data Licensing
 

@@ -2,15 +2,14 @@ package com.fattorestreet.sec_api.controller;
 
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.Listing;
-import com.fattorestreet.sec_api.service.AssetService;
-import com.fattorestreet.sec_api.service.EdgarService;
-import com.fattorestreet.sec_api.service.EtfIdentityService;
-import com.fattorestreet.sec_api.service.FilingSummaryService;
-import com.fattorestreet.sec_api.service.IexHistService;
-import com.fattorestreet.sec_api.service.ListingService;
-import com.fattorestreet.sec_api.service.PriceAdjustmentService;
-import com.fattorestreet.sec_api.service.PriceService;
-import com.fattorestreet.sec_api.service.WebService;
+import com.fattorestreet.sec_api.filing.FilingSummaryService;
+import com.fattorestreet.sec_api.fundamentals.EdgarService;
+import com.fattorestreet.sec_api.listing.AssetService;
+import com.fattorestreet.sec_api.listing.EtfIdentityService;
+import com.fattorestreet.sec_api.listing.ListingService;
+import com.fattorestreet.sec_api.marketdata.IexHistService;
+import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
+import com.fattorestreet.sec_api.client.WebService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -19,17 +18,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Validated
 @RestController
@@ -41,42 +40,42 @@ public class AdminController {
     private final AssetService assetService;
     private final ListingService listingService;
     private final EdgarService edgarService;
-    private final PriceService priceService;
     private final PriceAdjustmentService priceAdjustmentService;
     private final IexHistService iexHistService;
     private final EtfIdentityService etfIdentityService;
     private final FilingSummaryService filingSummaryService;
     private final com.fattorestreet.sec_api.repository.AssetRepository assetRepository;
+    private final com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService;
+    private final com.fattorestreet.sec_api.index.Fattore50IndexRebuildService fattore50IndexRebuildService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${ADMIN_API_KEY}")
     private String adminApiKey;
-
-    @Value("${iex.data.dir:./data/iex_prices}")
-    private String iexDataDir;
 
     public AdminController(
             WebService webService,
             AssetService assetService,
             ListingService listingService,
             EdgarService edgarService,
-            PriceService priceService,
             PriceAdjustmentService priceAdjustmentService,
             IexHistService iexHistService,
             EtfIdentityService etfIdentityService,
             FilingSummaryService filingSummaryService,
-            com.fattorestreet.sec_api.repository.AssetRepository assetRepository
+            com.fattorestreet.sec_api.repository.AssetRepository assetRepository,
+            com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService,
+            com.fattorestreet.sec_api.index.Fattore50IndexRebuildService fattore50IndexRebuildService
     ) {
         this.webService = webService;
         this.assetService = assetService;
         this.listingService = listingService;
         this.edgarService = edgarService;
-        this.priceService = priceService;
         this.priceAdjustmentService = priceAdjustmentService;
         this.iexHistService = iexHistService;
         this.etfIdentityService = etfIdentityService;
         this.filingSummaryService = filingSummaryService;
         this.assetRepository = assetRepository;
+        this.indexMetricsRefreshService = indexMetricsRefreshService;
+        this.fattore50IndexRebuildService = fattore50IndexRebuildService;
     }
 
     @GetMapping("/admin/asset-load")
@@ -176,27 +175,6 @@ public class AdminController {
                 .get("units")
                 .get("USD");
         return ResponseEntity.ok(facts.toString());
-    }
-
-    @GetMapping("/admin/load-prices")
-    public ResponseEntity<?> loadPrices(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key
-    ) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
-        try {
-            long startTime = System.currentTimeMillis();
-            Path dataDir = Paths.get(iexDataDir);
-            Map<String, Object> result = priceService.loadAllCsvFiles(dataDir);
-            String duration = formatDuration(System.currentTimeMillis() - startTime);
-            String message = "Loaded " + result.get("filesLoaded") + " files with "
-                    + result.get("recordsLoaded") + " price records in " + duration + ".";
-            return ResponseEntity.ok(message);
-        } catch (Exception e) {
-            log.error("Error loading price CSVs", e);
-            return ResponseEntity.internalServerError().body("Error loading prices: " + e.getMessage());
-        }
     }
 
     @GetMapping("/admin/load-hist")
@@ -315,6 +293,71 @@ public class AdminController {
         } catch (Exception e) {
             log.error("Error syncing frames", e);
             return ResponseEntity.internalServerError().body("Error syncing frames: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/admin/indexes/refresh-stocks")
+    public ResponseEntity<?> refreshIndexStocks(
+            @RequestHeader(value = "X-Admin-Key", required = false) String key) {
+        if (isUnauthorized(key)) {
+            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
+        }
+        try {
+            long startTime = System.currentTimeMillis();
+            com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult r =
+                    indexMetricsRefreshService.refreshAllListings();
+            String duration = formatDuration(System.currentTimeMillis() - startTime);
+            Map<String, Long> skipReasonCounts = r.skippedTickers().stream()
+                    .map(s -> {
+                        int i = s.indexOf(':');
+                        return i >= 0 ? s.substring(i + 1) : "unknown";
+                    })
+                    .collect(Collectors.groupingBy(x -> x, Collectors.counting()));
+            return ResponseEntity.ok(Map.of(
+                    "message", "Index metrics refresh complete in " + duration,
+                    "processed", r.processed(),
+                    "skipped", r.skipped(),
+                    "skippedTickers", r.skippedTickers(),
+                    "skipReasonCounts", skipReasonCounts
+            ));
+        } catch (Exception e) {
+            log.error("Error refreshing index metrics", e);
+            return ResponseEntity.internalServerError().body("Error refreshing index metrics: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/admin/indexes/rebuild-fattore-50")
+    public ResponseEntity<?> rebuildFattore50(
+            @RequestHeader(value = "X-Admin-Key", required = false) String key,
+            @RequestParam(defaultValue = "false") boolean refreshMetrics) {
+        if (isUnauthorized(key)) {
+            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
+        }
+        try {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> payload = new LinkedHashMap<>();
+            if (refreshMetrics) {
+                com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult rr =
+                        indexMetricsRefreshService.refreshAllListings();
+                payload.put("refresh", Map.of(
+                        "processed", rr.processed(),
+                        "skipped", rr.skipped(),
+                        "skippedTickers", rr.skippedTickers()));
+            }
+            com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult rb =
+                    fattore50IndexRebuildService.rebuild();
+            payload.put("rebuild", Map.of(
+                    "indexCode", rb.indexCode(),
+                    "memberCount", rb.memberCount(),
+                    "partial", rb.partial(),
+                    "totalFreeFloatMarketCap", rb.totalFreeFloatMarketCap(),
+                    "tickers", rb.tickers()));
+            payload.put("duration", formatDuration(System.currentTimeMillis() - startTime));
+            return ResponseEntity.ok(payload);
+        } catch (Exception e) {
+            log.error("Error rebuilding Fattore 50 index", e);
+            return ResponseEntity.internalServerError()
+                    .body("Error rebuilding Fattore 50 index: " + e.getMessage());
         }
     }
 
