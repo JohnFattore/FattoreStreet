@@ -26,8 +26,8 @@ aws/
 
 kubernetes/
 
-nginx/static/admin/
-django/static/admin/
+nginx/static/
+django/static/
 nginx/dist/
 
 springboot/data/
