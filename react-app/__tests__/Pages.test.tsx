@@ -15,6 +15,8 @@ import User from '../src/pages/User';
 import Admin from '../src/pages/Admin';
 import AdminSuccessBar from '../src/pages/AdminSuccessBar';
 import Indexes from '../src/pages/Indexes';
+import Blog from '../src/pages/Blog';
+import BlogPost from '../src/pages/BlogPost';
 import PriceComparison from '../src/components/PriceComparison';
 import DividendComparison from '../src/components/DividendComparison';
 import SplitComparison from '../src/components/SplitComparison';
@@ -167,6 +169,30 @@ describe("Indexes", () => {
     it("renders the page heading", () => {
         renderWithProviders(<Indexes />);
         expect(screen.getByText("Indexes")).toBeInTheDocument();
+    });
+});
+
+describe("Blog", () => {
+    it("renders blog list and a post link", async () => {
+        renderWithRoute(<Blog />, {
+            path: "/blog",
+            initialEntry: "/blog",
+        });
+
+        expect(await screen.findByText("Blog")).toBeInTheDocument();
+        expect(await screen.findByText("Hello World")).toBeInTheDocument();
+    });
+});
+
+describe("BlogPost", () => {
+    it("renders a blog post body", async () => {
+        renderWithRoute(<BlogPost />, {
+            path: "/blog/:slug",
+            initialEntry: "/blog/hello-world",
+        });
+
+        expect(await screen.findByText("Hello World")).toBeInTheDocument();
+        expect(await screen.findByText("This is a test post.")).toBeInTheDocument();
     });
 });
 

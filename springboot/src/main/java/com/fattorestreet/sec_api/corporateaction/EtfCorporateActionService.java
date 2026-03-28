@@ -123,8 +123,10 @@ public class EtfCorporateActionService {
                 objectMapper);
     }
 
-    public EtfDetectionReport detectAndPersist(String ticker, Long cik, int minConfidence) {
-        EtfDetectionReport report = new EtfDetectionReport(ticker, cik, minConfidence);
+    private static final int MIN_CONFIDENCE = 70;
+
+    public EtfDetectionReport detectAndPersist(String ticker, Long cik) {
+        EtfDetectionReport report = new EtfDetectionReport(ticker, cik);
         Optional<Listing> listingOpt = listingRepository.findByTicker(ticker);
         if (listingOpt.isEmpty()) {
             report.incrementSkip("listing_missing", null);
@@ -239,7 +241,7 @@ public class EtfCorporateActionService {
                 report.incrementSkip("date_missing", filingMeta.accessionNumber());
                 continue;
             }
-            if (dateSignals.confidenceScore() < minConfidence) {
+            if (dateSignals.confidenceScore() < MIN_CONFIDENCE) {
                 report.incrementSkip("below_confidence", filingMeta.accessionNumber());
                 report.belowConfidence++;
                 continue;
@@ -1004,7 +1006,6 @@ public class EtfCorporateActionService {
     public static class EtfDetectionReport {
         private final String ticker;
         private final Long cik;
-        private final int minConfidence;
         private int filingsConsidered;
         private int filingsFetched;
         private int identityMatched;
@@ -1025,10 +1026,9 @@ public class EtfCorporateActionService {
         private final List<Map<String, Object>> sampleSkips = new ArrayList<>();
         private final List<Map<String, Object>> sampleCreated = new ArrayList<>();
 
-        public EtfDetectionReport(String ticker, Long cik, int minConfidence) {
+        public EtfDetectionReport(String ticker, Long cik) {
             this.ticker = ticker;
             this.cik = cik;
-            this.minConfidence = minConfidence;
         }
 
         public void incrementSkip(String reason, String accession) {
@@ -1165,7 +1165,6 @@ public class EtfCorporateActionService {
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("ticker", ticker);
             out.put("cik", cik);
-            out.put("minConfidence", minConfidence);
             out.put("filingsConsidered", filingsConsidered);
             out.put("filingsFetched", filingsFetched);
             out.put("identityMatched", identityMatched);

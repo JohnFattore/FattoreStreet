@@ -48,6 +48,7 @@ public class Fattore50IndexRebuildService {
 
     public record RebuildResult(
             String indexCode,
+            int year,
             int memberCount,
             boolean partial,
             BigDecimal totalFreeFloatMarketCap,
@@ -56,8 +57,8 @@ public class Fattore50IndexRebuildService {
     }
 
     @Transactional
-    public RebuildResult rebuild() {
-        List<ListingIndexMetrics> rows = metricsRepository.findAllWithListingAndAsset();
+    public RebuildResult rebuild(int year) {
+        List<ListingIndexMetrics> rows = metricsRepository.findAllWithListingAndAssetByYear(year);
         List<ListingIndexMetrics> eligible = rows.stream()
                 .filter(this::isEligible)
                 .sorted(Comparator
@@ -72,7 +73,7 @@ public class Fattore50IndexRebuildService {
         if (top.isEmpty()) {
             MarketIndex index = upsertMarketIndex();
             indexMemberRepository.deleteByMarketIndex_Code(INDEX_CODE);
-            return new RebuildResult(INDEX_CODE, 0, true, BigDecimal.ZERO, List.of());
+            return new RebuildResult(INDEX_CODE, year, 0, true, BigDecimal.ZERO, List.of());
         }
 
         BigDecimal totalFf = top.stream()
@@ -99,7 +100,7 @@ public class Fattore50IndexRebuildService {
         }
 
         boolean partial = eligible.size() < topN;
-        return new RebuildResult(INDEX_CODE, take, partial, totalFf, List.copyOf(tickers));
+        return new RebuildResult(INDEX_CODE, year, take, partial, totalFf, List.copyOf(tickers));
     }
 
     private boolean isEligible(ListingIndexMetrics m) {

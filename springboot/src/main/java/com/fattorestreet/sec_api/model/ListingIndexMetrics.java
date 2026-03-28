@@ -10,16 +10,19 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "listing_index_metrics",
-        uniqueConstraints = @UniqueConstraint(columnNames = "listing_id"))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"listing_id", "year"}))
 public class ListingIndexMetrics {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "listing_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "listing_id", nullable = false)
     private Listing listing;
+
+    @Column(name = "year", nullable = false)
+    private int year;
 
     @Column(name = "market_cap", precision = 38, scale = 5)
     private BigDecimal marketCap;
@@ -62,6 +65,14 @@ public class ListingIndexMetrics {
 
     public void setListing(Listing listing) {
         this.listing = listing;
+    }
+
+    public int getYear() {
+        return year;
+    }
+
+    public void setYear(int year) {
+        this.year = year;
     }
 
     public BigDecimal getMarketCap() {

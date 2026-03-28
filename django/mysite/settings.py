@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'restaurants.apps.RestaurantsConfig',
     'chatbot.apps.ChatbotConfig',
     'changeflow.apps.ChangeflowConfig',
+    'blog.apps.BlogConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

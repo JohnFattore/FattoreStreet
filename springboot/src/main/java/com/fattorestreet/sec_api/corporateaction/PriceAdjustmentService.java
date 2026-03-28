@@ -51,7 +51,15 @@ public class PriceAdjustmentService {
      * @return summary map
      */
     public Map<String, Object> adjustTicker(String ticker) {
-        return adjustTicker(ticker, false, false, false, 70, false);
+        return adjustTicker(ticker, false, false, false, false);
+    }
+
+    public Map<String, Object> adjustTicker(
+            String ticker,
+            boolean force,
+            boolean etfOnly,
+            boolean equityOnly) {
+        return adjustTicker(ticker, force, etfOnly, equityOnly, false);
     }
 
     public Map<String, Object> adjustTicker(
@@ -59,16 +67,6 @@ public class PriceAdjustmentService {
             boolean force,
             boolean etfOnly,
             boolean equityOnly,
-            int minConfidence) {
-        return adjustTicker(ticker, force, etfOnly, equityOnly, minConfidence, false);
-    }
-
-    public Map<String, Object> adjustTicker(
-            String ticker,
-            boolean force,
-            boolean etfOnly,
-            boolean equityOnly,
-            int minConfidence,
             boolean validateWithYfinance) {
         if (etfOnly && equityOnly) {
             return Map.of(
@@ -103,7 +101,7 @@ public class PriceAdjustmentService {
         EquityCorporateActionService.EquityDetectionReport equityReport = null;
         if (shouldFetchSec) {
             if (isFund) {
-                etfReport = etfCorporateActionService.detectAndPersist(normalizedTicker, asset.getCik(), minConfidence);
+                etfReport = etfCorporateActionService.detectAndPersist(normalizedTicker, asset.getCik());
                 newActions = etfReport.saved();
             } else {
                 equityReport = equityCorporateActionService.detectAndPersistWithDiagnostics(normalizedTicker, asset.getCik());
@@ -146,18 +144,17 @@ public class PriceAdjustmentService {
      *              catch new splits/dividends
      */
     public Map<String, Object> adjustAllTickers(boolean force) {
-        return adjustAllTickers(force, false, false, 70, false);
+        return adjustAllTickers(force, false, false, false);
     }
 
-    public Map<String, Object> adjustAllTickers(boolean force, boolean etfOnly, boolean equityOnly, int minConfidence) {
-        return adjustAllTickers(force, etfOnly, equityOnly, minConfidence, false);
+    public Map<String, Object> adjustAllTickers(boolean force, boolean etfOnly, boolean equityOnly) {
+        return adjustAllTickers(force, etfOnly, equityOnly, false);
     }
 
     public Map<String, Object> adjustAllTickers(
             boolean force,
             boolean etfOnly,
             boolean equityOnly,
-            int minConfidence,
             boolean validateWithYfinance) {
         if (etfOnly && equityOnly) {
             return Map.of(
@@ -225,7 +222,7 @@ public class PriceAdjustmentService {
                 if (shouldFetchSec) {
                     if (isFund) {
                         EtfCorporateActionService.EtfDetectionReport report =
-                                etfCorporateActionService.detectAndPersist(ticker, asset.getCik(), minConfidence);
+                                etfCorporateActionService.detectAndPersist(ticker, asset.getCik());
                         etfReports.add(report);
                     } else {
                         EquityCorporateActionService.EquityDetectionReport report =

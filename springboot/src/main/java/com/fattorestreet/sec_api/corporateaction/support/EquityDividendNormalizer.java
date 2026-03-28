@@ -48,7 +48,7 @@ public class EquityDividendNormalizer {
                 selected = quarterRows.stream().sorted(Comparator
                         .comparingInt(this::periodLengthDays)
                         .thenComparingInt((EquityCorporateActionService.DividendFact d) -> formPriority(d.form()))
-                        .thenComparing((EquityCorporateActionService.DividendFact d) -> d.filedDate(), Comparator.nullsLast(Comparator.reverseOrder())))
+                        .thenComparing((EquityCorporateActionService.DividendFact d) -> d.filedDate(), Comparator.nullsLast(Comparator.naturalOrder())))
                         .findFirst()
                         .orElse(quarterRows.get(0));
             } else {
@@ -68,7 +68,7 @@ public class EquityDividendNormalizer {
                                     .comparingInt((EquityCorporateActionService.DividendFact d) -> d.startDate() == null ? 1 : 0)
                                     .thenComparingInt((EquityCorporateActionService.DividendFact d) -> preferredConceptPriority(d.concept()))
                                     .thenComparingInt((EquityCorporateActionService.DividendFact d) -> formPriority(d.form()))
-                                    .thenComparing((EquityCorporateActionService.DividendFact d) -> d.filedDate(), Comparator.nullsLast(Comparator.reverseOrder())))
+                                    .thenComparing((EquityCorporateActionService.DividendFact d) -> d.filedDate(), Comparator.nullsLast(Comparator.naturalOrder())))
                             .findFirst()
                             .orElse(nonAnnualRows.get(0));
                 }
@@ -98,44 +98,44 @@ public class EquityDividendNormalizer {
                 .filter(this::isAnnualLengthFact)
                 .sorted(Comparator
                         .comparing(EquityCorporateActionService.DividendFact::endDate)
-                        .thenComparing((EquityCorporateActionService.DividendFact d) -> d.filedDate(), Comparator.nullsLast(Comparator.reverseOrder())))
+                        .thenComparing((EquityCorporateActionService.DividendFact d) -> d.filedDate(), Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
-        Map<LocalDate, EquityCorporateActionService.DividendFact> latestAnnualByEnd = new LinkedHashMap<>();
+        Map<LocalDate, List<EquityCorporateActionService.DividendFact>> annualsByEndDate = new LinkedHashMap<>();
         for (EquityCorporateActionService.DividendFact annual : annualFacts) {
-            EquityCorporateActionService.DividendFact existing = latestAnnualByEnd.get(annual.endDate());
-            if (existing == null || isLater(annual.filedDate(), existing.filedDate())) {
-                latestAnnualByEnd.put(annual.endDate(), annual);
-            }
+            annualsByEndDate.computeIfAbsent(annual.endDate(), k -> new ArrayList<>()).add(annual);
         }
 
-        for (EquityCorporateActionService.DividendFact annual : latestAnnualByEnd.values()) {
-            if (annual.startDate() == null) {
-                continue;
-            }
-            LocalDate fyStart = annual.startDate();
-            LocalDate fyEnd = annual.endDate();
+        for (Map.Entry<LocalDate, List<EquityCorporateActionService.DividendFact>> annualEntry : annualsByEndDate.entrySet()) {
+            LocalDate fyEnd = annualEntry.getKey();
+            for (EquityCorporateActionService.DividendFact annual : annualEntry.getValue()) {
+                if (annual.startDate() == null) {
+                    continue;
+                }
+                LocalDate fyStart = annual.startDate();
 
-            List<LocalDate> priorQuarterEnds = quarterlyByEndDate.keySet().stream()
-                    .filter(d -> d.isAfter(fyStart.minusDays(1)) && d.isBefore(fyEnd))
-                    .sorted()
-                    .toList();
-            double sumPrior = priorQuarterEnds.stream().mapToDouble(d -> quarterlyByEndDate.getOrDefault(d, 0.0)).sum();
-            double derivedQ4 = round4(annual.value() - sumPrior);
-            if (derivedQ4 <= DIVIDEND_EPSILON) {
-                continue;
-            }
-            if (!isPlausibleDerivedQuarter(derivedQ4, priorQuarterEnds, quarterlyByEndDate)) {
-                continue;
-            }
+                List<LocalDate> priorQuarterEnds = quarterlyByEndDate.keySet().stream()
+                        .filter(d -> d.isAfter(fyStart.minusDays(1)) && d.isBefore(fyEnd))
+                        .sorted()
+                        .toList();
+                double sumPrior = priorQuarterEnds.stream().mapToDouble(d -> quarterlyByEndDate.getOrDefault(d, 0.0)).sum();
+                double derivedQ4 = round4(annual.value() - sumPrior);
+                if (derivedQ4 <= DIVIDEND_EPSILON) {
+                    continue;
+                }
+                if (!isPlausibleDerivedQuarter(derivedQ4, priorQuarterEnds, quarterlyByEndDate)) {
+                    continue;
+                }
 
-            Double existingAtFyEnd = quarterlyByEndDate.get(fyEnd);
-            if (existingAtFyEnd == null) {
-                quarterlyByEndDate.put(fyEnd, derivedQ4);
-                continue;
-            }
-            boolean looksCumulative = existingAtFyEnd > derivedQ4 + 0.02;
-            if (looksCumulative) {
-                quarterlyByEndDate.put(fyEnd, derivedQ4);
+                Double existingAtFyEnd = quarterlyByEndDate.get(fyEnd);
+                if (existingAtFyEnd == null) {
+                    quarterlyByEndDate.put(fyEnd, derivedQ4);
+                } else {
+                    boolean looksCumulative = existingAtFyEnd > derivedQ4 + 0.02;
+                    if (looksCumulative) {
+                        quarterlyByEndDate.put(fyEnd, derivedQ4);
+                    }
+                }
+                break;
             }
         }
 
@@ -267,7 +267,7 @@ public class EquityDividendNormalizer {
         out.setActionType(split.getActionType());
         out.setEffectiveDate(split.getEffectiveDate());
         out.setSourceType(split.getSourceType());
-        out.setRatio(round4(1.0 / snappedRaw));
+        out.setRatio(1.0 / snappedRaw);
         return out;
     }
 

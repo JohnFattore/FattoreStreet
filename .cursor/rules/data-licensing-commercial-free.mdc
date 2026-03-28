@@ -1,0 +1,41 @@
+---
+description: Ensure only commercially free data is stored and shown (yfinance dev-only verification)
+alwaysApply: true
+---
+
+# Commercially-Free Data Only (Storage + UI)
+
+## Non-negotiable constraint
+
+- **Only data that is commercially free to use may be persisted in any database table and displayed to end users.**
+- If the licensing status is unclear, assume **NOT allowed** until verified.
+
+## What this means in practice
+
+- **Persistence (Postgres, caches that act like persistence, materialized tables, snapshots)** must only contain:
+  - Data sourced from **commercially free** providers (e.g., SEC EDGAR, FRED) or
+  - **Derived** values computed from commercially free data (ratios, adjustments, aggregates), as long as the underlying stored inputs are commercially free.
+- **User-facing output** (React UI, API responses) must not include data sourced from non-commercially-free providers.
+
+## Preferred sources (commercially free)
+
+- **SEC EDGAR**: excellent source for company fundamentals/financial statements and many **corporate actions** (via filings).
+- **IEX**: excellent source for **raw price** time series (OHLCV).
+
+## yfinance exception (development only)
+
+- **yfinance may be used only for verification/diagnostics in development** (sanity checks, comparisons, logs).
+- **Never**:
+  - Store yfinance-sourced data (raw or transformed) in the database.
+  - Return yfinance-sourced values from APIs.
+  - Render yfinance-sourced values in the UI.
+- If yfinance is used in code, it must be:
+  - **Gated to dev-only** behavior (e.g., `DEBUG`, explicit “verification mode”, or local scripts), and
+  - **Ephemeral** (in-memory comparisons/logging only).
+
+## Adding or modifying data sources
+
+- Before integrating a new provider, ensure it is **commercially free for your intended use**.
+- Prefer keeping “verification-only” sources isolated to:
+  - Local scripts under `llm/` or a dedicated diagnostics module, and/or
+  - Test/dev utilities that do not touch persistence and do not affect responses.

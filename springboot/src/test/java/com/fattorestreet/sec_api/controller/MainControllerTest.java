@@ -30,12 +30,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Year;
 import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -543,7 +545,7 @@ class MainControllerTest {
 
     @Test
     void adminAdjustPrices_validKey_returns200() throws Exception {
-        when(priceAdjustmentService.adjustAllTickers(false, false, false, 70, false)).thenReturn(
+        when(priceAdjustmentService.adjustAllTickers(false, false, false, false)).thenReturn(
                 Map.of("tickersProcessed", 10, "skippedNoAsset", 5,
                        "totalSplits", 2, "totalDividends", 8, "totalPricesUpdated", 500));
 
@@ -556,7 +558,7 @@ class MainControllerTest {
 
     @Test
     void adminAdjustPrices_forceTrue_passesForceParam() throws Exception {
-        when(priceAdjustmentService.adjustAllTickers(true, false, false, 70, false)).thenReturn(
+        when(priceAdjustmentService.adjustAllTickers(true, false, false, false)).thenReturn(
                 Map.of("tickersProcessed", 50, "skippedNoAsset", 0,
                        "totalSplits", 5, "totalDividends", 20, "totalPricesUpdated", 5000));
 
@@ -569,21 +571,20 @@ class MainControllerTest {
 
     @Test
     void adminAdjustPrices_etfOnly_passesFlags() throws Exception {
-        when(priceAdjustmentService.adjustAllTickers(false, true, false, 80, false)).thenReturn(
+        when(priceAdjustmentService.adjustAllTickers(false, true, false, false)).thenReturn(
                 Map.of("tickersProcessed", 3, "skippedNoAsset", 0,
                         "totalSplits", 0, "totalDividends", 6, "totalPricesUpdated", 756));
 
         mockMvc.perform(get("/admin/adjust-prices")
                         .header("X-Admin-Key", "spike")
-                        .param("etfOnly", "true")
-                        .param("minConfidence", "80"))
+                        .param("etfOnly", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tickersProcessed").value(3));
     }
 
     @Test
     void adminAdjustPrices_singleTicker_returns200() throws Exception {
-        when(priceAdjustmentService.adjustTicker("AAPL", false, false, false, 70, false)).thenReturn(
+        when(priceAdjustmentService.adjustTicker("AAPL", false, false, false, false)).thenReturn(
                 Map.of("ticker", "AAPL", "status", "ok", "newActions", 1,
                        "splits", 1, "dividends", 4, "pricesUpdated", 252));
 
@@ -598,7 +599,7 @@ class MainControllerTest {
 
     @Test
     void adminAdjustPrices_singleTicker_passesEtfFlags() throws Exception {
-        when(priceAdjustmentService.adjustTicker("VOO", true, true, false, 10, false)).thenReturn(
+        when(priceAdjustmentService.adjustTicker("VOO", true, true, false, false)).thenReturn(
                 Map.of("ticker", "VOO", "status", "ok", "newActions", 2,
                         "splits", 0, "dividends", 2, "pricesUpdated", 400,
                         "etfDiagnostics", Map.of(
@@ -610,8 +611,7 @@ class MainControllerTest {
                         .header("X-Admin-Key", "spike")
                         .param("ticker", "VOO")
                         .param("force", "true")
-                        .param("etfOnly", "true")
-                        .param("minConfidence", "10"))
+                        .param("etfOnly", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticker").value("VOO"))
                 .andExpect(jsonPath("$.newActions").value(2))
@@ -662,13 +662,16 @@ class MainControllerTest {
 
     @Test
     void rebuildFattore50_validKey_returns200() throws Exception {
-        when(fattore50IndexRebuildService.rebuild()).thenReturn(
+        int y = Year.now().getValue();
+        when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult(
-                        "FAT50", 50, false, BigDecimal.ONE, List.of("AAPL")));
+                        "FAT50", y, 50, false, BigDecimal.ONE, List.of("AAPL")));
 
         mockMvc.perform(post("/admin/indexes/rebuild-fattore-50").header("X-Admin-Key", "spike"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(y))
                 .andExpect(jsonPath("$.rebuild.indexCode").value("FAT50"))
+                .andExpect(jsonPath("$.rebuild.year").value(y))
                 .andExpect(jsonPath("$.rebuild.memberCount").value(50))
                 .andExpect(jsonPath("$.duration").exists());
     }
@@ -681,16 +684,18 @@ class MainControllerTest {
 
     @Test
     void rebuildFattore50_refreshMetrics_includesRefresh() throws Exception {
-        when(indexMetricsRefreshService.refreshAllListings()).thenReturn(
+        int y = Year.now().getValue();
+        when(indexMetricsRefreshService.refreshAllListings(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(10, 2, List.of("X:no_cik")));
-        when(fattore50IndexRebuildService.rebuild()).thenReturn(
+        when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult(
-                        "FAT50", 3, true, BigDecimal.TEN, List.of("A", "B", "C")));
+                        "FAT50", y, 3, true, BigDecimal.TEN, List.of("A", "B", "C")));
 
         mockMvc.perform(post("/admin/indexes/rebuild-fattore-50")
                         .param("refreshMetrics", "true")
                         .header("X-Admin-Key", "spike"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(y))
                 .andExpect(jsonPath("$.refresh.processed").value(10))
                 .andExpect(jsonPath("$.rebuild.partial").value(true));
     }

@@ -16,7 +16,7 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Derives dividend ex-dates from SEC 8-K record-date disclosures and settlement-regime logic (pre-2024-05-28 T+2, post-cutover T+1)
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
 - Fetches 10-K filings from SEC EDGAR, extracts the MD&A section, and generates ~500 word summaries via a local LLM (llama.cpp server)
-- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild-fattore-50` (`X-Admin-Key`). **Fattore 50** is a Russell-style (float-adjusted cap rank) top-50 proxy, not an official FTSE Russell product; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist.
+- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild-fattore-50` (`X-Admin-Key`, optional `year`). **Fattore 50** is a Russell-style (float-adjusted cap rank) top-50 proxy, not an official FTSE Russell product; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist for the target year.
 
 ## Java package layout
 
@@ -113,13 +113,16 @@ Dates already in the database are skipped automatically. IEX load saves raw pric
 
 ```bash
 curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/refresh-stocks
+# Optional: target a calendar year (defaults to current year)
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/refresh-stocks?year=2025"
 ```
 
-Rebuild the Russell-style **Fattore 50** index (`FAT50`): creates or reuses the `MarketIndex` row, replaces `IndexMember` rows with the top 50 by float-adjusted market cap (weights sum to 100%). Optional: refresh metrics first.
+Rebuild the Russell-style **Fattore 50** index (`FAT50`): creates or reuses the `MarketIndex` row, replaces `IndexMember` rows with the top 50 by float-adjusted market cap for the chosen **year** (weights sum to 100%). Optional: `refreshMetrics=true` refreshes metrics for that year first; optional `year` defaults to the current calendar year.
 
 ```bash
 curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild-fattore-50
 curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild-fattore-50?refreshMetrics=true"
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild-fattore-50?year=2025&refreshMetrics=true"
 ```
 
 List available indexes and fetch constituents:

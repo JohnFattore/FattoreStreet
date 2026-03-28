@@ -925,13 +925,9 @@ class EquityCorporateActionServiceTest {
         when(webService.fetchFinancials(320193L)).thenReturn(json);
         when(dividendRecordDateService.fetchDividendRecordDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2025, 1, 3), LocalDate.of(2025, 1, 2), "r1", 100),
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2025, 4, 7), LocalDate.of(2025, 3, 31), "r2", 100)
+                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2025, 1, 13), LocalDate.of(2025, 1, 10), "r1", 100),
+                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2025, 4, 14), LocalDate.of(2025, 4, 10), "r2", 100)
                 ));
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2025, 1, 3)))
-                .thenReturn(LocalDate.of(2025, 1, 3));
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2025, 4, 7)))
-                .thenReturn(LocalDate.of(2025, 4, 7));
 
         CorporateAction old1 = new CorporateAction();
         old1.setTicker("AAPL");
@@ -957,11 +953,11 @@ class EquityCorporateActionServiceTest {
         assertEquals(2, changed);
         verify(corporateActionRepository).save(argThat(a ->
                 a.getActionType() == ActionType.DIVIDEND
-                        && a.getEffectiveDate().equals(LocalDate.of(2025, 1, 3))
+                        && a.getEffectiveDate().equals(LocalDate.of(2025, 1, 13))
                         && Math.abs(a.getRatio() - 0.25) < 0.0001));
         verify(corporateActionRepository).save(argThat(a ->
                 a.getActionType() == ActionType.DIVIDEND
-                        && a.getEffectiveDate().equals(LocalDate.of(2025, 4, 7))
+                        && a.getEffectiveDate().equals(LocalDate.of(2025, 4, 14))
                         && Math.abs(a.getRatio() - 0.26) < 0.0001));
     }
 

@@ -4,18 +4,20 @@ import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.model.ListingIndexMetrics;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface ListingIndexMetricsRepository extends JpaRepository<ListingIndexMetrics, Long> {
 
-    Optional<ListingIndexMetrics> findByListing(Listing listing);
-
-    Optional<ListingIndexMetrics> findByListing_Ticker(String ticker);
+    Optional<ListingIndexMetrics> findByListingAndYear(Listing listing, int year);
 
     @Query("SELECT DISTINCT m FROM ListingIndexMetrics m "
             + "JOIN FETCH m.listing l "
-            + "LEFT JOIN FETCH l.asset")
-    List<ListingIndexMetrics> findAllWithListingAndAsset();
+            + "LEFT JOIN FETCH l.asset "
+            + "WHERE m.year = :year")
+    List<ListingIndexMetrics> findAllWithListingAndAssetByYear(@Param("year") int year);
+
+    List<ListingIndexMetrics> findAllByYear(int year);
 }

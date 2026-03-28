@@ -63,7 +63,7 @@ public class IndexMetricsRefreshService {
     /**
      * Updates metrics for all non-fund listings that have a CIK (SEC) and at least one daily price row (IEX).
      */
-    public RefreshResult refreshAllListings() {
+    public RefreshResult refreshAllListings(int year) {
         List<String> skippedTickers = new ArrayList<>();
         int processed = 0;
         int skipped = 0;
@@ -72,7 +72,7 @@ public class IndexMetricsRefreshService {
         for (Listing listing : listings) {
             n++;
             try {
-                RefreshOutcome outcome = transactionTemplate.execute(status -> refreshOneListing(listing));
+                RefreshOutcome outcome = transactionTemplate.execute(status -> refreshOneListing(listing, year));
                 if (outcome == null) {
                     skipped++;
                     skippedTickers.add(listing.getTicker() + ":txn_null");
@@ -98,7 +98,7 @@ public class IndexMetricsRefreshService {
     }
 
     @Transactional
-    RefreshOutcome refreshOneListing(Listing listing) {
+    RefreshOutcome refreshOneListing(Listing listing, int year) {
         Asset asset = listing.getAsset();
         if (asset == null || Boolean.TRUE.equals(asset.getIsFund())) {
             return RefreshOutcome.skipped(listing.getTicker() + ":fund_or_missing_asset");
@@ -141,15 +141,16 @@ public class IndexMetricsRefreshService {
                 : BigDecimal.ZERO;
         BigDecimal volumeUsd = vol.multiply(priceBd).setScale(5, RoundingMode.HALF_UP);
 
-        BigDecimal freeFloat = SecIndexFactsParser.computeFreeFloat(sf.sharesOutstanding(), sf.publicFloatShares());
+        BigDecimal freeFloat = SecIndexFactsParser.computeFreeFloat(sf.sharesOutstanding(), sf.publicFloatUsd(), priceBd);
         if (freeFloat == null) {
             freeFloat = BigDecimal.ONE;
         }
         BigDecimal ffMc = marketCap.multiply(freeFloat).setScale(5, RoundingMode.HALF_UP);
 
-        ListingIndexMetrics m = metricsRepository.findByListing(listing).orElseGet(() -> {
+        ListingIndexMetrics m = metricsRepository.findByListingAndYear(listing, year).orElseGet(() -> {
             ListingIndexMetrics nm = new ListingIndexMetrics();
             nm.setListing(listing);
+            nm.setYear(year);
             return nm;
         });
         m.setMarketCap(marketCap);

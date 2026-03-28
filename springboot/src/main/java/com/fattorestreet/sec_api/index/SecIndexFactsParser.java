@@ -16,7 +16,7 @@ public final class SecIndexFactsParser {
 
     public record SecShareFacts(
             Long sharesOutstanding,
-            Long publicFloatShares,
+            Long publicFloatUsd,
             String countryCodeOrName
     ) {
         static SecShareFacts empty() {
@@ -31,22 +31,37 @@ public final class SecIndexFactsParser {
         if (root == null) {
             return SecShareFacts.empty();
         }
-        Long shares = latestDeiNumericUnitsVal(root, "EntityCommonStockSharesOutstanding");
-        Long floatShares = latestDeiNumericUnitsVal(root, "EntityPublicFloat");
+        Long shares = latestFactVal(root, "dei", "EntityCommonStockSharesOutstanding");
+        if (shares == null) {
+            shares = latestFactVal(root, "us-gaap", "CommonStockSharesOutstanding");
+        }
+        Long publicFloatUsd = latestDeiNumericUnitsVal(root, "EntityPublicFloat", "USD");
         String country = latestDeiCountry(root);
-        return new SecShareFacts(shares, floatShares, country);
+        return new SecShareFacts(shares, publicFloatUsd, country);
     }
 
-    private static Long latestDeiNumericUnitsVal(JsonNode root, String tag) {
+    private static Long latestFactVal(JsonNode root, String taxonomy, String tag) {
+        JsonNode units = navigatePath(root, "facts", taxonomy, tag, "units");
+        if (units == null || !units.isObject()) {
+            return null;
+        }
+        JsonNode arr = firstArrayUnit(units);
+        if (arr == null) {
+            return null;
+        }
+        return latestLongByEndDate(arr);
+    }
+
+    private static Long latestDeiNumericUnitsVal(JsonNode root, String tag, String unitKey) {
         JsonNode units = navigatePath(root, "facts", "dei", tag, "units");
         if (units == null || !units.isObject()) {
             return null;
         }
-        JsonNode sharesArr = units.get("shares");
-        if (sharesArr == null || !sharesArr.isArray()) {
+        JsonNode arr = units.get(unitKey);
+        if (arr == null || !arr.isArray()) {
             return null;
         }
-        return latestLongByEndDate(sharesArr);
+        return latestLongByEndDate(arr);
     }
 
     private static Long latestLongByEndDate(JsonNode arr) {
@@ -131,15 +146,20 @@ public final class SecIndexFactsParser {
         return cur;
     }
 
-    public static BigDecimal computeFreeFloat(Long sharesOutstanding, Long publicFloatShares) {
+    /**
+     * Free-float ratio = publicFloatUsd / (sharesOutstanding × price).
+     * Returns null if shares are missing, ONE if public float is unavailable.
+     */
+    public static BigDecimal computeFreeFloat(Long sharesOutstanding, Long publicFloatUsd, BigDecimal price) {
         if (sharesOutstanding == null || sharesOutstanding <= 0) {
             return null;
         }
-        if (publicFloatShares == null || publicFloatShares <= 0) {
+        if (publicFloatUsd == null || publicFloatUsd <= 0 || price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ONE;
         }
-        BigDecimal ff = BigDecimal.valueOf(publicFloatShares)
-                .divide(BigDecimal.valueOf(sharesOutstanding), 10, RoundingMode.HALF_UP);
+        BigDecimal marketCap = BigDecimal.valueOf(sharesOutstanding).multiply(price);
+        BigDecimal ff = BigDecimal.valueOf(publicFloatUsd)
+                .divide(marketCap, 10, RoundingMode.HALF_UP);
         if (ff.compareTo(BigDecimal.ONE) > 0) {
             return BigDecimal.ONE;
         }

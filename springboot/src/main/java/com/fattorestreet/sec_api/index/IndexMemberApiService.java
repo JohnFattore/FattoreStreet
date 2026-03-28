@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Year;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,7 +31,8 @@ public class IndexMemberApiService {
     @Transactional(readOnly = true)
     public List<IndexMemberRow> listAll() {
         List<IndexMember> members = indexMemberRepository.findAllWithListingAndAsset();
-        Map<Long, ListingIndexMetrics> byListingId = metricsRepository.findAll().stream()
+        int currentYear = Year.now().getValue();
+        Map<Long, ListingIndexMetrics> byListingId = metricsRepository.findAllByYear(currentYear).stream()
                 .filter(m -> m.getListing() != null && m.getListing().getId() != null)
                 .collect(Collectors.toMap(m -> m.getListing().getId(), m -> m, (a, b) -> a));
         return members.stream()
@@ -41,7 +43,8 @@ public class IndexMemberApiService {
     @Transactional(readOnly = true)
     public List<IndexMemberRow> listByIndexCode(String code) {
         List<IndexMember> members = indexMemberRepository.findByMarketIndex_CodeOrderByPercentDesc(code);
-        Map<Long, ListingIndexMetrics> byListingId = metricsRepository.findAll().stream()
+        int currentYear = Year.now().getValue();
+        Map<Long, ListingIndexMetrics> byListingId = metricsRepository.findAllByYear(currentYear).stream()
                 .filter(m -> m.getListing() != null && m.getListing().getId() != null)
                 .collect(Collectors.toMap(m -> m.getListing().getId(), m -> m, (a, b) -> a));
         return members.stream()

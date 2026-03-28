@@ -85,7 +85,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L);
         assertEquals(1, report.saved());
         assertEquals(1, report.filingsConsidered());
         assertEquals(2, report.filingsFetched());
@@ -154,7 +154,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L);
         assertEquals(1, report.saved());
 
         ArgumentCaptor<CorporateAction> actionCaptor = ArgumentCaptor.forClass(CorporateAction.class);
@@ -202,7 +202,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L);
         assertEquals(0, report.saved());
         assertEquals(1, report.skipReasons().getOrDefault("date_missing", 0));
         verify(corporateActionRepository, never()).save(org.mockito.ArgumentMatchers.any(CorporateAction.class));
@@ -244,7 +244,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L);
         assertEquals(0, report.saved());
         assertEquals(1, report.skipReasons().getOrDefault("identity_mismatch", 0));
         verify(corporateActionRepository, never()).save(org.mockito.ArgumentMatchers.any(CorporateAction.class));
@@ -293,7 +293,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L);
         assertEquals(0, report.saved());
         assertEquals(1, report.skipReasons().getOrDefault("duplicate", 0));
         verify(corporateActionRepository, never()).save(org.mockito.ArgumentMatchers.any(CorporateAction.class));
@@ -313,7 +313,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("SPY", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("SPY", 123456L);
         assertEquals(0, report.saved());
         assertEquals(1, report.skipReasons().getOrDefault("identity_missing", 0));
         verify(corporateActionRepository, never()).save(org.mockito.ArgumentMatchers.any(CorporateAction.class));
@@ -370,7 +370,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L);
         assertEquals(1, report.saved());
         Map<String, Object> row = report.sampleCreated().get(0);
         assertEquals("0001234567-25-000006", row.get("accession"));
@@ -428,7 +428,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L);
         assertEquals(1, report.saved());
         assertEquals(1, report.dateExtracted());
     }
@@ -470,7 +470,7 @@ class EtfCorporateActionServiceTest {
                 new ObjectMapper()
         );
 
-        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L, 70);
+        EtfCorporateActionService.EtfDetectionReport report = service.detectAndPersist("VOO", 123456L);
         assertEquals(0, report.saved());
         assertEquals(1, report.skipReasons().getOrDefault("below_confidence", 0));
     }

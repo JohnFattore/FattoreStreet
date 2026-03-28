@@ -1,8 +1,9 @@
+import os
 import requests
 import pandas as pd
 
 CIK = "0000320193"#"0000789019" #"0000320193"  # Apple Inc CIK
-HEADERS = {"User-Agent": "johnefattore@gmail.com"}  # SEC requires a contact
+HEADERS = {"User-Agent": os.environ["SEC_CONTACT_EMAIL"]}  # SEC requires a contact
 
 url = f"https://data.sec.gov/api/xbrl/companyconcept/CIK{CIK}/us-gaap/NetIncomeLoss.json"
 net_income = requests.get(url, headers=HEADERS).json()

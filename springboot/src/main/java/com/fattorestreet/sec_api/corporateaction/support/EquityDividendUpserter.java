@@ -199,7 +199,8 @@ public class EquityDividendUpserter {
             if (usedActions.contains(action)) {
                 continue;
             }
-            if (action.getEffectiveDate().getYear() != target.year()) {
+            if (action.getEffectiveDate().getYear() != target.year()
+                    && action.getEffectiveDate().getYear() != target.effectiveDate().getYear()) {
                 continue;
             }
             long dayDistance = Math.abs(ChronoUnit.DAYS.between(action.getEffectiveDate(), target.effectiveDate()));

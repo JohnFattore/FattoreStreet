@@ -23,6 +23,8 @@ import IexPricesView from "./pages/IexPricesView";
 import Indexes from "./pages/Indexes";
 import User from "./pages/User";
 import AdminSuccessBar from "./pages/AdminSuccessBar";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 
 // react router for all our routes
 export default function App() {
@@ -89,6 +91,8 @@ export default function App() {
         <Route path="/sec-edgar/:ticker" element={<SECData />} />
         <Route path="/iex-prices/:ticker" element={<IexPricesView />} />
         <Route path="/react-admin/success-bar" element={<AdminSuccessBar />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/user" element={<User />} />
         <Route path="/react-admin" element={<Admin />} />
         <Route path="*" element={<ErrorPage />} />

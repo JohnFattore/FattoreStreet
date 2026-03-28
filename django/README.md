@@ -23,6 +23,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 | `chatbot` | Boglehead AI financial advisor (Google Gemini) |
 | `restaurants` | Restaurant reviews and recommendations |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
+| `blog` | Public blog posts (Markdown body) via `/blog/api/posts/` |
 
 Market index membership APIs live in the Spring Boot service (`sec-api`), not in Django.
 

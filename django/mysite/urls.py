@@ -7,5 +7,6 @@ urlpatterns = [
     path("restaurants/", include("restaurants.urls")),
     path("chatbot/", include("chatbot.urls")),
     path("changeflow/", include("changeflow.urls")),
+    path("blog/", include("blog.urls")),
     path('admin/', admin.site.urls),
 ]

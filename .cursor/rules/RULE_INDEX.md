@@ -8,6 +8,10 @@ Quick reference for project rules in `/.cursor/rules`.
   - High-level architecture and conventions for the monorepo.
   - Applied in every session.
 
+- `data-licensing-commercial-free.mdc`
+  - Only commercially free data may be stored in DB and shown to end users.
+  - yfinance is allowed in development for verification only (no persistence, no user-facing output).
+
 - `auto-update-tests.mdc`
   - Guidance for when to add/update tests after logic changes.
   - Applied in every session.

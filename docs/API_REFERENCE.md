@@ -65,6 +65,17 @@ Feedback and issue intake for authenticated users.
 |--------|----------|-------------|
 | `POST` | `/changeflow/api/tickets/` | Submit a new feedback ticket for the logged-in user. |
 
+## 📝 Blog
+
+Public blog posts (no authentication required).
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/blog/api/posts/` | List published blog posts (supports `search`, `category`, `tag`, `page`, `page_size`). |
+| `GET` | `/blog/api/posts/<slug>/` | Retrieve a single published blog post by slug. |
+| `GET` | `/blog/api/categories/` | List blog categories. |
+| `GET` | `/blog/api/tags/` | List blog tags. |
+
 ---
 
 # Spring Boot -- SEC EDGAR Microservice
@@ -77,8 +88,8 @@ Feedback and issue intake for authenticated users.
 |--------|----------|------|-------------|
 | `GET` | `/indexes` | None | List available market indexes (`code`, `displayName`). |
 | `GET` | `/index-members` | None | List index members with nested `stock` payload (listing + metrics). Optional query param `code` filters to a single index (e.g. `?code=FAT50`). |
-| `POST` | `/admin/indexes/refresh-stocks` | `X-Admin-Key` | Recompute `ListingIndexMetrics` for all non-fund listings (requires CIK, SEC companyfacts, and at least one daily price row per ticker). Response includes `skipReasonCounts` (aggregate counts by `skippedTickers` reason). |
-| `POST` | `/admin/indexes/rebuild-fattore-50` | `X-Admin-Key` | Rebuild Russell-style **Fattore 50** (`MarketIndex` code `FAT50`): top 50 listings by `free_float_market_cap`, cap-weighted `IndexMember` rows. Optional query param `refreshMetrics=true` runs `refresh-stocks` first. Response JSON: `rebuild` (`indexCode`, `memberCount`, `partial`, `totalFreeFloatMarketCap`, `tickers`), optional `refresh` (when param set), and `duration`. Not an official FTSE Russell index. |
+| `POST` | `/admin/indexes/refresh-stocks` | `X-Admin-Key` | Recompute `ListingIndexMetrics` for a calendar **year** for all non-fund listings (requires CIK, SEC companyfacts, and at least one daily price row per ticker). Optional query param `year` (defaults to current calendar year). Response includes `year`, `skipReasonCounts` (aggregate counts by `skippedTickers` reason), `processed`, `skipped`, and `skippedTickers`. |
+| `POST` | `/admin/indexes/rebuild-fattore-50` | `X-Admin-Key` | Rebuild Russell-style **Fattore 50** (`MarketIndex` code `FAT50`): top 50 listings by `free_float_market_cap` for a calendar **year**, cap-weighted `IndexMember` rows. Optional `year` (defaults to current calendar year). Optional `refreshMetrics=true` runs `refresh-stocks` for that year first. Response JSON: top-level `year`, `rebuild` (`indexCode`, `year`, `memberCount`, `partial`, `totalFreeFloatMarketCap`, `tickers`), optional `refresh` (when param set), and `duration`. Not an official FTSE Russell index. |
 
 ## 📄 SEC Financial Data
 

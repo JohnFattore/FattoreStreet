@@ -26,7 +26,7 @@ class WebServiceTest {
     @Test
     void fetchFinancials_retriesTransientTimeoutThenSucceeds() {
         RestTemplate restTemplate = mock(RestTemplate.class);
-        WebService service = new WebService(restTemplate, 1000, 1000, 3, 0, 0);
+        WebService service = new WebService(restTemplate, "test@test.com", 1000, 1000, 3, 0, 0);
 
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
                 .thenThrow(new ResourceAccessException("timeout", new SocketTimeoutException("Read timed out")))
@@ -41,7 +41,7 @@ class WebServiceTest {
     @Test
     void fetchFinancials_doesNotRetryOnBadRequest() {
         RestTemplate restTemplate = mock(RestTemplate.class);
-        WebService service = new WebService(restTemplate, 1000, 1000, 3, 0, 0);
+        WebService service = new WebService(restTemplate, "test@test.com", 1000, 1000, 3, 0, 0);
 
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
                 .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));

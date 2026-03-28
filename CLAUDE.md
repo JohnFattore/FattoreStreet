@@ -119,6 +119,8 @@ Per-language conventions live in the cursor rules (single source of truth). Per-
 
 @.cursor/rules/auto-update-docs.mdc
 
+@.cursor/rules/data-licensing-commercial-free.mdc
+
 ## Environment Variables
 
 ### Django (`.env` in `django/`)
@@ -128,12 +130,14 @@ Per-language conventions live in the cursor rules (single source of truth). Per-
 - `REDIS_URL` — required in production
 - `SPRINGBOOT_INTERNAL_URL` — default `http://springboot:8080`
 - `ADMIN_API_KEY` — X-Admin-Key for Spring Boot admin endpoints
+- `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` — PostgreSQL connection
 - `ADMIN_API_KEY` — validates incoming X-Admin-Key header
 - `LLM_SERVER_URL` — llama.cpp server (default `http://localhost:8081`)
 - `DJANGO_PORTFOLIO_BASE_URL` — Django base URL for validation calls
+- `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 
 ### React (`.env.*` per mode)
 - `VITE_API_URL` — backend base URL per environment (dev/staging/production)

@@ -38,12 +38,14 @@ public class WebService {
     // constructor
     @Autowired
     public WebService(
+            @org.springframework.beans.factory.annotation.Value("${sec.contact-email}") String secContactEmail,
             @org.springframework.beans.factory.annotation.Value("${sec.http.connect-timeout-ms:15000}") int secConnectTimeoutMs,
             @org.springframework.beans.factory.annotation.Value("${sec.http.read-timeout-ms:120000}") int secReadTimeoutMs,
             @org.springframework.beans.factory.annotation.Value("${sec.http.retry-max-attempts:3}") int secRetryMaxAttempts,
             @org.springframework.beans.factory.annotation.Value("${sec.http.retry-base-backoff-ms:1000}") long secRetryBaseBackoffMs,
             @org.springframework.beans.factory.annotation.Value("${sec.http.min-interval-ms:250}") long secMinIntervalMs) {
         this(new RestTemplate(),
+                secContactEmail,
                 secConnectTimeoutMs,
                 secReadTimeoutMs,
                 secRetryMaxAttempts,
@@ -53,6 +55,7 @@ public class WebService {
 
     WebService(
             RestTemplate restTemplate,
+            String secContactEmail,
             int secConnectTimeoutMs,
             int secReadTimeoutMs,
             int secRetryMaxAttempts,
@@ -66,7 +69,7 @@ public class WebService {
 
         // Set headers
         HttpHeaders headers = new HttpHeaders();
-        headers.set("User-Agent", "johnefattore@gmail.com"); // required by SEC
+        headers.set("User-Agent", secContactEmail); // required by SEC
 
         // Save entity with headers
         this.secEntity = new HttpEntity<>(headers);

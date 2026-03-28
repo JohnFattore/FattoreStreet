@@ -63,9 +63,9 @@ class PriceAdjustmentServiceTest {
         return a;
     }
 
-    private EtfCorporateActionService.EtfDetectionReport buildEtfReport(String ticker, Long cik, int minConfidence, int saved) {
+    private EtfCorporateActionService.EtfDetectionReport buildEtfReport(String ticker, Long cik, int saved) {
         EtfCorporateActionService.EtfDetectionReport report =
-                new EtfCorporateActionService.EtfDetectionReport(ticker, cik, minConfidence);
+                new EtfCorporateActionService.EtfDetectionReport(ticker, cik);
         for (int i = 0; i < saved; i++) {
             report.sampleCreated("acc-" + i, "497", "fund497.htm", LocalDate.of(2025, 1, 1), 0.5, 4);
         }
@@ -147,8 +147,8 @@ class PriceAdjustmentServiceTest {
         DailyPrice dp = buildPrice("SPY", LocalDate.of(2025, 1, 10), 500.0);
 
         when(assetRepository.findByListings_Ticker("SPY")).thenReturn(asset);
-        when(etfCorporateActionService.detectAndPersist("SPY", 111111L, 70))
-                .thenReturn(buildEtfReport("SPY", 111111L, 70, 0));
+        when(etfCorporateActionService.detectAndPersist("SPY", 111111L))
+                .thenReturn(buildEtfReport("SPY", 111111L, 0));
         when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("SPY"))
                 .thenReturn(Collections.emptyList());
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("SPY"))
@@ -157,7 +157,7 @@ class PriceAdjustmentServiceTest {
         Map<String, Object> result = service.adjustTicker("SPY");
 
         assertEquals("ok", result.get("status"));
-        verify(etfCorporateActionService).detectAndPersist("SPY", 111111L, 70);
+        verify(etfCorporateActionService).detectAndPersist("SPY", 111111L);
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics("SPY", 111111L);
         assertNotNull(result.get("etfDiagnostics"));
     }
@@ -171,15 +171,15 @@ class PriceAdjustmentServiceTest {
         when(assetRepository.findByListings_Ticker("VOO")).thenReturn(asset);
         when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("VOO"))
                 .thenReturn(Collections.emptyList(), Collections.emptyList());
-        when(etfCorporateActionService.detectAndPersist("VOO", 111111L, 10))
-                .thenReturn(buildEtfReport("VOO", 111111L, 10, 0));
+        when(etfCorporateActionService.detectAndPersist("VOO", 111111L))
+                .thenReturn(buildEtfReport("VOO", 111111L, 0));
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("VOO"))
                 .thenReturn(List.of(dp));
 
-        Map<String, Object> result = service.adjustTicker("VOO", false, false, false, 10);
+        Map<String, Object> result = service.adjustTicker("VOO", false, false, false);
 
         assertEquals("ok", result.get("status"));
-        verify(etfCorporateActionService).detectAndPersist("VOO", 111111L, 10);
+        verify(etfCorporateActionService).detectAndPersist("VOO", 111111L);
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
     }
 
@@ -290,7 +290,7 @@ class PriceAdjustmentServiceTest {
         when(corporateActionValidationService.validateTicker("AAPL", LocalDate.of(2016, 1, 1)))
                 .thenReturn(validationReport);
 
-        Map<String, Object> result = service.adjustTicker("AAPL", false, false, false, 70, true);
+        Map<String, Object> result = service.adjustTicker("AAPL", false, false, false, true);
 
         assertEquals("ok", result.get("status"));
         assertNotNull(result.get("validationReport"));

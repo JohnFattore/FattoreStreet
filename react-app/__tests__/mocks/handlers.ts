@@ -7,6 +7,13 @@ const changeflowBaseUrl =
     "/changeflow/api/"
   );
 
+const blogBaseUrl =
+  import.meta.env.VITE_APP_DJANGO_BLOG_URL ||
+  import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
+    "/portfolio/api/",
+    "/blog/api/"
+  );
+
 export const handlers = [
   http.get(
     import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("accounts/"),
@@ -678,4 +685,49 @@ export const handlers = [
       );
     }
   ),
+
+  // --- Blog (Django) ---
+  http.get(blogBaseUrl.concat("posts/"), () => {
+    return Response.json(
+      {
+        count: 1,
+        next: null,
+        previous: null,
+        results: [
+          {
+            title: "Hello World",
+            slug: "hello-world",
+            excerpt: "Intro",
+            cover_image_url: "",
+            published_at: "2026-03-01T00:00:00Z",
+            created_at: "2026-03-01T00:00:00Z",
+            updated_at: "2026-03-01T00:00:00Z",
+            author_username: "spike",
+            categories: [{ name: "Investing", slug: "investing" }],
+            tags: [{ name: "Bogleheads", slug: "bogleheads" }],
+          },
+        ],
+      },
+      { status: 200 }
+    );
+  }),
+
+  http.get(blogBaseUrl.concat("posts/hello-world/"), () => {
+    return Response.json(
+      {
+        title: "Hello World",
+        slug: "hello-world",
+        excerpt: "Intro",
+        body_markdown: "# Hello\n\nThis is a test post.",
+        cover_image_url: "",
+        published_at: "2026-03-01T00:00:00Z",
+        created_at: "2026-03-01T00:00:00Z",
+        updated_at: "2026-03-01T00:00:00Z",
+        author_username: "spike",
+        categories: [{ name: "Investing", slug: "investing" }],
+        tags: [{ name: "Bogleheads", slug: "bogleheads" }],
+      },
+      { status: 200 }
+    );
+  }),
 ];

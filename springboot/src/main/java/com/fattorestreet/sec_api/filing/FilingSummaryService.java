@@ -53,14 +53,15 @@ public class FilingSummaryService {
     private String llmServerUrl;
 
     public FilingSummaryService(FilingSummaryRepository filingSummaryRepository,
-                                AssetRepository assetRepository) {
+                                AssetRepository assetRepository,
+                                @Value("${sec.contact-email}") String secContactEmail) {
         this.filingSummaryRepository = filingSummaryRepository;
         this.assetRepository = assetRepository;
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set("User-Agent", "johnefattore@gmail.com");
+        headers.set("User-Agent", secContactEmail);
         this.secEntity = new HttpEntity<>(headers);
     }
 

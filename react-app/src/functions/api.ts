@@ -84,11 +84,47 @@ interface ITicketResponse extends ITicketPayload {
   updated_at: string;
 }
 
+interface IBlogTaxonomy {
+  name: string;
+  slug: string;
+}
+
+interface IRawBlogPostListItem {
+  title: string;
+  slug: string;
+  excerpt: string;
+  cover_image_url: string;
+  published_at: string;
+  created_at: string;
+  updated_at: string;
+  author_username: string | null;
+  categories: IBlogTaxonomy[];
+  tags: IBlogTaxonomy[];
+}
+
+interface IRawBlogPostDetail extends IRawBlogPostListItem {
+  body_markdown: string;
+}
+
+interface IPaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 const changeflowBaseUrl =
   import.meta.env.VITE_APP_DJANGO_CHANGEFLOW_URL ||
   import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
     "/portfolio/api/",
     "/changeflow/api/"
+  );
+
+const blogBaseUrl =
+  import.meta.env.VITE_APP_DJANGO_BLOG_URL ||
+  import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
+    "/portfolio/api/",
+    "/blog/api/"
   );
 
 const axiosBaseQuery =
@@ -186,6 +222,42 @@ export const api = createApi({
         method: "POST",
         data: ticket,
         baseUrl: changeflowBaseUrl,
+      }),
+    }),
+    getBlogPosts: builder.query<
+      IPaginatedResponse<IRawBlogPostListItem>,
+      { search?: string; category?: string; tag?: string; page?: number; page_size?: number } | void
+    >({
+      query: (params) => ({
+        url: "posts/",
+        method: "GET",
+        params,
+        baseUrl: blogBaseUrl,
+        withAuth: false,
+      }),
+    }),
+    getBlogPost: builder.query<IRawBlogPostDetail, string>({
+      query: (slug) => ({
+        url: `posts/${slug}/`,
+        method: "GET",
+        baseUrl: blogBaseUrl,
+        withAuth: false,
+      }),
+    }),
+    getBlogCategories: builder.query<IBlogTaxonomy[], void>({
+      query: () => ({
+        url: "categories/",
+        method: "GET",
+        baseUrl: blogBaseUrl,
+        withAuth: false,
+      }),
+    }),
+    getBlogTags: builder.query<IBlogTaxonomy[], void>({
+      query: () => ({
+        url: "tags/",
+        method: "GET",
+        baseUrl: blogBaseUrl,
+        withAuth: false,
       }),
     }),
     getAsset: builder.query<IAsset, number>({
@@ -434,6 +506,10 @@ export const {
   useGetAssetSplitsQuery,
   useGetAssetsQuery,
   usePostNewAssetMutation,
+  useGetBlogPostsQuery,
+  useGetBlogPostQuery,
+  useGetBlogCategoriesQuery,
+  useGetBlogTagsQuery,
   useGetAssetQuery,
   useDeleteAssetMutation,
   usePatchAssetMutation,

@@ -209,7 +209,6 @@ public class AdminController {
             @RequestParam(defaultValue = "false") boolean force,
             @RequestParam(defaultValue = "false") boolean etfOnly,
             @RequestParam(defaultValue = "false") boolean equityOnly,
-            @RequestParam(defaultValue = "70") int minConfidence,
             @RequestParam(defaultValue = "false") boolean validateWithYfinance
     ) {
         if (isUnauthorized(key)) {
@@ -224,7 +223,6 @@ public class AdminController {
                         force,
                         etfOnly,
                         equityOnly,
-                        minConfidence,
                         validateWithYfinance
                 );
             } else {
@@ -232,7 +230,6 @@ public class AdminController {
                         force,
                         etfOnly,
                         equityOnly,
-                        minConfidence,
                         validateWithYfinance
                 );
             }
@@ -298,14 +295,16 @@ public class AdminController {
 
     @PostMapping("/admin/indexes/refresh-stocks")
     public ResponseEntity<?> refreshIndexStocks(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key) {
+            @RequestHeader(value = "X-Admin-Key", required = false) String key,
+            @RequestParam(required = false) Integer year) {
         if (isUnauthorized(key)) {
             return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
         }
         try {
+            int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
             long startTime = System.currentTimeMillis();
             com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult r =
-                    indexMetricsRefreshService.refreshAllListings();
+                    indexMetricsRefreshService.refreshAllListings(resolvedYear);
             String duration = formatDuration(System.currentTimeMillis() - startTime);
             Map<String, Long> skipReasonCounts = r.skippedTickers().stream()
                     .map(s -> {
@@ -315,6 +314,7 @@ public class AdminController {
                     .collect(Collectors.groupingBy(x -> x, Collectors.counting()));
             return ResponseEntity.ok(Map.of(
                     "message", "Index metrics refresh complete in " + duration,
+                    "year", resolvedYear,
                     "processed", r.processed(),
                     "skipped", r.skipped(),
                     "skippedTickers", r.skippedTickers(),
@@ -329,25 +329,29 @@ public class AdminController {
     @PostMapping("/admin/indexes/rebuild-fattore-50")
     public ResponseEntity<?> rebuildFattore50(
             @RequestHeader(value = "X-Admin-Key", required = false) String key,
-            @RequestParam(defaultValue = "false") boolean refreshMetrics) {
+            @RequestParam(defaultValue = "false") boolean refreshMetrics,
+            @RequestParam(required = false) Integer year) {
         if (isUnauthorized(key)) {
             return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
         }
         try {
+            int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
             long startTime = System.currentTimeMillis();
             Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("year", resolvedYear);
             if (refreshMetrics) {
                 com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult rr =
-                        indexMetricsRefreshService.refreshAllListings();
+                        indexMetricsRefreshService.refreshAllListings(resolvedYear);
                 payload.put("refresh", Map.of(
                         "processed", rr.processed(),
                         "skipped", rr.skipped(),
                         "skippedTickers", rr.skippedTickers()));
             }
             com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult rb =
-                    fattore50IndexRebuildService.rebuild();
+                    fattore50IndexRebuildService.rebuild(resolvedYear);
             payload.put("rebuild", Map.of(
                     "indexCode", rb.indexCode(),
+                    "year", rb.year(),
                     "memberCount", rb.memberCount(),
                     "partial", rb.partial(),
                     "totalFreeFloatMarketCap", rb.totalFreeFloatMarketCap(),
