@@ -25,15 +25,34 @@ public final class SecIndexFactsParser {
     }
 
     /**
+     * Ordered fallback chain for shares outstanding.  Each entry is {taxonomy, tag}.
+     * Preferred sources (point-in-time outstanding) come first; weighted-average
+     * figures are last resort since they approximate but still give a usable market-cap.
+     */
+    private static final String[][] SHARES_OUTSTANDING_TAGS = {
+            {"dei",     "EntityCommonStockSharesOutstanding"},
+            {"us-gaap", "CommonStockSharesOutstanding"},
+            {"us-gaap", "SharesOutstanding"},
+            {"us-gaap", "CommonStockSharesIssued"},
+            {"us-gaap", "WeightedAverageNumberOfShareOutstandingBasicAndDiluted"},
+            {"us-gaap", "WeightedAverageNumberOfSharesOutstandingBasic"},
+            {"us-gaap", "WeightedAverageNumberOfDilutedSharesOutstanding"},
+    };
+
+    /**
      * Latest DEI common shares outstanding and public float (if reported), plus a coarse country hint.
+     * Tries multiple SEC XBRL tags in priority order to maximize coverage.
      */
     public static SecShareFacts parseShareFacts(JsonNode root) {
         if (root == null) {
             return SecShareFacts.empty();
         }
-        Long shares = latestFactVal(root, "dei", "EntityCommonStockSharesOutstanding");
-        if (shares == null) {
-            shares = latestFactVal(root, "us-gaap", "CommonStockSharesOutstanding");
+        Long shares = null;
+        for (String[] entry : SHARES_OUTSTANDING_TAGS) {
+            shares = latestFactVal(root, entry[0], entry[1]);
+            if (shares != null && shares > 0) {
+                break;
+            }
         }
         Long publicFloatUsd = latestDeiNumericUnitsVal(root, "EntityPublicFloat", "USD");
         String country = latestDeiCountry(root);

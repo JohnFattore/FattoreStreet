@@ -13,6 +13,12 @@ alwaysApply: false
 - Use TypeScript generics for reusable components (see `SortableTable<T>`)
 - Define prop types inline or as a `type` above the component
 
+## Data tables
+
+- Any **data grid** (multiple rows, column headers, and sortable or potentially sortable tabular content) must use **`SortableTable`** from [`react-app/src/components/SortableTable.tsx`](react-app/src/components/SortableTable.tsx): define `columns`, pass `data`, `isLoading`, and `errors`, and optional `initialSortKey` / `initialSortDirection`. Extend behavior by composing around `SortableTable` or by evolving that shared component—do not introduce a parallel `react-bootstrap` `<Table>` plus custom sort state for the same pattern.
+- **Column cell formatting**: prefer shared helpers from [`react-app/src/functions/helperFunctions.tsx`](react-app/src/functions/helperFunctions.tsx)—most tables use **`formatString(value, type)`** in `render` with `type` one of `"text"`, `"money"`, `"amount"`, `"percent"` (and `"date"` where already used). For large magnitudes or index-style metrics, use **`formatNumber`**, **`formatCurrency`**, **`formatPercent`**, **`formatLargeCurrency`**, and **`formatLargeNumber`** as in existing tables. Use **`getApiErrorMessages`** (or **`getErrorMessages`**) when normalizing RTK Query errors for `errors` or display. Only use ad-hoc `Intl` formatters in a table when the shared helpers cannot express the display (e.g. extra decimal places for prices).
+- **Exceptions**: purely static, non-sortable markup (e.g. small label/value blocks) where a full grid is unnecessary—prefer simpler layout first; use raw `<Table>` only when `SortableTable` does not fit.
+
 ## Styling — No className
 
 - **Do NOT add custom `className` to components.** Style React Bootstrap components globally in `react-app/src/styles/custom.scss` instead.

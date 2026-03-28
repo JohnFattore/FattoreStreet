@@ -1,7 +1,8 @@
-import { Alert, ListGroup, Spinner } from "react-bootstrap";
-import { formatString, getApiErrorMessages } from "../functions/helperFunctions";
+import { Alert, ListGroup } from "react-bootstrap";
+import { formatString } from "../functions/helperFunctions";
 import { useGetAssetInfosQuery } from "../functions/api";
 import { IETFInfo } from "../interfaces";
+import StateHandler from "./StateHandler";
 
 export default function ETFInfo({ ticker }: { ticker: string }) {
   const {
@@ -9,22 +10,17 @@ export default function ETFInfo({ ticker }: { ticker: string }) {
     isLoading,
     error,
   } = useGetAssetInfosQuery([ticker]);
-  if (isLoading) {
-    return <Spinner animation="border" />;
-  }
-
-  if (error) {
-    return <Alert variant="danger">{getApiErrorMessages(error)}</Alert>;
-  }
 
   const assetInfo = assetInfos ? (assetInfos[ticker] as IETFInfo) : null;
 
-  if (!assetInfo) {
-    return <Alert variant="warning">No data available for {ticker}</Alert>;
-  }
-
   return (
-    <>
+    <StateHandler
+      isLoading={isLoading}
+      errors={[error]}
+      content={
+        !assetInfo ? (
+          <Alert variant="warning">No data available for {ticker}</Alert>
+        ) : (
       <ListGroup>
         <ListGroup.Item>
           {"Current Price: " + formatString(assetInfo.currentPrice, "money")}
@@ -65,6 +61,8 @@ export default function ETFInfo({ ticker }: { ticker: string }) {
             formatString(assetInfo.dividendYield / 100, "percent")}
         </ListGroup.Item>
       </ListGroup>
-    </>
+        )
+      }
+    />
   );
 }

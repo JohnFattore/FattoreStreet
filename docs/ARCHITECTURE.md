@@ -74,3 +74,18 @@ graph TD
     - Build scripts create Docker images.
     - Images are pushed to container registry.
     - Production pulls updated images and restarts containers (using Docker Compose or Kubernetes).
+
+## 🧩 Development philosophy
+
+### Trunk-based development
+
+We follow [Trunk Based Development](https://trunkbaseddevelopment.com/). We rely on a single `main` branch ("trunk") for source of truth.
+
+- **Development**: Runs locally with SQLite/Dev Server.
+- **Staging**: Runs locally via Docker storage to mimic production.
+- **Production**: Deployed snapshot of the trunk.
+
+### Coding conventions
+
+- **Naming**: We strictly avoid Hungarian Notation (e.g., `strTicker`, `numShares`). We believe modern IDEs and typing make this obsolete and it hinders readability.
+- **Formatting**: Python follows PEP 8. JavaScript/TypeScript follows Prettier standards.

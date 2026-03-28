@@ -1,3 +1,14 @@
+# Local environment & dotenv files (secrets; exclude from AI index)
+.env
+.env.*
+.env/
+*.env
+.envrc
+django/mysite/.env
+# Keep committed templates indexable (negation after broader patterns above)
+!.env.example
+!.env.sample
+
 AWSCommands.txt
 **/__pycache__/
 

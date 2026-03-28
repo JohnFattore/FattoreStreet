@@ -74,7 +74,7 @@ Browser → Nginx (443 SSL)
 - `restaurants/` — Restaurant reviews/recommendations
 - `changeflow/` — Changelog + feedback tickets
 
-**Async Tasks (Celery)**: `load_fred_cache`, `load_yfinance_cache`, `load_iex_hist`, `refresh_corporate_actions` — scheduled via django-celery-beat.
+**Async Tasks (Celery)**: `load_fred_cache`, `load_yfinance_cache` — scheduled via django-celery-beat.
 
 ### Spring Boot Packages
 ```
@@ -128,8 +128,6 @@ Per-language conventions live in the cursor rules (single source of truth). Per-
 - `DEBUG` — bool, default `True`
 - `DATABASE` — `postgresLocal`, `postgresDocker`, or omit for SQLite
 - `REDIS_URL` — required in production
-- `SPRINGBOOT_INTERNAL_URL` — default `http://springboot:8080`
-- `ADMIN_API_KEY` — X-Admin-Key for Spring Boot admin endpoints
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)

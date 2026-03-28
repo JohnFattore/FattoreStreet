@@ -1,7 +1,7 @@
 django/mysite/.env
-AWSCommands.txt
 .env
 **/__pycache__/
+**/.DS_Store
 
 venv/
 .venv/

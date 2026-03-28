@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Spinner, Card } from "react-bootstrap";
 
 import {
@@ -10,6 +11,16 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+
+const formatDate = (date: string) =>
+  new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+const formatValue = (value: number) =>
+  new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 
 /**
  * Single-line usage:  <GenericLineChart data={[...]} label="Title" strokeColor="#007bff" />
@@ -24,6 +35,25 @@ export default function GenericLineChart({ data, label, description, latestReadi
   height?: number;
   lines?: { dataKey: string; color: string; name: string }[];
 }) {
+  const autoLatest = useMemo(() => {
+    if (latestReading !== undefined || !data || data.length === 0) return null;
+    const last = data[data.length - 1] as Record<string, unknown>;
+    const date = last.date as string | undefined;
+    if (!date) return null;
+
+    if (lines) {
+      const parts = lines
+        .map((l) => {
+          const v = last[l.dataKey];
+          return v != null ? `${l.name}: ${formatValue(Number(v))}` : null;
+        })
+        .filter(Boolean);
+      return parts.length > 0 ? `${parts.join(" · ")} (${formatDate(date)})` : null;
+    }
+
+    const v = last.value;
+    return v != null ? `${formatValue(Number(v))} (${formatDate(date)})` : null;
+  }, [data, lines, latestReading]);
   if (!data) {
     return (
       <Card>
@@ -101,9 +131,9 @@ export default function GenericLineChart({ data, label, description, latestReadi
             </p>
           </div>
         )}
-        {latestReading && (
+        {(latestReading || autoLatest) && (
           <p className="text-muted small mb-0">
-            <strong>Latest reading:</strong> {latestReading}
+            <strong>Latest reading:</strong> {latestReading ?? autoLatest}
           </p>
         )}
       </Card.Body>

@@ -3,9 +3,10 @@
 **A Full-Stack Financial Portfolio & Social Platform**
 
 This repository contains the source code for a comprehensive web application featuring:
-- **Finance**: Stock tracking, historical data analysis, and market index monitoring.
+
+- **Finance**: Stock tracking, historical data, and market indexes—Django for the main portfolio API, plus a **Spring Boot** service for SEC EDGAR filings, quarterly fundamentals, and related market data.
 - **Social**: Restaurant reviews and recommendation engine.
-- **AI**: An investing chatbot assistant.
+- **AI**: An investing chatbot assistant; optional **local AI** tooling lives under `llm/` (see [llm/README.md](llm/README.md)).
 
 ---
 
@@ -13,55 +14,53 @@ This repository contains the source code for a comprehensive web application fea
 
 We have organized the documentation to help you get started quickly:
 
-- **[🚀 Getting Started](docs/GETTING_STARTED.md)**: Setup guide for Local Development and Staging.
-- **[🏗 Architecture](docs/ARCHITECTURE.md)**: High-level system design, tech stack, and data flow.
-- **[📖 API Reference](docs/API_REFERENCE.md)**: Details on available backend endpoints.
-- **[☁️ Deployment](docs/DEPLOYMENT.md)**: Infrastructure guide (AWS, Docker, Kubernetes).
+- **[🚀 Getting Started](docs/GETTING_STARTED.md)**: Setup guide for local development and staging.
+- **[🏗 Architecture](docs/ARCHITECTURE.md)**: High-level system design, tech stack, data flow, and development practices.
+- **[📖 API Reference](docs/API_REFERENCE.md)**: Django and Spring Boot HTTP endpoints.
+- **[☁️ Deployment](docs/DEPLOYMENT.md)**: Infrastructure guide (Docker, Kubernetes, cloud).
+
+Service-specific detail: [django/README.md](django/README.md), [springboot/README.md](springboot/README.md), [react-app/README.md](react-app/README.md).
 
 ---
 
-## 🛠 Project Structure
-
-The repository is organized into a monorepo structure:
+## 🛠 Project structure
 
 | Directory | Description |
 |-----------|-------------|
-| **[`django/`](django/)** | **Backend**. Python Django REST Framework application. |
-| **[`react-app/`](react-app/)** | **Frontend**. React application built with Vite. |
-| **[`docs/`](docs/)** | **Documentation**. Detailed guides and references. |
-| **[`kubernetes/`](kubernetes/)** | **DevOps**. Deployment scripts and K8s manifests. |
-| **[`aws/`](aws/)** | **Cloud**. AWS specific configurations. |
+| **[`django/`](django/)** | **Primary API**. Django REST Framework—auth, portfolio, chatbot, restaurants, Celery tasks. |
+| **[`springboot/`](springboot/)** | **SEC microservice**. Spring Boot—EDGAR data, quarterly financials, corporate actions, index membership, daily prices (IEX ingest). |
+| **[`react-app/`](react-app/)** | **Frontend**. React, TypeScript, Vite. |
+| **[`llm/`](llm/)** | **Local AI**. llama.cpp, optional SD/TTS helpers (not required for the web app). |
+| **[`nginx/`](nginx/)** | Reverse proxy configuration for composed deployments. |
+| **[`kubernetes/`](kubernetes/)** | Kubernetes manifests and related DevOps assets. |
+| **[`docs/`](docs/)** | Project documentation. |
 
 ---
 
-## 🧩 Development Philosophy
+## ⚡ Quick start
 
-### Trunk Based Development
-We follow [Trunk Based Development](https://trunkbaseddevelopment.com/). We rely on a single `main` branch ("trunk") for source of truth.
-- **Development**: Runs locally with SQLite/Dev Server.
-- **Staging**: Runs locally via Docker storage to mimic production.
-- **Production**: Deployed snapshot of the trunk.
+For full details, see [Getting Started](docs/GETTING_STARTED.md). Typical local ports: Django **8000**, Spring Boot **8080**, Vite **5173**.
 
-### Coding Conventions
-- **Naming**: We strictly avoid Hungarian Notation (e.g., `strTicker`, `numShares`). We believe modern IDEs and typing make this obsolete and it hinders readability.
-- **Formatting**: Python follows PEP 8. JavaScript/TypeScript follows Prettier standards.
+**Django (primary API)**:
 
----
-
-## ⚡ Quick Start
-
-For full details, see [Getting Started](docs/GETTING_STARTED.md).
-
-**Backend**:
 ```bash
 cd django
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+python3 manage.py migrate
 python3 manage.py runserver
 ```
 
+**Spring Boot (SEC / filings service)** — requires **Java 17**, **Maven**, and **PostgreSQL**. Copy or create `springboot/.env` with database credentials and `ADMIN_API_KEY` (see [springboot/README.md](springboot/README.md)):
+
+```bash
+cd springboot
+mvn spring-boot:run
+```
+
 **Frontend**:
+
 ```bash
 cd react-app
 npm install

@@ -1,7 +1,8 @@
-import { Alert, ListGroup, Spinner } from "react-bootstrap";
-import { formatString, getApiErrorMessages } from "../functions/helperFunctions";
+import { Alert, ListGroup } from "react-bootstrap";
+import { formatString } from "../functions/helperFunctions";
 import { useGetAssetInfosQuery } from "../functions/api";
 import { IEquityInfo } from "../interfaces";
+import StateHandler from "./StateHandler";
 
 export default function EquityInfo({ ticker }: { ticker: string }) {
   const {
@@ -9,22 +10,17 @@ export default function EquityInfo({ ticker }: { ticker: string }) {
     error,
     isLoading,
   } = useGetAssetInfosQuery([ticker]);
-  if (isLoading) {
-    return <Spinner animation="border" />;
-  }
-
-  if (error) {
-    return <Alert variant="danger">{getApiErrorMessages(error)}</Alert>;
-  }
 
   const assetInfo = assetInfos ? (assetInfos[ticker] as IEquityInfo) : null;
 
-  if (!assetInfo) {
-    return <Alert variant="warning">No data available for {ticker}</Alert>;
-  }
-  console.log(assetInfo);
   return (
-    <>
+    <StateHandler
+      isLoading={isLoading}
+      errors={[error]}
+      content={
+        !assetInfo ? (
+          <Alert variant="warning">No data available for {ticker}</Alert>
+        ) : (
       <ListGroup>
         <ListGroup.Item>
           {"Current Price: " +
@@ -83,6 +79,8 @@ export default function EquityInfo({ ticker }: { ticker: string }) {
             formatString(assetInfo.netMarginTTM, "percent")}
         </ListGroup.Item>
       </ListGroup>
-    </>
+        )
+      }
+    />
   );
 }

@@ -42,8 +42,8 @@ DROP TABLE IF EXISTS indexes_stock CASCADE;
 |------|----------|-------------|
 | `load_fred_cache` | Periodic | Pre-caches FRED economic series (DGS10, CPI, UNRATE, etc.) |
 | `load_yfinance_cache` | Periodic | Pre-caches yfinance data for all portfolio tickers |
-| `load_iex_hist` | Periodic | Triggers Spring Boot IEX HIST TOPS download (default 5 days) |
-| `refresh_corporate_actions` | Periodic | Triggers Spring Boot price adjustments (splits & dividends) |
+
+Spring Boot admin jobs (IEX HIST ingest, price adjustments, etc.) are not triggered by Django Celery; run them manually or automate separately. If django-celery-beat still has old entries for `portfolio.tasks.load_iex_hist` or `portfolio.tasks.refresh_corporate_actions`, delete those periodic tasks in Django admin.
 
 ## Environment Variables
 
@@ -54,8 +54,6 @@ DROP TABLE IF EXISTS indexes_stock CASCADE;
 | `DATABASE` | (required) | `postgresLocal` or `postgresDocker` |
 | `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
 | `REDIS_URL` | (required) | Redis connection URL (e.g. `redis://localhost:6379`) |
-| `SPRINGBOOT_INTERNAL_URL` | `http://springboot:8080` | Spring Boot base URL for Celery tasks |
-| `ADMIN_API_KEY` | (required) | Key for Spring Boot `X-Admin-Key` header |
 
 ## Getting Started
 

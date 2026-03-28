@@ -1,9 +1,10 @@
-import { Button, Table, Alert } from "react-bootstrap";
+import { Button, Table } from "react-bootstrap";
 import { useGetAccountsQuery, useGetAssetsQuery, useGetAssetInfosQuery } from "../functions/api";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import { formatString } from "../functions/helperFunctions";
+import StateHandler from "./StateHandler";
 
 export default function AccountList() {
     const navigate = useNavigate();
@@ -13,25 +14,23 @@ export default function AccountList() {
     });
 
     // Fetch all assets to calculate balances
-    const { data: assets, error: _assetsError, isLoading: assetsLoading } = useGetAssetsQuery(undefined, {
+    const { data: assets, isLoading: assetsLoading } = useGetAssetsQuery(undefined, {
         skip: !access
     });
 
     const uniqueTickers = assets ? [...new Set(assets.map(a => a.ticker))] : [];
 
-    const { data: assetInfos, error: _assetInfosError, isLoading: assetInfosLoading } = useGetAssetInfosQuery(uniqueTickers, {
+    const { data: assetInfos, isLoading: assetInfosLoading } = useGetAssetInfosQuery(uniqueTickers, {
         skip: !access || uniqueTickers.length === 0
     });
 
     if (!access) return null;
-    if (accountsLoading) return <p>Loading accounts...</p>;
-    if (accountsError) return <Alert variant="danger">Error loading accounts</Alert>;
-
-    const isLoading = accountsLoading || assetsLoading || assetInfosLoading;
-
-    if (isLoading && !accounts) return <p>Loading data...</p>;
 
     return (
+    <StateHandler
+      isLoading={accountsLoading}
+      errors={[accountsError]}
+      content={
         <div className="account-list">
             <h3>{username}'s Accounts</h3>
             {accounts && accounts.length > 0 ? (
@@ -107,5 +106,7 @@ export default function AccountList() {
                 <p>No accounts found.</p>
             )}
         </div>
+      }
+    />
     );
 }

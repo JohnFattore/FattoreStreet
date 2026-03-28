@@ -95,6 +95,67 @@ export function formatString(
       return String(value); // Fallback: return the value as-is
   }
 }
+export function formatNumber(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return "";
+  return Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(v);
+}
+
+export function formatCurrency(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return "";
+  return Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(v);
+}
+
+export function formatPercent(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return "";
+  return `${v.toFixed(2)}%`;
+}
+
+export function formatLargeCurrency(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return "";
+  const abs = Math.abs(v);
+  const fmt = (n: number) =>
+    Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+  if (abs >= 1_000_000_000_000) {
+    return `${fmt(v / 1_000_000_000_000)} Trillion`;
+  }
+  if (abs >= 1_000_000_000) {
+    return `${fmt(v / 1_000_000_000)} Billion`;
+  }
+  if (abs >= 1_000_000) {
+    return `${fmt(v / 1_000_000)} Million`;
+  }
+  return formatCurrency(v);
+}
+
+export function formatLargeNumber(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return "";
+  const abs = Math.abs(v);
+  const fmt = (n: number) =>
+    Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+  if (abs >= 1_000_000_000_000) {
+    return `${fmt(v / 1_000_000_000_000)} Trillion`;
+  }
+  if (abs >= 1_000_000_000) {
+    return `${fmt(v / 1_000_000_000)} Billion`;
+  }
+  if (abs >= 1_000_000) {
+    return `${fmt(v / 1_000_000)} Million`;
+  }
+  return formatNumber(v);
+}
+
 // phase this out, good error message come from the server, set with axiosFunctions and the reducers
 export function translateError(error: string) {
   if (error == "Request failed with status code 401") return "Please Login";

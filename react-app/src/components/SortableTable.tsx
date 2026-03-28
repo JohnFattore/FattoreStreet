@@ -18,6 +18,12 @@ type Props<T> = {
   errors: any[];
 };
 
+function parseNumericString(s: string): number | null {
+  const stripped = s.replace(/[,$%\s]/g, "");
+  if (stripped === "" || isNaN(Number(stripped))) return null;
+  return Number(stripped);
+}
+
 export function SortableTable<T extends Record<string, any>>({
   data,
   columns,
@@ -51,18 +57,25 @@ export function SortableTable<T extends Record<string, any>>({
     return [...data].sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
-      if (aValue == null) return 1;
-      if (bValue == null) return -1;
+      if (aValue == null || aValue === "") return 1;
+      if (bValue == null || bValue === "") return -1;
 
-      if (typeof aValue === "string") {
-        return sortConfig.direction === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
       if (typeof aValue === "number") {
         return sortConfig.direction === "asc"
           ? aValue - bValue
           : bValue - aValue;
+      }
+      if (typeof aValue === "string") {
+        const aNum = parseNumericString(aValue);
+        const bNum = parseNumericString(bValue as string);
+        if (aNum !== null && bNum !== null) {
+          return sortConfig.direction === "asc"
+            ? aNum - bNum
+            : bNum - aNum;
+        }
+        return sortConfig.direction === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
       }
       return 0;
     });

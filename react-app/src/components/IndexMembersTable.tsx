@@ -1,30 +1,17 @@
 import { SortableTable } from "./SortableTable";
 import { IIndexMemberRow } from "../interfaces";
+import {
+  formatNumber,
+  formatPercent,
+  formatLargeCurrency,
+  formatLargeNumber,
+} from "../functions/helperFunctions";
 
 type Props = {
   members: IIndexMemberRow[];
   isLoading: boolean;
   errors: any[];
 };
-
-function formatNumber(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return "";
-  return Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(v);
-}
-
-function formatCurrency(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return "";
-  return Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(v);
-}
-
-function formatPercent(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return "";
-  return `${v.toFixed(2)}%`;
-}
 
 export function IndexMembersTable({ members, isLoading, errors }: Props) {
   const rows = members.map((m) => ({
@@ -60,22 +47,22 @@ export function IndexMembersTable({ members, isLoading, errors }: Props) {
         {
           label: "FF Mkt Cap",
           sortKey: "freeFloatMarketCap",
-          render: (r) => formatCurrency(r.freeFloatMarketCap),
+          render: (r) => formatLargeCurrency(r.freeFloatMarketCap),
         },
         {
           label: "Mkt Cap",
           sortKey: "marketCap",
-          render: (r) => formatCurrency(r.marketCap),
+          render: (r) => formatLargeCurrency(r.marketCap),
         },
         {
           label: "Vol USD",
           sortKey: "volumeUSD",
-          render: (r) => formatCurrency(r.volumeUSD),
+          render: (r) => formatLargeCurrency(r.volumeUSD),
         },
         {
           label: "Vol",
           sortKey: "volume",
-          render: (r) => formatNumber(r.volume),
+          render: (r) => formatLargeNumber(r.volume),
         },
         {
           label: "Float",
