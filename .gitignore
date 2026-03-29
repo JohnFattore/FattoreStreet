@@ -17,6 +17,8 @@ react-app/dist
 .env.*
 react-app/coverage
 react-app/.sass-cache
+react-app/src/styles/custom.css
+react-app/src/styles/custom.css.map
 
 
 django/chatbot/secret.txt
