@@ -10,10 +10,12 @@ import com.fattorestreet.sec_api.listing.ListingService;
 import com.fattorestreet.sec_api.marketdata.IexHistService;
 import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.index.FattoreIndexCodes;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -46,7 +49,11 @@ public class AdminController {
     private final FilingSummaryService filingSummaryService;
     private final com.fattorestreet.sec_api.repository.AssetRepository assetRepository;
     private final com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService;
-    private final com.fattorestreet.sec_api.index.Fattore50IndexRebuildService fattore50IndexRebuildService;
+    private final com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore50IndexRebuildService;
+    private final com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore100IndexRebuildService;
+    private final com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore1000IndexRebuildService;
+    private final Map<String, com.fattorestreet.sec_api.index.FattoreIndexRebuildService> capRankedRebuildByCode;
+    private final List<com.fattorestreet.sec_api.index.FattoreIndexRebuildService> capRankedRebuildAllOrdered;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${ADMIN_API_KEY}")
@@ -63,7 +70,12 @@ public class AdminController {
             FilingSummaryService filingSummaryService,
             com.fattorestreet.sec_api.repository.AssetRepository assetRepository,
             com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService,
-            com.fattorestreet.sec_api.index.Fattore50IndexRebuildService fattore50IndexRebuildService
+            @Qualifier("fattore50IndexRebuildService")
+            com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore50IndexRebuildService,
+            @Qualifier("fattore100IndexRebuildService")
+            com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore100IndexRebuildService,
+            @Qualifier("fattore1000IndexRebuildService")
+            com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore1000IndexRebuildService
     ) {
         this.webService = webService;
         this.assetService = assetService;
@@ -76,6 +88,15 @@ public class AdminController {
         this.assetRepository = assetRepository;
         this.indexMetricsRefreshService = indexMetricsRefreshService;
         this.fattore50IndexRebuildService = fattore50IndexRebuildService;
+        this.fattore100IndexRebuildService = fattore100IndexRebuildService;
+        this.fattore1000IndexRebuildService = fattore1000IndexRebuildService;
+        this.capRankedRebuildByCode = Map.of(
+                FattoreIndexCodes.FAT50.toUpperCase(Locale.ROOT), fattore50IndexRebuildService,
+                FattoreIndexCodes.FAT100.toUpperCase(Locale.ROOT), fattore100IndexRebuildService,
+                FattoreIndexCodes.FAT1000.toUpperCase(Locale.ROOT), fattore1000IndexRebuildService);
+        // Lexicographic by market index code: FAT100, FAT1000, FAT50
+        this.capRankedRebuildAllOrdered = List.of(
+                fattore100IndexRebuildService, fattore1000IndexRebuildService, fattore50IndexRebuildService);
     }
 
     @GetMapping("/admin/asset-load")
@@ -326,11 +347,101 @@ public class AdminController {
         }
     }
 
+    /**
+     * Rebuild cap-ranked indexes ({@code FAT50}, {@code FAT100}, {@code FAT1000}). Optional query param {@code code}
+     * selects one index (case-insensitive); omit or leave blank to rebuild all configured indexes.
+     */
+    @PostMapping("/admin/indexes/rebuild")
+    public ResponseEntity<?> rebuildCapRankedIndexes(
+            @RequestHeader(value = "X-Admin-Key", required = false) String key,
+            @RequestParam(defaultValue = "false") boolean refreshMetrics,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String code) {
+        if (isUnauthorized(key)) {
+            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
+        }
+        List<com.fattorestreet.sec_api.index.FattoreIndexRebuildService> services;
+        if (code == null || code.isBlank()) {
+            services = capRankedRebuildAllOrdered;
+        } else {
+            String normalized = code.trim().toUpperCase(Locale.ROOT);
+            com.fattorestreet.sec_api.index.FattoreIndexRebuildService one = capRankedRebuildByCode.get(normalized);
+            if (one == null) {
+                return ResponseEntity.badRequest()
+                        .body("Unknown index code: " + code.trim() + ". Supported: "
+                                + String.join(", ", capRankedRebuildByCode.keySet()));
+            }
+            services = List.of(one);
+        }
+        try {
+            int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("year", resolvedYear);
+            if (refreshMetrics) {
+                com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult rr =
+                        indexMetricsRefreshService.refreshAllListings(resolvedYear);
+                payload.put("refresh", Map.of(
+                        "processed", rr.processed(),
+                        "skipped", rr.skipped(),
+                        "skippedTickers", rr.skippedTickers()));
+            }
+            List<Map<String, Object>> rebuilds = new ArrayList<>();
+            for (com.fattorestreet.sec_api.index.FattoreIndexRebuildService service : services) {
+                rebuilds.add(toRebuildPayload(service.rebuild(resolvedYear)));
+            }
+            payload.put("rebuilds", rebuilds);
+            payload.put("duration", formatDuration(System.currentTimeMillis() - startTime));
+            return ResponseEntity.ok(payload);
+        } catch (Exception e) {
+            log.error("Error rebuilding cap-ranked index(es)", e);
+            return ResponseEntity.internalServerError()
+                    .body("Error rebuilding cap-ranked index(es): " + e.getMessage());
+        }
+    }
+
     @PostMapping("/admin/indexes/rebuild-fattore-50")
     public ResponseEntity<?> rebuildFattore50(
             @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(defaultValue = "false") boolean refreshMetrics,
             @RequestParam(required = false) Integer year) {
+        return rebuildCapRankedIndexLegacy(key, refreshMetrics, year, fattore50IndexRebuildService, "Fattore 50");
+    }
+
+    @PostMapping("/admin/indexes/rebuild-fattore-100")
+    public ResponseEntity<?> rebuildFattore100(
+            @RequestHeader(value = "X-Admin-Key", required = false) String key,
+            @RequestParam(defaultValue = "false") boolean refreshMetrics,
+            @RequestParam(required = false) Integer year) {
+        return rebuildCapRankedIndexLegacy(key, refreshMetrics, year, fattore100IndexRebuildService, "Fattore 100");
+    }
+
+    @PostMapping("/admin/indexes/rebuild-fattore-1000")
+    public ResponseEntity<?> rebuildFattore1000(
+            @RequestHeader(value = "X-Admin-Key", required = false) String key,
+            @RequestParam(defaultValue = "false") boolean refreshMetrics,
+            @RequestParam(required = false) Integer year) {
+        return rebuildCapRankedIndexLegacy(key, refreshMetrics, year, fattore1000IndexRebuildService, "Fattore 1000");
+    }
+
+    private static Map<String, Object> toRebuildPayload(
+            com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult rb) {
+        return Map.of(
+                "indexCode", rb.indexCode(),
+                "year", rb.year(),
+                "memberCount", rb.memberCount(),
+                "partial", rb.partial(),
+                "totalFreeFloatMarketCap", rb.totalFreeFloatMarketCap(),
+                "tickers", rb.tickers());
+    }
+
+    /** Legacy response shape with singular {@code rebuild} for backward compatibility. */
+    private ResponseEntity<?> rebuildCapRankedIndexLegacy(
+            String key,
+            boolean refreshMetrics,
+            Integer year,
+            com.fattorestreet.sec_api.index.FattoreIndexRebuildService service,
+            String indexLabel) {
         if (isUnauthorized(key)) {
             return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
         }
@@ -347,21 +458,15 @@ public class AdminController {
                         "skipped", rr.skipped(),
                         "skippedTickers", rr.skippedTickers()));
             }
-            com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult rb =
-                    fattore50IndexRebuildService.rebuild(resolvedYear);
-            payload.put("rebuild", Map.of(
-                    "indexCode", rb.indexCode(),
-                    "year", rb.year(),
-                    "memberCount", rb.memberCount(),
-                    "partial", rb.partial(),
-                    "totalFreeFloatMarketCap", rb.totalFreeFloatMarketCap(),
-                    "tickers", rb.tickers()));
+            com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult rb =
+                    service.rebuild(resolvedYear);
+            payload.put("rebuild", toRebuildPayload(rb));
             payload.put("duration", formatDuration(System.currentTimeMillis() - startTime));
             return ResponseEntity.ok(payload);
         } catch (Exception e) {
-            log.error("Error rebuilding Fattore 50 index", e);
+            log.error("Error rebuilding {} index", indexLabel, e);
             return ResponseEntity.internalServerError()
-                    .body("Error rebuilding Fattore 50 index: " + e.getMessage());
+                    .body("Error rebuilding " + indexLabel + " index: " + e.getMessage());
         }
     }
 

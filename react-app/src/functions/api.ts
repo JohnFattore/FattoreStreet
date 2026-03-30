@@ -14,6 +14,7 @@ import {
   ISplitRow,
   IMarketIndex,
   IIndexMemberRow,
+  IIwbReferenceHolding,
   IYFinanceQuarter,
 } from "../interfaces";
 import { RootState } from "../main";
@@ -495,6 +496,15 @@ export const api = createApi({
         withAuth: false,
       }),
     }),
+
+    getIwbReferenceHoldings: builder.query<IIwbReferenceHolding[], void>({
+      query: () => ({
+        url: "iwb-reference-holdings",
+        method: "GET",
+        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
+      }),
+    }),
   }),
 });
 
@@ -529,4 +539,5 @@ export const {
   useGetFilingSummariesQuery,
   useGetIndexesQuery,
   useGetIndexMembersQuery,
+  useGetIwbReferenceHoldingsQuery,
 } = api;

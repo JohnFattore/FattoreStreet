@@ -204,6 +204,12 @@ export interface IMarketIndex {
     displayName: string;
 }
 
+/** iShares IWB fund-reported weights from Spring `GET /iwb-reference-holdings`. */
+export interface IIwbReferenceHolding {
+    ticker: string;
+    weightPercent: number;
+}
+
 export interface IIndexMemberStock {
     ticker: string;
     name: string;
@@ -214,6 +220,8 @@ export interface IIndexMemberStock {
     freeFloatMarketCap: number;
     countryIncorp: string;
     countryHQ: string;
+    stateIncorp: string | null;
+    stateHQ: string | null;
     securityType: string;
     yearIPO: number;
 }

@@ -58,7 +58,7 @@ const restaurantRecommendSlice = createSlice({
       })
       .addCase(getRestaurantRecommendations.rejected, (state, action) => {
         state.loading = false;  // Set loading to false if the call failed
-        state.error = action.error.message || 'An error occurred';;  // Set the error message
+        state.error = action.error.message || 'An error occurred';  // Set the error message
       });
   },
 });

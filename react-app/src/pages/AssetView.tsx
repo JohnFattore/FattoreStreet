@@ -14,11 +14,17 @@ import LoadingModal from "../components/LoadingModal";
 export default function AssetView() {
   const navigate = useNavigate();
   const { ticker } = useParams<{ ticker: string }>();
+
+  const { isLoading, error } = useGetAssetInfosQuery(ticker ? [ticker] : [], {
+    skip: !ticker,
+  });
+  const { data: prices } = useGetAssetPricesQuery(ticker ?? "", {
+    skip: !ticker,
+  });
+
   if (!ticker) {
     return <Alert variant="danger">Error</Alert>;
   }
-  const { isLoading, error } = useGetAssetInfosQuery([ticker]);
-  const { data: prices } = useGetAssetPricesQuery(ticker)
   if (isLoading)
     return (
       <LoadingModal

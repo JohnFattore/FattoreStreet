@@ -24,6 +24,16 @@ const COMPARE_FIELDS = [
 
 type CompareField = (typeof COMPARE_FIELDS)[number];
 
+function secMetric(q: IQuarter, key: keyof IQuarter): number | null {
+  const v = q[key];
+  return typeof v === "number" ? v : null;
+}
+
+function yfMetric(q: IYFinanceQuarter, key: keyof IYFinanceQuarter): number | null {
+  const v = q[key];
+  return typeof v === "number" ? v : null;
+}
+
 function parseSecQuarter(q: string | number): number {
     if (typeof q === "number") return q;
     const match = String(q).match(/Q(\d)/i);
@@ -96,9 +106,9 @@ export default function QuarterlyComparison({ ticker }: { ticker: string }) {
             const yfQ = yfMap.get(key);
 
             const secVal: number | null =
-                secQ != null ? (secQ as any)[field.secKey] ?? null : null;
+                secQ != null ? secMetric(secQ, field.secKey as keyof IQuarter) : null;
             const yfVal: number | null =
-                yfQ != null ? (yfQ as any)[field.yfKey] ?? null : null;
+                yfQ != null ? yfMetric(yfQ, field.yfKey as keyof IYFinanceQuarter) : null;
 
             let diff: number | null = null;
             let pctDiff: number | null = null;

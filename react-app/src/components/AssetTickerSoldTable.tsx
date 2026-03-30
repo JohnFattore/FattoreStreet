@@ -12,6 +12,20 @@ import { IAsset } from "../interfaces";
 import { SortableTable } from "./SortableTable";
 import AssetDeleteSellModal from "./AssetDeleteSellModal";
 
+type AssetTickerSoldRow = {
+  id: number;
+  ticker: string;
+  accountName: string;
+  shares: number;
+  buyDate: string;
+  buyPrice: number;
+  sellDate: string | null;
+  sellPrice: number;
+  percentChange: number;
+  shortName: string;
+  hasError: boolean;
+};
+
 export default function AssetTickerSoldTable({ ticker }: { ticker: string }) {
   const { access } = useSelector((state: RootState) => state.user);
   const {
@@ -56,7 +70,7 @@ export default function AssetTickerSoldTable({ ticker }: { ticker: string }) {
   }
 
   const info = assetInfos[ticker];
-  const data = assetsSold.map((asset) => {
+  const data: AssetTickerSoldRow[] = assetsSold.map((asset) => {
     if (!asset.sellPrice) {
       throw Error(`ticker ${asset.ticker} as no sell price`)
     }
@@ -88,32 +102,33 @@ export default function AssetTickerSoldTable({ ticker }: { ticker: string }) {
     {
       label: "Shares",
       sortKey: "shares",
-      render: (row: any) => formatString(row.shares, "amount"),
+      render: (row: AssetTickerSoldRow) => formatString(row.shares, "amount"),
     },
     {
       label: "Buy Date",
       sortKey: "buyDate",
-      render: (row: any) => formatString(row.buyDate, "date"),
+      render: (row: AssetTickerSoldRow) => formatString(row.buyDate, "date"),
     },
     {
       label: "Buy Price",
       sortKey: "buyPrice",
-      render: (row: any) => formatString(row.buyPrice, "money"),
+      render: (row: AssetTickerSoldRow) => formatString(row.buyPrice, "money"),
     },
     {
       label: "Sell Date",
       sortKey: "sellDate",
-      render: (row: any) => formatString(row.sellDate, "date"),
+      render: (row: AssetTickerSoldRow) =>
+        row.sellDate != null ? formatString(row.sellDate, "date") : "N/A",
     },
     {
       label: "Sell Price",
       sortKey: "sellPrice",
-      render: (row: any) => formatString(row.sellPrice, "money"),
+      render: (row: AssetTickerSoldRow) => formatString(row.sellPrice, "money"),
     },
     {
       label: "Percent Change",
       sortKey: "percentChange",
-      render: (row: any) =>
+      render: (row: AssetTickerSoldRow) =>
         row.percentChange !== null
           ? formatString(row.percentChange, "percent")
           : "N/A",
@@ -122,7 +137,7 @@ export default function AssetTickerSoldTable({ ticker }: { ticker: string }) {
       label: "Sell Asset",
       sortKey: "sellAsset",
       sortable: false,
-      render: (row: any) => {
+      render: (row: AssetTickerSoldRow) => {
         return (
           <Button
             onClick={() => {
@@ -137,7 +152,7 @@ export default function AssetTickerSoldTable({ ticker }: { ticker: string }) {
       label: "Delete Asset",
       sortKey: "deleteAsset",
       sortable: false,
-      render: (row: any) => {
+      render: (row: AssetTickerSoldRow) => {
         return (
           <Button
             onClick={() => {

@@ -28,7 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class Fattore50IndexRebuildServiceTest {
+class FattoreIndexRebuildServiceTest {
 
     private static final int TEST_YEAR = 2026;
 
@@ -39,11 +39,13 @@ class Fattore50IndexRebuildServiceTest {
     @Mock
     private IndexMemberRepository indexMemberRepository;
 
-    private Fattore50IndexRebuildService service;
+    private FattoreIndexRebuildService serviceFat50;
 
     @BeforeEach
     void setUp() {
-        service = new Fattore50IndexRebuildService(metricsRepository, marketIndexRepository, indexMemberRepository, 3);
+        serviceFat50 = new FattoreIndexRebuildService(
+                metricsRepository, marketIndexRepository, indexMemberRepository,
+                FattoreIndexCodes.FAT50, "Fattore 50", 3);
     }
 
     @Test
@@ -59,17 +61,18 @@ class Fattore50IndexRebuildServiceTest {
         when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(rows);
         MarketIndex mi = new MarketIndex();
         mi.setId(9L);
-        mi.setCode(Fattore50IndexRebuildService.INDEX_CODE);
-        when(marketIndexRepository.findByCode(Fattore50IndexRebuildService.INDEX_CODE)).thenReturn(Optional.of(mi));
+        mi.setCode(FattoreIndexCodes.FAT50);
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.of(mi));
 
-        Fattore50IndexRebuildService.RebuildResult result = service.rebuild(TEST_YEAR);
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
 
+        assertEquals(FattoreIndexCodes.FAT50, result.indexCode());
         assertEquals(TEST_YEAR, result.year());
         assertEquals(3, result.memberCount());
         assertFalse(result.partial());
         assertEquals(List.of("BBB", "CCC", "AAA"), result.tickers());
 
-        verify(indexMemberRepository).deleteByMarketIndex_Code(Fattore50IndexRebuildService.INDEX_CODE);
+        verify(indexMemberRepository).deleteByMarketIndex_Code(FattoreIndexCodes.FAT50);
         ArgumentCaptor<IndexMember> cap = ArgumentCaptor.forClass(IndexMember.class);
         verify(indexMemberRepository, org.mockito.Mockito.times(3)).save(cap.capture());
         List<IndexMember> saved = cap.getAllValues();
@@ -81,33 +84,90 @@ class Fattore50IndexRebuildServiceTest {
     }
 
     @Test
+    void rebuild_fat100_deletesByFat100Code() {
+        FattoreIndexRebuildService service100 = new FattoreIndexRebuildService(
+                metricsRepository, marketIndexRepository, indexMemberRepository,
+                FattoreIndexCodes.FAT100, "Fattore 100", 1);
+        when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(List.of(
+                metrics(listing("Z", equityAsset(false)), bd("1"))
+        ));
+        MarketIndex mi = new MarketIndex();
+        mi.setCode(FattoreIndexCodes.FAT100);
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT100)).thenReturn(Optional.of(mi));
+
+        FattoreIndexRebuildService.RebuildResult result = service100.rebuild(TEST_YEAR);
+
+        assertEquals(FattoreIndexCodes.FAT100, result.indexCode());
+        verify(indexMemberRepository).deleteByMarketIndex_Code(FattoreIndexCodes.FAT100);
+    }
+
+    @Test
     void rebuild_emptyEligible_createsIndexClearsMembers() {
         when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(List.of());
         MarketIndex created = new MarketIndex();
-        created.setCode(Fattore50IndexRebuildService.INDEX_CODE);
-        when(marketIndexRepository.findByCode(Fattore50IndexRebuildService.INDEX_CODE)).thenReturn(Optional.empty());
+        created.setCode(FattoreIndexCodes.FAT50);
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.empty());
         when(marketIndexRepository.save(any(MarketIndex.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Fattore50IndexRebuildService.RebuildResult result = service.rebuild(TEST_YEAR);
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
 
         assertEquals(0, result.memberCount());
         assertTrue(result.partial());
         verify(marketIndexRepository).save(any(MarketIndex.class));
-        verify(indexMemberRepository).deleteByMarketIndex_Code(Fattore50IndexRebuildService.INDEX_CODE);
+        verify(indexMemberRepository).deleteByMarketIndex_Code(FattoreIndexCodes.FAT50);
         verify(indexMemberRepository, org.mockito.Mockito.never()).save(any());
     }
 
     @Test
+    void rebuild_unknownIncorpWithUsHq_stillEligible() {
+        ListingIndexMetrics avgo = metrics(listing("AVGO", equityAsset(false)), bd("500"));
+        avgo.setCountryIncorp("Unknown");
+        avgo.setCountryHq("United States");
+
+        when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(List.of(
+                avgo,
+                metrics(listing("AAPL", equityAsset(false)), bd("300"))
+        ));
+        MarketIndex mi = new MarketIndex();
+        mi.setCode(FattoreIndexCodes.FAT50);
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.of(mi));
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertTrue(result.tickers().contains("AVGO"));
+        assertEquals(2, result.memberCount());
+    }
+
+    @Test
+    void rebuild_unknownIncorpWithForeignHq_excluded() {
+        ListingIndexMetrics foreign = metrics(listing("FOREIGN", equityAsset(false)), bd("500"));
+        foreign.setCountryIncorp("Unknown");
+        foreign.setCountryHq("Singapore");
+
+        when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(List.of(foreign));
+        MarketIndex mi = new MarketIndex();
+        mi.setCode(FattoreIndexCodes.FAT50);
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.of(mi));
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertEquals(0, result.memberCount());
+        assertTrue(result.partial());
+    }
+
+    @Test
     void rebuild_partialWhenFewerEligibleThanTopN() {
-        service = new Fattore50IndexRebuildService(metricsRepository, marketIndexRepository, indexMemberRepository, 5);
+        FattoreIndexRebuildService svc = new FattoreIndexRebuildService(
+                metricsRepository, marketIndexRepository, indexMemberRepository,
+                FattoreIndexCodes.FAT50, "Fattore 50", 5);
         when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(List.of(
                 metrics(listing("A", equityAsset(false)), bd("10")),
                 metrics(listing("B", equityAsset(false)), bd("20"))
         ));
         MarketIndex mi = new MarketIndex();
-        when(marketIndexRepository.findByCode(Fattore50IndexRebuildService.INDEX_CODE)).thenReturn(Optional.of(mi));
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.of(mi));
 
-        Fattore50IndexRebuildService.RebuildResult result = service.rebuild(TEST_YEAR);
+        FattoreIndexRebuildService.RebuildResult result = svc.rebuild(TEST_YEAR);
 
         assertTrue(result.partial());
         assertEquals(2, result.memberCount());

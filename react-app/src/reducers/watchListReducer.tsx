@@ -20,9 +20,9 @@ const watchListSlice = createSlice({
   reducers: {    
     loadTickers: (state) => {
       if (localStorage.getItem("tickers") == null) {
-        let tickers: string[] = (["VTI", "SPY"]);
+        const tickers: string[] = (["VTI", "SPY"]);
         localStorage.setItem("tickers", (JSON.stringify(tickers)));
-    };
+    }
       const tickers = JSON.parse(localStorage.getItem("tickers") as string) as string[]
       state.tickers = tickers
     },

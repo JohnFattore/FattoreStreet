@@ -45,7 +45,7 @@ export function formatString(
     case "text":
       return String(value);
 
-    case "money":
+    case "money": {
       // Format as USD currency
       const absValue = Math.abs(Number(value));
       let formattedValue: string;
@@ -76,6 +76,7 @@ export function formatString(
       }
 
       return formattedValue;
+    }
 
     case "amount":
       // Format like money, but without the currency symbol

@@ -32,12 +32,14 @@ export default function WatchListTable() {
   const data = dataRaw ?? [];
   const dataArr = Object.values(data as Record<string, IEquityInfo | IETFInfo>);
 
-  const actionColumns = [
+  type PerfRow = IEquityInfo | IETFInfo;
+
+  const performanceActionColumns = [
     {
       label: "Remove",
       sortKey: "remove",
       sortable: false,
-      render: (row: any) => (
+      render: (row: PerfRow) => (
         <Button size="sm" onClick={() => dispatch(removeTicker(row.ticker))}>
           Remove
         </Button>
@@ -47,7 +49,30 @@ export default function WatchListTable() {
       label: "View",
       sortKey: "view",
       sortable: false,
-      render: (row: any) => (
+      render: (row: PerfRow) => (
+        <Button size="sm" onClick={() => navigate(`/asset/${row.ticker}`)}>
+          View
+        </Button>
+      ),
+    },
+  ];
+
+  const edgarActionColumns = [
+    {
+      label: "Remove",
+      sortKey: "remove",
+      sortable: false,
+      render: (row: ISECData) => (
+        <Button size="sm" onClick={() => dispatch(removeTicker(row.ticker))}>
+          Remove
+        </Button>
+      ),
+    },
+    {
+      label: "View",
+      sortKey: "view",
+      sortable: false,
+      render: (row: ISECData) => (
         <Button size="sm" onClick={() => navigate(`/asset/${row.ticker}`)}>
           View
         </Button>
@@ -59,55 +84,55 @@ export default function WatchListTable() {
     {
       label: "Ticker",
       sortKey: "ticker",
-      render: (row: any) => formatString(row.ticker, "text"),
+      render: (row: PerfRow) => formatString(row.ticker, "text"),
     },
     {
       label: "Name",
       sortKey: "shortName",
-      render: (row: any) => formatString(row.shortName, "text"),
+      render: (row: PerfRow) => formatString(row.shortName, "text"),
     },
     { label: "Type", sortKey: "type" },
     {
       label: "Price",
       sortKey: "currentPrice",
-      render: (row: any) => formatString(row.currentPrice, "money"),
+      render: (row: PerfRow) => formatString(row.currentPrice, "money"),
     },
     {
       label: "Percent Change Today",
       sortKey: "percentChangeDaily",
-      render: (row: any) => formatString(row.percentChangeDaily, "percent"),
+      render: (row: PerfRow) => formatString(row.percentChangeDaily, "percent"),
     },
     {
       label: "Percent Change Weekly",
       sortKey: "percentChangeWeekly",
-      render: (row: any) => formatString(row.percentChangeWeekly, "percent"),
+      render: (row: PerfRow) => formatString(row.percentChangeWeekly, "percent"),
     },
     {
       label: "Percent Change Monthly",
       sortKey: "percentChangeMonthly",
-      render: (row: any) => formatString(row.percentChangeMonthly, "percent"),
+      render: (row: PerfRow) => formatString(row.percentChangeMonthly, "percent"),
     },
     {
       label: "Percent Change YTD",
       sortKey: "percentChangeYTD",
-      render: (row: any) => formatString(row.percentChangeYTD, "percent"),
+      render: (row: PerfRow) => formatString(row.percentChangeYTD, "percent"),
     },
     {
       label: "Percent Change 1 Year",
       sortKey: "percentChangeYearly",
-      render: (row: any) => formatString(row.percentChangeYearly, "percent"),
+      render: (row: PerfRow) => formatString(row.percentChangeYearly, "percent"),
     },
     {
       label: "Percent Change 3 Years",
       sortKey: "percentChange3Years",
-      render: (row: any) => formatString(row.percentChange3Years, "percent"),
+      render: (row: PerfRow) => formatString(row.percentChange3Years, "percent"),
     },
     {
       label: "Percent Change 5 Years",
       sortKey: "percentChange5Years",
-      render: (row: any) => formatString(row.percentChange5Years, "percent"),
+      render: (row: PerfRow) => formatString(row.percentChange5Years, "percent"),
     },
-    ...actionColumns,
+    ...performanceActionColumns,
   ];
 
   const edgarColumns = [
@@ -166,7 +191,7 @@ export default function WatchListTable() {
       sortKey: "latestQuarterEnd",
       render: (row: ISECData) => row.latestQuarterEnd,
     },
-    ...actionColumns,
+    ...edgarActionColumns,
   ];
 
   const isEdgar = view === "edgar";
@@ -188,13 +213,23 @@ export default function WatchListTable() {
         </Button>
       </ButtonGroup>
 
-      <SortableTable<any>
-        data={isEdgar ? (edgarData || []) : dataArr}
-        columns={isEdgar ? edgarColumns : performanceColumns}
-        initialSortKey="ticker"
-        isLoading={isEdgar ? edgarLoading : isLoading}
-        errors={[isEdgar ? edgarError : error]}
-      />
+      {isEdgar ? (
+        <SortableTable<ISECData>
+          data={edgarData || []}
+          columns={edgarColumns}
+          initialSortKey="ticker"
+          isLoading={edgarLoading}
+          errors={[edgarError]}
+        />
+      ) : (
+        <SortableTable<PerfRow>
+          data={dataArr}
+          columns={performanceColumns}
+          initialSortKey="ticker"
+          isLoading={isLoading}
+          errors={[error]}
+        />
+      )}
     </div>
   );
 }

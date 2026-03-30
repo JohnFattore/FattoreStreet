@@ -5,7 +5,7 @@ import { IRestaurant } from "../../interfaces";
 interface Field { name: string; type: string; field: string; }
 
 export default function RestaurantRow({ fields, restaurant, setRestaurant }: { fields: Field[]; restaurant: IRestaurant; setRestaurant: (r: IRestaurant) => void }) {
-    let tableData: JSX.Element[] = [];
+    const tableData: JSX.Element[] = [];
     for (let i = 0; i < fields.length; i++) {
         if (fields[i]["field"] == "createReview") {
             tableData.push(

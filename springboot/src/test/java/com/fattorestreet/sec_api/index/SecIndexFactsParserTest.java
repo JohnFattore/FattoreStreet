@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class SecIndexFactsParserTest {
@@ -79,7 +77,6 @@ class SecIndexFactsParserTest {
         var facts = SecIndexFactsParser.parseShareFacts(null);
         assertNull(facts.sharesOutstanding());
         assertNull(facts.publicFloatUsd());
-        assertNull(facts.countryCodeOrName());
     }
 
     @Test
@@ -102,22 +99,111 @@ class SecIndexFactsParserTest {
     }
 
     @Test
-    void computeFreeFloat_nullSharesReturnsNull() {
-        assertNull(SecIndexFactsParser.computeFreeFloat(null, 1000L, BigDecimal.TEN));
-    }
-
-    @Test
-    void computeFreeFloat_noPublicFloatReturnsOne() {
-        assertEquals(0, BigDecimal.ONE.compareTo(
-                SecIndexFactsParser.computeFreeFloat(1000L, null, BigDecimal.TEN)));
-    }
-
-    @Test
     void normalizeCountry_usVariants() {
         assertEquals("United States", SecIndexFactsParser.normalizeCountry("US"));
         assertEquals("United States", SecIndexFactsParser.normalizeCountry("USA"));
-        assertEquals("United States", SecIndexFactsParser.normalizeCountry(null));
+        assertEquals("Unknown", SecIndexFactsParser.normalizeCountry(null));
+        assertEquals("Unknown", SecIndexFactsParser.normalizeCountry(""));
         assertEquals("CA", SecIndexFactsParser.normalizeCountry("CA"));
+    }
+
+    @Test
+    void parseSubmissionsLocation_usStateCodes_splitToUnitedStatesAndState() {
+        ObjectNode root = mapper.createObjectNode();
+        root.put("stateOfIncorporationDescription", "DE");
+        ObjectNode addresses = root.putObject("addresses");
+        ObjectNode biz = addresses.putObject("business");
+        biz.put("stateOrCountryDescription", "CA");
+
+        var loc = SecIndexFactsParser.parseSubmissionsLocation(root);
+        assertEquals("United States", loc.countryIncorp());
+        assertEquals("DE", loc.stateIncorp());
+        assertEquals("United States", loc.countryHq());
+        assertEquals("CA", loc.stateHq());
+    }
+
+    @Test
+    void parseSubmissionsLocation_secOpaqueJurisdictionCodes_unknownCountryAndCodeInState() {
+        ObjectNode root = mapper.createObjectNode();
+        root.put("stateOfIncorporation", "M0");
+        ObjectNode addresses = root.putObject("addresses");
+        ObjectNode biz = addresses.putObject("business");
+        biz.put("stateOrCountry", "P7");
+
+        var loc = SecIndexFactsParser.parseSubmissionsLocation(root);
+        assertEquals("Unknown", loc.countryIncorp());
+        assertEquals("M0", loc.stateIncorp());
+        assertEquals("Unknown", loc.countryHq());
+        assertEquals("P7", loc.stateHq());
+    }
+
+    @Test
+    void parseSubmissionsLocation_prefersHumanReadableHqDescriptionOverOpaqueCode() {
+        ObjectNode root = mapper.createObjectNode();
+        root.put("stateOfIncorporationDescription", "DE");
+        ObjectNode addresses = root.putObject("addresses");
+        ObjectNode biz = addresses.putObject("business");
+        biz.put("stateOrCountry", "X0");
+        biz.put("stateOrCountryDescription", "United Kingdom");
+
+        var loc = SecIndexFactsParser.parseSubmissionsLocation(root);
+        assertEquals("United States", loc.countryIncorp());
+        assertEquals("DE", loc.stateIncorp());
+        assertEquals("United Kingdom", loc.countryHq());
+        assertNull(loc.stateHq());
+    }
+
+    @Test
+    void parseSubmissionsLocation_blankIncorp_reportsUnknown() {
+        // AVGO scenario: SEC leaves stateOfIncorporation blank after redomiciliation
+        ObjectNode root = mapper.createObjectNode();
+        root.put("stateOfIncorporation", "");
+        ObjectNode addresses = root.putObject("addresses");
+        ObjectNode biz = addresses.putObject("business");
+        biz.put("stateOrCountry", "CA");
+
+        var loc = SecIndexFactsParser.parseSubmissionsLocation(root);
+        assertNull(loc.countryIncorp());
+        assertNull(loc.stateIncorp());
+        assertEquals("United States", loc.countryHq());
+        assertEquals("CA", loc.stateHq());
+    }
+
+    @Test
+    void parseSubmissionsLocation_caymanIslandsIncorp_jurisdictionNameAsCountry() {
+        ObjectNode root = mapper.createObjectNode();
+        root.put("stateOfIncorporationDescription", "Cayman Islands");
+        ObjectNode addresses = root.putObject("addresses");
+        addresses.putObject("business");
+
+        var loc = SecIndexFactsParser.parseSubmissionsLocation(root);
+        assertEquals("Cayman Islands", loc.countryIncorp());
+        assertNull(loc.stateIncorp());
+    }
+
+    @Test
+    void parseSubmissionsLocation_businessCountryFieldOverridesStateOrCountry() {
+        ObjectNode root = mapper.createObjectNode();
+        root.put("stateOfIncorporationDescription", "DE");
+        ObjectNode addresses = root.putObject("addresses");
+        ObjectNode biz = addresses.putObject("business");
+        biz.put("country", "Germany");
+        biz.put("stateOrCountryDescription", "HE");
+
+        var loc = SecIndexFactsParser.parseSubmissionsLocation(root);
+        assertEquals("United States", loc.countryIncorp());
+        assertEquals("DE", loc.stateIncorp());
+        assertEquals("Germany", loc.countryHq());
+        assertNull(loc.stateHq());
+    }
+
+    @Test
+    void parseSubmissionsLocation_nullRootReturnsEmpty() {
+        var loc = SecIndexFactsParser.parseSubmissionsLocation(null);
+        assertNull(loc.countryIncorp());
+        assertNull(loc.countryHq());
+        assertNull(loc.stateIncorp());
+        assertNull(loc.stateHq());
     }
 
     // --- helpers ---

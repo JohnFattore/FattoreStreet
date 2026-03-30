@@ -34,7 +34,7 @@ export default function RestaurantRecommendTable({ setRestaurant }: { setRestaur
     };
 
 
-    let headers: JSX.Element[] = []
+    const headers: JSX.Element[] = []
     for (let i = 0; i < fields.length; i++) {
         headers.push(<th key={i} onClick={() => handleSort(fields[i]["field"])}>{fields[i].name}</th>)
     }

@@ -26,7 +26,7 @@ export default function RestaurantSearchBar({ setSearch }: { setSearch: (value: 
 
     useEffect(() => {
         setSearch(searchValue); // Update state only when searchValue changes
-    }, [searchValue]);
+    }, [searchValue, setSearch]);
 
     return (
         <>

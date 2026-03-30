@@ -20,7 +20,7 @@ export default function Restaurants() {
     useEffect(() => {
         dispatch(getRestaurants());
         dispatch(getReviews())
-    }, []);
+    }, [dispatch]);
 
     const [restaurant, setRestaurant] = useState<IRestaurant>({
         yelp_id: '',

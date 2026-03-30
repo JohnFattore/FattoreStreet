@@ -127,14 +127,39 @@ To replicate the production environment locally using Docker:
 
 ## 🧪 Testing
 
+### CI (GitHub Actions)
+
+On every push and pull request to `main`, [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs in parallel:
+
+- **Frontend** (`react-app/`): `npm run lint`, `npm run build`, `npx vitest --run`
+- **Django** (`django/`): `python3 manage.py test` with SQLite and minimal env (`SECRET_KEY`, `DATABASE=sqlite`, `REDIS_URL`)
+- **Spring Boot** (`springboot/`): `mvn test` (H2 in-memory for tests)
+- **Secrets**: `pre-commit run detect-secrets --all-files` (same baseline as local pre-commit)
+
+The frontend **lint** step runs `eslint` with zero warnings allowed; if it fails on GitHub, run `npm run lint` in `react-app/` and fix or suppress the reported issues.
+
 ### Backend Tests
 ```bash
 cd django
 python3 manage.py test
 ```
 
+To mirror the CI Django environment locally:
+
+```bash
+cd django
+SECRET_KEY=test DATABASE=sqlite REDIS_URL=redis://127.0.0.1:6379/0 python3 manage.py test
+```
+
 ### Frontend Tests
 ```bash
 cd react-app
 npm test
+```
+
+For a quick non-interactive run (same as CI):
+
+```bash
+cd react-app
+npx vitest --run
 ```

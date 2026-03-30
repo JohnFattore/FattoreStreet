@@ -7,6 +7,17 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { SortableTable } from "./SortableTable";
 
+type AssetSoldSummaryRow = {
+  ticker: string;
+  totalShares: number;
+  averageBuyPrice: number;
+  totalCost: number;
+  totalSalePrice: number;
+  percentChange: number;
+  shortName: string;
+  hasError: boolean;
+};
+
 export default function AssetTable() {
   const navigate = useNavigate();
   const { access } = useSelector((state: RootState) => state.user);
@@ -44,7 +55,7 @@ export default function AssetTable() {
     assetsByTicker[asset.ticker].totalSellPrice += asset.sellPrice;
   }
 
-  const data = Object.entries(assetsByTicker).map(([ticker, data]) => {
+  const data: AssetSoldSummaryRow[] = Object.entries(assetsByTicker).map(([ticker, data]) => {
     const info = assetInfos[ticker];
     return {
       ticker,
@@ -62,7 +73,7 @@ export default function AssetTable() {
     {
       label: "Ticker",
       sortKey: "ticker",
-      render: (row: any) => (
+      render: (row: AssetSoldSummaryRow) => (
         <div onClick={() => navigate(`/asset/${row.ticker}`)}>{row.ticker}</div>
       ),
     },
@@ -73,34 +84,34 @@ export default function AssetTable() {
     {
       label: "Total Shares",
       sortKey: "totalShares",
-      render: (row: any) => formatString(row.totalShares, "amount"),
+      render: (row: AssetSoldSummaryRow) => formatString(row.totalShares, "amount"),
     },
     {
       label: "Average Buy Price",
       sortKey: "averageBuyPrice",
-      render: (row: any) => formatString(row.averageBuyPrice, "money"),
+      render: (row: AssetSoldSummaryRow) => formatString(row.averageBuyPrice, "money"),
     },
     {
       label: "Total Buy Price",
       sortKey: "totalCost",
-      render: (row: any) => formatString(row.totalCost, "money"),
+      render: (row: AssetSoldSummaryRow) => formatString(row.totalCost, "money"),
     },
     {
       label: "Total Sell Price",
       sortKey: "totalSalePrice",
-      render: (row: any) => formatString(row.totalSalePrice, "money"),
+      render: (row: AssetSoldSummaryRow) => formatString(row.totalSalePrice, "money"),
     },
     {
       label: "Percent Change",
       sortKey: "percentChange",
-      render: (row: any) =>
+      render: (row: AssetSoldSummaryRow) =>
         row.percentChange !== null ? formatString(row.percentChange, "percent") : "N/A",
     },
     {
       label: "View Asset",
       sortKey: "viewAsset",
       sortable: false,
-      render: (row: any) => (
+      render: (row: AssetSoldSummaryRow) => (
         <Button onClick={() => navigate(`/asset/${row.ticker}`)}>
           {`View ${row.ticker}`}
         </Button>

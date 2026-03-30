@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { render } from '@testing-library/react';
 import { expect, describe, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -158,9 +159,9 @@ describe("Admin", () => {
         });
 
         expect(screen.getByRole("button", { name: /Refresh index metrics/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /Rebuild Fattore 50/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /Rebuild index\(es\)/i })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: /Refresh index stock metrics/i })).toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: /Rebuild Fattore 50 index/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /Rebuild cap-ranked indexes/i })).toBeInTheDocument();
         expect(screen.getAllByText(/ListingIndexMetrics/i).length).toBeGreaterThanOrEqual(1);
     });
 });
@@ -169,6 +170,17 @@ describe("Indexes", () => {
     it("renders the page heading", () => {
         renderWithProviders(<Indexes />);
         expect(screen.getByText("Indexes")).toBeInTheDocument();
+    });
+
+    it("shows Fattore 1000 vs IWB comparison when FAT1000 is selected", async () => {
+        renderWithProviders(<Indexes />);
+        await screen.findByRole("combobox");
+        await waitFor(() => expect(screen.getByRole("combobox")).not.toBeDisabled());
+        await userEvent.selectOptions(screen.getByRole("combobox"), "FAT1000");
+        expect(
+            await screen.findByRole("heading", { name: /Fattore 1000 vs Russell 1000/i }),
+        ).toBeInTheDocument();
+        expect(await screen.findByText(/Symbol overlap:/i)).toBeInTheDocument();
     });
 });
 

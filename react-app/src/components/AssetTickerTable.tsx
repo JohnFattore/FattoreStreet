@@ -8,6 +8,17 @@ import { Button } from "react-bootstrap";
 import { IAsset } from "../interfaces";
 import AssetDeleteSellModal from "./AssetDeleteSellModal";
 
+type AssetTickerRow = {
+  id: number;
+  ticker: string;
+  shares: number;
+  accountName: string;
+  buyDate: string;
+  buyPrice: number;
+  currentPrice: number | null;
+  percentChange: number | null;
+};
+
 export default function AssetTickerTable({ ticker }: { ticker: string }) {
   const { access } = useSelector((state: RootState) => state.user);
   const {
@@ -50,7 +61,7 @@ export default function AssetTickerTable({ ticker }: { ticker: string }) {
     return null;
   }
 
-  const data: Record<string, string | number | boolean | null>[] = [];
+  const data: AssetTickerRow[] = [];
   const info = assetInfos[ticker];
   for (const asset of assetsOwned) {
     const account = accounts.find((a) => a.id === asset.account);
@@ -80,22 +91,22 @@ export default function AssetTickerTable({ ticker }: { ticker: string }) {
     {
       label: "Shares",
       sortKey: "shares",
-      render: (row: any) => formatString(row.shares, "amount"),
+      render: (row: AssetTickerRow) => formatString(row.shares, "amount"),
     },
     {
       label: "Buy Date",
       sortKey: "buyDate",
-      render: (row: any) => formatString(row.buyDate, "date"),
+      render: (row: AssetTickerRow) => formatString(row.buyDate, "date"),
     },
     {
       label: "Buy Price",
       sortKey: "buyPrice",
-      render: (row: any) => formatString(row.buyPrice, "money"),
+      render: (row: AssetTickerRow) => formatString(row.buyPrice, "money"),
     },
     {
       label: "Current Price",
       sortKey: "currentPrice",
-      render: (row: any) =>
+      render: (row: AssetTickerRow) =>
         assetInfoLoading ? "Loading..." : (row.currentPrice !== null
           ? formatString(row.currentPrice, "money")
           : "N/A"),
@@ -103,7 +114,7 @@ export default function AssetTickerTable({ ticker }: { ticker: string }) {
     {
       label: "Percent Change",
       sortKey: "percentChange",
-      render: (row: any) =>
+      render: (row: AssetTickerRow) =>
         assetInfoLoading ? "Loading..." : (row.percentChange !== null
           ? formatString(row.percentChange, "percent")
           : "N/A"),
@@ -112,7 +123,7 @@ export default function AssetTickerTable({ ticker }: { ticker: string }) {
       label: "Sell Asset",
       sortKey: "sellAsset",
       sortable: false,
-      render: (row: any) => {
+      render: (row: AssetTickerRow) => {
         return (
           <Button
             onClick={() => {
@@ -127,7 +138,7 @@ export default function AssetTickerTable({ ticker }: { ticker: string }) {
       label: "Delete Asset",
       sortKey: "deleteAsset",
       sortable: false,
-      render: (row: any) => {
+      render: (row: AssetTickerRow) => {
         return (
           <Button
             onClick={() => {

@@ -17,6 +17,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | Charts | Recharts |
 | Maps | Leaflet |
 | Testing | Vitest + React Testing Library + MSW |
+| Linting | ESLint 8 + @typescript-eslint v8 (aligned with the TypeScript version in use) |
 
 ## Pages & Routes
 
@@ -27,7 +28,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/watchlist` | WatchList | Live price table with benchmarks |
 | `/asset/:ticker` | AssetView | Individual asset detail with equity/ETF info |
 | `/account/:id` | AccountView | Account holdings breakdown |
-| `/indexes` | Indexes | Browse computed indexes (e.g. Fattore 50) and view constituents, weights, and key metrics |
+| `/indexes` | Indexes | Browse computed indexes (e.g. Fattore 50, Fattore 100, Fattore 1000) and view constituents, weights, and key metrics |
 | `/sec-edgar/:ticker` | SECData | SEC EDGAR financials, quarterly comparison, 10-K filing summaries |
 | `/iex-prices/:ticker` | IexPricesView | IEX daily adjusted OHLCV prices plus side-by-side adjusted price, dividend, and split comparisons vs YFinance |
 | `/react-admin/success-bar` | AdminSuccessBar | Per-ticker corporate-action success overview comparing Spring Boot vs YFinance price/dividend alignment using persisted manual ticker list |
@@ -37,7 +38,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/restaurants` | Restaurants | Restaurant reviews and map |
 | `/entertainment` | Entertainment | Music and media |
 | `/user` | User | User profile and settings |
-| `/react-admin` | Admin | Admin panel for Spring sec-api jobs: asset load, frame sync, IEX ingest, price adjustments, 10-K summaries, index metrics refresh (`ListingIndexMetrics`), and Fattore 50 rebuild (`MarketIndex` / `IndexMember`); each action labels the main DB models it touches |
+| `/react-admin` | Admin | Admin panel for Spring sec-api jobs: asset load, frame sync, IEX ingest, price adjustments, 10-K summaries, index metrics refresh (`ListingIndexMetrics`), and cap-ranked index rebuild via `POST .../admin/indexes/rebuild` with optional index `code` (`MarketIndex` / `IndexMember`); each action labels the main DB models it touches |
 
 ## Key Components
 
@@ -51,6 +52,8 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `SplitComparison` | IexPricesView | Internal SEC split events vs YFinance split events (date-window matching with normalized split ratios) |
 | `AdminSuccessBar` | AdminSuccessBar | Aggregated per-ticker success bars for Spring Boot vs YFinance price/dividend parity |
 | `SortableTable` | Multiple | Reusable sortable table with column config |
+| `IndexMembersTable` | Indexes | Constituent weights with `countryHQ` / `countryIncorp` and `stateHQ` / `stateIncorp` from Spring `ListingIndexMetrics` |
+| `Fattore1000Russell1000CompareTable` | Indexes (FAT1000 only) | Ticker-level weights vs bundled IWB file; overlap % and mean absolute weight gap (`GET /iwb-reference-holdings`) |
 | `AccountList` | Portfolio | Accounts with calculated balances |
 | `WatchListTable` | WatchList | Live-updating price grid |
 | `TicketForm` | User | Authenticated feedback ticket submission form |
@@ -63,7 +66,7 @@ All API calls go through a single RTK Query API slice (`src/functions/api.ts`) u
 
 - **Django** (`VITE_APP_DJANGO_PORTFOLIO_URL`): assets, accounts, quotes, asset-prices, asset-dividends, asset-splits, FRED data, quarterly data, asset-info
 - **Django Changeflow** (`VITE_APP_DJANGO_CHANGEFLOW_URL`, optional fallback from portfolio URL): authenticated ticket submission (`tickets/`)
-- **Spring Boot** (`VITE_APP_SPRINGBOOT_URL`): SEC EDGAR fact sheets, quarters, IEX prices, dividends, splits, filing summaries
+- **Spring Boot** (`VITE_APP_SPRINGBOOT_URL`): SEC EDGAR fact sheets, quarters, IEX prices, dividends, splits, filing summaries, indexes (`/indexes`, `/index-members` with nested `stock` including `stateHQ` / `stateIncorp`), IWB reference weights (`/iwb-reference-holdings`)
 
 The `transformResponse` functions handle snake_case → camelCase conversion.
 
@@ -85,6 +88,7 @@ sass --watch src/styles/custom.scss:src/styles/custom.css
 npm run dev        # local dev server
 npm run staging    # staging mode
 npm run build      # production build (tsc + vite)
+npm run lint       # ESLint (ts/tsx, max-warnings 0)
 ```
 
 ## Testing

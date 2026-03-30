@@ -45,6 +45,12 @@ public class ListingIndexMetrics {
     @Column(name = "country_hq", length = 1000)
     private String countryHq = "United States";
 
+    @Column(name = "state_incorp", length = 1000)
+    private String stateIncorp;
+
+    @Column(name = "state_hq", length = 1000)
+    private String stateHq;
+
     @Column(name = "security_type", length = 1000)
     private String securityType = "Common Stock";
 
@@ -129,6 +135,22 @@ public class ListingIndexMetrics {
 
     public void setCountryHq(String countryHq) {
         this.countryHq = countryHq;
+    }
+
+    public String getStateIncorp() {
+        return stateIncorp;
+    }
+
+    public void setStateIncorp(String stateIncorp) {
+        this.stateIncorp = stateIncorp;
+    }
+
+    public String getStateHq() {
+        return stateHq;
+    }
+
+    public void setStateHq(String stateHq) {
+        this.stateHq = stateHq;
     }
 
     public String getSecurityType() {

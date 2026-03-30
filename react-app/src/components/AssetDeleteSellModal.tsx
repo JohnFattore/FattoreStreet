@@ -51,7 +51,9 @@ export default function AssetDeleteSellModal({asset, showSell, showDelete, handl
           <Button
             disabled={isLoading}
             onClick={async () => {
-              await deleteAsset(asset?.id!);
+              if (asset?.id != null) {
+                await deleteAsset(asset.id);
+              }
             }}
           >{`Delete ${asset?.ticker}`}</Button>
         </Modal.Footer>

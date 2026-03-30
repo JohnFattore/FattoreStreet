@@ -29,7 +29,7 @@ const RATING_CHOICES = [
 
 function ReviewRow({ review }: { review: IReview }) {
     const dispatch = useDispatch<AppDispatch>();
-    let tableData: JSX.Element[] = [];
+    const tableData: JSX.Element[] = [];
     for (let i = 0; i < fields.length; i++) {
         if (fields[i]["type"] == "delete") {
             tableData.push(<td key={i} onClick={() => dispatch(deleteReview(review.id))}>{[fields[i]["field"]]}</td>)
@@ -68,7 +68,7 @@ export default function ReviewTable() {
         dispatch(setReviewSort({ sortColumn, sortDirection }));
     };
 
-    let headers: JSX.Element[] = []
+    const headers: JSX.Element[] = []
     for (let i = 0; i < fields.length; i++) {
         headers.push(<th key={i} onClick={() => handleSort(fields[i]["field"])}>{fields[i].name}</th>)
     }

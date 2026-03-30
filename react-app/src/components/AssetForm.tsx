@@ -10,6 +10,7 @@ import { usePostNewAssetMutation, useGetAccountsQuery, useLazyGetAssetInfosQuery
 import { getApiErrorMessages, formatString } from "../functions/helperFunctions";
 import LoadingButton from "./LoadingButton";
 import { useEffect, useState } from "react";
+import { IAsset } from "../interfaces";
 
 interface IFormInput {
   ticker: string;
@@ -73,20 +74,20 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
   const onSubmit: SubmitHandler<IFormInput> = async (data) => {
     setIsProcessing(true);
     try {
-      const result: any = await postNewAsset({
+      const result = await postNewAsset({
         ticker: data.ticker,
         shares: data.shares,
         buy_date: data.buyDate,
         account_id: Number(data.accountId),
       });
 
-      if ('data' in result) {
-        const assetData = result.data;
+      if ("data" in result && result.data) {
+        const assetData: IAsset = result.data;
         const infoResult = await triggerAssetInfo([data.ticker]);
         const info = infoResult.data ? infoResult.data[data.ticker] : null;
         const companyName = info?.shortName || data.ticker;
 
-        const message = `Successfully added ${companyName} (${data.ticker}) - ${data.shares} shares at ${formatString(assetData.buy_price, "money")} on ${data.buyDate}`;
+        const message = `Successfully added ${companyName} (${data.ticker}) - ${data.shares} shares at ${formatString(assetData.buyPrice, "money")} on ${data.buyDate}`;
         setSuccess(message);
         reset();
       }

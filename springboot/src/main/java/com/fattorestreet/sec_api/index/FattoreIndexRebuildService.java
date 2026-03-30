@@ -8,8 +8,6 @@ import com.fattorestreet.sec_api.model.MarketIndex;
 import com.fattorestreet.sec_api.repository.IndexMemberRepository;
 import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
 import com.fattorestreet.sec_api.repository.MarketIndexRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -19,31 +17,38 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Rebuilds the Russell-style "Fattore 50" index: top listings by
+ * Rebuilds a Russell-style cap-ranked index: top listings by
  * {@link ListingIndexMetrics#getFreeFloatMarketCap()}, cap-weighted.
+ * One instance per index (e.g. Fattore 50 vs Fattore 100); see {@link com.fattorestreet.sec_api.config.FattoreIndexRebuildConfig}.
  */
-@Service
-public class Fattore50IndexRebuildService {
-
-    public static final String INDEX_CODE = "FAT50";
-    public static final String DISPLAY_NAME = "Fattore 50";
+public class FattoreIndexRebuildService {
 
     private static final int PERCENT_SCALE = 5;
 
     private final ListingIndexMetricsRepository metricsRepository;
     private final MarketIndexRepository marketIndexRepository;
     private final IndexMemberRepository indexMemberRepository;
+    private final String indexCode;
+    private final String displayName;
     private final int topN;
 
-    public Fattore50IndexRebuildService(
+    public FattoreIndexRebuildService(
             ListingIndexMetricsRepository metricsRepository,
             MarketIndexRepository marketIndexRepository,
             IndexMemberRepository indexMemberRepository,
-            @Value("${fattore50.rebuild.top-n:50}") int topN) {
+            String indexCode,
+            String displayName,
+            int topN) {
         this.metricsRepository = metricsRepository;
         this.marketIndexRepository = marketIndexRepository;
         this.indexMemberRepository = indexMemberRepository;
+        this.indexCode = indexCode;
+        this.displayName = displayName;
         this.topN = topN;
+    }
+
+    public String getIndexCode() {
+        return indexCode;
     }
 
     public record RebuildResult(
@@ -71,9 +76,9 @@ public class Fattore50IndexRebuildService {
         List<ListingIndexMetrics> top = eligible.subList(0, take);
 
         if (top.isEmpty()) {
-            MarketIndex index = upsertMarketIndex();
-            indexMemberRepository.deleteByMarketIndex_Code(INDEX_CODE);
-            return new RebuildResult(INDEX_CODE, year, 0, true, BigDecimal.ZERO, List.of());
+            upsertMarketIndex();
+            indexMemberRepository.deleteByMarketIndex_Code(indexCode);
+            return new RebuildResult(indexCode, year, 0, true, BigDecimal.ZERO, List.of());
         }
 
         BigDecimal totalFf = top.stream()
@@ -83,7 +88,7 @@ public class Fattore50IndexRebuildService {
         List<BigDecimal> percents = computeCapWeights(top, totalFf);
 
         MarketIndex marketIndex = upsertMarketIndex();
-        indexMemberRepository.deleteByMarketIndex_Code(INDEX_CODE);
+        indexMemberRepository.deleteByMarketIndex_Code(indexCode);
 
         List<String> tickers = new ArrayList<>(take);
         for (int i = 0; i < top.size(); i++) {
@@ -100,7 +105,7 @@ public class Fattore50IndexRebuildService {
         }
 
         boolean partial = eligible.size() < topN;
-        return new RebuildResult(INDEX_CODE, year, take, partial, totalFf, List.copyOf(tickers));
+        return new RebuildResult(indexCode, year, take, partial, totalFf, List.copyOf(tickers));
     }
 
     private boolean isEligible(ListingIndexMetrics m) {
@@ -112,15 +117,25 @@ public class Fattore50IndexRebuildService {
         if (asset == null || Boolean.TRUE.equals(asset.getIsFund())) {
             return false;
         }
+        // SEC leaves incorporation blank for some companies (e.g. AVGO after redomiciliation).
+        // Accept US-headquartered companies when incorporation is unknown.
+        String incorp = m.getCountryIncorp();
+        if (!"United States".equals(incorp)) {
+            if ("Unknown".equals(incorp) && "United States".equals(m.getCountryHq())) {
+                // fall through — treat as eligible
+            } else {
+                return false;
+            }
+        }
         BigDecimal ff = m.getFreeFloatMarketCap();
         return ff != null && ff.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private MarketIndex upsertMarketIndex() {
-        return marketIndexRepository.findByCode(INDEX_CODE).orElseGet(() -> {
+        return marketIndexRepository.findByCode(indexCode).orElseGet(() -> {
             MarketIndex mi = new MarketIndex();
-            mi.setCode(INDEX_CODE);
-            mi.setDisplayName(DISPLAY_NAME);
+            mi.setCode(indexCode);
+            mi.setDisplayName(displayName);
             return marketIndexRepository.save(mi);
         });
     }

@@ -30,7 +30,7 @@ class IndexControllerTest {
     void listIndexMembers_returns200() throws Exception {
         StockRow stock = new StockRow(
                 "AAPL", "Apple", BigDecimal.ONE, BigDecimal.TEN, BigDecimal.TEN,
-                BigDecimal.ONE, BigDecimal.ONE, "US", "United States", "Common Stock", 1980);
+                BigDecimal.ONE, BigDecimal.ONE, "US", "United States", "DE", "CA", "Common Stock", 1980);
         when(indexMemberApiService.listAll()).thenReturn(List.of(
                 new IndexMemberRow(1L, new BigDecimal("5.5"), "Test Index", false, "", stock)
         ));
@@ -45,7 +45,7 @@ class IndexControllerTest {
     void listIndexMembers_withCode_filters() throws Exception {
         StockRow stock = new StockRow(
                 "MSFT", "Microsoft", BigDecimal.ONE, BigDecimal.TEN, BigDecimal.TEN,
-                BigDecimal.ONE, BigDecimal.ONE, "US", "United States", "Common Stock", 1986);
+                BigDecimal.ONE, BigDecimal.ONE, "US", "United States", "WA", "WA", "Common Stock", 1986);
         when(indexMemberApiService.listByIndexCode("FAT50")).thenReturn(List.of(
                 new IndexMemberRow(2L, new BigDecimal("3.25"), "Fattore 50", false, "", stock)
         ));

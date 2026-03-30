@@ -146,20 +146,29 @@ export const handlers = [
 
   // --- Spring Boot: indexes ---
   http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("indexes"), () => {
-    return Response.json([{ code: "FAT50", displayName: "Fattore 50" }], { status: 200 });
+    return Response.json(
+      [
+        { code: "FAT100", displayName: "Fattore 100" },
+        { code: "FAT1000", displayName: "Fattore 1000" },
+        { code: "FAT50", displayName: "Fattore 50" },
+      ],
+      { status: 200 }
+    );
   }),
   http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("index-members"), ({ request }) => {
     const url = new URL(request.url);
     const code = url.searchParams.get("code") || "";
-    if (code !== "FAT50") {
+    if (code !== "FAT50" && code !== "FAT100" && code !== "FAT1000") {
       return Response.json([], { status: 200 });
     }
+    const indexLabel =
+      code === "FAT100" ? "Fattore 100" : code === "FAT1000" ? "Fattore 1000" : "Fattore 50";
     return Response.json(
       [
         {
           id: 1,
           percent: 5.5,
-          index: "Fattore 50",
+          index: indexLabel,
           outlier: false,
           notes: "",
           stock: {
@@ -172,10 +181,22 @@ export const handlers = [
             freeFloatMarketCap: 900000000,
             countryIncorp: "United States",
             countryHQ: "United States",
+            stateIncorp: "DE",
+            stateHQ: "CA",
             securityType: "Common Stock",
             yearIPO: 1980,
           },
         },
+      ],
+      { status: 200 }
+    );
+  }),
+
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("iwb-reference-holdings"), () => {
+    return Response.json(
+      [
+        { ticker: "AAPL", weightPercent: 5.0 },
+        { ticker: "MSFT", weightPercent: 4.25 },
       ],
       { status: 200 }
     );

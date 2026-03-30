@@ -65,7 +65,13 @@ class MainControllerTest {
     @MockitoBean private FilingSummaryRepository filingSummaryRepository;
     @MockitoBean private CorporateActionRepository corporateActionRepository;
     @MockitoBean private com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService;
-    @MockitoBean private com.fattorestreet.sec_api.index.Fattore50IndexRebuildService fattore50IndexRebuildService;
+    @MockitoBean(name = "fattore50IndexRebuildService")
+    private com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore50IndexRebuildService;
+    @MockitoBean(name = "fattore100IndexRebuildService")
+    private com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore100IndexRebuildService;
+    @MockitoBean(name = "fattore1000IndexRebuildService")
+    private com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore1000IndexRebuildService;
+
     private Asset buildAsset(Long cik) {
         Asset a = new Asset();
         a.setId(1L);
@@ -658,13 +664,78 @@ class MainControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- /admin/indexes/rebuild ---
+
+    @Test
+    void rebuildCapRanked_noCode_rebuildsAllOrdered() throws Exception {
+        int y = Year.now().getValue();
+        when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
+                        "FAT50", y, 50, false, BigDecimal.ONE, List.of("AAPL")));
+        when(fattore100IndexRebuildService.rebuild(anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
+                        "FAT100", y, 100, false, BigDecimal.TEN, List.of("MSFT")));
+        when(fattore1000IndexRebuildService.rebuild(anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
+                        "FAT1000", y, 1000, false, BigDecimal.valueOf(100), List.of("GOOG")));
+
+        mockMvc.perform(post("/admin/indexes/rebuild").header("X-Admin-Key", "spike"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(y))
+                .andExpect(jsonPath("$.rebuilds.length()").value(3))
+                .andExpect(jsonPath("$.rebuilds[0].indexCode").value("FAT100"))
+                .andExpect(jsonPath("$.rebuilds[1].indexCode").value("FAT1000"))
+                .andExpect(jsonPath("$.rebuilds[2].indexCode").value("FAT50"))
+                .andExpect(jsonPath("$.duration").exists());
+
+        verify(fattore100IndexRebuildService).rebuild(y);
+        verify(fattore1000IndexRebuildService).rebuild(y);
+        verify(fattore50IndexRebuildService).rebuild(y);
+    }
+
+    @Test
+    void rebuildCapRanked_codeFat50_onlyThatService() throws Exception {
+        int y = Year.now().getValue();
+        when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
+                        "FAT50", y, 50, false, BigDecimal.ONE, List.of("AAPL")));
+
+        mockMvc.perform(post("/admin/indexes/rebuild")
+                        .param("code", "fat50")
+                        .header("X-Admin-Key", "spike"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rebuilds.length()").value(1))
+                .andExpect(jsonPath("$.rebuilds[0].indexCode").value("FAT50"));
+
+        verify(fattore50IndexRebuildService).rebuild(y);
+        verify(fattore100IndexRebuildService, never()).rebuild(anyInt());
+        verify(fattore1000IndexRebuildService, never()).rebuild(anyInt());
+    }
+
+    @Test
+    void rebuildCapRanked_unknownCode_returns400() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild")
+                        .param("code", "NOTREAL")
+                        .header("X-Admin-Key", "spike"))
+                .andExpect(status().isBadRequest());
+        verify(fattore50IndexRebuildService, never()).rebuild(anyInt());
+        verify(fattore100IndexRebuildService, never()).rebuild(anyInt());
+        verify(fattore1000IndexRebuildService, never()).rebuild(anyInt());
+    }
+
+    @Test
+    void rebuildCapRanked_invalidKey_returns401() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild").header("X-Admin-Key", "wrong-key"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- /admin/indexes/rebuild-fattore-50 ---
 
     @Test
     void rebuildFattore50_validKey_returns200() throws Exception {
         int y = Year.now().getValue();
         when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
-                new com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult(
+                new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT50", y, 50, false, BigDecimal.ONE, List.of("AAPL")));
 
         mockMvc.perform(post("/admin/indexes/rebuild-fattore-50").header("X-Admin-Key", "spike"))
@@ -688,7 +759,7 @@ class MainControllerTest {
         when(indexMetricsRefreshService.refreshAllListings(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(10, 2, List.of("X:no_cik")));
         when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
-                new com.fattorestreet.sec_api.index.Fattore50IndexRebuildService.RebuildResult(
+                new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT50", y, 3, true, BigDecimal.TEN, List.of("A", "B", "C")));
 
         mockMvc.perform(post("/admin/indexes/rebuild-fattore-50")
@@ -698,6 +769,52 @@ class MainControllerTest {
                 .andExpect(jsonPath("$.year").value(y))
                 .andExpect(jsonPath("$.refresh.processed").value(10))
                 .andExpect(jsonPath("$.rebuild.partial").value(true));
+    }
+
+    // --- /admin/indexes/rebuild-fattore-100 ---
+
+    @Test
+    void rebuildFattore100_validKey_returns200() throws Exception {
+        int y = Year.now().getValue();
+        when(fattore100IndexRebuildService.rebuild(anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
+                        "FAT100", y, 100, false, BigDecimal.ONE, List.of("MSFT")));
+
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-100").header("X-Admin-Key", "spike"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(y))
+                .andExpect(jsonPath("$.rebuild.indexCode").value("FAT100"))
+                .andExpect(jsonPath("$.rebuild.memberCount").value(100))
+                .andExpect(jsonPath("$.duration").exists());
+    }
+
+    @Test
+    void rebuildFattore100_invalidKey_returns401() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-100").header("X-Admin-Key", "wrong-key"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // --- /admin/indexes/rebuild-fattore-1000 ---
+
+    @Test
+    void rebuildFattore1000_validKey_returns200() throws Exception {
+        int y = Year.now().getValue();
+        when(fattore1000IndexRebuildService.rebuild(anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
+                        "FAT1000", y, 1000, false, BigDecimal.ONE, List.of("NVDA")));
+
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-1000").header("X-Admin-Key", "spike"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(y))
+                .andExpect(jsonPath("$.rebuild.indexCode").value("FAT1000"))
+                .andExpect(jsonPath("$.rebuild.memberCount").value(1000))
+                .andExpect(jsonPath("$.duration").exists());
+    }
+
+    @Test
+    void rebuildFattore1000_invalidKey_returns401() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-1000").header("X-Admin-Key", "wrong-key"))
+                .andExpect(status().isUnauthorized());
     }
 
     // --- /filing-summaries endpoint ---

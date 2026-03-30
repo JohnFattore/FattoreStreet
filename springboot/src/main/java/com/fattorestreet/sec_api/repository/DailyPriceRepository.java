@@ -18,6 +18,9 @@ public interface DailyPriceRepository extends JpaRepository<DailyPrice, Long> {
 
     Optional<DailyPrice> findByTickerAndTradeDate(String ticker, LocalDate tradeDate);
 
+    Optional<DailyPrice> findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(
+            String ticker, LocalDate tradeDate);
+
     boolean existsByTradeDate(LocalDate tradeDate);
 
     List<DailyPrice> findByTradeDate(LocalDate tradeDate);

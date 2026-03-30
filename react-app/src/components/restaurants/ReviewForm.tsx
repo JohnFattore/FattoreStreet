@@ -6,6 +6,7 @@ import { postReview } from '../../functions/axiosFunctions';
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from '../../main';
 import { useState } from 'react';
+import { IRestaurant } from '../../interfaces';
 
 interface IFormInput {
     rating: number,
@@ -25,7 +26,7 @@ const RATING_CHOICES = [
 ];
 
 interface ReviewFormProps {
-    restaurant: any;
+    restaurant: IRestaurant;
     show: boolean;
     onHide: () => void;
 }
@@ -33,7 +34,7 @@ interface ReviewFormProps {
 export default function ReviewForm({ restaurant, show, onHide }: ReviewFormProps) {
     const dispatch = useDispatch<AppDispatch>();
     const { loading, error } = useSelector((state: RootState) => state.reviews);
-    const [submission, setSubmission] = useState()
+    const [submission, setSubmission] = useState<string | undefined>(undefined)
 
     const schema = yup.object().shape({
         rating: yup.number().required(),

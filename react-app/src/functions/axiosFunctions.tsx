@@ -3,6 +3,54 @@ import { IRestaurant, IReview } from "../interfaces";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { RootState } from "../main";
 
+type RawRestaurantRow = {
+  yelp_id: string;
+  name: string;
+  address: string;
+  state: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  categories: string;
+  stars: string;
+  review_count: number;
+  id: number;
+};
+
+type RawReviewRow = {
+  restaurant: number;
+  restaurant_detail: { name: string; latitude: number; longitude: number };
+  user: number;
+  rating: string | number;
+  comment: string;
+  id: number;
+};
+
+type RawChatInteraction = {
+  input_text: string;
+  output_text: string;
+  timestamp: string;
+};
+
+type ChatMessage = { role: "user" | "model"; text: string; timestamp: string };
+
+function axiosRejectDetail(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as Record<string, unknown> | string | undefined;
+    if (typeof data === "string" && data.trim()) return data;
+    if (data && typeof data === "object") {
+      const d = data as Record<string, unknown>;
+      if (typeof d.detail === "string") return d.detail;
+      if (typeof d.username === "string") return d.username;
+      if (Array.isArray(d.non_field_errors) && d.non_field_errors.length)
+        return String(d.non_field_errors[0]);
+    }
+    return error.message || fallback;
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 export const login = createAsyncThunk(
   "users/login",
   async (
@@ -21,8 +69,12 @@ export const login = createAsyncThunk(
       const { access, refresh } = response.data;
 
       return { username, access, refresh };
-    } catch (error: any) {
-      return rejectWithValue(error.response.data.detail || "Login failed");
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const detail = (error.response?.data as { detail?: string } | undefined)?.detail;
+        return rejectWithValue(typeof detail === "string" ? detail : "Login failed");
+      }
+      return rejectWithValue("Login failed");
     }
   }
 );
@@ -43,10 +95,8 @@ export const refreshLogin = createAsyncThunk(
       const { access } = response.data;
 
       return { access };
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response.data.detail || "Refresh Login failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Refresh Login failed"));
     }
   }
 );
@@ -71,12 +121,8 @@ export const postUser = createAsyncThunk(
         }
       );
       return response.data;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response.data.username ||
-        error.response.data.detail ||
-        "Registering user failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Registering user failed"));
     }
   }
 );
@@ -112,7 +158,7 @@ export const getRestaurants = createAsyncThunk<IRestaurant[]>(
         }
       );
       const transformedData: IRestaurant[] = await Promise.all(
-        response.data.map(async (restaurant: any) => {
+        (response.data as RawRestaurantRow[]).map(async (restaurant: RawRestaurantRow) => {
           return {
             yelp_id: restaurant.yelp_id,
             name: restaurant.name,
@@ -129,10 +175,8 @@ export const getRestaurants = createAsyncThunk<IRestaurant[]>(
         })
       );
       return transformedData;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.detail || "Getting Restaurants failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Getting Restaurants failed"));
     }
   }
 );
@@ -154,7 +198,7 @@ export const getRestaurantRecommendations = createAsyncThunk<IRestaurant[]>(
         }
       );
       const transformedData: IRestaurant[] = await Promise.all(
-        response.data.map(async (restaurant: any) => {
+        (response.data as RawRestaurantRow[]).map(async (restaurant: RawRestaurantRow) => {
           return {
             yelp_id: restaurant.yelp_id,
             name: restaurant.name,
@@ -171,10 +215,8 @@ export const getRestaurantRecommendations = createAsyncThunk<IRestaurant[]>(
         })
       );
       return transformedData;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.detail || "Getting Restaurants failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Getting Restaurants failed"));
     }
   }
 );
@@ -194,7 +236,7 @@ export const getReviews = createAsyncThunk<IReview[]>(
         }
       );
       const transformedData: IReview[] = await Promise.all(
-        response.data.map(async (review: any) => {
+        (response.data as RawReviewRow[]).map(async (review: RawReviewRow) => {
           return {
             restaurant: review.restaurant,
             name: review.restaurant_detail.name,
@@ -208,10 +250,8 @@ export const getReviews = createAsyncThunk<IReview[]>(
         })
       );
       return transformedData;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.detail || "Getting Review failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Getting Review failed"));
     }
   }
 );
@@ -239,12 +279,8 @@ export const postReview = createAsyncThunk(
         }
       );
       return response.data;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.detail ||
-        error.response?.data?.non_field_errors ||
-        "Adding Review failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Adding Review failed"));
     }
   }
 );
@@ -268,10 +304,8 @@ export const deleteReview = createAsyncThunk(
         }
       );
       return { id: id };
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.detail || "Deleting Review failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Deleting Review failed"));
     }
   }
 );
@@ -298,10 +332,8 @@ export const patchReview = createAsyncThunk(
         }
       );
       return response.data;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.detail || "Updating Review failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Updating Review failed"));
     }
   }
 );
@@ -336,16 +368,14 @@ export const getChatbot = createAsyncThunk(
         }
       );
       // Transform response to IChatMessage[]
-      const history: any[] = [];
-      response.data.forEach((interaction: any) => {
+      const history: ChatMessage[] = [];
+      (response.data as RawChatInteraction[]).forEach((interaction: RawChatInteraction) => {
         history.push({ role: 'user', text: interaction.input_text, timestamp: interaction.timestamp });
         history.push({ role: 'model', text: interaction.output_text, timestamp: interaction.timestamp });
       });
       return history;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.detail || "Getting chatbot history failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Getting chatbot history failed"));
     }
   }
 );
@@ -368,12 +398,8 @@ export const postChatbot = createAsyncThunk(
         }
       );
       return { role: 'model', text: response.data["message"] };
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.detail ||
-        error.response?.data?.non_field_errors ||
-        "Posting chatbot failed"
-      );
+    } catch (error: unknown) {
+      return rejectWithValue(axiosRejectDetail(error, "Posting chatbot failed"));
     }
   }
 );

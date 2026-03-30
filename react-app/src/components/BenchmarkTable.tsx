@@ -8,6 +8,7 @@ const benchmarkNames: Record<string, string> = {
   "VTI": "Total US Stock Market",
   "VXUS": "Total Global Stock Market Excluding US",
   "VTWO": "Russell 2000 / Small Cap US",
+  "VGK": "Broad Europe (FTSE Developed Europe)",
   "BND": "Total US Bond Market",
   "UUP": "Dollar vs Foreign Currency"
 };
@@ -30,7 +31,7 @@ function BenchmarkRow({ benchmark }: { benchmark: IEquityInfo | IETFInfo }) {
 }
 
 export default function BenchmarkTable() {
-  const benchmarkTickers = ["VT", "VTI", "VXUS", "VTWO", "BND", "UUP"];
+  const benchmarkTickers = ["VT", "VTI", "VXUS", "VTWO", "VGK", "BND", "UUP"];
   const { data: benchmarks, error } = useGetAssetInfosQuery(benchmarkTickers);
 
   if (error)

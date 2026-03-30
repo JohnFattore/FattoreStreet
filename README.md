@@ -19,6 +19,8 @@ We have organized the documentation to help you get started quickly:
 - **[📖 API Reference](docs/API_REFERENCE.md)**: Django and Spring Boot HTTP endpoints.
 - **[☁️ Deployment](docs/DEPLOYMENT.md)**: Infrastructure guide (Docker, Kubernetes, cloud).
 
+**CI**: Pull requests and pushes to `main` run [GitHub Actions](.github/workflows/ci.yml) (React lint/build/tests, Django tests, Spring Boot tests, detect-secrets). See [Getting Started](docs/GETTING_STARTED.md) (Testing and CI sections) for local equivalents.
+
 Service-specific detail: [django/README.md](django/README.md), [springboot/README.md](springboot/README.md), [react-app/README.md](react-app/README.md).
 
 ---

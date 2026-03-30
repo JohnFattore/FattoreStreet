@@ -45,11 +45,12 @@ export default function Admin() {
     const [indexMetricsResult, setIndexMetricsResult] = useState<string | null>(null);
     const [indexMetricsError, setIndexMetricsError] = useState<string | null>(null);
 
-    // Fattore 50 rebuild (MarketIndex + IndexMember) state
-    const [fattore50Loading, setFattore50Loading] = useState(false);
-    const [fattore50Result, setFattore50Result] = useState<string | null>(null);
-    const [fattore50Error, setFattore50Error] = useState<string | null>(null);
-    const [fattore50RefreshMetricsFirst, setFattore50RefreshMetricsFirst] = useState(false);
+    // Cap-ranked index rebuild (MarketIndex + IndexMember): POST .../rebuild optional ?code=
+    const [indexRebuildCode, setIndexRebuildCode] = useState('');
+    const [indexRebuildLoading, setIndexRebuildLoading] = useState(false);
+    const [indexRebuildResult, setIndexRebuildResult] = useState<string | null>(null);
+    const [indexRebuildError, setIndexRebuildError] = useState<string | null>(null);
+    const [indexRebuildRefreshMetricsFirst, setIndexRebuildRefreshMetricsFirst] = useState(false);
 
     // Summarize Filings state
     const [summaryLoading, setSummaryLoading] = useState(false);
@@ -63,17 +64,21 @@ export default function Admin() {
 
     const springbootUrl = import.meta.env.VITE_APP_SPRINGBOOT_URL;
 
-    const normalizeError = (err: any): string => {
-        const data = err?.response?.data;
-        if (typeof data === 'string' && data.trim()) return data;
-        if (data && typeof data === 'object') {
-            try {
-                return JSON.stringify(data);
-            } catch {
-                return 'Request failed';
+    const normalizeError = (err: unknown): string => {
+        if (axios.isAxiosError(err)) {
+            const data = err.response?.data;
+            if (typeof data === 'string' && data.trim()) return data;
+            if (data && typeof data === 'object') {
+                try {
+                    return JSON.stringify(data);
+                } catch {
+                    return 'Request failed';
+                }
             }
+            if (err.message?.trim()) return err.message;
+            return 'Request failed';
         }
-        if (typeof err?.message === 'string' && err.message.trim()) return err.message;
+        if (err instanceof Error && err.message.trim()) return err.message;
         return 'Request failed';
     };
 
@@ -91,9 +96,9 @@ export default function Admin() {
                     params,
                     timeout: 0,
                 });
-            } catch (assetLoadErr: any) {
+            } catch (assetLoadErr: unknown) {
                 // Backward-compatible fallback while older backend instances may still expose /admin/load.
-                if (assetLoadErr?.response?.status === 404) {
+                if (axios.isAxiosError(assetLoadErr) && assetLoadErr.response?.status === 404) {
                     res = await axios.get(`${springbootUrl}admin/load`, {
                         headers: { 'X-Admin-Key': apiKey },
                         timeout: 0,
@@ -103,7 +108,7 @@ export default function Admin() {
                 }
             }
             setLoadResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: any) {
+        } catch (err: unknown) {
             setLoadError(normalizeError(err));
         } finally {
             setLoadLoading(false);
@@ -119,7 +124,7 @@ export default function Admin() {
                 headers: { 'X-Admin-Key': apiKey },
             });
             setSyncResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: any) {
+        } catch (err: unknown) {
             setSyncError(normalizeError(err));
         } finally {
             setSyncLoading(false);
@@ -137,7 +142,7 @@ export default function Admin() {
                 timeout: 0,
             });
             setHistResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: any) {
+        } catch (err: unknown) {
             setHistError(normalizeError(err));
         } finally {
             setHistLoading(false);
@@ -164,7 +169,7 @@ export default function Admin() {
                 timeout: 0,
             });
             setAdjustResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: any) {
+        } catch (err: unknown) {
             setAdjustError(normalizeError(err));
         } finally {
             setAdjustLoading(false);
@@ -184,7 +189,7 @@ export default function Admin() {
                 timeout: 0,
             });
             setSummaryResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: any) {
+        } catch (err: unknown) {
             setSummaryError(normalizeError(err));
         } finally {
             setSummaryLoading(false);
@@ -202,30 +207,32 @@ export default function Admin() {
                 { headers: { 'X-Admin-Key': apiKey }, timeout: 0 },
             );
             setIndexMetricsResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: any) {
+        } catch (err: unknown) {
             setIndexMetricsError(normalizeError(err));
         } finally {
             setIndexMetricsLoading(false);
         }
     };
 
-    const handleRebuildFattore50 = async () => {
-        setFattore50Loading(true);
-        setFattore50Result(null);
-        setFattore50Error(null);
+    const handleRebuildIndexes = async () => {
+        setIndexRebuildLoading(true);
+        setIndexRebuildResult(null);
+        setIndexRebuildError(null);
         try {
             const params: Record<string, string> = {};
-            if (fattore50RefreshMetricsFirst) params.refreshMetrics = 'true';
+            if (indexRebuildRefreshMetricsFirst) params.refreshMetrics = 'true';
+            const c = indexRebuildCode.trim();
+            if (c) params.code = c;
             const res = await axios.post(
-                `${springbootUrl}admin/indexes/rebuild-fattore-50`,
+                `${springbootUrl}admin/indexes/rebuild`,
                 {},
                 { headers: { 'X-Admin-Key': apiKey }, params, timeout: 0 },
             );
-            setFattore50Result(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: any) {
-            setFattore50Error(normalizeError(err));
+            setIndexRebuildResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
+        } catch (err: unknown) {
+            setIndexRebuildError(normalizeError(err));
         } finally {
-            setFattore50Loading(false);
+            setIndexRebuildLoading(false);
         }
     };
 
@@ -414,7 +421,7 @@ export default function Admin() {
                     {summaryError && <Alert variant="danger">{summaryError}</Alert>}
                 </Card>
 
-                {/* Index metrics + Fattore 50 */}
+                {/* Index metrics + cap-ranked rebuild */}
                 <Card>
                     <h6>Refresh index stock metrics</h6>
                     <p>
@@ -442,34 +449,47 @@ export default function Admin() {
                 </Card>
 
                 <Card>
-                    <h6>Rebuild Fattore 50 index</h6>
+                    <h6>Rebuild cap-ranked indexes</h6>
                     <p>
-                        Russell-style top 50 by float-adjusted market cap: upserts <code>MarketIndex</code>{' '}
-                        <code>FAT50</code> and replaces <code>IndexMember</code> rows (cap weights). Not an official
-                        FTSE Russell index.
+                        Russell-style float-adjusted cap weights: upserts <code>MarketIndex</code> and replaces{' '}
+                        <code>IndexMember</code> rows from <code>ListingIndexMetrics</code>. Choose one index or{' '}
+                        <strong>All</strong> to rebuild every configured index (order: <code>FAT100</code>,{' '}
+                        <code>FAT1000</code>, <code>FAT50</code>). Not an official FTSE Russell index.
                     </p>
                     <p className="text-muted small mb-2">
-                        <strong>Affects (sec-api DB):</strong> <code>MarketIndex</code>, <code>IndexMember</code> (ranks
-                        from <code>ListingIndexMetrics</code>)
+                        <strong>Affects (sec-api DB):</strong> <code>MarketIndex</code>, <code>IndexMember</code>
                     </p>
+                    <Form.Group className="mb-2">
+                        <Form.Label>Index code</Form.Label>
+                        <Form.Select
+                            value={indexRebuildCode}
+                            onChange={(e) => setIndexRebuildCode(e.target.value)}
+                            style={{ maxWidth: 280 }}
+                        >
+                            <option value="">All (FAT100, FAT1000, FAT50)</option>
+                            <option value="FAT50">FAT50 — Fattore 50</option>
+                            <option value="FAT100">FAT100 — Fattore 100</option>
+                            <option value="FAT1000">FAT1000 — Fattore 1000</option>
+                        </Form.Select>
+                    </Form.Group>
                     <Form.Check
                         className="mb-2"
                         type="switch"
                         label="Run refresh index metrics first (same as Refresh index metrics above)"
-                        checked={fattore50RefreshMetricsFirst}
-                        onChange={(e) => setFattore50RefreshMetricsFirst(e.target.checked)}
+                        checked={indexRebuildRefreshMetricsFirst}
+                        onChange={(e) => setIndexRebuildRefreshMetricsFirst(e.target.checked)}
                     />
-                    <Button onClick={handleRebuildFattore50} disabled={fattore50Loading || !apiKey}>
-                        {fattore50Loading ? (
+                    <Button onClick={handleRebuildIndexes} disabled={indexRebuildLoading || !apiKey}>
+                        {indexRebuildLoading ? (
                             <>
                                 <Spinner size="sm" /> Rebuilding…
                             </>
                         ) : (
-                            'Rebuild Fattore 50'
+                            'Rebuild index(es)'
                         )}
                     </Button>
-                    {fattore50Result && <Alert variant="success">{fattore50Result}</Alert>}
-                    {fattore50Error && <Alert variant="danger">{fattore50Error}</Alert>}
+                    {indexRebuildResult && <Alert variant="success">{indexRebuildResult}</Alert>}
+                    {indexRebuildError && <Alert variant="danger">{indexRebuildError}</Alert>}
                 </Card>
 
             </Card>

@@ -67,14 +67,14 @@ const reviewSlice = createSlice({
       })
       .addCase(getReviews.rejected, (state, action) => {
         state.loading = false;  // Set loading to false if the call failed
-        state.error = action.error.message || 'An error occurred';;  // Set the error message
+        state.error = action.error.message || 'An error occurred';  // Set the error message
       })
       .addCase(postReview.pending, (state) => {
         state.loading = true;
       })
       .addCase(postReview.fulfilled, (state, action) => {
         state.loading = false;
-        let review = action.payload
+        const review = action.payload
         console.log(review)
         state.reviews.push({
             restaurant: review.restaurant,

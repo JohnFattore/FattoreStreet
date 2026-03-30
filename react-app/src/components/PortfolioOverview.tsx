@@ -39,7 +39,7 @@ export default function PortfolioOverview() {
   let marketBuyTotal = 0;
   let marketCurrentTotal = 0;
 
-  for (let asset of assets) {
+  for (const asset of assets) {
     portfolioBuyTotal += asset.buyPrice;
     marketBuyTotal += asset.snp500PriceBuy;
     if (asset.sellPrice && asset.snp500PriceSell) {

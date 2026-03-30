@@ -16,7 +16,7 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Derives dividend ex-dates from SEC 8-K record-date disclosures and settlement-regime logic (pre-2024-05-28 T+2, post-cutover T+1)
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
 - Fetches 10-K filings from SEC EDGAR, extracts the MD&A section, and generates ~500 word summaries via a local LLM (llama.cpp server)
-- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild-fattore-50` (`X-Admin-Key`, optional `year`). **Fattore 50** is a Russell-style (float-adjusted cap rank) top-50 proxy, not an official FTSE Russell product; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist for the target year.
+- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), `GET /iwb-reference-holdings` (bundled IWB CSV tickers + fund weights for UI benchmark), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild` (`X-Admin-Key`, optional `code`, optional `year`). **Fattore 50** / **Fattore 100** / **Fattore 1000** are Russell-style (float-adjusted cap rank) top-50 / top-100 / top-1000 proxies (`FAT50` / `FAT100` / `FAT1000`), not official FTSE Russell products; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist for the target year. Legacy paths `rebuild-fattore-50` / `rebuild-fattore-100` / `rebuild-fattore-1000` remain as aliases.
 
 ## Java package layout
 
@@ -61,7 +61,9 @@ Before adding or changing any external data source:
 | `DB_USERNAME` | `postgres` | Database username |
 | `DB_PASSWORD` | `postgres` | Database password |
 | `ADMIN_API_KEY` | (required) | Key for `X-Admin-Key` header on admin endpoints |
-| (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore rebuild includes (tests may override; production should stay at 50). Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
+| (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore 50 rebuild includes. Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
+| (property) `fattore100.rebuild.top-n` | `100` | How many names the Fattore 100 rebuild includes. Set in `.env` as `fattore100.rebuild.top-n=100` if needed. |
+| (property) `fattore1000.rebuild.top-n` | `1000` | How many names the Fattore 1000 rebuild includes. Set in `.env` as `fattore1000.rebuild.top-n=1000` if needed. |
 | `LLM_SERVER_URL` | `http://localhost:8081` | URL of the llama.cpp server for 10-K summarization |
 | `DJANGO_PORTFOLIO_BASE_URL` | `http://localhost:8000/portfolio` | Base URL for Django portfolio API used by diagnostics-only yfinance validation |
 | `SEC_HTTP_CONNECT_TIMEOUT_MS` | `15000` | SEC API connect timeout (milliseconds) |
@@ -107,7 +109,9 @@ Dates already in the database are skipped automatically. IEX load saves raw pric
 
 ### Market index metrics (IEX + SEC)
 
-`ListingIndexMetrics` is built from the latest IEX-derived `DailyPrice` per ticker and SEC companyfacts (`EntityCommonStockSharesOutstanding`, `EntityPublicFloat`, DEI country). Run after listings and daily prices exist.
+`ListingIndexMetrics` is built from the latest IEX-derived `DailyPrice` per ticker, SEC companyfacts (`EntityCommonStockSharesOutstanding`, `EntityPublicFloat`), and SEC **submissions** JSON for jurisdiction: `country_incorp` / `country_hq` plus `state_incorp` / `state_hq` (US state codes are split out so country columns are real countries). Run after listings and daily prices exist. **Dual-listed share classes (same CIK):** SEC shares outstanding is consolidated per issuer; for Alphabet **GOOG** / **GOOGL** only, `market_cap` and `free_float_market_cap` are scaled by **½** per listing so the two lines together approximate the issuer total (see `DualClassIndexCapSplit`).
+
+**Ticker scope:** `refresh-stocks` only updates listings whose tickers appear in `springboot/data/IWB_holdings.csv` (iShares Russell 1000 / IWB export, equity rows only). That file is copied into the JAR as `classpath:/data/IWB_holdings.csv` via `pom.xml` resources; replace it when you refresh the reference basket.
 
 **Upgrading existing databases** (pre–`MarketIndex` FK): if `index_members` still has a legacy `market_index` text column, insert the matching `market_indexes` row if needed, backfill `market_index_id`, then drop the old column after verifying rows.
 
@@ -117,12 +121,19 @@ curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexe
 curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/refresh-stocks?year=2025"
 ```
 
-Rebuild the Russell-style **Fattore 50** index (`FAT50`): creates or reuses the `MarketIndex` row, replaces `IndexMember` rows with the top 50 by float-adjusted market cap for the chosen **year** (weights sum to 100%). Optional: `refreshMetrics=true` refreshes metrics for that year first; optional `year` defaults to the current calendar year.
+Rebuild cap-ranked indexes (`FAT50`, `FAT100`, `FAT1000`): creates or reuses each `MarketIndex` row, replaces `IndexMember` rows (weights sum to 100%). Optional `code` selects one index; omit to rebuild all (FAT100, FAT1000, FAT50). Optional `refreshMetrics=true` refreshes metrics once for that year first; optional `year` defaults to the current calendar year.
 
 ```bash
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild?code=FAT50"
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild?code=FAT1000"
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild?refreshMetrics=true"
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild?year=2025&refreshMetrics=true"
+
+# Legacy aliases (singular `rebuild` in JSON response)
 curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild-fattore-50
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild-fattore-50?refreshMetrics=true"
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild-fattore-50?year=2025&refreshMetrics=true"
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild-fattore-100
+curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild-fattore-1000
 ```
 
 List available indexes and fetch constituents:
@@ -130,6 +141,8 @@ List available indexes and fetch constituents:
 ```bash
 curl "http://localhost:8080/indexes"
 curl "http://localhost:8080/index-members?code=FAT50"
+curl "http://localhost:8080/index-members?code=FAT100"
+curl "http://localhost:8080/index-members?code=FAT1000"
 ```
 
 ### Price Adjustments (Splits & Dividends)

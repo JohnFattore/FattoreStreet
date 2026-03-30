@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import { formatString } from "../functions/helperFunctions";
 import StateHandler from "./StateHandler";
+import { IAsset } from "../interfaces";
 
 export default function AccountList() {
     const navigate = useNavigate();
@@ -51,9 +52,9 @@ export default function AccountList() {
                             let previousBalance = 0;
 
                             if (assets && assetInfos) {
-                                const accountAssets = assets.filter((a: any) => a.account === account.id); // 'account' is the field name from django
+                                const accountAssets = assets.filter((a: IAsset) => a.account === account.id); // 'account' is the field name from django
 
-                                accountAssets.forEach((asset: any) => {
+                                accountAssets.forEach((asset: IAsset) => {
                                     const info = assetInfos[asset.ticker];
                                     if (info && !asset.sellDate) {
                                         const currentVal = asset.shares * info.currentPrice;

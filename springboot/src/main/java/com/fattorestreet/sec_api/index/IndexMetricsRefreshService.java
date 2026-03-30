@@ -33,7 +33,6 @@ public class IndexMetricsRefreshService {
 
     private static final List<String> MLPS = List.of("EPD", "ET", "MPLX", "CQP", "WES", "PAA", "SUN");
     private static final List<String> PREFERRED = List.of("AGNCN", "AGNCM", "FITBI", "SLMBP", "VLYPO", "VLYPP");
-    private static final List<String> ADR = List.of("CUK");
 
     private final ListingRepository listingRepository;
     private final ListingIndexMetricsRepository metricsRepository;
@@ -41,6 +40,7 @@ public class IndexMetricsRefreshService {
     private final WebService webService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final IwbHoldingsTickerSet iwbHoldingsTickerSet;
 
     public IndexMetricsRefreshService(
             ListingRepository listingRepository,
@@ -48,26 +48,32 @@ public class IndexMetricsRefreshService {
             DailyPriceRepository dailyPriceRepository,
             WebService webService,
             ObjectMapper objectMapper,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            IwbHoldingsTickerSet iwbHoldingsTickerSet) {
         this.listingRepository = listingRepository;
         this.metricsRepository = metricsRepository;
         this.dailyPriceRepository = dailyPriceRepository;
         this.webService = webService;
         this.objectMapper = objectMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.iwbHoldingsTickerSet = iwbHoldingsTickerSet;
     }
 
     public record RefreshResult(int processed, int skipped, List<String> skippedTickers) {
     }
 
     /**
-     * Updates metrics for all non-fund listings that have a CIK (SEC) and at least one daily price row (IEX).
+     * Updates metrics for listings whose tickers appear in {@code data/IWB_holdings.csv} (Russell 1000 / IWB
+     * equity constituents), have a CIK (SEC), are not funds, and have at least one daily price row (IEX).
      */
     public RefreshResult refreshAllListings(int year) {
         List<String> skippedTickers = new ArrayList<>();
         int processed = 0;
         int skipped = 0;
-        List<Listing> listings = listingRepository.findAll();
+        java.util.Set<String> iwb = iwbHoldingsTickerSet.tickers();
+        List<Listing> listings = listingRepository.findAll().stream()
+                .filter(l -> iwb.contains(l.getTicker()))
+                .toList();
         int n = 0;
         for (Listing listing : listings) {
             n++;
@@ -100,8 +106,11 @@ public class IndexMetricsRefreshService {
     @Transactional
     RefreshOutcome refreshOneListing(Listing listing, int year) {
         Asset asset = listing.getAsset();
-        if (asset == null || Boolean.TRUE.equals(asset.getIsFund())) {
-            return RefreshOutcome.skipped(listing.getTicker() + ":fund_or_missing_asset");
+        if (asset == null) {
+            return RefreshOutcome.skipped(listing.getTicker() + ":missing_asset");
+        }
+        if (Boolean.TRUE.equals(asset.getIsFund())) {
+            return RefreshOutcome.skipped(listing.getTicker() + ":fund");
         }
         Long cik = asset.getCik();
         if (cik == null) {
@@ -141,11 +150,14 @@ public class IndexMetricsRefreshService {
                 : BigDecimal.ZERO;
         BigDecimal volumeUsd = vol.multiply(priceBd).setScale(5, RoundingMode.HALF_UP);
 
-        BigDecimal freeFloat = SecIndexFactsParser.computeFreeFloat(sf.sharesOutstanding(), sf.publicFloatUsd(), priceBd);
-        if (freeFloat == null) {
-            freeFloat = BigDecimal.ONE;
-        }
+        BigDecimal freeFloat = computeFreeFloat(sf, listing.getTicker(), sharesBd);
         BigDecimal ffMc = marketCap.multiply(freeFloat).setScale(5, RoundingMode.HALF_UP);
+
+        String ticker = listing.getTicker();
+        if (DualClassIndexCapSplit.halvesCapForTicker(ticker)) {
+            marketCap = DualClassIndexCapSplit.apply(ticker, marketCap);
+            ffMc = DualClassIndexCapSplit.apply(ticker, ffMc);
+        }
 
         ListingIndexMetrics m = metricsRepository.findByListingAndYear(listing, year).orElseGet(() -> {
             ListingIndexMetrics nm = new ListingIndexMetrics();
@@ -158,11 +170,14 @@ public class IndexMetricsRefreshService {
         m.setVolumeUsd(volumeUsd);
         m.setFreeFloat(freeFloat);
         m.setFreeFloatMarketCap(ffMc);
-        m.setCountryIncorp(SecIndexFactsParser.normalizeCountry(sf.countryCodeOrName()));
-        m.setCountryHq(SecIndexFactsParser.normalizeCountry(sf.countryCodeOrName()));
+        SecIndexFactsParser.SubmissionsLocation loc = fetchSubmissionsLocation(cik, ticker);
+        m.setCountryIncorp(SecIndexFactsParser.normalizeCountry(loc.countryIncorp()));
+        m.setCountryHq(SecIndexFactsParser.normalizeCountry(loc.countryHq()));
+        m.setStateIncorp(loc.stateIncorp());
+        m.setStateHq(loc.stateHq());
         m.setSecurityType("Common Stock");
         m.setYearIpo(0);
-        applyTickerOverrides(listing.getTicker(), m);
+        applyTickerOverrides(ticker, m);
         metricsRepository.save(m);
         return RefreshOutcome.ok();
     }
@@ -177,26 +192,52 @@ public class IndexMetricsRefreshService {
         }
     }
 
-    private void applyTickerOverrides(String ticker, ListingIndexMetrics m) {
-        if ("GOOG".equals(ticker)) {
-            m.setFreeFloat(BigDecimal.valueOf((5.19 / 5.59) / 2));
-            if (m.getMarketCap() != null) {
-                m.setFreeFloatMarketCap(m.getMarketCap().multiply(m.getFreeFloat()).setScale(5, RoundingMode.HALF_UP));
-            }
-        } else if ("GOOGL".equals(ticker)) {
-            m.setFreeFloat(BigDecimal.valueOf((5.84 / 5.86) / 2));
-            if (m.getMarketCap() != null) {
-                m.setFreeFloatMarketCap(m.getMarketCap().multiply(m.getFreeFloat()).setScale(5, RoundingMode.HALF_UP));
-            }
+    private SecIndexFactsParser.SubmissionsLocation fetchSubmissionsLocation(Long cik, String ticker) {
+        try {
+            String json = webService.fetchSubmissions(cik);
+            JsonNode root = objectMapper.readTree(json);
+            return SecIndexFactsParser.parseSubmissionsLocation(root);
+        } catch (Exception e) {
+            log.warn("[{}] SEC submissions failed (country lookup): {}", ticker, e.getMessage());
+            return SecIndexFactsParser.SubmissionsLocation.empty();
         }
+    }
+
+    /**
+     * Computes free-float ratio as floatShares / sharesOutstanding.
+     * Derives floatShares from SEC's EntityPublicFloat (USD) divided by the price on the float reporting date,
+     * avoiding stale-dollar-value distortion when the stock price has moved since the filing.
+     * Returns ONE when public float data is unavailable.
+     */
+    private BigDecimal computeFreeFloat(SecIndexFactsParser.SecShareFacts sf, String ticker, BigDecimal sharesOutstanding) {
+        if (sf.publicFloatUsd() == null || sf.publicFloatUsd() <= 0 || sf.publicFloatDate() == null) {
+            return BigDecimal.ONE;
+        }
+        Optional<DailyPrice> floatDatePrice = dailyPriceRepository
+                .findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(ticker, sf.publicFloatDate());
+        if (floatDatePrice.isEmpty()) {
+            return BigDecimal.ONE;
+        }
+        Double closePrice = floatDatePrice.get().getClosePrice();
+        if (closePrice == null || closePrice <= 0) {
+            return BigDecimal.ONE;
+        }
+        BigDecimal priceBd = BigDecimal.valueOf(closePrice);
+        BigDecimal floatShares = BigDecimal.valueOf(sf.publicFloatUsd())
+                .divide(priceBd, 0, RoundingMode.HALF_UP);
+        BigDecimal ff = floatShares.divide(sharesOutstanding, 10, RoundingMode.HALF_UP);
+        if (ff.compareTo(BigDecimal.ONE) > 0) {
+            return BigDecimal.ONE;
+        }
+        return ff;
+    }
+
+    private void applyTickerOverrides(String ticker, ListingIndexMetrics m) {
         if (MLPS.contains(ticker)) {
             m.setSecurityType("MLP");
         }
         if (PREFERRED.contains(ticker)) {
             m.setSecurityType("Preferred Stock");
-        }
-        if (ADR.contains(ticker)) {
-            m.setSecurityType("ADR");
         }
     }
 }

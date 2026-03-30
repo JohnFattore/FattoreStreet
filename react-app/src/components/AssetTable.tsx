@@ -7,6 +7,17 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { SortableTable } from "./SortableTable";
 
+type AssetSummaryRow = {
+  ticker: string;
+  totalShares: number;
+  averageBuyPrice: number;
+  totalCost: number;
+  currentPrice: number | null;
+  percentChange: number | null;
+  shortName: string;
+  hasError: boolean;
+};
+
 interface Props {
   accountId?: number;
 }
@@ -52,7 +63,7 @@ export default function AssetTable({ accountId }: Props) {
     assetsByTicker[asset.ticker].totalCost += asset.buyPrice;
   }
 
-  const data = Object.entries(assetsByTicker).map(([ticker, data]) => {
+  const data: AssetSummaryRow[] = Object.entries(assetsByTicker).map(([ticker, data]) => {
     const info = assetInfos[ticker];
     return {
       ticker,
@@ -73,7 +84,7 @@ export default function AssetTable({ accountId }: Props) {
     {
       label: "Ticker",
       sortKey: "ticker",
-      render: (row: any) => (
+      render: (row: AssetSummaryRow) => (
         <div onClick={() => navigate(`/asset/${row.ticker}`)}>{row.ticker}</div>
       ),
     },
@@ -84,22 +95,22 @@ export default function AssetTable({ accountId }: Props) {
     {
       label: "Total Shares",
       sortKey: "totalShares",
-      render: (row: any) => formatString(row.totalShares, "amount"),
+      render: (row: AssetSummaryRow) => formatString(row.totalShares, "amount"),
     },
     {
       label: "Average Buy Price",
       sortKey: "averageBuyPrice",
-      render: (row: any) => formatString(row.averageBuyPrice, "money"),
+      render: (row: AssetSummaryRow) => formatString(row.averageBuyPrice, "money"),
     },
     {
       label: "Total Buy Price",
       sortKey: "totalCost",
-      render: (row: any) => formatString(row.totalCost, "money"),
+      render: (row: AssetSummaryRow) => formatString(row.totalCost, "money"),
     },
     {
       label: "Current Price",
       sortKey: "currentPrice",
-      render: (row: any) =>
+      render: (row: AssetSummaryRow) =>
         assetLoading ? "Loading..." : (row.currentPrice !== null
           ? formatString(row.currentPrice, "money")
           : "N/A"),
@@ -107,7 +118,7 @@ export default function AssetTable({ accountId }: Props) {
     {
       label: "Percent Change",
       sortKey: "percentChange",
-      render: (row: any) =>
+      render: (row: AssetSummaryRow) =>
         assetLoading ? "Loading..." : (row.percentChange !== null
           ? formatString(row.percentChange, "percent")
           : "N/A"),
@@ -116,7 +127,7 @@ export default function AssetTable({ accountId }: Props) {
       label: "View Asset",
       sortKey: "viewAsset",
       sortable: false,
-      render: (row: any) => (
+      render: (row: AssetSummaryRow) => (
         <Button onClick={() => navigate(`/asset/${row.ticker}`)}>
           {`View ${row.ticker}`}
         </Button>

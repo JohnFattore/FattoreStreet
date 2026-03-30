@@ -23,7 +23,7 @@ const adminSuccessBarSlice = createSlice({
         state.error = "Ticker is required.";
         return;
       }
-      if (!/^[A-Z][A-Z0-9.\-]*$/.test(ticker)) {
+      if (!/^[A-Z][A-Z0-9.-]*$/.test(ticker)) {
         state.error = "Invalid ticker format.";
         return;
       }

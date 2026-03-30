@@ -82,6 +82,8 @@ public class IndexMemberApiService {
                     zero,
                     "United States",
                     "United States",
+                    null,
+                    null,
                     "Common Stock",
                     0
             );
@@ -96,6 +98,8 @@ public class IndexMemberApiService {
                 nz(m.getFreeFloatMarketCap()),
                 m.getCountryIncorp() != null ? m.getCountryIncorp() : "United States",
                 m.getCountryHq() != null ? m.getCountryHq() : "United States",
+                m.getStateIncorp(),
+                m.getStateHq(),
                 m.getSecurityType() != null ? m.getSecurityType() : "Common Stock",
                 m.getYearIpo() != null ? m.getYearIpo() : 0
         );
@@ -118,6 +122,8 @@ public class IndexMemberApiService {
             @JsonProperty("freeFloatMarketCap") BigDecimal freeFloatMarketCap,
             String countryIncorp,
             String countryHQ,
+            String stateIncorp,
+            @JsonProperty("stateHQ") String stateHq,
             String securityType,
             Integer yearIPO
     ) {

@@ -14,29 +14,31 @@ interface IFormInput {
   sellDate: string;
 }
 
+// yup default .date() format does not work with DRF asset api endpoint
+const sellDateSchema = yup.object().shape({
+  sellDate: yup.string().required(),
+});
+
 export default function AssetSellForm({ asset }: { asset: IAsset | undefined }) {
   const [patchAsset, { error, isLoading }] = usePatchAssetMutation();
   const { access } = useSelector((state: RootState) => state.user);
-
-  if (!asset) {
-    return null;
-  }
-
-  // yup default .date() format does not work with DRF asset api endpoint
-  const schema = yup.object().shape({
-    sellDate: yup.string().required(),
-  });
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<IFormInput>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(sellDateSchema),
   });
+
   const onSubmit: SubmitHandler<IFormInput> = (data) => {
+    if (!asset) return;
     patchAsset({ id: asset.id, sell_date: data.sellDate });
   };
+
+  if (!asset) {
+    return null;
+  }
 
   if (!access) {
     return (

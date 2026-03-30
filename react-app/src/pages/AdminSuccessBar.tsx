@@ -82,9 +82,6 @@ const calculatePriceSummary = (iexPrices: IIexPrice[], yfPrices: IYfPrice[]): Pr
   }
 
   const within1Rate = overlappingDates > 0 ? within1Pct / overlappingDates : 0;
-  const within3Rate = overlappingDates > 0 ? within3Pct / overlappingDates : 0;
-  const within5Rate = overlappingDates > 0 ? within5Pct / overlappingDates : 0;
-  const within25Rate = overlappingDates > 0 ? within25Pct / overlappingDates : 0;
 
   return {
     overlappingDates,
@@ -295,7 +292,7 @@ export default function AdminSuccessBar() {
       return;
     }
     dispatch(addTicker(normalized));
-    if (/^[A-Z][A-Z0-9.\-]*$/.test(normalized) && !tickers.includes(normalized)) {
+    if (/^[A-Z][A-Z0-9.-]*$/.test(normalized) && !tickers.includes(normalized)) {
       setTickerInput("");
     }
   };

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useSelector } from "react-redux";
@@ -10,17 +10,25 @@ export default function ReviewMap() {
 
     const mapRef = useRef<L.Map | null>(null);
 
-    const greenIcon = L.AwesomeMarkers.icon({
-        icon: 'star',
-        markerColor: 'green',
-        prefix: 'fa', // Using FontAwesome
-    });
+    const greenIcon = useMemo(
+        () =>
+            L.AwesomeMarkers.icon({
+                icon: 'star',
+                markerColor: 'green',
+                prefix: 'fa', // Using FontAwesome
+            }),
+        []
+    );
 
-    const blueIcon = L.AwesomeMarkers.icon({
-        icon: 'star',
-        markerColor: 'blue',
-        prefix: 'fa', // Using FontAwesome
-    });
+    const blueIcon = useMemo(
+        () =>
+            L.AwesomeMarkers.icon({
+                icon: 'star',
+                markerColor: 'blue',
+                prefix: 'fa', // Using FontAwesome
+            }),
+        []
+    );
 
     const { reviews } = useSelector((state: RootState) => state.reviews);
     const { restaurants } = useSelector((state: RootState) => state.restaurantRecommend);
@@ -55,7 +63,7 @@ export default function ReviewMap() {
         return () => {
             //mapRef.remove(); // Cleanup map on component unmount
         };
-    }, [reviews, restaurants])
+    }, [reviews, restaurants, greenIcon, blueIcon])
 
     return <div id="map" className="vh-100"></div>;
-};
+}

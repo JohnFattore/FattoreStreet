@@ -12,7 +12,7 @@ function AlbumRow({ album, fields }: { album: IAlbum; fields: Field[] }) {
         album.year
     ];
 
-    let tableData: JSX.Element[] = [];
+    const tableData: JSX.Element[] = [];
 
     for (let i = 0; i < attributes.length; i++) {
         tableData.push(<td key={i}>{formatString(attributes[i], fields[i]["type"])}</td>)
@@ -32,7 +32,7 @@ export default function AlbumTable({albums}: {albums: IAlbum[]}) {
         {name: "Year", type: "text"}
     ]
     
-    let headers: JSX.Element[] = []
+    const headers: JSX.Element[] = []
     for (let i = 0; i < fields.length; i++) {
         headers.push(<th key={i}>{fields[i].name}</th>)
     }

@@ -6,6 +6,7 @@ import { useCreateAccountMutation } from "../functions/api";
 import LoadingButton from "./LoadingButton";
 import { getErrorMessages } from "../functions/helperFunctions";
 import { useState } from "react";
+import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 interface IFormInput {
     name: string;
@@ -54,7 +55,17 @@ export default function CreateAccountForm() {
                     <Modal.Title>Create Account</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {error ? <Alert variant="danger">{getErrorMessages((error as any).data)}</Alert> : null}
+                    {error ? (
+                        <Alert variant="danger">
+                            {getErrorMessages(
+                                typeof error === "object" &&
+                                    error !== null &&
+                                    "data" in error
+                                    ? (error as FetchBaseQueryError).data
+                                    : undefined
+                            )}
+                        </Alert>
+                    ) : null}
                     <Form onSubmit={handleSubmit(onSubmit)}>
                         <Row>
                             <Col>

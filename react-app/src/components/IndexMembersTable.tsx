@@ -10,7 +10,7 @@ import {
 type Props = {
   members: IIndexMemberRow[];
   isLoading: boolean;
-  errors: any[];
+  errors: unknown[];
 };
 
 export function IndexMembersTable({ members, isLoading, errors }: Props) {
@@ -27,6 +27,8 @@ export function IndexMembersTable({ members, isLoading, errors }: Props) {
     securityType: m.stock.securityType,
     countryHQ: m.stock.countryHQ,
     countryIncorp: m.stock.countryIncorp,
+    stateHQ: m.stock.stateHQ,
+    stateIncorp: m.stock.stateIncorp,
   }));
 
   return (
@@ -71,7 +73,17 @@ export function IndexMembersTable({ members, isLoading, errors }: Props) {
         },
         { label: "Type", sortKey: "securityType" },
         { label: "HQ", sortKey: "countryHQ" },
+        {
+          label: "HQ st",
+          sortKey: "stateHQ",
+          render: (r) => r.stateHQ ?? "—",
+        },
         { label: "Incorp", sortKey: "countryIncorp" },
+        {
+          label: "Incorp st",
+          sortKey: "stateIncorp",
+          render: (r) => r.stateIncorp ?? "—",
+        },
       ]}
     />
   );

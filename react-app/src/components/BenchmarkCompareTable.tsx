@@ -7,6 +7,20 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { SortableTable } from "./SortableTable";
 
+type BenchmarkCompareRow = {
+  ticker: string;
+  shares: number;
+  accountName: string;
+  buyDate: string;
+  buyPrice: number;
+  sellDate: string;
+  sellCurrentPrice: number;
+  change: number;
+  snp500Change: number | null;
+  shortName: string;
+  hasError: boolean;
+};
+
 export default function BenchmarkCompareTable() {
   const navigate = useNavigate();
   const { access } = useSelector((state: RootState) => state.user);
@@ -40,7 +54,7 @@ export default function BenchmarkCompareTable() {
 
   if (!access) return null;
 
-  const data = assets.map((asset) => {
+  const data: BenchmarkCompareRow[] = assets.map((asset) => {
     const info = assetInfos[asset.ticker];
     const account = accounts.find((a) => a.id === asset.account);
     return {
@@ -64,7 +78,7 @@ export default function BenchmarkCompareTable() {
     {
       label: "Ticker",
       sortKey: "ticker",
-      render: (row: any) => (
+      render: (row: BenchmarkCompareRow) => (
         <div onClick={() => navigate(`/asset/${row.ticker}`)}>{row.ticker}</div>
       ),
     },
@@ -79,47 +93,48 @@ export default function BenchmarkCompareTable() {
     {
       label: "Shares",
       sortKey: "shares",
-      render: (row: any) => formatString(row.shares, "amount"),
+      render: (row: BenchmarkCompareRow) => formatString(row.shares, "amount"),
     },
     {
       label: "Buy Date",
       sortKey: "buyDate",
-      render: (row: any) => formatString(row.buyDate, "date"),
+      render: (row: BenchmarkCompareRow) => formatString(row.buyDate, "date"),
     },
     {
       label: "Buy Price",
       sortKey: "buyPrice",
-      render: (row: any) => formatString(row.buyPrice, "money"),
+      render: (row: BenchmarkCompareRow) => formatString(row.buyPrice, "money"),
     },
     {
       label: "Sell/Current Price",
       sortKey: "sellCurrentPrice",
-      render: (row: any) => formatString(row.sellCurrentPrice, "money"),
+      render: (row: BenchmarkCompareRow) => formatString(row.sellCurrentPrice, "money"),
 
     },
     {
       label: "Sell Date",
       sortKey: "sellDate",
-      render: (row: any) => formatString(row.sellDate, "date"),
+      render: (row: BenchmarkCompareRow) => formatString(row.sellDate, "date"),
 
     },
     {
       label: "Change",
       sortKey: "change",
-      render: (row: any) => formatString(row.change, "percent"),
+      render: (row: BenchmarkCompareRow) => formatString(row.change, "percent"),
 
     },
     {
       label: "S&P 500 Change",
       sortKey: "snp500Change",
-      render: (row: any) => formatString(row.snp500Change, "percent"),
+      render: (row: BenchmarkCompareRow) =>
+        row.snp500Change !== null ? formatString(row.snp500Change, "percent") : "N/A",
 
     },
     {
       label: "View Asset",
       sortKey: "viewAsset",
       sortable: false,
-      render: (row: any) => (
+      render: (row: BenchmarkCompareRow) => (
         <Button onClick={() => navigate(`/asset/${row.ticker}`)}>
           {`View ${row.ticker}`}
         </Button>

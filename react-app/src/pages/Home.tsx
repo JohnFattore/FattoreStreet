@@ -1,4 +1,4 @@
-import { Container, Row, Col, Card, Button } from "react-bootstrap";
+import { Container, Row, Col, Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
 export default function Home() {
@@ -23,9 +23,9 @@ export default function Home() {
                     Welcome to Fattore Street. We empower investors with the knowledge and tools to harness the power of low-cost index funds and smart portfolio management.
                 </p>
                 <div className="d-flex gap-3">
-                    <Button as={Link as any} to="/user" variant="primary" size="lg">Get Started</Button>
-                    <Button as={Link as any} to="/watchlist" variant="outline-light" size="lg">Explore Data</Button>
-                    <Button as={Link as any} to="/chatbot" variant="outline-light" size="lg">Chat with AI</Button>
+                    <Link to="/user" className="btn btn-primary btn-lg">Get Started</Link>
+                    <Link to="/watchlist" className="btn btn-outline-light btn-lg">Explore Data</Link>
+                    <Link to="/chatbot" className="btn btn-outline-light btn-lg">Chat with AI</Link>
                 </div>
             </div>
 
@@ -53,7 +53,7 @@ export default function Home() {
                                 <Card.Text>
                                     A professional stock and bond paper trader. Create hypothetical portfolios, track performance, and master the art of disciplined investing without capital risk.
                                 </Card.Text>
-                                <Button as={Link as any} to="/portfolio" variant="link" className="p-0 text-decoration-none">Launch Portfolio &rarr;</Button>
+                                <Link to="/portfolio" className="btn btn-link p-0 text-decoration-none">Launch Portfolio &rarr;</Link>
                             </Card.Body>
                         </Card>
                     </Col>
@@ -65,7 +65,7 @@ export default function Home() {
                                 <Card.Text>
                                     Analyze how your chosen assets compare to the broader market index. Insights into diversification, weighting, and historical performance comparisons.
                                 </Card.Text>
-                                <Button as={Link as any} to="/visualizer" variant="link" className="p-0 text-decoration-none">View Insights &rarr;</Button>
+                                <Link to="/visualizer" className="btn btn-link p-0 text-decoration-none">View Insights &rarr;</Link>
                             </Card.Body>
                         </Card>
                     </Col>
@@ -77,7 +77,7 @@ export default function Home() {
                                 <Card.Text>
                                     Keep your finger on the pulse with a live stock and ETF tracker. Monitor real-time price movements and market trends for your favorite securities.
                                 </Card.Text>
-                                <Button as={Link as any} to="/watchlist" variant="link" className="p-0 text-decoration-none">Monitor Markets &rarr;</Button>
+                                <Link to="/watchlist" className="btn btn-link p-0 text-decoration-none">Monitor Markets &rarr;</Link>
                             </Card.Body>
                         </Card>
                     </Col>
@@ -89,7 +89,7 @@ export default function Home() {
                                 <Card.Text>
                                     Understand the big picture with deep-dive graphs of essential macroeconomic data. See how broader economic indicators affect the investment landscape.
                                 </Card.Text>
-                                <Button as={Link as any} to="/economic-indicators" variant="link" className="p-0 text-decoration-none">Study Macro &rarr;</Button>
+                                <Link to="/economic-indicators" className="btn btn-link p-0 text-decoration-none">Study Macro &rarr;</Link>
                             </Card.Body>
                         </Card>
                     </Col>
@@ -101,7 +101,7 @@ export default function Home() {
                                 <Card.Text>
                                     Chat with our intelligent bot trained on Boglehead principles. Get immediate answers to your index fund questions and learn about long-term wealth building.
                                 </Card.Text>
-                                <Button as={Link as any} to="/chatbot" variant="link" className="p-0 text-decoration-none">Chat with AI &rarr;</Button>
+                                <Link to="/chatbot" className="btn btn-link p-0 text-decoration-none">Chat with AI &rarr;</Link>
                             </Card.Body>
                         </Card>
                     </Col>
@@ -113,7 +113,7 @@ export default function Home() {
                                 <Card.Text>
                                     Because life isn't just about investing. Explore our curated Nashville restaurant recommender for the best dining experiences in Music City.
                                 </Card.Text>
-                                <Button as={Link as any} to="/restaurants" variant="link" className="p-0 text-decoration-none">Find Dining &rarr;</Button>
+                                <Link to="/restaurants" className="btn btn-link p-0 text-decoration-none">Find Dining &rarr;</Link>
                             </Card.Body>
                         </Card>
                     </Col>

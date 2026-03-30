@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, Card, Form } from "react-bootstrap";
 import { useGetIndexMembersQuery, useGetIndexesQuery } from "../functions/api";
 import { IndexMembersTable } from "../components/IndexMembersTable";
+import { Fattore1000Russell1000CompareTable } from "../components/Fattore1000Russell1000CompareTable";
 
 export default function Indexes() {
   const {
@@ -66,6 +67,14 @@ export default function Indexes() {
           isLoading={membersLoading}
           errors={[membersError]}
         />
+
+        {selectedCode === "FAT1000" && (
+          <Fattore1000Russell1000CompareTable
+            members={members || []}
+            membersLoading={membersLoading}
+            membersError={membersError}
+          />
+        )}
       </Card>
     </div>
   );

@@ -15,7 +15,7 @@ type Props<T> = {
   initialSortKey?: keyof T | string;
   initialSortDirection?: "asc" | "desc";
   isLoading: boolean;
-  errors: any[];
+  errors: unknown[];
 };
 
 function parseNumericString(s: string): number | null {
@@ -24,7 +24,7 @@ function parseNumericString(s: string): number | null {
   return Number(stripped);
 }
 
-export function SortableTable<T extends Record<string, any>>({
+export function SortableTable<T extends object>({
   data,
   columns,
   initialSortKey,
@@ -55,27 +55,29 @@ export function SortableTable<T extends Record<string, any>>({
   const sortedData = useMemo(() => {
     if (!data) return [];
     return [...data].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+      const key = sortConfig.key as keyof T;
+      const aValue = a[key];
+      const bValue = b[key];
       if (aValue == null || aValue === "") return 1;
       if (bValue == null || bValue === "") return -1;
 
-      if (typeof aValue === "number") {
+      if (typeof aValue === "number" && typeof bValue === "number") {
         return sortConfig.direction === "asc"
           ? aValue - bValue
           : bValue - aValue;
       }
       if (typeof aValue === "string") {
         const aNum = parseNumericString(aValue);
-        const bNum = parseNumericString(bValue as string);
+        const bStr = typeof bValue === "string" ? bValue : String(bValue);
+        const bNum = parseNumericString(bStr);
         if (aNum !== null && bNum !== null) {
           return sortConfig.direction === "asc"
             ? aNum - bNum
             : bNum - aNum;
         }
         return sortConfig.direction === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+          ? aValue.localeCompare(bStr)
+          : bStr.localeCompare(aValue);
       }
       return 0;
     });
@@ -109,7 +111,13 @@ export function SortableTable<T extends Record<string, any>>({
             {sortedData.map((row, i) => (
               <tr key={i}>
                 {columns.map(({ sortKey, render }, j) => (
-                  <td key={j}>{render ? render(row) : row[sortKey]}</td>
+                  <td key={j}>
+                    {render
+                      ? render(row)
+                      : String(
+                          (row as Record<string, unknown>)[sortKey as string] ?? ""
+                        )}
+                  </td>
                 ))}
               </tr>
             ))}
