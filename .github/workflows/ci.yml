@@ -49,6 +49,8 @@ jobs:
       SECRET_KEY: ci-test-secret-key-not-for-production  # pragma: allowlist secret
       DATABASE: sqlite
       REDIS_URL: redis://127.0.0.1:6379/0
+      # Required by chatbot.views; tests mock Gemini — value is not a real API key.
+      GOOGLE_API_KEY: ci-dummy-google-api-key-placeholder  # pragma: allowlist secret
     steps:
       - uses: actions/checkout@v4
 

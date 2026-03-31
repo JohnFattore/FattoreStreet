@@ -30,7 +30,10 @@ public class IwbHoldingsTickerSet {
     public IwbHoldingsTickerSet(ResourceLoader resourceLoader) throws IOException {
         Resource resource = resourceLoader.getResource(LOCATION);
         if (!resource.exists()) {
-            throw new IllegalStateException("Missing resource " + LOCATION + " (check springboot/data/IWB_holdings.csv and Maven resources)");
+            log.warn("Missing resource {} (springboot/data/IWB_holdings.csv is gitignored); IWB ticker set will be empty", LOCATION);
+            this.tickers = Collections.emptySet();
+            this.equityRows = List.of();
+            return;
         }
         try (InputStream in = resource.getInputStream()) {
             List<IwbHoldingsCsv.IwbEquityRow> rows = IwbHoldingsCsv.parseEquityRows(in);

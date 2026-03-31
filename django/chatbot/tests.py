@@ -24,10 +24,12 @@ class ChatbotTest(TestCase):
         self.assertEqual(interaction.output_text, "Hi there")
         self.assertEqual(interaction.user, self.user)
 
-    @patch('google.generativeai.GenerativeModel.start_chat')
-    def test_post_chatbot_saves_interaction(self, mock_start_chat):
+    @patch('chatbot.views.env', return_value='fake-api-key')
+    @patch('chatbot.views.genai')
+    def test_post_chatbot_saves_interaction(self, mock_genai, mock_env):
         # Mock the chat session and response
-        mock_chat_session = mock_start_chat.return_value
+        mock_model = mock_genai.GenerativeModel.return_value
+        mock_chat_session = mock_model.start_chat.return_value
         mock_response = mock_chat_session.send_message.return_value
         mock_response.text = "I am a bot"
 

@@ -4,7 +4,7 @@ import {
   buildFattore1000IwbCompareRows,
   buildIwbWeightMap,
   summarizeFattore1000IwbOverlap,
-} from "../src/components/Fattore1000Russell1000CompareTable";
+} from "../src/functions/fattore1000IwbCompare";
 import type { IIndexMemberRow } from "../src/interfaces";
 
 function member(ticker: string, percent: number): IIndexMemberRow {
