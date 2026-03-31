@@ -121,6 +121,16 @@ Per-language conventions live in the cursor rules (single source of truth). Per-
 
 @.cursor/rules/data-licensing-commercial-free.mdc
 
+## Shared Skills & Commands
+
+Claude Code and Cursor share skills/commands via cross-references. When creating a new command or skill:
+
+- **New Claude Code command** (`.claude/commands/foo.md`): also create `.cursor/skills/foo/SKILL.md` with frontmatter + `@.claude/commands/foo.md`
+- **New Claude Code agent** (`.claude/agents/foo.md`): also create `.cursor/skills/foo/SKILL.md` with frontmatter + `@.claude/agents/foo.md`
+- **New Cursor skill** (`.cursor/skills/foo/SKILL.md`): also create `.claude/commands/foo.md` referencing the shared content
+
+Content lives in one place; the other tool gets a pointer file. Never duplicate the content.
+
 ## Environment Variables
 
 ### Django (`.env` in `django/`)

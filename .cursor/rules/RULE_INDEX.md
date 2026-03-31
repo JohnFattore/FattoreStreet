@@ -20,6 +20,10 @@ Quick reference for project rules in `/.cursor/rules`.
   - Guidance for when docs should be updated for user-facing changes.
   - Applied in every session.
 
+- `shared-skills.mdc`
+  - When creating a new skill/command, also create a pointer for the other tool (Cursor ↔ Claude Code).
+  - Applied in every session.
+
 ## Scoped Rules
 
 - `react-typescript.mdc` (`react-app/**/*.{ts,tsx}`)
