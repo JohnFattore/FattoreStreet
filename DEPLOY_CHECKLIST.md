@@ -32,7 +32,7 @@ Currently using `ddl-auto=update` (Hibernate auto-generates schema). To switch t
 
 ## 4. Spring Boot Data Population (in order)
 
-- **Load assets & listings**: `GET /springboot/admin/asset-load` (with `X-Admin-Key` header)
+- **Load assets & listings**: `GET /springboot/admin/asset-load` with `Authorization: Bearer` (Django access JWT for user id `1`)
 - **Bulk load IEX prices**: `psql -d springboot < springboot/data/daily_prices_data.sql` (1GB file, ~16M rows)
 - **Sync SEC financial frames**: `GET /springboot/admin/sync-frames`
 - **Adjust prices** (splits/dividends): `GET /springboot/admin/adjust-prices`
@@ -52,7 +52,7 @@ Schedules are stored in the database via `django-celery-beat` (DatabaseScheduler
 ## 6. Fix `run.sh` Issues
 
 - **Duplicate container name**: Both celery containers are named `celery` — rename the worker to `celery-worker`
-- **Missing env vars**: Spring Boot container is missing `ADMIN_API_KEY`, `SEC_CONTACT_EMAIL`, `LLM_SERVER_URL`
+- **Missing env vars**: Spring Boot container is missing `SECRET_KEY` (must match Django for admin JWT), `SEC_CONTACT_EMAIL`, `LLM_SERVER_URL`
 - **Missing env vars**: Django container is missing `SECRET_KEY`, `GOOGLE_API_KEY`, `FRED_API_KEY`, `FINNHUB_API_KEY`, `SEC_CONTACT_EMAIL`
 - **Consider `.env` files** instead of inline secrets in run.sh (`--env-file .env`)
 

@@ -65,7 +65,7 @@ Browser → Nginx (443 SSL)
 - Django issues SimpleJWT Access + Refresh tokens via `POST /users/api/token/`
 - React stores tokens in Redux (redux-persist), Axios interceptor adds `Authorization: Bearer <token>`
 - RTK Query base query handles automatic 401 refresh
-- Spring Boot admin endpoints require separate `X-Admin-Key` header
+- Spring Boot admin endpoints require `Authorization: Bearer` with a Django SimpleJWT access token; JWT signing uses the same `SECRET_KEY` as Django, and only `user_id` claim `1` is allowed for `/admin/**`
 
 ### Django Apps
 - `portfolio/` — Asset & account CRUD, yfinance price data, FRED economic data, quarterly financials
@@ -142,7 +142,7 @@ Content lives in one place; the other tool gets a pointer file. Never duplicate 
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` — PostgreSQL connection
-- `ADMIN_API_KEY` — validates incoming X-Admin-Key header
+- `SECRET_KEY` — must match Django `SECRET_KEY` for JWT verification on admin routes (`app.django-jwt-secret` defaults to this value)
 - `LLM_SERVER_URL` — llama.cpp server (default `http://localhost:8081`)
 - `DJANGO_PORTFOLIO_BASE_URL` — Django base URL for validation calls
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)

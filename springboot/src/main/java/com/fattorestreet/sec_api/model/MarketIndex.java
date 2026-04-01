@@ -2,11 +2,14 @@ package com.fattorestreet.sec_api.model;
 
 import jakarta.persistence.*;
 
+import org.hibernate.envers.Audited;
+
 /**
  * One row per tradable index definition. {@code code} is the stable identifier used in repositories
  * and admin flows; {@code displayName} is the human label exposed in API JSON as {@code index}.
  */
 @Entity
+@Audited
 @Table(name = "market_indexes",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = "code"),

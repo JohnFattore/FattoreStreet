@@ -133,7 +133,7 @@ On every push and pull request to `main`, [`.github/workflows/ci.yml`](../.githu
 
 - **Frontend** (`react-app/`): `npm run lint`, `npm run build`, `npx vitest --run`
 - **Django** (`django/`): `python3 manage.py test` with SQLite and minimal env (`SECRET_KEY`, `DATABASE=sqlite`, `REDIS_URL`)
-- **Spring Boot** (`springboot/`): `mvn test` (H2 in-memory for tests)
+- **Spring Boot** (`springboot/`): `mvn test` (H2 in-memory for tests). Local runs need `SECRET_KEY` in `.env` (same as Django) so JWT validation works for `/admin/**` integration checks.
 - **Secrets**: `pre-commit run detect-secrets --all-files` (same baseline as local pre-commit)
 
 The frontend **lint** step runs `eslint` with zero warnings allowed; if it fails on GitHub, run `npm run lint` in `react-app/` and fix or suppress the reported issues.

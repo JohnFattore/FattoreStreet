@@ -1,10 +1,13 @@
 package com.fattorestreet.sec_api.controller;
 
+import com.fattorestreet.sec_api.config.SecurityConfig;
 import com.fattorestreet.sec_api.index.IwbHoldingsCsv;
 import com.fattorestreet.sec_api.index.IwbHoldingsTickerSet;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,6 +20,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(IwbReferenceHoldingsController.class)
+@Import(SecurityConfig.class)
+@TestPropertySource(properties = "SECRET_KEY=test-jwt-signing-secret-32chars-min!")
 class IwbReferenceHoldingsControllerTest {
 
     @Autowired

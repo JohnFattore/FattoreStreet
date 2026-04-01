@@ -3,7 +3,10 @@ package com.fattorestreet.sec_api.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
+import org.hibernate.envers.Audited;
+
 @Entity
+@Audited
 @Table(name = "daily_prices",
        uniqueConstraints = @UniqueConstraint(columnNames = {"ticker", "trade_date"}))
 public class DailyPrice {

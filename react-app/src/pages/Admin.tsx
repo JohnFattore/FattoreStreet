@@ -4,13 +4,12 @@ import { useSelector } from "react-redux";
 import { RootState } from '../main';
 import { Button, Form, Alert, Spinner, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import LoginRequired from '../components/LoginRequired';
+import { springAdminApi } from '../functions/springAdminApi';
 
 export default function Admin() {
-    const { username } = useSelector((state: RootState) => state.user)
+    const { username, access } = useSelector((state: RootState) => state.user)
     const navigate = useNavigate();
-
-    // Shared API key state
-    const [apiKey, setApiKey] = useState('');
 
     // Load Tickers state
     const [loadLoading, setLoadLoading] = useState(false);
@@ -58,14 +57,30 @@ export default function Admin() {
     const [summaryError, setSummaryError] = useState<string | null>(null);
     const [summaryTicker, setSummaryTicker] = useState('');
 
-    if (username != "spike") {
-        return (<h1>Error</h1>)
+    if (!access) {
+        return (
+            <LoginRequired
+                title="Sign in to React Admin"
+                message="Log in with your Django account to run Spring Boot SEC jobs. Your access token is sent to the SEC API as Authorization: Bearer."
+                buttonText="Sign In"
+                defaultShowLogin={true}
+                alertClassName="p-4 shadow-sm theme-protected-box"
+            />
+        );
     }
 
-    const springbootUrl = import.meta.env.VITE_APP_SPRINGBOOT_URL;
+    if (username !== 'spike') {
+        return <h1>Error</h1>;
+    }
 
     const normalizeError = (err: unknown): string => {
         if (axios.isAxiosError(err)) {
+            if (err.response?.status === 401) {
+                return (
+                    'SEC API returned 401 (unauthorized). If this persists after a fresh login, set Spring Boot ' +
+                    '`SECRET_KEY` to the same value as Django so JWT signatures match.'
+                );
+            }
             const data = err.response?.data;
             if (typeof data === 'string' && data.trim()) return data;
             if (data && typeof data === 'object') {
@@ -91,16 +106,14 @@ export default function Admin() {
             if (loadOverwriteExisting) params.overwriteExisting = 'true';
             let res;
             try {
-                res = await axios.get(`${springbootUrl}admin/asset-load`, {
-                    headers: { 'X-Admin-Key': apiKey },
+                res = await springAdminApi.get('admin/asset-load', {
                     params,
                     timeout: 0,
                 });
             } catch (assetLoadErr: unknown) {
                 // Backward-compatible fallback while older backend instances may still expose /admin/load.
                 if (axios.isAxiosError(assetLoadErr) && assetLoadErr.response?.status === 404) {
-                    res = await axios.get(`${springbootUrl}admin/load`, {
-                        headers: { 'X-Admin-Key': apiKey },
+                    res = await springAdminApi.get('admin/load', {
                         timeout: 0,
                     });
                 } else {
@@ -120,9 +133,7 @@ export default function Admin() {
         setSyncResult(null);
         setSyncError(null);
         try {
-            const res = await axios.get(`${springbootUrl}admin/sync-frames`, {
-                headers: { 'X-Admin-Key': apiKey },
-            });
+            const res = await springAdminApi.get('admin/sync-frames');
             setSyncResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: unknown) {
             setSyncError(normalizeError(err));
@@ -136,8 +147,7 @@ export default function Admin() {
         setHistResult(null);
         setHistError(null);
         try {
-            const res = await axios.get(`${springbootUrl}admin/load-hist`, {
-                headers: { 'X-Admin-Key': apiKey },
+            const res = await springAdminApi.get('admin/load-hist', {
                 params: { days: histDays },
                 timeout: 0,
             });
@@ -163,8 +173,7 @@ export default function Admin() {
             if (!Number.isNaN(minConfidence) && minConfidence >= 0) {
                 params.minConfidence = String(minConfidence);
             }
-            const res = await axios.get(`${springbootUrl}admin/adjust-prices`, {
-                headers: { 'X-Admin-Key': apiKey },
+            const res = await springAdminApi.get('admin/adjust-prices', {
                 params,
                 timeout: 0,
             });
@@ -183,8 +192,7 @@ export default function Admin() {
         try {
             const params: Record<string, string> = {};
             if (summaryTicker.trim()) params.ticker = summaryTicker.trim().toUpperCase();
-            const res = await axios.get(`${springbootUrl}admin/summarize-filings`, {
-                headers: { 'X-Admin-Key': apiKey },
+            const res = await springAdminApi.get('admin/summarize-filings', {
                 params,
                 timeout: 0,
             });
@@ -201,11 +209,7 @@ export default function Admin() {
         setIndexMetricsResult(null);
         setIndexMetricsError(null);
         try {
-            const res = await axios.post(
-                `${springbootUrl}admin/indexes/refresh-stocks`,
-                {},
-                { headers: { 'X-Admin-Key': apiKey }, timeout: 0 },
-            );
+            const res = await springAdminApi.post('admin/indexes/refresh-stocks', {}, { timeout: 0 });
             setIndexMetricsResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: unknown) {
             setIndexMetricsError(normalizeError(err));
@@ -223,11 +227,7 @@ export default function Admin() {
             if (indexRebuildRefreshMetricsFirst) params.refreshMetrics = 'true';
             const c = indexRebuildCode.trim();
             if (c) params.code = c;
-            const res = await axios.post(
-                `${springbootUrl}admin/indexes/rebuild`,
-                {},
-                { headers: { 'X-Admin-Key': apiKey }, params, timeout: 0 },
-            );
+            const res = await springAdminApi.post('admin/indexes/rebuild', {}, { params, timeout: 0 });
             setIndexRebuildResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: unknown) {
             setIndexRebuildError(normalizeError(err));
@@ -247,15 +247,10 @@ export default function Admin() {
 
             <Card>
                 <h5>Spring Boot Admin</h5>
-                <Form.Group>
-                    <Form.Label>Admin API Key</Form.Label>
-                    <Form.Control
-                        type="password"
-                        placeholder="Enter admin API key"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                    />
-                </Form.Group>
+                <p className="text-muted small mb-3">
+                    Uses your Django login access token (<code>Authorization: Bearer</code>). Only Django user id 1 can
+                    invoke these routes on the SEC API.
+                </p>
 
                 {/* Load Tickers */}
                 <Card>
@@ -274,7 +269,7 @@ export default function Admin() {
                     />
                     <Button
                         onClick={handleLoadTickers}
-                        disabled={loadLoading || !apiKey}
+                        disabled={loadLoading}
                     >
                         {loadLoading ? <><Spinner size="sm" />Loading...</> : 'Asset Load'}
                     </Button>
@@ -292,7 +287,7 @@ export default function Admin() {
                     </p>
                     <Button
                         onClick={handleSyncFrames}
-                        disabled={syncLoading || !apiKey}
+                        disabled={syncLoading}
                     >
                         {syncLoading ? <><Spinner size="sm" />Syncing...</> : 'Full Sync'}
                     </Button>
@@ -318,7 +313,7 @@ export default function Admin() {
                     </Form.Group>
                     <Button
                         onClick={handleLoadHist}
-                        disabled={histLoading || !apiKey}
+                        disabled={histLoading}
                     >
                         {histLoading ? <><Spinner size="sm" /> Downloading...</> : 'Download HIST'}
                     </Button>
@@ -386,7 +381,7 @@ export default function Admin() {
                     </Form.Group>
                     <Button
                         onClick={handleAdjustPrices}
-                        disabled={adjustLoading || !apiKey}
+                        disabled={adjustLoading}
                     >
                         {adjustLoading ? <><Spinner size="sm" /> Adjusting...</> : 'Adjust Prices'}
                     </Button>
@@ -413,7 +408,7 @@ export default function Admin() {
                     </Form.Group>
                     <Button
                         onClick={handleSummarizeFilings}
-                        disabled={summaryLoading || !apiKey}
+                        disabled={summaryLoading}
                     >
                         {summaryLoading ? <><Spinner size="sm" /> Summarizing...</> : 'Summarize Filings'}
                     </Button>
@@ -434,7 +429,7 @@ export default function Admin() {
                     </p>
                     <Button
                         onClick={handleRefreshIndexMetrics}
-                        disabled={indexMetricsLoading || !apiKey}
+                        disabled={indexMetricsLoading}
                     >
                         {indexMetricsLoading ? (
                             <>
@@ -479,7 +474,7 @@ export default function Admin() {
                         checked={indexRebuildRefreshMetricsFirst}
                         onChange={(e) => setIndexRebuildRefreshMetricsFirst(e.target.checked)}
                     />
-                    <Button onClick={handleRebuildIndexes} disabled={indexRebuildLoading || !apiKey}>
+                    <Button onClick={handleRebuildIndexes} disabled={indexRebuildLoading}>
                         {indexRebuildLoading ? (
                             <>
                                 <Spinner size="sm" /> Rebuilding…

@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.hibernate.envers.Audited;
+
 @Entity
+@Audited
 @Table(name = "filing_summaries",
        uniqueConstraints = @UniqueConstraint(columnNames = {"accession_number"}))
 public class FilingSummary {

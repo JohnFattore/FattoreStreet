@@ -38,7 +38,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/restaurants` | Restaurants | Restaurant reviews and map |
 | `/entertainment` | Entertainment | Music and media |
 | `/user` | User | User profile and settings |
-| `/react-admin` | Admin | Admin panel for Spring sec-api jobs: asset load, frame sync, IEX ingest, price adjustments, 10-K summaries, index metrics refresh (`ListingIndexMetrics`), and cap-ranked index rebuild via `POST .../admin/indexes/rebuild` with optional index `code` (`MarketIndex` / `IndexMember`); each action labels the main DB models it touches |
+| `/react-admin` | Admin | Admin panel for Spring sec-api jobs: asset load, frame sync, IEX ingest, price adjustments, 10-K summaries, index metrics refresh (`ListingIndexMetrics`), and cap-ranked index rebuild via `POST .../admin/indexes/rebuild` with optional index `code` (`MarketIndex` / `IndexMember`); when not logged in, shows `LoginRequired` with sign-in modal (`LoginModal` + `LoginForm`); Spring calls use the Redux-stored Django JWT (`Authorization: Bearer`); backend allows only Django user id `1` |
 
 ## Key Components
 
@@ -61,6 +61,8 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 ## API Layer (RTK Query)
 
 **Prefer RTK Query** for wiring the UI to backends: add endpoints to the shared API slice (`src/functions/api.ts`) with the custom `axiosBaseQuery` rather than one-off Axios calls in components or `axiosFunctions.tsx`. That keeps caching, invalidation, and auth refresh consistent.
+
+**Exception:** [`src/pages/Admin.tsx`](src/pages/Admin.tsx) uses [`src/functions/springAdminApi.ts`](src/functions/springAdminApi.ts): a dedicated Axios instance with `baseURL` from `VITE_APP_SPRINGBOOT_URL` (normalized trailing slash), `Authorization: Bearer` from Redux on every request, and a one-time `refreshLogin` retry on 401.
 
 All API calls go through a single RTK Query API slice (`src/functions/api.ts`) using a custom `axiosBaseQuery`. Endpoints are split across two backends:
 

@@ -2,7 +2,10 @@ package com.fattorestreet.sec_api.model;
 
 import jakarta.persistence.*;
 
+import org.hibernate.envers.Audited;
+
 @Entity
+@Audited
 @Table(name = "listings")
 public class Listing {
 

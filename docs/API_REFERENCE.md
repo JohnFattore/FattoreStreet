@@ -89,11 +89,11 @@ Public blog posts (no authentication required).
 | `GET` | `/indexes` | None | List available market indexes (`code`, `displayName`). |
 | `GET` | `/index-members` | None | List index members with nested `stock` payload (listing + metrics). Optional query param `code` filters to a single index (e.g. `?code=FAT50`, `?code=FAT100`, or `?code=FAT1000`). Each `stock` includes `countryIncorp`, `countryHQ`, `stateIncorp`, `stateHQ` (US state/territory codes or SEC opaque codes when country is unknown), plus float/mkt cap fields — see `IndexMemberApiService.StockRow` in Spring Boot. |
 | `GET` | `/iwb-reference-holdings` | None | Bundled iShares **IWB** (Russell 1000 ETF) equity rows from `data/IWB_holdings.csv`: JSON array of `{ "ticker", "weightPercent" }` (fund-reported weight % of NAV). Used by the Indexes page to compare **FAT1000** vs the reference file. |
-| `POST` | `/admin/indexes/refresh-stocks` | `X-Admin-Key` | Recompute `ListingIndexMetrics` for a calendar **year** for listings whose tickers appear in bundled `data/IWB_holdings.csv` (Russell 1000 / IWB equity constituents), excluding funds, and requiring CIK, SEC companyfacts, and at least one daily price row per ticker. Optional query param `year` (defaults to current calendar year). Response includes `year`, `skipReasonCounts` (aggregate counts by `skippedTickers` reason), `processed`, `skipped`, and `skippedTickers`. |
-| `POST` | `/admin/indexes/rebuild` | `X-Admin-Key` | Rebuild cap-ranked indexes (`FAT50`, `FAT100`, `FAT1000`). Optional query param `code` (case-insensitive) selects one index; omit or leave blank to rebuild **all** configured indexes (order: `FAT100`, `FAT1000`, `FAT50`). Optional `year` (defaults to current calendar year). Optional `refreshMetrics=true` runs `refresh-stocks` for that year once before rebuilds. Response JSON: `year`, `rebuilds` (array of objects: `indexCode`, `year`, `memberCount`, `partial`, `totalFreeFloatMarketCap`, `tickers`), optional `refresh`, `duration`. Unknown `code` returns 400. Not an official FTSE Russell index. |
-| `POST` | `/admin/indexes/rebuild-fattore-50` | `X-Admin-Key` | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT50`. Response uses singular `rebuild` instead of `rebuilds`. |
-| `POST` | `/admin/indexes/rebuild-fattore-100` | `X-Admin-Key` | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT100`. Response uses singular `rebuild` instead of `rebuilds`. |
-| `POST` | `/admin/indexes/rebuild-fattore-1000` | `X-Admin-Key` | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT1000`. Response uses singular `rebuild` instead of `rebuilds`. |
+| `POST` | `/admin/indexes/refresh-stocks` | `Authorization: Bearer` (Django JWT) | Recompute `ListingIndexMetrics` for a calendar **year** for listings whose tickers appear in bundled `data/IWB_holdings.csv` (Russell 1000 / IWB equity constituents), excluding funds, and requiring CIK, SEC companyfacts, and at least one daily price row per ticker. Optional query param `year` (defaults to current calendar year). Response includes `year`, `skipReasonCounts` (aggregate counts by `skippedTickers` reason), `processed`, `skipped`, and `skippedTickers`. |
+| `POST` | `/admin/indexes/rebuild` | `Authorization: Bearer` (Django JWT) | Rebuild cap-ranked indexes (`FAT50`, `FAT100`, `FAT1000`). Optional query param `code` (case-insensitive) selects one index; omit or leave blank to rebuild **all** configured indexes (order: `FAT100`, `FAT1000`, `FAT50`). Optional `year` (defaults to current calendar year). Optional `refreshMetrics=true` runs `refresh-stocks` for that year once before rebuilds. Response JSON: `year`, `rebuilds` (array of objects: `indexCode`, `year`, `memberCount`, `partial`, `totalFreeFloatMarketCap`, `tickers`), optional `refresh`, `duration`. Unknown `code` returns 400. Not an official FTSE Russell index. |
+| `POST` | `/admin/indexes/rebuild-fattore-50` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT50`. Response uses singular `rebuild` instead of `rebuilds`. |
+| `POST` | `/admin/indexes/rebuild-fattore-100` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT100`. Response uses singular `rebuild` instead of `rebuilds`. |
+| `POST` | `/admin/indexes/rebuild-fattore-1000` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT1000`. Response uses singular `rebuild` instead of `rebuilds`. |
 
 ## 📄 SEC Financial Data
 
@@ -243,7 +243,7 @@ Returns stored internal split events (corporate actions) for a specific ticker.
 
 ## 🔧 Admin Endpoints
 
-All admin endpoints require the `X-Admin-Key` header.
+All admin endpoints require `Authorization: Bearer <access_token>` where the token is a **Django SimpleJWT access JWT** (HS256, signed with the same `SECRET_KEY` configured on the Spring Boot service). The JWT `user_id` claim must be **`1`** (Django user primary key); other authenticated users receive **403** on `/admin/**`. Missing or invalid tokens yield **401**.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|

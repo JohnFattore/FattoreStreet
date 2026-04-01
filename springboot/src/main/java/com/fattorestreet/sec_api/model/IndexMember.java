@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 
+import org.hibernate.envers.Audited;
+
 @Entity
+@Audited
 @Table(name = "index_members")
 public class IndexMember {
 

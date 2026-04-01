@@ -22,8 +22,12 @@ import com.fattorestreet.sec_api.marketdata.PriceService;
 import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import com.fattorestreet.sec_api.config.SecurityConfig;
+import com.fattorestreet.sec_api.testsupport.TestJwtTokens;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,8 +48,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest({AdminController.class, PublicController.class})
-@TestPropertySource(properties = "ADMIN_API_KEY=spike")
+@Import(SecurityConfig.class)
+@TestPropertySource(properties = "SECRET_KEY=test-jwt-signing-secret-32chars-min!") // pragma: allowlist secret
 class MainControllerTest {
+
+    private static final String JWT_TEST_SECRET = "test-jwt-signing-secret-32chars-min!"; // pragma: allowlist secret
+
+    private static String bearerAdmin() {
+        return "Bearer " + TestJwtTokens.accessToken(JWT_TEST_SECRET, 1L);
+    }
+
+    private static String bearerNonAdmin() {
+        return "Bearer " + TestJwtTokens.accessToken(JWT_TEST_SECRET, 2L);
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -211,7 +226,7 @@ class MainControllerTest {
         when(etfIdentityService.enrichFundListingIdentities(false)).thenReturn(
                 Map.of("fundListingsTotal", 0, "resolved", 0, "unresolved", 0, "updated", 0, "skipped", 0, "secMfTickerRows", 0, "unresolvedTickersSample", List.of()));
 
-        mockMvc.perform(get("/admin/asset-load").header("X-Admin-Key", "spike"))
+        mockMvc.perform(get("/admin/asset-load").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.equitiesLoaded").value(0))
                 .andExpect(jsonPath("$.fundsLoaded").value(0));
@@ -236,7 +251,7 @@ class MainControllerTest {
         when(etfIdentityService.enrichFundListingIdentities(false)).thenReturn(
                 Map.of("fundListingsTotal", 1, "resolved", 1, "unresolved", 0, "updated", 1, "skipped", 0, "secMfTickerRows", 1, "unresolvedTickersSample", List.of()));
 
-        mockMvc.perform(get("/admin/asset-load").header("X-Admin-Key", "spike"))
+        mockMvc.perform(get("/admin/asset-load").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fundsLoaded").value(1))
                 .andExpect(jsonPath("$.etfIdentityEnrichment.resolved").value(1));
@@ -267,7 +282,7 @@ class MainControllerTest {
         when(etfIdentityService.enrichFundListingIdentities(false)).thenReturn(
                 Map.of("fundListingsTotal", 1, "resolved", 1, "unresolved", 0, "updated", 1, "skipped", 0, "secMfTickerRows", 1, "unresolvedTickersSample", List.of()));
 
-        mockMvc.perform(get("/admin/asset-load").header("X-Admin-Key", "spike"))
+        mockMvc.perform(get("/admin/asset-load").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fundsLoaded").value(1));
 
@@ -302,7 +317,7 @@ class MainControllerTest {
         when(etfIdentityService.enrichFundListingIdentities(false)).thenReturn(
                 Map.of("fundListingsTotal", 1, "resolved", 1, "unresolved", 0, "updated", 1, "skipped", 0, "secMfTickerRows", 1, "unresolvedTickersSample", List.of()));
 
-        mockMvc.perform(get("/admin/asset-load").header("X-Admin-Key", "spike"))
+        mockMvc.perform(get("/admin/asset-load").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fundsLoaded").value(1));
 
@@ -317,9 +332,15 @@ class MainControllerTest {
     }
 
     @Test
-    void adminAssetLoad_invalidKey_returns401() throws Exception {
-        mockMvc.perform(get("/admin/asset-load").header("X-Admin-Key", "wrong-key"))
+    void adminAssetLoad_noBearer_returns401() throws Exception {
+        mockMvc.perform(get("/admin/asset-load"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void adminAssetLoad_nonAdminUserJwt_returns403() throws Exception {
+        mockMvc.perform(get("/admin/asset-load").header(HttpHeaders.AUTHORIZATION, bearerNonAdmin()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -330,7 +351,7 @@ class MainControllerTest {
                 Map.of("fundListingsTotal", 0, "resolved", 0, "unresolved", 0, "updated", 0, "skipped", 0, "secMfTickerRows", 0, "unresolvedTickersSample", List.of()));
 
         mockMvc.perform(get("/admin/asset-load")
-                        .header("X-Admin-Key", "spike")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
                         .param("overwriteExisting", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.etfIdentityOverwriteExisting").value(true));
@@ -343,14 +364,14 @@ class MainControllerTest {
         when(edgarService.syncFramesFull()).thenReturn(
                 Map.of("equitiesProcessed", 100, "fundsSkipped", 50));
 
-        mockMvc.perform(get("/admin/sync-frames").header("X-Admin-Key", "spike"))
+        mockMvc.perform(get("/admin/sync-frames").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Synced 100 equities")));
     }
 
     @Test
-    void adminSyncFrames_invalidKey_returns401() throws Exception {
-        mockMvc.perform(get("/admin/sync-frames").header("X-Admin-Key", "wrong-key"))
+    void adminSyncFrames_noBearer_returns401() throws Exception {
+        mockMvc.perform(get("/admin/sync-frames"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -523,14 +544,14 @@ class MainControllerTest {
         when(iexHistService.loadHistData(anyInt())).thenReturn(
                 Map.of("processed", 5, "skipped", 0, "notAvailable", 0, "errors", 0));
 
-        mockMvc.perform(get("/admin/load-hist").header("X-Admin-Key", "spike"))
+        mockMvc.perform(get("/admin/load-hist").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.processed").value(5));
     }
 
     @Test
-    void adminLoadHist_invalidKey_returns401() throws Exception {
-        mockMvc.perform(get("/admin/load-hist").header("X-Admin-Key", "wrong-key"))
+    void adminLoadHist_noBearer_returns401() throws Exception {
+        mockMvc.perform(get("/admin/load-hist"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -540,7 +561,7 @@ class MainControllerTest {
                 Map.of("processed", 3, "skipped", 27, "notAvailable", 0, "errors", 0));
 
         mockMvc.perform(get("/admin/load-hist")
-                        .header("X-Admin-Key", "spike")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
                         .param("days", "30"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.processed").value(3))
@@ -555,7 +576,7 @@ class MainControllerTest {
                 Map.of("tickersProcessed", 10, "skippedNoAsset", 5,
                        "totalSplits", 2, "totalDividends", 8, "totalPricesUpdated", 500));
 
-        mockMvc.perform(get("/admin/adjust-prices").header("X-Admin-Key", "spike"))
+        mockMvc.perform(get("/admin/adjust-prices").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tickersProcessed").value(10))
                 .andExpect(jsonPath("$.totalSplits").value(2))
@@ -569,7 +590,7 @@ class MainControllerTest {
                        "totalSplits", 5, "totalDividends", 20, "totalPricesUpdated", 5000));
 
         mockMvc.perform(get("/admin/adjust-prices")
-                        .header("X-Admin-Key", "spike")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
                         .param("force", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tickersProcessed").value(50));
@@ -582,7 +603,7 @@ class MainControllerTest {
                         "totalSplits", 0, "totalDividends", 6, "totalPricesUpdated", 756));
 
         mockMvc.perform(get("/admin/adjust-prices")
-                        .header("X-Admin-Key", "spike")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
                         .param("etfOnly", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tickersProcessed").value(3));
@@ -595,7 +616,7 @@ class MainControllerTest {
                        "splits", 1, "dividends", 4, "pricesUpdated", 252));
 
         mockMvc.perform(get("/admin/adjust-prices")
-                        .header("X-Admin-Key", "spike")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
                         .param("ticker", "AAPL"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticker").value("AAPL"))
@@ -614,7 +635,7 @@ class MainControllerTest {
                                 "sampleSkips", List.of(Map.of("reason", "identity_mismatch", "accession", "0001")))));
 
         mockMvc.perform(get("/admin/adjust-prices")
-                        .header("X-Admin-Key", "spike")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
                         .param("ticker", "VOO")
                         .param("force", "true")
                         .param("etfOnly", "true"))
@@ -626,8 +647,8 @@ class MainControllerTest {
     }
 
     @Test
-    void adminAdjustPrices_invalidKey_returns401() throws Exception {
-        mockMvc.perform(get("/admin/adjust-prices").header("X-Admin-Key", "wrong-key"))
+    void adminAdjustPrices_noBearer_returns401() throws Exception {
+        mockMvc.perform(get("/admin/adjust-prices"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -638,7 +659,7 @@ class MainControllerTest {
         when(filingSummaryService.summarizeAll()).thenReturn(
                 Map.of("filingsSummarized", 5, "assetsWithNoFilings", 10, "errors", 0));
 
-        mockMvc.perform(get("/admin/summarize-filings").header("X-Admin-Key", "spike"))
+        mockMvc.perform(get("/admin/summarize-filings").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.filingsSummarized").value(5));
     }
@@ -651,7 +672,7 @@ class MainControllerTest {
                 Map.of("ticker", "AAPL", "filingsSummarized", 2));
 
         mockMvc.perform(get("/admin/summarize-filings")
-                        .header("X-Admin-Key", "spike")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
                         .param("ticker", "AAPL"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticker").value("AAPL"))
@@ -659,8 +680,8 @@ class MainControllerTest {
     }
 
     @Test
-    void adminSummarizeFilings_invalidKey_returns401() throws Exception {
-        mockMvc.perform(get("/admin/summarize-filings").header("X-Admin-Key", "wrong-key"))
+    void adminSummarizeFilings_noBearer_returns401() throws Exception {
+        mockMvc.perform(get("/admin/summarize-filings"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -679,7 +700,7 @@ class MainControllerTest {
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT1000", y, 1000, false, BigDecimal.valueOf(100), List.of("GOOG")));
 
-        mockMvc.perform(post("/admin/indexes/rebuild").header("X-Admin-Key", "spike"))
+        mockMvc.perform(post("/admin/indexes/rebuild").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.year").value(y))
                 .andExpect(jsonPath("$.rebuilds.length()").value(3))
@@ -702,7 +723,7 @@ class MainControllerTest {
 
         mockMvc.perform(post("/admin/indexes/rebuild")
                         .param("code", "fat50")
-                        .header("X-Admin-Key", "spike"))
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rebuilds.length()").value(1))
                 .andExpect(jsonPath("$.rebuilds[0].indexCode").value("FAT50"));
@@ -716,7 +737,7 @@ class MainControllerTest {
     void rebuildCapRanked_unknownCode_returns400() throws Exception {
         mockMvc.perform(post("/admin/indexes/rebuild")
                         .param("code", "NOTREAL")
-                        .header("X-Admin-Key", "spike"))
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isBadRequest());
         verify(fattore50IndexRebuildService, never()).rebuild(anyInt());
         verify(fattore100IndexRebuildService, never()).rebuild(anyInt());
@@ -724,8 +745,8 @@ class MainControllerTest {
     }
 
     @Test
-    void rebuildCapRanked_invalidKey_returns401() throws Exception {
-        mockMvc.perform(post("/admin/indexes/rebuild").header("X-Admin-Key", "wrong-key"))
+    void rebuildCapRanked_noBearer_returns401() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -738,7 +759,7 @@ class MainControllerTest {
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT50", y, 50, false, BigDecimal.ONE, List.of("AAPL")));
 
-        mockMvc.perform(post("/admin/indexes/rebuild-fattore-50").header("X-Admin-Key", "spike"))
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-50").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.year").value(y))
                 .andExpect(jsonPath("$.rebuild.indexCode").value("FAT50"))
@@ -748,8 +769,8 @@ class MainControllerTest {
     }
 
     @Test
-    void rebuildFattore50_invalidKey_returns401() throws Exception {
-        mockMvc.perform(post("/admin/indexes/rebuild-fattore-50").header("X-Admin-Key", "wrong-key"))
+    void rebuildFattore50_noBearer_returns401() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-50"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -764,7 +785,7 @@ class MainControllerTest {
 
         mockMvc.perform(post("/admin/indexes/rebuild-fattore-50")
                         .param("refreshMetrics", "true")
-                        .header("X-Admin-Key", "spike"))
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.year").value(y))
                 .andExpect(jsonPath("$.refresh.processed").value(10))
@@ -780,7 +801,7 @@ class MainControllerTest {
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT100", y, 100, false, BigDecimal.ONE, List.of("MSFT")));
 
-        mockMvc.perform(post("/admin/indexes/rebuild-fattore-100").header("X-Admin-Key", "spike"))
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-100").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.year").value(y))
                 .andExpect(jsonPath("$.rebuild.indexCode").value("FAT100"))
@@ -789,8 +810,8 @@ class MainControllerTest {
     }
 
     @Test
-    void rebuildFattore100_invalidKey_returns401() throws Exception {
-        mockMvc.perform(post("/admin/indexes/rebuild-fattore-100").header("X-Admin-Key", "wrong-key"))
+    void rebuildFattore100_noBearer_returns401() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-100"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -803,7 +824,7 @@ class MainControllerTest {
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT1000", y, 1000, false, BigDecimal.ONE, List.of("NVDA")));
 
-        mockMvc.perform(post("/admin/indexes/rebuild-fattore-1000").header("X-Admin-Key", "spike"))
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-1000").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.year").value(y))
                 .andExpect(jsonPath("$.rebuild.indexCode").value("FAT1000"))
@@ -812,8 +833,8 @@ class MainControllerTest {
     }
 
     @Test
-    void rebuildFattore1000_invalidKey_returns401() throws Exception {
-        mockMvc.perform(post("/admin/indexes/rebuild-fattore-1000").header("X-Admin-Key", "wrong-key"))
+    void rebuildFattore1000_noBearer_returns401() throws Exception {
+        mockMvc.perform(post("/admin/indexes/rebuild-fattore-1000"))
                 .andExpect(status().isUnauthorized());
     }
 

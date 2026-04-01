@@ -16,12 +16,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -55,9 +53,6 @@ public class AdminController {
     private final Map<String, com.fattorestreet.sec_api.index.FattoreIndexRebuildService> capRankedRebuildByCode;
     private final List<com.fattorestreet.sec_api.index.FattoreIndexRebuildService> capRankedRebuildAllOrdered;
     private final ObjectMapper mapper = new ObjectMapper();
-
-    @Value("${ADMIN_API_KEY}")
-    private String adminApiKey;
 
     public AdminController(
             WebService webService,
@@ -101,12 +96,8 @@ public class AdminController {
 
     @GetMapping("/admin/asset-load")
     public ResponseEntity<?> assetLoad(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(defaultValue = "false") boolean overwriteExisting
     ) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
         long startTime = System.currentTimeMillis();
         try {
             Map<Integer, Map<String, String>> secTickers = webService.fetchSecTickers();
@@ -182,12 +173,7 @@ public class AdminController {
     }
 
     @GetMapping("/admin/test")
-    public ResponseEntity<?> test(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key
-    ) throws Exception {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
+    public ResponseEntity<?> test() throws Exception {
         String json = webService.fetchFinancials(320193L);
         JsonNode root = mapper.readTree(json);
         JsonNode facts = root.get("facts")
@@ -200,12 +186,8 @@ public class AdminController {
 
     @GetMapping("/admin/load-hist")
     public ResponseEntity<?> loadHist(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(defaultValue = "252") int days
     ) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
         try {
             long startTime = System.currentTimeMillis();
             Map<String, Object> result = iexHistService.loadHistData(days);
@@ -225,16 +207,12 @@ public class AdminController {
 
     @GetMapping("/admin/adjust-prices")
     public ResponseEntity<?> adjustPrices(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(required = false) String ticker,
             @RequestParam(defaultValue = "false") boolean force,
             @RequestParam(defaultValue = "false") boolean etfOnly,
             @RequestParam(defaultValue = "false") boolean equityOnly,
             @RequestParam(defaultValue = "false") boolean validateWithYfinance
     ) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
         try {
             long startTime = System.currentTimeMillis();
             Map<String, Object> result;
@@ -266,12 +244,8 @@ public class AdminController {
 
     @GetMapping("/admin/summarize-filings")
     public ResponseEntity<?> summarizeFilings(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(required = false) String ticker
     ) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
         try {
             long startTime = System.currentTimeMillis();
             Map<String, Object> result;
@@ -295,12 +269,7 @@ public class AdminController {
     }
 
     @GetMapping("/admin/sync-frames")
-    public ResponseEntity<?> syncFrames(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key
-    ) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
+    public ResponseEntity<?> syncFrames() {
         try {
             long startTime = System.currentTimeMillis();
             Map<String, Object> report = edgarService.syncFramesFull();
@@ -316,11 +285,7 @@ public class AdminController {
 
     @PostMapping("/admin/indexes/refresh-stocks")
     public ResponseEntity<?> refreshIndexStocks(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(required = false) Integer year) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
         try {
             int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
             long startTime = System.currentTimeMillis();
@@ -353,13 +318,9 @@ public class AdminController {
      */
     @PostMapping("/admin/indexes/rebuild")
     public ResponseEntity<?> rebuildCapRankedIndexes(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(defaultValue = "false") boolean refreshMetrics,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) String code) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
         List<com.fattorestreet.sec_api.index.FattoreIndexRebuildService> services;
         if (code == null || code.isBlank()) {
             services = capRankedRebuildAllOrdered;
@@ -402,26 +363,23 @@ public class AdminController {
 
     @PostMapping("/admin/indexes/rebuild-fattore-50")
     public ResponseEntity<?> rebuildFattore50(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(defaultValue = "false") boolean refreshMetrics,
             @RequestParam(required = false) Integer year) {
-        return rebuildCapRankedIndexLegacy(key, refreshMetrics, year, fattore50IndexRebuildService, "Fattore 50");
+        return rebuildCapRankedIndexLegacy(refreshMetrics, year, fattore50IndexRebuildService, "Fattore 50");
     }
 
     @PostMapping("/admin/indexes/rebuild-fattore-100")
     public ResponseEntity<?> rebuildFattore100(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(defaultValue = "false") boolean refreshMetrics,
             @RequestParam(required = false) Integer year) {
-        return rebuildCapRankedIndexLegacy(key, refreshMetrics, year, fattore100IndexRebuildService, "Fattore 100");
+        return rebuildCapRankedIndexLegacy(refreshMetrics, year, fattore100IndexRebuildService, "Fattore 100");
     }
 
     @PostMapping("/admin/indexes/rebuild-fattore-1000")
     public ResponseEntity<?> rebuildFattore1000(
-            @RequestHeader(value = "X-Admin-Key", required = false) String key,
             @RequestParam(defaultValue = "false") boolean refreshMetrics,
             @RequestParam(required = false) Integer year) {
-        return rebuildCapRankedIndexLegacy(key, refreshMetrics, year, fattore1000IndexRebuildService, "Fattore 1000");
+        return rebuildCapRankedIndexLegacy(refreshMetrics, year, fattore1000IndexRebuildService, "Fattore 1000");
     }
 
     private static Map<String, Object> toRebuildPayload(
@@ -437,14 +395,10 @@ public class AdminController {
 
     /** Legacy response shape with singular {@code rebuild} for backward compatibility. */
     private ResponseEntity<?> rebuildCapRankedIndexLegacy(
-            String key,
             boolean refreshMetrics,
             Integer year,
             com.fattorestreet.sec_api.index.FattoreIndexRebuildService service,
             String indexLabel) {
-        if (isUnauthorized(key)) {
-            return ResponseEntity.status(401).body("Unauthorized: Invalid Admin Key");
-        }
         try {
             int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
             long startTime = System.currentTimeMillis();
@@ -468,10 +422,6 @@ public class AdminController {
             return ResponseEntity.internalServerError()
                     .body("Error rebuilding " + indexLabel + " index: " + e.getMessage());
         }
-    }
-
-    private boolean isUnauthorized(String key) {
-        return adminApiKey != null && !adminApiKey.equals(key);
     }
 
     private String formatDuration(long elapsedMs) {

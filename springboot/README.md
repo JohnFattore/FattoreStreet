@@ -16,7 +16,7 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Derives dividend ex-dates from SEC 8-K record-date disclosures and settlement-regime logic (pre-2024-05-28 T+2, post-cutover T+1)
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
 - Fetches 10-K filings from SEC EDGAR, extracts the MD&A section, and generates ~500 word summaries via a local LLM (llama.cpp server)
-- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), `GET /iwb-reference-holdings` (bundled IWB CSV tickers + fund weights for UI benchmark), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild` (`X-Admin-Key`, optional `code`, optional `year`). **Fattore 50** / **Fattore 100** / **Fattore 1000** are Russell-style (float-adjusted cap rank) top-50 / top-100 / top-1000 proxies (`FAT50` / `FAT100` / `FAT1000`), not official FTSE Russell products; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist for the target year. Legacy paths `rebuild-fattore-50` / `rebuild-fattore-100` / `rebuild-fattore-1000` remain as aliases.
+- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), `GET /iwb-reference-holdings` (bundled IWB CSV tickers + fund weights for UI benchmark), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild` (`Authorization: Bearer` Django JWT for user id `1`, optional `code`, optional `year`). **Fattore 50** / **Fattore 100** / **Fattore 1000** are Russell-style (float-adjusted cap rank) top-50 / top-100 / top-1000 proxies (`FAT50` / `FAT100` / `FAT1000`), not official FTSE Russell products; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist for the target year. Legacy paths `rebuild-fattore-50` / `rebuild-fattore-100` / `rebuild-fattore-1000` remain as aliases.
 
 ## Java package layout
 
@@ -26,14 +26,20 @@ Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebSer
 
 - Java 17, Spring Boot 3.4.2
 - Spring Data JPA + Hibernate (PostgreSQL)
+- **Hibernate Envers** — all JPA entities are audited (`@Audited`). Hibernate creates a `revinfo` table and per-entity `*_AUD` tables (for example `assets_AUD`, `daily_prices_AUD`). Expect **large** audit table growth on high-churn data, especially `daily_prices` ingests; plan disk and retention accordingly. The inverse `Asset.listings` collection is `@NotAudited` so listing history is tracked only via `listings_AUD`.
+- Spring Security OAuth2 Resource Server (JWT): admin routes verify Django SimpleJWT access tokens (HS256, same `SECRET_KEY`; only `user_id` claim `1` is granted admin)
 - Spring `RestTemplate`-based SEC client (`WebService` in `client` package)
 - Bean Validation (`spring-boot-starter-validation`)
 - Custom pcap/pcapng + IEX-TP binary parser using `ByteBuffer` for HIST TOPS trade extraction
 - Maven build, Docker multi-stage image
 
-### Database migrations (production)
+### Database migrations
 
-Use **[Flyway](https://flywaydb.org/)** for production schema changes: versioned migrations under `src/main/resources/db/migration`, applied at startup with `spring-boot-starter-data-jpa` + Flyway on the classpath. Today the app still uses Hibernate `spring.jpa.hibernate.ddl-auto=update` for convenience in dev; for production, prefer turning that off (`validate` or `none`) and driving DDL through Flyway so changes are explicit, reviewable, and repeatable.
+- **[Flyway](https://flywaydb.org/)** (`flyway-core` + `flyway-database-postgresql`) runs migrations from [`src/main/resources/db/migration`](src/main/resources/db/migration) at startup, before Hibernate initializes.
+- **`spring.jpa.hibernate.ddl-auto=validate`** — Hibernate checks the schema against entities but does not alter tables. Any entity change needs a **new Flyway migration** (for example `V2__...sql`).
+- **Initial install (empty PostgreSQL):** Flyway applies `V1__initial_schema.sql` (base tables + Hibernate Envers `revinfo` and `*_aud` tables).
+- **Existing database** that already matches the app but has no `flyway_schema_history` table: use Flyway **baseline** so duplicate DDL is not applied — for example set `spring.flyway.baseline-on-migrate=true` (and align `spring.flyway.baseline-version` with your situation) or run the Flyway baseline command against that database, then use `V2+` for future changes. Coordinate with your deployment process so greenfield and brownfield paths stay consistent.
+- **Tests:** the `test` profile sets `spring.flyway.enabled=false` and uses H2 with `ddl-auto=create-drop`, so Hibernate builds the schema in memory and tests do not require PostgreSQL or Flyway.
 
 ## Data Licensing Policy
 
@@ -60,7 +66,7 @@ Before adding or changing any external data source:
 | `DB_URL` | `jdbc:postgresql://localhost:5432/sec-api` | PostgreSQL JDBC URL |
 | `DB_USERNAME` | `postgres` | Database username |
 | `DB_PASSWORD` | `postgres` | Database password |
-| `ADMIN_API_KEY` | (required) | Key for `X-Admin-Key` header on admin endpoints |
+| `SECRET_KEY` | (required) | Must match Django `SECRET_KEY` — used to verify `Authorization: Bearer` JWTs (SimpleJWT HS256). Only access tokens whose `user_id` claim is `1` may call `/admin/**`. |
 | (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore 50 rebuild includes. Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
 | (property) `fattore100.rebuild.top-n` | `100` | How many names the Fattore 100 rebuild includes. Set in `.env` as `fattore100.rebuild.top-n=100` if needed. |
 | (property) `fattore1000.rebuild.top-n` | `1000` | How many names the Fattore 1000 rebuild includes. Set in `.env` as `fattore1000.rebuild.top-n=1000` if needed. |
@@ -78,7 +84,11 @@ Before adding or changing any external data source:
 mvn spring-boot:run
 ```
 
-`springboot/.env` is auto-imported at startup (`spring.config.import=optional:file:.env[.properties]`) for local runs. Keep values unquoted (for example, `ADMIN_API_KEY=your-key`).
+`springboot/.env` is auto-imported at startup (`spring.config.import=optional:file:.env[.properties]`) for local runs. Keep values unquoted. Set `SECRET_KEY` to the **same value as Django** (JWT signing). Property `app.django-jwt-secret` defaults to `${SECRET_KEY}` in `application.properties`.
+
+**CORS (browser → Spring from the Vite dev server):** `WebConfig` registers a `CorsConfigurationSource` and `SecurityConfig` enables `http.cors` so `OPTIONS` preflight succeeds before JWT filters. Allowed origins include `http://localhost:5173` and `http://127.0.0.1:5173` (add production origins in `WebConfig` when needed).
+
+**Admin curl calls:** obtain an access token from Django (`POST /users/api/token/`), then pass `Authorization: Bearer <access>`. The token subject must be Django user **primary key 1**.
 
 The service starts on port **8080** by default.
 
@@ -90,6 +100,7 @@ docker run -p 8080:8080 \
   -e DB_URL=jdbc:postgresql://host:5432/sec-api \
   -e DB_USERNAME=postgres \
   -e DB_PASSWORD=postgres \
+  -e SECRET_KEY=same-value-as-django-secret-key \
   sec-api
 ```
 
@@ -98,11 +109,13 @@ docker run -p 8080:8080 \
 The service downloads IEX HIST TOPS pcap files, parses them in-process using a custom binary parser, and writes OHLCV data directly to the database. Trigger via the admin endpoint:
 
 ```bash
+# export ACCESS_TOKEN='<Django access JWT for user id 1>'  # from POST /users/api/token/
+
 # Load ~1 year of IEX TOPS data (default 252 trading days)
-curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/load-hist
+curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/load-hist
 
 # Or specify a smaller window
-curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/load-hist?days=30"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/load-hist?days=30"
 ```
 
 Dates already in the database are skipped automatically. IEX load saves raw prices only — price adjustments run as a separate process.
@@ -116,24 +129,24 @@ Dates already in the database are skipped automatically. IEX load saves raw pric
 **Upgrading existing databases** (pre–`MarketIndex` FK): if `index_members` still has a legacy `market_index` text column, insert the matching `market_indexes` row if needed, backfill `market_index_id`, then drop the old column after verifying rows.
 
 ```bash
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/refresh-stocks
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/refresh-stocks
 # Optional: target a calendar year (defaults to current year)
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/refresh-stocks?year=2025"
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/refresh-stocks?year=2025"
 ```
 
 Rebuild cap-ranked indexes (`FAT50`, `FAT100`, `FAT1000`): creates or reuses each `MarketIndex` row, replaces `IndexMember` rows (weights sum to 100%). Optional `code` selects one index; omit to rebuild all (FAT100, FAT1000, FAT50). Optional `refreshMetrics=true` refreshes metrics once for that year first; optional `year` defaults to the current calendar year.
 
 ```bash
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild?code=FAT50"
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild?code=FAT1000"
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild?refreshMetrics=true"
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/indexes/rebuild?year=2025&refreshMetrics=true"
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/rebuild?code=FAT50"
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/rebuild?code=FAT1000"
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/rebuild?refreshMetrics=true"
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/rebuild?year=2025&refreshMetrics=true"
 
 # Legacy aliases (singular `rebuild` in JSON response)
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild-fattore-50
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild-fattore-100
-curl -X POST -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/indexes/rebuild-fattore-1000
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild-fattore-50
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild-fattore-100
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild-fattore-1000
 ```
 
 List available indexes and fetch constituents:
@@ -151,19 +164,19 @@ Corporate action detection and price adjustment is decoupled from IEX loading. R
 
 ```bash
 # Adjust all tickers (skips SEC re-fetch for tickers with existing actions)
-curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/adjust-prices
+curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/adjust-prices
 
 # Force re-fetch from SEC for all tickers (catches new splits/dividends)
-curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/adjust-prices?force=true"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?force=true"
 
 # Adjust ETFs only (SEC filing-derived ETF actions)
-curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/adjust-prices?etfOnly=true&minConfidence=75"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?etfOnly=true&minConfidence=75"
 
 # Adjust a single ticker
-curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/adjust-prices?ticker=AAPL"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?ticker=AAPL"
 
 # Optional diagnostics-only validation against yfinance reference events (via Django portfolio API)
-curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/adjust-prices?ticker=AAPL&force=true&validateWithYfinance=true"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?ticker=AAPL&force=true&validateWithYfinance=true"
 ```
 
 Dividend ingestion behavior:
@@ -216,10 +229,10 @@ Asset load with integrated ETF identity enrichment:
 
 ```bash
 # Load equities/funds from SEC and enrich ETF series/class identity fields
-curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/asset-load"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/asset-load"
 
 # Overwrite previously resolved ETF identity rows during load
-curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/asset-load?overwriteExisting=true"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/asset-load?overwriteExisting=true"
 ```
 
 ### 10-K Filing Summaries
@@ -230,10 +243,10 @@ Requires the llama.cpp server to be running (see `llm/run-server.sh`):
 
 ```bash
 # Summarize all equities with a CIK
-curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/summarize-filings
+curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/summarize-filings
 
 # Summarize a single ticker
-curl -H "X-Admin-Key: $ADMIN_API_KEY" "http://localhost:8080/admin/summarize-filings?ticker=AAPL"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/summarize-filings?ticker=AAPL"
 ```
 
 Retrieve stored summaries via the public endpoint:

@@ -2,7 +2,12 @@ package com.fattorestreet.sec_api.model;
 
 import jakarta.persistence.*;
 import java.util.*;
+
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+
 @Entity
+@Audited
 @Table(name = "assets")
 public class Asset {
 
@@ -15,6 +20,7 @@ public class Asset {
 
     private Boolean isFund;
 
+    @NotAudited
     @OneToMany(mappedBy = "asset")
     private List<Listing> listings;
 

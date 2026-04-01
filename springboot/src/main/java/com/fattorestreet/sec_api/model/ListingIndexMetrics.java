@@ -4,11 +4,14 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 
+import org.hibernate.envers.Audited;
+
 /**
  * Yahoo-free market metrics for index construction: populated from IEX-derived {@link DailyPrice}
  * and SEC company facts (shares / float / DEI).
  */
 @Entity
+@Audited
 @Table(name = "listing_index_metrics",
         uniqueConstraints = @UniqueConstraint(columnNames = {"listing_id", "year"}))
 public class ListingIndexMetrics {
