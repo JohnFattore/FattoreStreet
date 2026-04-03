@@ -43,3 +43,7 @@ llm/input/
 llm/machineLearning/yelp_dataset
 llm/machineLearning/fred
 llm/machineLearning/huggingFace.txt
+
+llm
+
+daily_prices_data.sql
