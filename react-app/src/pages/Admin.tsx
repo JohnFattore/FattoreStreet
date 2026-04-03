@@ -257,7 +257,7 @@ export default function Admin() {
                     <h6>Asset Load (with ETF enrichment)</h6>
                     <p>Fetches all US tickers from SEC endpoints and enriches ETF listings with SEC series/class identity data.</p>
                     <p className="text-muted small mb-2">
-                        <strong>Affects (sec-api DB):</strong>{' '}
+                        <strong>Affects (springboot DB):</strong>{' '}
                         <code>Asset</code>, <code>Listing</code>
                     </p>
                     <Form.Check
@@ -282,7 +282,7 @@ export default function Admin() {
                     <h6>Sync Frames</h6>
                     <p>Full sync of all SEC EDGAR financial frames (2009 to present).</p>
                     <p className="text-muted small mb-2">
-                        <strong>Affects (sec-api DB):</strong>{' '}
+                        <strong>Affects (springboot DB):</strong>{' '}
                         <code>Quarter</code> and related SEC frame data
                     </p>
                     <Button
@@ -300,7 +300,7 @@ export default function Admin() {
                     <h6>Download IEX HIST</h6>
                     <p>Download IEX TOPS PCAPs, parse trades, and load OHLCV directly into the database.</p>
                     <p className="text-muted small mb-2">
-                        <strong>Affects (sec-api DB):</strong> <code>DailyPrice</code>
+                        <strong>Affects (springboot DB):</strong> <code>DailyPrice</code>
                     </p>
                     <Form.Group className="mb-2">
                         <Form.Label>Trading days</Form.Label>
@@ -326,7 +326,7 @@ export default function Admin() {
                     <h6>Adjust Prices (Splits & Dividends)</h6>
                     <p>Detect splits and dividends from SEC EDGAR and apply adjustment factors to OHLCV prices.</p>
                     <p className="text-muted small mb-2">
-                        <strong>Affects (sec-api DB):</strong>{' '}
+                        <strong>Affects (springboot DB):</strong>{' '}
                         <code>CorporateAction</code>, <code>DailyPrice</code>
                     </p>
                     <Form.Group className="mb-2">
@@ -394,7 +394,7 @@ export default function Admin() {
                     <h6>Summarize 10-K Filings</h6>
                     <p>Fetch 10-K filings from SEC EDGAR and generate MD&A summaries via the local LLM.</p>
                     <p className="text-muted small mb-2">
-                        <strong>Affects (sec-api DB):</strong> <code>FilingSummary</code>
+                        <strong>Affects (springboot DB):</strong> <code>FilingSummary</code>
                     </p>
                     <Form.Group className="mb-2">
                         <Form.Label>Ticker (blank for all)</Form.Label>
@@ -424,7 +424,7 @@ export default function Admin() {
                         companyfacts (run after listings and prices exist).
                     </p>
                     <p className="text-muted small mb-2">
-                        <strong>Affects (sec-api DB):</strong> <code>ListingIndexMetrics</code> (reads{' '}
+                        <strong>Affects (springboot DB):</strong> <code>ListingIndexMetrics</code> (reads{' '}
                         <code>Listing</code>, <code>Asset</code>, <code>DailyPrice</code>)
                     </p>
                     <Button
@@ -452,7 +452,7 @@ export default function Admin() {
                         <code>FAT1000</code>, <code>FAT50</code>). Not an official FTSE Russell index.
                     </p>
                     <p className="text-muted small mb-2">
-                        <strong>Affects (sec-api DB):</strong> <code>MarketIndex</code>, <code>IndexMember</code>
+                        <strong>Affects (springboot DB):</strong> <code>MarketIndex</code>, <code>IndexMember</code>
                     </p>
                     <Form.Group className="mb-2">
                         <Form.Label>Index code</Form.Label>

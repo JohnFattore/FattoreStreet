@@ -63,7 +63,7 @@ Before adding or changing any external data source:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DB_URL` | `jdbc:postgresql://localhost:5432/sec-api` | PostgreSQL JDBC URL |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/springboot` | PostgreSQL JDBC URL |
 | `DB_USERNAME` | `postgres` | Database username |
 | `DB_PASSWORD` | `postgres` | Database password |
 | `SECRET_KEY` | (required) | Must match Django `SECRET_KEY` — used to verify `Authorization: Bearer` JWTs (SimpleJWT HS256). Only access tokens whose `user_id` claim is `1` may call `/admin/**`. |
@@ -97,7 +97,7 @@ The service starts on port **8080** by default.
 ```bash
 docker build -t sec-api .
 docker run -p 8080:8080 \
-  -e DB_URL=jdbc:postgresql://host:5432/sec-api \
+  -e DB_URL=jdbc:postgresql://host:5432/springboot \
   -e DB_USERNAME=postgres \
   -e DB_PASSWORD=postgres \
   -e SECRET_KEY=same-value-as-django-secret-key \
