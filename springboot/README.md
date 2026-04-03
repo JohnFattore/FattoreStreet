@@ -86,7 +86,7 @@ mvn spring-boot:run
 
 `springboot/.env` is auto-imported at startup (`spring.config.import=optional:file:.env[.properties]`) for local runs. Keep values unquoted. Set `SECRET_KEY` to the **same value as Django** (JWT signing). Property `app.django-jwt-secret` defaults to `${SECRET_KEY}` in `application.properties`.
 
-**CORS (browser → Spring from the Vite dev server):** `WebConfig` registers a `CorsConfigurationSource` and `SecurityConfig` enables `http.cors` so `OPTIONS` preflight succeeds before JWT filters. Allowed origins include `http://localhost:5173` and `http://127.0.0.1:5173` (add production origins in `WebConfig` when needed).
+**CORS (browser → Spring from the Vite dev server or production):** `WebConfig` registers a `CorsConfigurationSource` and `SecurityConfig` enables `http.cors` so `OPTIONS` preflight succeeds before JWT filters. Allowed origins include local dev (`http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost`, `http://localhost:80`) and production (`https://fattorestreet.com`, `https://www.fattorestreet.com`). Edit `WebConfig` if you add more hosts.
 
 **Admin curl calls:** obtain an access token from Django (`POST /users/api/token/`), then pass `Authorization: Bearer <access>`. The token subject must be Django user **primary key 1**.
 
