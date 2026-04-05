@@ -66,18 +66,6 @@ export default function EquityInfo({ ticker }: { ticker: string }) {
           {"Price to Earnings Ratio: " +
             formatString(assetInfo.trailingPE, "amount")}
         </ListGroup.Item>
-        <ListGroup.Item>
-          {"Income Trailing Twelve Months: " +
-            formatString(assetInfo.incomeTTM, "money")}
-        </ListGroup.Item>
-        <ListGroup.Item>
-          {"Revenue Trailing Twelve Months: " +
-            formatString(assetInfo.revenueTTM, "money")}
-        </ListGroup.Item>
-        <ListGroup.Item>
-          {"Net Margin Trailing Twelve Months: " +
-            formatString(assetInfo.netMarginTTM, "percent")}
-        </ListGroup.Item>
       </ListGroup>
         )
       }

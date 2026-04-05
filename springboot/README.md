@@ -66,6 +66,7 @@ Before adding or changing any external data source:
 | `DB_URL` | `jdbc:postgresql://localhost:5432/springboot` | PostgreSQL JDBC URL |
 | `DB_USERNAME` | `postgres` | Database username |
 | `DB_PASSWORD` | `postgres` | Database password |
+| `SHOW_JPA_SQL` | `false` | When `true`, logs Hibernate-generated SQL. Use locally; leave unset or `false` in production. |
 | `SECRET_KEY` | (required) | Must match Django `SECRET_KEY` — used to verify `Authorization: Bearer` JWTs (SimpleJWT HS256). Only access tokens whose `user_id` claim is `1` may call `/admin/**`. |
 | (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore 50 rebuild includes. Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
 | (property) `fattore100.rebuild.top-n` | `100` | How many names the Fattore 100 rebuild includes. Set in `.env` as `fattore100.rebuild.top-n=100` if needed. |
