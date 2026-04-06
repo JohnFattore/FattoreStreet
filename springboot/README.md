@@ -125,7 +125,7 @@ Dates already in the database are skipped automatically. IEX load saves raw pric
 
 `ListingIndexMetrics` is built from the latest IEX-derived `DailyPrice` per ticker, SEC companyfacts (`EntityCommonStockSharesOutstanding`, `EntityPublicFloat`), and SEC **submissions** JSON for jurisdiction: `country_incorp` / `country_hq` plus `state_incorp` / `state_hq` (US state codes are split out so country columns are real countries). Run after listings and daily prices exist. **Dual-listed share classes (same CIK):** SEC shares outstanding is consolidated per issuer; for Alphabet **GOOG** / **GOOGL** only, `market_cap` and `free_float_market_cap` are scaled by **½** per listing so the two lines together approximate the issuer total (see `DualClassIndexCapSplit`).
 
-**Ticker scope:** `refresh-stocks` only updates listings whose tickers appear in `springboot/data/IWB_holdings.csv` (iShares Russell 1000 / IWB export, equity rows only). That file is copied into the JAR as `classpath:/data/IWB_holdings.csv` via `pom.xml` resources; replace it when you refresh the reference basket.
+**Ticker scope:** `refresh-stocks` only updates listings whose tickers appear in `src/main/resources/data/IWB_holdings.csv` (iShares Russell 1000 / IWB export, equity rows only), packaged as `classpath:/data/IWB_holdings.csv`. Replace that file when you refresh the reference basket.
 
 **Upgrading existing databases** (pre–`MarketIndex` FK): if `index_members` still has a legacy `market_index` text column, insert the matching `market_indexes` row if needed, backfill `market_index_id`, then drop the old column after verifying rows.
 

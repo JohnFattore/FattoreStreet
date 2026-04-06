@@ -15,8 +15,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Equity tickers and fund-reported weights from bundled {@code data/IWB_holdings.csv}
- * (iShares Russell 1000 ETF holdings export).
+ * Equity tickers and fund-reported weights from {@code src/main/resources/data/IWB_holdings.csv}
+ * ({@code classpath:/data/IWB_holdings.csv}; iShares Russell 1000 ETF export).
  */
 @Component
 public class IwbHoldingsTickerSet {
@@ -30,7 +30,7 @@ public class IwbHoldingsTickerSet {
     public IwbHoldingsTickerSet(ResourceLoader resourceLoader) throws IOException {
         Resource resource = resourceLoader.getResource(LOCATION);
         if (!resource.exists()) {
-            log.warn("Missing resource {} (springboot/data/IWB_holdings.csv is gitignored); IWB ticker set will be empty", LOCATION);
+            log.warn("Missing resource {}; IWB ticker set will be empty", LOCATION);
             this.tickers = Collections.emptySet();
             this.equityRows = List.of();
             return;

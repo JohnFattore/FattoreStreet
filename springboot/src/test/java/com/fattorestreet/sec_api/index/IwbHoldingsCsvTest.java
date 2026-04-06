@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class IwbHoldingsCsvTest {
 
@@ -43,7 +43,7 @@ class IwbHoldingsCsvTest {
     @Test
     void parseTickers_bundledFile_loadsManyEquityRows() throws Exception {
         try (var in = getClass().getResourceAsStream("/data/IWB_holdings.csv")) {
-            assumeTrue(in != null, "classpath:/data/IWB_holdings.csv not available (springboot/data/ is gitignored)");
+            assertNotNull(in, "classpath:/data/IWB_holdings.csv must be on test classpath");
             Set<String> t = IwbHoldingsCsv.parseTickers(in);
             assertTrue(t.size() > 900, "expected ~1000 equity names, got " + t.size());
             assertTrue(t.contains("NVDA") && t.contains("AAPL"));
