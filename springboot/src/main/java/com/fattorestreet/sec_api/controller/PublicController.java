@@ -4,12 +4,16 @@ import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.DailyPrice;
 import com.fattorestreet.sec_api.model.FilingSummary;
+import com.fattorestreet.sec_api.model.MarketIndex;
 import com.fattorestreet.sec_api.model.Quarter;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
+import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 import com.fattorestreet.sec_api.repository.QuarterRepository;
 import com.fattorestreet.sec_api.fundamentals.FinancialService;
+import com.fattorestreet.sec_api.index.IndexMemberApiService;
+import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
 import com.fattorestreet.sec_api.marketdata.PriceService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -38,6 +42,8 @@ public class PublicController {
     private final PriceService priceService;
     private final CorporateActionRepository corporateActionRepository;
     private final FilingSummaryRepository filingSummaryRepository;
+    private final MarketIndexRepository marketIndexRepository;
+    private final IndexMemberApiService indexMemberApiService;
 
     public PublicController(
             AssetRepository assetRepository,
@@ -45,7 +51,9 @@ public class PublicController {
             FinancialService financialService,
             PriceService priceService,
             CorporateActionRepository corporateActionRepository,
-            FilingSummaryRepository filingSummaryRepository
+            FilingSummaryRepository filingSummaryRepository,
+            MarketIndexRepository marketIndexRepository,
+            IndexMemberApiService indexMemberApiService
     ) {
         this.assetRepository = assetRepository;
         this.quarterRepository = quarterRepository;
@@ -53,6 +61,11 @@ public class PublicController {
         this.priceService = priceService;
         this.corporateActionRepository = corporateActionRepository;
         this.filingSummaryRepository = filingSummaryRepository;
+        this.marketIndexRepository = marketIndexRepository;
+        this.indexMemberApiService = indexMemberApiService;
+    }
+
+    public record MarketIndexRow(String code, String displayName) {
     }
 
     @GetMapping("/quarters")
@@ -249,6 +262,22 @@ public class PublicController {
             output.add(entry);
         }
         return ResponseEntity.ok(Map.of("ticker", ticker, "summaries", output));
+    }
+
+    @GetMapping("/indexes")
+    public List<MarketIndexRow> listIndexes() {
+        return marketIndexRepository.findAll().stream()
+                .sorted(Comparator.comparing(mi -> mi.getCode() != null ? mi.getCode() : ""))
+                .map(mi -> new MarketIndexRow(mi.getCode(), mi.getDisplayName()))
+                .toList();
+    }
+
+    @GetMapping("/index-members")
+    public List<IndexMemberRow> listIndexMembers(@RequestParam(required = false) String code) {
+        if (code != null && !code.isBlank()) {
+            return indexMemberApiService.listByIndexCode(code.trim());
+        }
+        return indexMemberApiService.listAll();
     }
 
     private String formatNumber(Object val) {

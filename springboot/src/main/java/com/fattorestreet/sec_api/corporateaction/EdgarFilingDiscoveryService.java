@@ -1,20 +1,29 @@
 package com.fattorestreet.sec_api.corporateaction;
 
 import com.fattorestreet.sec_api.client.WebService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Canonical source for SEC company-submissions filing metadata: accession, form, primary document,
+ * and filing date from {@code data.sec.gov/submissions/} (main CIK JSON plus optional archive shards,
+ * limited by {@code maxSubmissionFilesToScan}). Does not download filing bodies.
+ */
 @Service
 public class EdgarFilingDiscoveryService {
+
+    private static final Logger log = LoggerFactory.getLogger(EdgarFilingDiscoveryService.class);
 
     private static final int DEFAULT_MAX_SUBMISSION_FILES_TO_SCAN = 48;
 
@@ -63,12 +72,15 @@ public class EdgarFilingDiscoveryService {
                 scanned++;
                 try {
                     parseSubmissionJson(webService.fetchSubmissionsFile(cik, name), out);
-                } catch (Exception ignored) {
+                } catch (RuntimeException ex) {
                     // Keep discovery resilient if an archive bundle is unavailable.
+                    log.warn("Failed to fetch submission archive bundle '{}' for CIK {}: {}",
+                            name, cik, ex.toString());
                 }
             }
-        } catch (Exception ignored) {
+        } catch (JsonProcessingException ex) {
             // Keep discovery resilient if recent submissions payload is malformed.
+            log.warn("Failed to parse recent submissions payload for CIK {}: {}", cik, ex.getMessage());
         }
     }
 
@@ -93,8 +105,9 @@ public class EdgarFilingDiscoveryService {
                             parseIsoDate(filing.path("filingDate").asText(null)));
                 }
             }
-        } catch (Exception ignored) {
+        } catch (JsonProcessingException ex) {
             // Keep discovery resilient if a bundle has malformed JSON.
+            log.warn("Failed to parse submission JSON ({} chars): {}", json.length(), ex.getMessage());
         }
     }
 

@@ -285,12 +285,31 @@ public class AdminController {
 
     @PostMapping("/admin/indexes/refresh-stocks")
     public ResponseEntity<?> refreshIndexStocks(
-            @RequestParam(required = false) Integer year) {
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false, defaultValue = "russell1000") String scope,
+            @RequestParam(required = false) String ticker) {
         try {
             int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
             long startTime = System.currentTimeMillis();
-            com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult r =
-                    indexMetricsRefreshService.refreshAllListings(resolvedYear);
+            com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult r;
+            String effectiveScope;
+            if (ticker != null && !ticker.isBlank()) {
+                // Single-ticker mode: ignore scope, refresh just this listing.
+                effectiveScope = "ticker:" + ticker.trim().toUpperCase(Locale.ROOT);
+                r = indexMetricsRefreshService.refreshSingleTicker(ticker, resolvedYear);
+            } else {
+                String normalizedScope = scope != null ? scope.trim().toLowerCase(Locale.ROOT) : "russell1000";
+                effectiveScope = normalizedScope;
+                switch (normalizedScope) {
+                    case "russell1000", "iwb" -> r = indexMetricsRefreshService.refreshRussell1000Listings(resolvedYear);
+                    case "all" -> r = indexMetricsRefreshService.refreshAllTickers(resolvedYear);
+                    default -> {
+                        return ResponseEntity.badRequest().body(
+                                "Unknown scope: " + scope + ". Supported: russell1000 (iwb), all"
+                        );
+                    }
+                }
+            }
             String duration = formatDuration(System.currentTimeMillis() - startTime);
             Map<String, Long> skipReasonCounts = r.skippedTickers().stream()
                     .map(s -> {
@@ -301,6 +320,7 @@ public class AdminController {
             return ResponseEntity.ok(Map.of(
                     "message", "Index metrics refresh complete in " + duration,
                     "year", resolvedYear,
+                    "scope", effectiveScope,
                     "processed", r.processed(),
                     "skipped", r.skipped(),
                     "skippedTickers", r.skippedTickers(),
@@ -341,7 +361,7 @@ public class AdminController {
             payload.put("year", resolvedYear);
             if (refreshMetrics) {
                 com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult rr =
-                        indexMetricsRefreshService.refreshAllListings(resolvedYear);
+                        indexMetricsRefreshService.refreshRussell1000Listings(resolvedYear);
                 payload.put("refresh", Map.of(
                         "processed", rr.processed(),
                         "skipped", rr.skipped(),
@@ -406,7 +426,7 @@ public class AdminController {
             payload.put("year", resolvedYear);
             if (refreshMetrics) {
                 com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult rr =
-                        indexMetricsRefreshService.refreshAllListings(resolvedYear);
+                        indexMetricsRefreshService.refreshRussell1000Listings(resolvedYear);
                 payload.put("refresh", Map.of(
                         "processed", rr.processed(),
                         "skipped", rr.skipped(),

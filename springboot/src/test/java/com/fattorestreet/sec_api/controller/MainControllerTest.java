@@ -1,14 +1,19 @@
 package com.fattorestreet.sec_api.controller;
 
+import com.fattorestreet.sec_api.index.IndexMemberApiService;
+import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
+import com.fattorestreet.sec_api.index.IndexMemberApiService.StockRow;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
 import com.fattorestreet.sec_api.model.DailyPrice;
 import com.fattorestreet.sec_api.model.FilingSummary;
+import com.fattorestreet.sec_api.model.MarketIndex;
 import com.fattorestreet.sec_api.model.Quarter;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
+import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 import com.fattorestreet.sec_api.repository.QuarterRepository;
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.filing.FilingSummaryService;
@@ -42,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -79,6 +85,8 @@ class MainControllerTest {
     @MockitoBean private FilingSummaryService filingSummaryService;
     @MockitoBean private FilingSummaryRepository filingSummaryRepository;
     @MockitoBean private CorporateActionRepository corporateActionRepository;
+    @MockitoBean private MarketIndexRepository marketIndexRepository;
+    @MockitoBean private IndexMemberApiService indexMemberApiService;
     @MockitoBean private com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService;
     @MockitoBean(name = "fattore50IndexRebuildService")
     private com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore50IndexRebuildService;
@@ -568,6 +576,91 @@ class MainControllerTest {
                 .andExpect(jsonPath("$.skipped").value(27));
     }
 
+    // --- /admin/indexes/refresh-stocks endpoint ---
+
+    @Test
+    void adminRefreshIndexStocks_defaultScope_usesRussell1000() throws Exception {
+        int y = Year.now().getValue();
+        when(indexMetricsRefreshService.refreshRussell1000Listings(anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(10, 2, List.of("X:no_cik")));
+
+        mockMvc.perform(post("/admin/indexes/refresh-stocks")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(y))
+                .andExpect(jsonPath("$.scope").value("russell1000"))
+                .andExpect(jsonPath("$.processed").value(10));
+
+        verify(indexMetricsRefreshService).refreshRussell1000Listings(y);
+        verify(indexMetricsRefreshService, never()).refreshAllTickers(anyInt());
+    }
+
+    @Test
+    void adminRefreshIndexStocks_scopeAll_usesAllTickers() throws Exception {
+        int y = Year.now().getValue();
+        when(indexMetricsRefreshService.refreshAllTickers(anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(20, 1, List.of("Y:no_price")));
+
+        mockMvc.perform(post("/admin/indexes/refresh-stocks")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
+                        .param("scope", "all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(y))
+                .andExpect(jsonPath("$.scope").value("all"))
+                .andExpect(jsonPath("$.processed").value(20));
+
+        verify(indexMetricsRefreshService).refreshAllTickers(y);
+        verify(indexMetricsRefreshService, never()).refreshRussell1000Listings(anyInt());
+    }
+
+    @Test
+    void adminRefreshIndexStocks_unknownScope_returns400() throws Exception {
+        mockMvc.perform(post("/admin/indexes/refresh-stocks")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
+                        .param("scope", "nope"))
+                .andExpect(status().isBadRequest());
+
+        verify(indexMetricsRefreshService, never()).refreshRussell1000Listings(anyInt());
+        verify(indexMetricsRefreshService, never()).refreshAllTickers(anyInt());
+    }
+
+    @Test
+    void adminRefreshIndexStocks_withTicker_routesToSingleTicker() throws Exception {
+        int y = Year.now().getValue();
+        when(indexMetricsRefreshService.refreshSingleTicker(eq("NFLX"), anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(1, 0, List.of()));
+
+        mockMvc.perform(post("/admin/indexes/refresh-stocks")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
+                        .param("ticker", "NFLX"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(y))
+                .andExpect(jsonPath("$.scope").value("ticker:NFLX"))
+                .andExpect(jsonPath("$.processed").value(1));
+
+        verify(indexMetricsRefreshService).refreshSingleTicker("NFLX", y);
+        verify(indexMetricsRefreshService, never()).refreshRussell1000Listings(anyInt());
+        verify(indexMetricsRefreshService, never()).refreshAllTickers(anyInt());
+    }
+
+    @Test
+    void adminRefreshIndexStocks_tickerOverridesScope() throws Exception {
+        int y = Year.now().getValue();
+        when(indexMetricsRefreshService.refreshSingleTicker(eq("aapl"), anyInt())).thenReturn(
+                new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(1, 0, List.of()));
+
+        // scope=all is supplied but ticker should win.
+        mockMvc.perform(post("/admin/indexes/refresh-stocks")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
+                        .param("scope", "all")
+                        .param("ticker", "aapl"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.scope").value("ticker:AAPL"));
+
+        verify(indexMetricsRefreshService).refreshSingleTicker("aapl", y);
+        verify(indexMetricsRefreshService, never()).refreshAllTickers(anyInt());
+    }
+
     // --- /admin/adjust-prices endpoint ---
 
     @Test
@@ -777,7 +870,7 @@ class MainControllerTest {
     @Test
     void rebuildFattore50_refreshMetrics_includesRefresh() throws Exception {
         int y = Year.now().getValue();
-        when(indexMetricsRefreshService.refreshAllListings(anyInt())).thenReturn(
+        when(indexMetricsRefreshService.refreshRussell1000Listings(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(10, 2, List.of("X:no_cik")));
         when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
@@ -863,5 +956,62 @@ class MainControllerTest {
     void filingSummaries_missingTicker_returns400() throws Exception {
         mockMvc.perform(get("/filing-summaries"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // --- /indexes endpoint ---
+
+    @Test
+    void listIndexes_returns200() throws Exception {
+        MarketIndex fat50 = new MarketIndex();
+        fat50.setCode("FAT50");
+        fat50.setDisplayName("Fattore 50");
+        MarketIndex fat100 = new MarketIndex();
+        fat100.setCode("FAT100");
+        fat100.setDisplayName("Fattore 100");
+        MarketIndex fat1000 = new MarketIndex();
+        fat1000.setCode("FAT1000");
+        fat1000.setDisplayName("Fattore 1000");
+        when(marketIndexRepository.findAll()).thenReturn(List.of(fat50, fat100, fat1000));
+
+        mockMvc.perform(get("/indexes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("FAT100"))
+                .andExpect(jsonPath("$[0].displayName").value("Fattore 100"))
+                .andExpect(jsonPath("$[1].code").value("FAT1000"))
+                .andExpect(jsonPath("$[1].displayName").value("Fattore 1000"))
+                .andExpect(jsonPath("$[2].code").value("FAT50"))
+                .andExpect(jsonPath("$[2].displayName").value("Fattore 50"));
+    }
+
+    // --- /index-members endpoint ---
+
+    @Test
+    void listIndexMembers_returns200() throws Exception {
+        StockRow stock = new StockRow(
+                "AAPL", "Apple", BigDecimal.ONE, BigDecimal.TEN, BigDecimal.TEN,
+                BigDecimal.ONE, BigDecimal.ONE, "US", "United States", "DE", "CA", "Common Stock", 1980);
+        when(indexMemberApiService.listAll()).thenReturn(List.of(
+                new IndexMemberRow(1L, new BigDecimal("5.5"), "Test Index", false, "", stock)
+        ));
+        mockMvc.perform(get("/index-members"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].index").value("Test Index"))
+                .andExpect(jsonPath("$[0].stock.ticker").value("AAPL"));
+    }
+
+    @Test
+    void listIndexMembers_withCode_filters() throws Exception {
+        StockRow stock = new StockRow(
+                "MSFT", "Microsoft", BigDecimal.ONE, BigDecimal.TEN, BigDecimal.TEN,
+                BigDecimal.ONE, BigDecimal.ONE, "US", "United States", "WA", "WA", "Common Stock", 1986);
+        when(indexMemberApiService.listByIndexCode("FAT50")).thenReturn(List.of(
+                new IndexMemberRow(2L, new BigDecimal("3.25"), "Fattore 50", false, "", stock)
+        ));
+        mockMvc.perform(get("/index-members").param("code", "FAT50"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(2))
+                .andExpect(jsonPath("$[0].index").value("Fattore 50"))
+                .andExpect(jsonPath("$[0].stock.ticker").value("MSFT"));
     }
 }

@@ -43,6 +43,8 @@ export default function Admin() {
     const [indexMetricsLoading, setIndexMetricsLoading] = useState(false);
     const [indexMetricsResult, setIndexMetricsResult] = useState<string | null>(null);
     const [indexMetricsError, setIndexMetricsError] = useState<string | null>(null);
+    const [indexMetricsScope, setIndexMetricsScope] = useState<'russell1000' | 'all'>('russell1000');
+    const [indexMetricsTicker, setIndexMetricsTicker] = useState('');
 
     // Cap-ranked index rebuild (MarketIndex + IndexMember): POST .../rebuild optional ?code=
     const [indexRebuildCode, setIndexRebuildCode] = useState('');
@@ -209,7 +211,15 @@ export default function Admin() {
         setIndexMetricsResult(null);
         setIndexMetricsError(null);
         try {
-            const res = await springAdminApi.post('admin/indexes/refresh-stocks', {}, { timeout: 0 });
+            const params: Record<string, string> = {};
+            const trimmedTicker = indexMetricsTicker.trim();
+            if (trimmedTicker) {
+                // Single-ticker mode: backend ignores scope when ticker is set.
+                params.ticker = trimmedTicker.toUpperCase();
+            } else if (indexMetricsScope !== 'russell1000') {
+                params.scope = indexMetricsScope;
+            }
+            const res = await springAdminApi.post('admin/indexes/refresh-stocks', {}, { params, timeout: 0 });
             setIndexMetricsResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
         } catch (err: unknown) {
             setIndexMetricsError(normalizeError(err));
@@ -427,6 +437,28 @@ export default function Admin() {
                         <strong>Affects (springboot DB):</strong> <code>ListingIndexMetrics</code> (reads{' '}
                         <code>Listing</code>, <code>Asset</code>, <code>DailyPrice</code>)
                     </p>
+                    <Form.Group className="mb-2">
+                        <Form.Label>Ticker scope</Form.Label>
+                        <Form.Select
+                            value={indexMetricsScope}
+                            onChange={(e) => setIndexMetricsScope(e.target.value as 'russell1000' | 'all')}
+                            disabled={indexMetricsTicker.trim().length > 0}
+                            style={{ maxWidth: 360 }}
+                        >
+                            <option value="russell1000">Russell 1000 (IWB holdings file)</option>
+                            <option value="all">All listings in DB</option>
+                        </Form.Select>
+                    </Form.Group>
+                    <Form.Group className="mb-2">
+                        <Form.Label>Ticker (blank for scope above)</Form.Label>
+                        <Form.Control
+                            type="text"
+                            placeholder="e.g. NFLX"
+                            value={indexMetricsTicker}
+                            onChange={(e) => setIndexMetricsTicker(e.target.value)}
+                            style={{ width: '140px' }}
+                        />
+                    </Form.Group>
                     <Button
                         onClick={handleRefreshIndexMetrics}
                         disabled={indexMetricsLoading}

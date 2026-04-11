@@ -166,7 +166,7 @@ public class PriceAdjustmentService {
         Set<String> tickersNeedingAdjustment = new HashSet<>(dailyPriceRepository.findTickersWithUnadjustedPrices());
         Set<String> tickersWithExistingActions = new HashSet<>(corporateActionRepository.findDistinctTickers());
 
-        Map<String, Asset> assetByTicker = assetRepository.findAll().stream()
+        Map<String, Asset> assetByTicker = assetRepository.findAllWithListings().stream()
                 .flatMap(a -> a.getListings().stream()
                         .map(listing -> Map.entry(listing.getTicker(), a)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));

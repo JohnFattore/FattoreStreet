@@ -125,7 +125,7 @@ Dates already in the database are skipped automatically. IEX load saves raw pric
 
 `ListingIndexMetrics` is built from the latest IEX-derived `DailyPrice` per ticker, SEC companyfacts (`EntityCommonStockSharesOutstanding`, `EntityPublicFloat`), and SEC **submissions** JSON for jurisdiction: `country_incorp` / `country_hq` plus `state_incorp` / `state_hq` (US state codes are split out so country columns are real countries). Run after listings and daily prices exist. **Dual-listed share classes (same CIK):** SEC shares outstanding is consolidated per issuer; for Alphabet **GOOG** / **GOOGL** only, `market_cap` and `free_float_market_cap` are scaled by **½** per listing so the two lines together approximate the issuer total (see `DualClassIndexCapSplit`).
 
-**Ticker scope:** `refresh-stocks` only updates listings whose tickers appear in `src/main/resources/data/IWB_holdings.csv` (iShares Russell 1000 / IWB export, equity rows only), packaged as `classpath:/data/IWB_holdings.csv`. Replace that file when you refresh the reference basket.
+**Ticker scope:** `refresh-stocks` defaults to Russell 1000 / IWB tickers from `src/main/resources/data/IWB_holdings.csv` (equity rows only), packaged as `classpath:/data/IWB_holdings.csv`. To refresh index metrics for *all* listings in the database, pass `scope=all`.
 
 **Upgrading existing databases** (pre–`MarketIndex` FK): if `index_members` still has a legacy `market_index` text column, insert the matching `market_indexes` row if needed, backfill `market_index_id`, then drop the old column after verifying rows.
 
@@ -133,6 +133,9 @@ Dates already in the database are skipped automatically. IEX load saves raw pric
 curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/refresh-stocks
 # Optional: target a calendar year (defaults to current year)
 curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/refresh-stocks?year=2025"
+#
+# Optional: refresh all listings in the DB (not just Russell 1000 / IWB tickers)
+curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/refresh-stocks?scope=all"
 ```
 
 Rebuild cap-ranked indexes (`FAT50`, `FAT100`, `FAT1000`): creates or reuses each `MarketIndex` row, replaces `IndexMember` rows (weights sum to 100%). Optional `code` selects one index; omit to rebuild all (FAT100, FAT1000, FAT50). Optional `refreshMetrics=true` refreshes metrics once for that year first; optional `year` defaults to the current calendar year.

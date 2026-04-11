@@ -17,5 +17,11 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
     @Query("SELECT DISTINCT a FROM Asset a JOIN a.listings l WHERE l.ticker IN :tickers AND a.isFund = false")
     List<Asset> findByTickersIn(@Param("tickers") Collection<String> tickers);
 
+    /**
+     * All assets with listings eagerly loaded (for callers that iterate tickers outside a long session).
+     */
+    @Query("SELECT DISTINCT a FROM Asset a LEFT JOIN FETCH a.listings")
+    List<Asset> findAllWithListings();
+
     long countByIsFund(Boolean isFund);
 }

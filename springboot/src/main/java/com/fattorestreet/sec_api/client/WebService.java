@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import org.springframework.core.io.ClassPathResource;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class WebService {
@@ -38,12 +39,12 @@ public class WebService {
     // constructor
     @Autowired
     public WebService(
-            @org.springframework.beans.factory.annotation.Value("${sec.contact-email}") String secContactEmail,
-            @org.springframework.beans.factory.annotation.Value("${sec.http.connect-timeout-ms:15000}") int secConnectTimeoutMs,
-            @org.springframework.beans.factory.annotation.Value("${sec.http.read-timeout-ms:120000}") int secReadTimeoutMs,
-            @org.springframework.beans.factory.annotation.Value("${sec.http.retry-max-attempts:3}") int secRetryMaxAttempts,
-            @org.springframework.beans.factory.annotation.Value("${sec.http.retry-base-backoff-ms:1000}") long secRetryBaseBackoffMs,
-            @org.springframework.beans.factory.annotation.Value("${sec.http.min-interval-ms:250}") long secMinIntervalMs) {
+            @Value("${sec.contact-email}") String secContactEmail,
+            @Value("${sec.http.connect-timeout-ms:15000}") int secConnectTimeoutMs,
+            @Value("${sec.http.read-timeout-ms:120000}") int secReadTimeoutMs,
+            @Value("${sec.http.retry-max-attempts:3}") int secRetryMaxAttempts,
+            @Value("${sec.http.retry-base-backoff-ms:1000}") long secRetryBaseBackoffMs,
+            @Value("${sec.http.min-interval-ms:250}") long secMinIntervalMs) {
         this(new RestTemplate(),
                 secContactEmail,
                 secConnectTimeoutMs,

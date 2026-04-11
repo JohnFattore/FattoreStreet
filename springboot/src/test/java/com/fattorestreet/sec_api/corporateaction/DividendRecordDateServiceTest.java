@@ -2,9 +2,9 @@ package com.fattorestreet.sec_api.corporateaction;
 
 import com.fattorestreet.sec_api.client.WebService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,8 +29,13 @@ class DividendRecordDateServiceTest {
     @Spy
     private ObjectMapper mapper = new ObjectMapper();
 
-    @InjectMocks
     private DividendRecordDateService service;
+
+    @BeforeEach
+    void setUp() {
+        EdgarFilingDiscoveryService filingDiscoveryService = new EdgarFilingDiscoveryService(webService, mapper);
+        service = new DividendRecordDateService(webService, filingDiscoveryService, mapper);
+    }
 
     @Test
     void fetchDividendRecordDates_supportsMonthNameWithoutComma() {

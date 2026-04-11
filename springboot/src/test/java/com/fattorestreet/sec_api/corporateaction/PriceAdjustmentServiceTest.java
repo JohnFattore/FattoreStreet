@@ -304,7 +304,7 @@ class PriceAdjustmentServiceTest {
 
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL", "MSFT"));
         when(corporateActionRepository.findDistinctTickers()).thenReturn(Collections.emptyList());
-        when(assetRepository.findAll()).thenReturn(List.of(aapl, msft));
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl, msft));
         when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL", "MSFT"));
         when(equityCorporateActionService.detectAndPersistWithDiagnostics(anyString(), anyLong()))
                 .thenReturn(buildEquityReport("X", 1L, 0));
@@ -326,7 +326,7 @@ class PriceAdjustmentServiceTest {
 
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
         when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
-        when(assetRepository.findAll()).thenReturn(List.of(aapl));
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
         when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
         when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
                 .thenReturn(Collections.emptyList());
@@ -345,7 +345,7 @@ class PriceAdjustmentServiceTest {
 
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(Collections.emptyList());
         when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
-        when(assetRepository.findAll()).thenReturn(List.of(aapl));
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
         when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
         when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
                 .thenReturn(buildEquityReport("AAPL", 320193L, 0));
@@ -364,7 +364,7 @@ class PriceAdjustmentServiceTest {
     void adjustAllTickers_skipsNoAssetAndSetsRawAsAdjusted() {
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("FAKE"));
         when(corporateActionRepository.findDistinctTickers()).thenReturn(Collections.emptyList());
-        when(assetRepository.findAll()).thenReturn(Collections.emptyList());
+        when(assetRepository.findAllWithListings()).thenReturn(Collections.emptyList());
         when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("FAKE"));
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("FAKE"))
                 .thenReturn(List.of(buildPrice("FAKE", LocalDate.of(2025, 1, 1), 50.0)));

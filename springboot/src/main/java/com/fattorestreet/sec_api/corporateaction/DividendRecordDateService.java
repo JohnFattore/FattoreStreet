@@ -1,7 +1,6 @@
 package com.fattorestreet.sec_api.corporateaction;
 
 import com.fattorestreet.sec_api.client.WebService;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +27,6 @@ public class DividendRecordDateService {
     private static final LocalDate T_PLUS_ONE_CUTOFF = LocalDate.of(2024, 5, 28);
     private static final int MAX_DIVIDEND_FILINGS_TO_SCAN = 250;
     private static final int MAX_SPLIT_FILINGS_TO_SCAN = 400;
-    private static final int MAX_SUBMISSION_FILES_TO_SCAN = 48;
     private static final int MAX_EXHIBIT_DOCS_TO_SCAN = 6;
 
     private static final String MONTH_NAME_DATE_PATTERN =
@@ -520,21 +518,6 @@ public class DividendRecordDateService {
         } catch (Exception ignored) {
             discovered = Collections.emptyList();
         }
-        if (discovered.isEmpty()) {
-            try {
-                JsonNode root = mapper.readTree(webService.fetchSubmissions(cik));
-                List<EightKFiling> eightKFilings = collectEightKFilingRows(cik, root, maxToScan);
-                discovered = eightKFilings.stream()
-                        .map(f -> new EdgarFilingDiscoveryService.FilingMeta(
-                                f.accessionNumber(),
-                                "8-K",
-                                f.primaryDocument(),
-                                f.filingDate()))
-                        .toList();
-            } catch (Exception ignored) {
-                discovered = Collections.emptyList();
-            }
-        }
         Map<String, Integer> discoveredByForm = new TreeMap<>();
         Map<String, Integer> selectedByForm = new TreeMap<>();
         Map<String, Integer> rejectedByForm = new TreeMap<>();
@@ -592,76 +575,6 @@ public class DividendRecordDateService {
             return "UNKNOWN";
         }
         return form.trim().toUpperCase(Locale.US);
-    }
-
-    private List<EightKFiling> collectEightKFilingRows(Long cik, JsonNode submissionsRoot, int maxEightK) {
-        List<EightKFiling> out = new ArrayList<>();
-        Set<String> seenAccessions = new HashSet<>();
-
-        collectFromSubmissionRoot(submissionsRoot, out, seenAccessions, maxEightK);
-        if (out.size() >= maxEightK) {
-            return out;
-        }
-
-        JsonNode files = submissionsRoot.path("filings").path("files");
-        if (!files.isArray()) {
-            return out;
-        }
-        int scannedFiles = 0;
-        for (JsonNode fileNode : files) {
-            if (out.size() >= maxEightK || scannedFiles >= MAX_SUBMISSION_FILES_TO_SCAN) {
-                break;
-            }
-            String name = fileNode.path("name").asText("");
-            if (name.isBlank()) {
-                continue;
-            }
-            scannedFiles++;
-            try {
-                JsonNode archivedRoot = mapper.readTree(webService.fetchSubmissionsFile(cik, name));
-                collectFromSubmissionRoot(archivedRoot, out, seenAccessions, maxEightK);
-            } catch (Exception ignored) {
-                // Skip inaccessible archived submission files.
-            }
-        }
-        return out;
-    }
-
-    private void collectFromSubmissionRoot(
-            JsonNode submissionRoot,
-            List<EightKFiling> output,
-            Set<String> seenAccessions,
-            int maxEightK) {
-        JsonNode recent = submissionRoot.path("filings").path("recent");
-        JsonNode forms = recent.path("form");
-        JsonNode accessions = recent.path("accessionNumber");
-        JsonNode primaryDocs = recent.path("primaryDocument");
-        JsonNode filingDates = recent.path("filingDate");
-        if (!forms.isArray() || !accessions.isArray() || !primaryDocs.isArray() || !filingDates.isArray()) {
-            return;
-        }
-        int n = Math.min(forms.size(), Math.min(accessions.size(), Math.min(primaryDocs.size(), filingDates.size())));
-        for (int i = 0; i < n && output.size() < maxEightK; i++) {
-            if (!"8-K".equalsIgnoreCase(forms.get(i).asText())) {
-                continue;
-            }
-            String accession = accessions.get(i).asText("");
-            String primaryDocument = primaryDocs.get(i).asText("");
-            String filingDateRaw = filingDates.get(i).asText("");
-            if (accession.isBlank() || primaryDocument.isBlank() || filingDateRaw.isBlank()) {
-                continue;
-            }
-            if (seenAccessions.contains(accession)) {
-                continue;
-            }
-            try {
-                LocalDate filingDate = LocalDate.parse(filingDateRaw);
-                output.add(new EightKFiling(accession, primaryDocument, filingDate));
-                seenAccessions.add(accession);
-            } catch (Exception ignored) {
-                // Skip rows with malformed dates.
-            }
-        }
     }
 
     private List<ExtractedRecordDate> extractDatedCandidates(String searchable, List<PatternSpec> specs, String source) {
@@ -986,7 +899,6 @@ public class DividendRecordDateService {
             String patternLabel,
             int intentRank,
             String confidenceLabel) {}
-    private record EightKFiling(String accessionNumber, String primaryDocument, LocalDate filingDate) {}
     private record FilingCandidate(
             String accessionNumber,
             String primaryDocument,
