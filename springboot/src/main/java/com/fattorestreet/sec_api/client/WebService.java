@@ -35,6 +35,11 @@ public class WebService {
     private final long secRetryBaseBackoffMs;
     private final long secMinIntervalMs;
     private long nextSecRequestEpochMs;
+    private final ThreadLocal<Map<String, String>> secTickerScopedCache = new ThreadLocal<>();
+
+    private static final String CACHE_SUBMISSIONS_MAIN = "__SUBMISSIONS_MAIN__";
+    private static final String CACHE_FILING_INDEX_JSON = "__INDEX_JSON__";
+    private static final String CACHE_FULL_SUBMISSION_TXT = "__FULL_TXT__";
 
     // constructor
     @Autowired
@@ -78,6 +83,37 @@ public class WebService {
         this.secRetryBaseBackoffMs = Math.max(secRetryBaseBackoffMs, 0);
         this.secMinIntervalMs = Math.max(secMinIntervalMs, 0);
         this.nextSecRequestEpochMs = 0L;
+    }
+
+    /**
+     * Enables an in-memory cache for SEC HTTP response bodies for the remainder of the current thread's
+     * ticker load. Call {@link #endSecTickerScopedCache()} in a {@code finally} block to avoid leaks.
+     */
+    public void beginSecTickerScopedCache() {
+        secTickerScopedCache.set(new HashMap<>());
+    }
+
+    /** Disables and clears the current thread's SEC ticker-scoped cache. */
+    public void endSecTickerScopedCache() {
+        secTickerScopedCache.remove();
+    }
+
+    private Map<String, String> getSecTickerScopedCache() {
+        return secTickerScopedCache.get();
+    }
+
+    private String normalizeAccession(String accessionNumber) {
+        if (accessionNumber == null) {
+            return "";
+        }
+        return accessionNumber.replace("-", "").trim();
+    }
+
+    private String cacheKey(Long cik, String normalizedAccession, String resourceId) {
+        String safeCik = cik == null ? "" : String.valueOf(cik);
+        String safeAccession = normalizedAccession == null ? "" : normalizedAccession;
+        String safeResource = resourceId == null ? "" : resourceId;
+        return safeCik + "|" + safeAccession + "|" + safeResource;
     }
 
     // public method
@@ -137,6 +173,14 @@ public class WebService {
 
     public String fetchSubmissions(Long cik) {
         String paddedCik = String.format("%010d", cik);
+        Map<String, String> cache = getSecTickerScopedCache();
+        if (cache != null) {
+            String key = cacheKey(cik, "", CACHE_SUBMISSIONS_MAIN);
+            String cached = cache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
         String url = "https://data.sec.gov/submissions/CIK" + paddedCik + ".json";
         ResponseEntity<String> response = executeSecRequestWithRetry(
                 "SEC submissions CIK " + paddedCik,
@@ -145,11 +189,23 @@ public class WebService {
                         HttpMethod.GET,
                         secEntity,
                         String.class));
-        return response.getBody();
+        String body = response.getBody();
+        if (cache != null && body != null) {
+            cache.put(cacheKey(cik, "", CACHE_SUBMISSIONS_MAIN), body);
+        }
+        return body;
     }
 
     public String fetchSubmissionsFile(Long cik, String fileName) {
         String paddedCik = String.format("%010d", cik);
+        Map<String, String> cache = getSecTickerScopedCache();
+        if (cache != null) {
+            String key = cacheKey(cik, "", fileName);
+            String cached = cache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
         String url = "https://data.sec.gov/submissions/CIK" + paddedCik + "-" + fileName;
         ResponseEntity<String> response = executeSecRequestWithRetry(
                 "SEC submissions archive CIK " + paddedCik + " file " + fileName,
@@ -158,12 +214,24 @@ public class WebService {
                         HttpMethod.GET,
                         secEntity,
                         String.class));
-        return response.getBody();
+        String body = response.getBody();
+        if (cache != null && body != null) {
+            cache.put(cacheKey(cik, "", fileName), body);
+        }
+        return body;
     }
 
     public String fetchFilingDocument(Long cik, String accessionNumber, String primaryDocument) {
         String cikNoPadding = String.valueOf(cik);
-        String accessionNoDashes = accessionNumber.replace("-", "");
+        String accessionNoDashes = normalizeAccession(accessionNumber);
+        Map<String, String> cache = getSecTickerScopedCache();
+        if (cache != null) {
+            String key = cacheKey(cik, accessionNoDashes, primaryDocument);
+            String cached = cache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
         String url = "https://www.sec.gov/Archives/edgar/data/" + cikNoPadding + "/"
                 + accessionNoDashes + "/" + primaryDocument;
         ResponseEntity<String> response = executeSecRequestWithRetry(
@@ -173,12 +241,24 @@ public class WebService {
                         HttpMethod.GET,
                         secEntity,
                         String.class));
-        return response.getBody();
+        String body = response.getBody();
+        if (cache != null && body != null) {
+            cache.put(cacheKey(cik, accessionNoDashes, primaryDocument), body);
+        }
+        return body;
     }
 
     public String fetchFilingIndex(Long cik, String accessionNumber) {
         String cikNoPadding = String.valueOf(cik);
-        String accessionNoDashes = accessionNumber.replace("-", "");
+        String accessionNoDashes = normalizeAccession(accessionNumber);
+        Map<String, String> cache = getSecTickerScopedCache();
+        if (cache != null) {
+            String key = cacheKey(cik, accessionNoDashes, CACHE_FILING_INDEX_JSON);
+            String cached = cache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
         String url = "https://www.sec.gov/Archives/edgar/data/" + cikNoPadding + "/"
                 + accessionNoDashes + "/index.json";
         ResponseEntity<String> response = executeSecRequestWithRetry(
@@ -188,12 +268,24 @@ public class WebService {
                         HttpMethod.GET,
                         secEntity,
                         String.class));
-        return response.getBody();
+        String body = response.getBody();
+        if (cache != null && body != null) {
+            cache.put(cacheKey(cik, accessionNoDashes, CACHE_FILING_INDEX_JSON), body);
+        }
+        return body;
     }
 
     public String fetchFullSubmissionText(Long cik, String accessionNumber) {
         String cikNoPadding = String.valueOf(cik);
-        String accessionNoDashes = accessionNumber.replace("-", "");
+        String accessionNoDashes = normalizeAccession(accessionNumber);
+        Map<String, String> cache = getSecTickerScopedCache();
+        if (cache != null) {
+            String key = cacheKey(cik, accessionNoDashes, CACHE_FULL_SUBMISSION_TXT);
+            String cached = cache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
         String url = "https://www.sec.gov/Archives/edgar/data/" + cikNoPadding + "/"
                 + accessionNoDashes + "/" + accessionNoDashes + ".txt";
         ResponseEntity<String> response = executeSecRequestWithRetry(
@@ -203,7 +295,11 @@ public class WebService {
                         HttpMethod.GET,
                         secEntity,
                         String.class));
-        return response.getBody();
+        String body = response.getBody();
+        if (cache != null && body != null) {
+            cache.put(cacheKey(cik, accessionNoDashes, CACHE_FULL_SUBMISSION_TXT), body);
+        }
+        return body;
     }
 
     public String fetchXbrlFrames(String taxonomy, String tag, String unit, String period) {

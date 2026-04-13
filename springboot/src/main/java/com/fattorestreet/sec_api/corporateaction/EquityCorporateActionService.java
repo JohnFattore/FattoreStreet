@@ -60,18 +60,23 @@ public class EquityCorporateActionService {
     }
 
     public EquityDetectionReport detectAndPersistWithDiagnostics(String ticker, Long cik) {
-        JsonNode root;
+        webService.beginSecTickerScopedCache();
         try {
-            String json = webService.fetchFinancials(cik);
-            root = mapper.readTree(json);
-        } catch (Exception e) {
-            log.warn("[{}] Failed to fetch SEC facts for CIK {}: {}", ticker, cik, e.getMessage());
-            return EquityDetectionReport.failed(ticker, cik, "sec_fetch_failed");
-        }
+            JsonNode root;
+            try {
+                String json = webService.fetchFinancials(cik);
+                root = mapper.readTree(json);
+            } catch (Exception e) {
+                log.warn("[{}] Failed to fetch SEC facts for CIK {}: {}", ticker, cik, e.getMessage());
+                return EquityDetectionReport.failed(ticker, cik, "sec_fetch_failed");
+            }
 
-        SplitDetectionStats splitStats = equitySplitDetector.detectSplits(ticker, cik, root);
-        DividendDetectionStats dividendStats = detectDividends(ticker, cik, root);
-        return new EquityDetectionReport(ticker, cik, splitStats, dividendStats, null);
+            SplitDetectionStats splitStats = equitySplitDetector.detectSplits(ticker, cik, root);
+            DividendDetectionStats dividendStats = detectDividends(ticker, cik, root);
+            return new EquityDetectionReport(ticker, cik, splitStats, dividendStats, null);
+        } finally {
+            webService.endSecTickerScopedCache();
+        }
     }
 
     private DividendDetectionStats detectDividends(String ticker, Long cik, JsonNode root) {

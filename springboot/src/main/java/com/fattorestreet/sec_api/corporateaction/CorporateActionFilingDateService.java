@@ -110,11 +110,12 @@ public class CorporateActionFilingDateService {
         List<FilingCandidate> filings = selection.selected();
         log.info("[CIK {}] Dividend record-date scan starting: {} candidate filings", cik, filings.size());
         int processed = 0;
+        int failedFilings = 0;
         for (FilingCandidate filing : filings) {
             processed++;
             if (processed == 1 || processed % 25 == 0 || processed == filings.size()) {
-                log.info("[CIK {}] Dividend record-date scan progress: {}/{} filings processed, {} unique record-date candidates, {} direct ex-date candidates",
-                        cik, processed, filings.size(), candidatesByDate.size(), exDividendByDate.size());
+                log.info("[CIK {}] Dividend record-date scan progress: {}/{} filings processed ({} failed), {} unique record-date candidates, {} direct ex-date candidates",
+                        cik, processed, filings.size(), failedFilings, candidatesByDate.size(), exDividendByDate.size());
             }
             try {
                 String text = webService.fetchFilingDocument(cik, filing.accessionNumber(), filing.primaryDocument());
@@ -155,8 +156,9 @@ public class CorporateActionFilingDateService {
                 if (current == null || isPreferredCandidate(candidate, current)) {
                     candidatesByDate.put(candidate.recordDate(), candidate);
                 }
-            } catch (Exception ignored) {
-                // Skip malformed or inaccessible filings and continue scanning.
+            } catch (Exception e) {
+                failedFilings++;
+                log.warn("[CIK {}] Failed to process dividend filing {}: {}", cik, filing.accessionNumber(), e.getMessage());
             }
         }
 
@@ -170,8 +172,8 @@ public class CorporateActionFilingDateService {
                 .comparing(ExDividendDateCandidate::exDividendDate)
                 .thenComparing(ExDividendDateCandidate::confidenceScore, Comparator.reverseOrder())
                 .thenComparing(ExDividendDateCandidate::filingDate, Comparator.nullsLast(Comparator.naturalOrder())));
-        log.info("[CIK {}] Dividend record-date scan finished: {} record-date candidates, {} direct ex-date candidates",
-                cik, out.size(), exOut.size());
+        log.info("[CIK {}] Dividend record-date scan finished: {} record-date candidates, {} direct ex-date candidates, {} filings failed",
+                cik, out.size(), exOut.size(), failedFilings);
         return new RecordDateScanResult(out, exOut, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm());
     }
 
@@ -203,11 +205,12 @@ public class CorporateActionFilingDateService {
         List<FilingCandidate> filings = selection.selected();
         log.info("[CIK {}] Split effective-date scan starting: {} candidate filings", cik, filings.size());
         int processed = 0;
+        int failedFilings = 0;
         for (FilingCandidate filing : filings) {
             processed++;
             if (processed == 1 || processed % 25 == 0 || processed == filings.size()) {
-                log.info("[CIK {}] Split effective-date scan progress: {}/{} filings processed, {} unique candidates",
-                        cik, processed, filings.size(), candidatesByDate.size());
+                log.info("[CIK {}] Split effective-date scan progress: {}/{} filings processed ({} failed), {} unique candidates",
+                        cik, processed, filings.size(), failedFilings, candidatesByDate.size());
             }
             try {
                 String text = webService.fetchFilingDocument(cik, filing.accessionNumber(), filing.primaryDocument());
@@ -242,8 +245,9 @@ public class CorporateActionFilingDateService {
                 if (current == null || isPreferredSplitCandidate(candidate, current)) {
                     candidatesByDate.put(candidate.effectiveDate(), candidate);
                 }
-            } catch (Exception ignored) {
-                // Ignore malformed filing documents and continue.
+            } catch (Exception e) {
+                failedFilings++;
+                log.warn("[CIK {}] Failed to process split filing {}: {}", cik, filing.accessionNumber(), e.getMessage());
             }
         }
 
@@ -268,7 +272,7 @@ public class CorporateActionFilingDateService {
                     .collect(Collectors.joining(", "));
             log.info("[CIK {}] Split candidate intent summary: {}", cik, intentSummary);
         }
-        log.info("[CIK {}] Split effective-date scan finished: {} unique candidates", cik, out.size());
+        log.info("[CIK {}] Split effective-date scan finished: {} unique candidates, {} filings failed", cik, out.size(), failedFilings);
         return new SplitDateScanResult(out, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm());
     }
 

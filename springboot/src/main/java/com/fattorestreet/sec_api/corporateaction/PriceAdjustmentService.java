@@ -327,7 +327,7 @@ public class PriceAdjustmentService {
                         if (priorTradingClose == null || priorTradingClose <= 0) {
                             continue;
                         }
-                        double dividendValue = resolveAdjustedDividend(action);
+                        double dividendValue = resolveDividendCashForAdjustment(action);
                         if (dividendValue <= 0 || dividendValue >= priorTradingClose) {
                             continue;
                         }
@@ -363,7 +363,16 @@ public class PriceAdjustmentService {
         return Math.round(val * 10000.0) / 10000.0;
     }
 
-    private double resolveAdjustedDividend(CorporateAction action) {
+    /**
+     * Cash dividend per share to use in {@code 1 - dividend/priorRawClose} factors.
+     * Must match the scale of {@link DailyPrice#getClosePrice()} (raw, as-of ex-date).
+     * Prefers {@link CorporateAction#getRawDividend()}; falls back to adjusted/ratio for ETF rows
+     * or legacy rows where raw was not persisted.
+     */
+    private double resolveDividendCashForAdjustment(CorporateAction action) {
+        if (action.getRawDividend() != null && action.getRawDividend() > 0) {
+            return action.getRawDividend();
+        }
         if (action.getAdjustedDividend() != null && action.getAdjustedDividend() > 0) {
             return action.getAdjustedDividend();
         }

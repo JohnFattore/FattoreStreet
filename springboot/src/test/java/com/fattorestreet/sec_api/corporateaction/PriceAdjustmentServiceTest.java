@@ -196,6 +196,7 @@ class PriceAdjustmentServiceTest {
         dividend.setEffectiveDate(LocalDate.of(2025, 1, 15));
         dividend.setRatio(1.25);
         dividend.setAdjustedDividend(0.25);
+        // Raw cash on ex-date (vs split-forward adjusted); factor uses raw to match prior raw close.
         dividend.setRawDividend(0.0625);
 
         when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
@@ -208,7 +209,34 @@ class PriceAdjustmentServiceTest {
 
         assertEquals(150.0, afterDiv.getAdjustedClose());
         assertEquals(152.0, divDay.getAdjustedClose());
-        assertEquals(154.75, beforeDiv.getAdjustedClose());
+        // 155 * (1 - 0.0625/155) = 154.9375
+        assertEquals(154.9375, beforeDiv.getAdjustedClose());
+    }
+
+    @Test
+    void adjustTicker_withDividend_prefersRawOverAdjustedForFactor() {
+        Asset asset = buildAsset(320193L);
+        DailyPrice afterDiv = buildPrice("AAPL", LocalDate.of(2025, 2, 1), 150.0);
+        DailyPrice divDay = buildPrice("AAPL", LocalDate.of(2025, 1, 15), 152.0);
+        DailyPrice beforeDiv = buildPrice("AAPL", LocalDate.of(2025, 1, 10), 155.0);
+
+        CorporateAction dividend = new CorporateAction();
+        dividend.setTicker("AAPL");
+        dividend.setActionType(ActionType.DIVIDEND);
+        dividend.setEffectiveDate(LocalDate.of(2025, 1, 15));
+        dividend.setRatio(0.25);
+        dividend.setAdjustedDividend(0.25);
+        dividend.setRawDividend(1.0);
+
+        when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(List.of(dividend));
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(afterDiv, divDay, beforeDiv));
+
+        service.adjustTicker("AAPL");
+
+        assertEquals(155.0 * (1.0 - 1.0 / 155.0), beforeDiv.getAdjustedClose(), 1e-9);
     }
 
     @Test
@@ -224,6 +252,7 @@ class PriceAdjustmentServiceTest {
         dividend.setEffectiveDate(LocalDate.of(2025, 1, 15));
         dividend.setRatio(10.0);
         dividend.setAdjustedDividend(10.0);
+        dividend.setRawDividend(10.0);
 
         when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
         when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
@@ -251,6 +280,7 @@ class PriceAdjustmentServiceTest {
         regular.setEffectiveDate(LocalDate.of(2024, 12, 10));
         regular.setRatio(0.5);
         regular.setAdjustedDividend(0.5);
+        regular.setRawDividend(0.5);
 
         CorporateAction special = new CorporateAction();
         special.setTicker("COST");
@@ -258,6 +288,7 @@ class PriceAdjustmentServiceTest {
         special.setEffectiveDate(LocalDate.of(2024, 12, 10));
         special.setRatio(1.5);
         special.setAdjustedDividend(1.5);
+        special.setRawDividend(1.5);
 
         when(assetRepository.findByListings_Ticker("COST")).thenReturn(asset);
         when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("COST"))

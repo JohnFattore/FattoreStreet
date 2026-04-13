@@ -34,6 +34,7 @@ public class EquitySplitDetector {
     private static final double RATIO_TOLERANCE = 0.02;
     private static final int MAX_SPLIT_CANDIDATE_LEAD_DAYS = 260;
     private static final int MAX_SPLIT_CANDIDATE_LAG_DAYS = 60;
+    private static final int MAX_SHARES_ENTRY_GAP_DAYS = 400;
 
     private final CorporateActionFilingDateService corporateActionFilingDateService;
     private final CorporateActionRepository corporateActionRepository;
@@ -81,6 +82,12 @@ public class EquitySplitDetector {
         for (int i = 1; i < entries.size(); i++) {
             SharesEntry prev = entries.get(i - 1);
             SharesEntry curr = entries.get(i);
+            long gapDays = ChronoUnit.DAYS.between(prev.date(), curr.date());
+            if (gapDays > MAX_SHARES_ENTRY_GAP_DAYS) {
+                log.debug("[{}] Skipping shares pair {} -> {}: gap {} days exceeds maximum {}",
+                        ticker, prev.date(), curr.date(), gapDays, MAX_SHARES_ENTRY_GAP_DAYS);
+                continue;
+            }
             double rawRatio = (double) curr.shares / prev.shares;
             if (!isCommonSplitRatio(rawRatio)) {
                 continue;
@@ -211,7 +218,10 @@ public class EquitySplitDetector {
     private void removeDuplicateDates(List<SharesEntry> entries) {
         Map<LocalDate, SharesEntry> byDate = new LinkedHashMap<>();
         for (SharesEntry e : entries) {
-            byDate.put(e.date(), e);
+            SharesEntry existing = byDate.get(e.date());
+            if (existing == null || e.shares() > existing.shares()) {
+                byDate.put(e.date(), e);
+            }
         }
         entries.clear();
         entries.addAll(byDate.values());

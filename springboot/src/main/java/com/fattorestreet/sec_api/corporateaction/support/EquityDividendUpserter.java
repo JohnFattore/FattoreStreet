@@ -49,8 +49,6 @@ public class EquityDividendUpserter {
         Set<CorporateAction> usedActions = Collections.newSetFromMap(new IdentityHashMap<>());
         List<CorporateAction> mutableExisting = new ArrayList<>(existing);
         for (EquityCorporateActionService.DividendEvent target : sortedDetected) {
-            corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                    ticker, ActionType.DIVIDEND, target.effectiveDate());
             CorporateAction matched = findExactDividendMatch(mutableExisting, target, usedActions);
             if (matched == null) {
                 matched = findYearScopedDividendMatch(mutableExisting, target, usedActions);
@@ -204,7 +202,7 @@ public class EquityDividendUpserter {
                 continue;
             }
             long dayDistance = Math.abs(ChronoUnit.DAYS.between(action.getEffectiveDate(), target.effectiveDate()));
-            if (dayDistance > 55) {
+            if (dayDistance > 35) {
                 continue;
             }
             double amountDistance = Math.abs(action.getRatio() - target.adjustedAmount()) * 100.0;

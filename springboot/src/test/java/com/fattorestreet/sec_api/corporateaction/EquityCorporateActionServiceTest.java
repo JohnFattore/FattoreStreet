@@ -39,6 +39,8 @@ class EquityCorporateActionServiceTest {
                 .thenReturn(java.util.Collections.emptyList());
         lenient().when(corporateActionFilingDateService.computeExDividendDate(any()))
                 .thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
+                anyString(), any(), any())).thenReturn(false);
     }
 
     @Test
@@ -61,8 +63,7 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("AAPL", 320193L);
@@ -104,8 +105,7 @@ class EquityCorporateActionServiceTest {
                                 "0000320193-20-000062",
                                 120)
                 ));
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("AAPL", 320193L);
@@ -150,8 +150,7 @@ class EquityCorporateActionServiceTest {
                                 "0000320193-20-000062",
                                 120)
                 ));
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("AAPL", 320193L);
@@ -191,8 +190,7 @@ class EquityCorporateActionServiceTest {
                                 "old-candidate",
                                 200)
                 ));
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("AAPL", 320193L);
@@ -224,8 +222,7 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("AAPL", 320193L);
@@ -265,7 +262,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("AAPL", 320193L);
@@ -302,7 +299,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(123456L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("COST")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("COST", 123456L);
@@ -337,7 +334,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(123456L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("COST")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("COST", 123456L);
@@ -375,7 +372,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("AAPL", 320193L);
@@ -408,7 +405,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.findAllByTickerAndActionTypeAndEffectiveDate(anyString(), any(), any()))
                 .thenReturn(java.util.Collections.emptyList());
         when(corporateActionRepository.save(any()))
@@ -446,8 +443,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -484,8 +480,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -520,8 +515,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -556,8 +550,7 @@ class EquityCorporateActionServiceTest {
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -597,8 +590,7 @@ class EquityCorporateActionServiceTest {
 
         when(corporateActionRepository.findByTicker("AAPL"))
                 .thenReturn(java.util.List.of(split));
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -642,8 +634,7 @@ class EquityCorporateActionServiceTest {
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2024, 8, 12)))
                 .thenReturn(LocalDate.of(2024, 8, 12));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -686,8 +677,7 @@ class EquityCorporateActionServiceTest {
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2024, 5, 12)))
                 .thenReturn(LocalDate.of(2024, 5, 10));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -727,8 +717,7 @@ class EquityCorporateActionServiceTest {
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2020, 8, 10)))
                 .thenReturn(LocalDate.of(2020, 8, 7));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -770,8 +759,7 @@ class EquityCorporateActionServiceTest {
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2020, 7, 10)))
                 .thenReturn(LocalDate.of(2020, 7, 9));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int changed = service.detectAndPersist("AAPL", 320193L);
@@ -810,8 +798,7 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
         when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int created = service.detectAndPersist("AAPL", 320193L);
@@ -874,8 +861,7 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                anyString(), any(), any())).thenReturn(false);
+
 
         CorporateAction old1 = new CorporateAction();
         old1.setTicker("AAPL");

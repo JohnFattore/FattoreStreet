@@ -206,7 +206,7 @@ Stale entries (in DB but not in detected list) are pruned.
 
 Back in the top-level orchestrator, `applyAdjustments()` walks all corporate actions for AAPL:
 - **Splits**: Multiply all `DailyPrice` OHLCV values before the split effective date by the ratio (e.g., divide by 4 for a 4:1 split)
-- **Dividends**: Factor into adjusted price calculations
+- **Dividends**: For each ex-dividend date, multiply the cumulative backward factor by \(1 - d / P_{\text{prior}}\), where \(P_{\text{prior}}\) is the **raw** prior trading day close (`close_price`) and \(d\) is the **raw** cash dividend per share (`rawDividend` on the `CorporateAction`). Using `adjustedDividend` here would be wrong because that amount is on a current-share basis after forward-split scaling, while \(P_{\text{prior}}\) is historical raw close. If `rawDividend` is missing, the code falls back to `adjustedDividend` or `ratio` (ETF and legacy rows).
 
 Returns a summary map with diagnostics from both split and dividend detection.
 
