@@ -26,7 +26,7 @@ public class EquityCorporateActionService {
     private static final Logger log = LoggerFactory.getLogger(EquityCorporateActionService.class);
 
     private final WebService webService;
-    private final DividendRecordDateService dividendRecordDateService;
+    private final CorporateActionFilingDateService corporateActionFilingDateService;
     private final CorporateActionRepository corporateActionRepository;
     private final ObjectMapper mapper;
     private final EquitySplitDetector equitySplitDetector;
@@ -36,17 +36,17 @@ public class EquityCorporateActionService {
     private final EquityDividendUpserter equityDividendUpserter;
 
     public EquityCorporateActionService(WebService webService,
-                                        DividendRecordDateService dividendRecordDateService,
+                                        CorporateActionFilingDateService corporateActionFilingDateService,
                                         CorporateActionRepository corporateActionRepository,
                                         ObjectMapper mapper) {
         this.webService = webService;
-        this.dividendRecordDateService = dividendRecordDateService;
+        this.corporateActionFilingDateService = corporateActionFilingDateService;
         this.corporateActionRepository = corporateActionRepository;
         this.mapper = mapper;
-        this.equitySplitDetector = new EquitySplitDetector(dividendRecordDateService, corporateActionRepository);
+        this.equitySplitDetector = new EquitySplitDetector(corporateActionFilingDateService, corporateActionRepository);
         this.equityDividendFactParser = new EquityDividendFactParser();
         this.equityDividendNormalizer = new EquityDividendNormalizer();
-        this.equityExDateAssigner = new EquityExDateAssigner(dividendRecordDateService);
+        this.equityExDateAssigner = new EquityExDateAssigner(corporateActionFilingDateService);
         this.equityDividendUpserter = new EquityDividendUpserter(corporateActionRepository);
     }
 
@@ -69,13 +69,9 @@ public class EquityCorporateActionService {
             return EquityDetectionReport.failed(ticker, cik, "sec_fetch_failed");
         }
 
-        SplitDetectionStats splitStats = detectSplits(ticker, cik, root);
+        SplitDetectionStats splitStats = equitySplitDetector.detectSplits(ticker, cik, root);
         DividendDetectionStats dividendStats = detectDividends(ticker, cik, root);
         return new EquityDetectionReport(ticker, cik, splitStats, dividendStats, null);
-    }
-
-    private SplitDetectionStats detectSplits(String ticker, Long cik, JsonNode root) {
-        return equitySplitDetector.detectSplits(ticker, cik, root);
     }
 
     private DividendDetectionStats detectDividends(String ticker, Long cik, JsonNode root) {
@@ -85,11 +81,11 @@ public class EquityCorporateActionService {
             return DividendDetectionStats.empty(facts.size());
         }
 
-        DividendRecordDateService.RecordDateScanResult recordDateScan = dividendRecordDateService.scanDividendRecordDates(cik);
-        List<DividendRecordDateService.RecordDateCandidate> recordDates = recordDateScan != null
+        CorporateActionFilingDateService.RecordDateScanResult recordDateScan = corporateActionFilingDateService.scanDividendRecordDates(cik);
+        List<CorporateActionFilingDateService.RecordDateCandidate> recordDates = recordDateScan != null
                 ? recordDateScan.candidates()
-                : dividendRecordDateService.fetchDividendRecordDates(cik);
-        List<DividendRecordDateService.ExDividendDateCandidate> exDividendDirect = recordDateScan != null
+                : corporateActionFilingDateService.fetchDividendRecordDates(cik);
+        List<CorporateActionFilingDateService.ExDividendDateCandidate> exDividendDirect = recordDateScan != null
                 ? recordDateScan.exDividendDirectCandidates()
                 : List.of();
         Map<String, Integer> discoveredForms = recordDateScan != null ? recordDateScan.discoveredByForm() : Map.of();

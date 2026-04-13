@@ -1,6 +1,6 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.corporateaction.DividendRecordDateService;
+import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
 import com.fattorestreet.sec_api.util.SecDateParsingUtils;
 import com.fattorestreet.sec_api.util.SecTextUtils;
 import org.springframework.stereotype.Component;
@@ -40,10 +40,10 @@ public class EtfDateExtractor {
                     + "(\\d{4}-\\d{2}-\\d{2}|\\d{4}/\\d{1,2}/\\d{1,2}|\\d{1,2}/\\d{1,2}/\\d{2,4}|\\d{1,2}-\\d{1,2}-\\d{4}|"
                     + "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\\s+\\d{1,2},?\\s+\\d{4})");
 
-    private final DividendRecordDateService dividendRecordDateService;
+    private final CorporateActionFilingDateService corporateActionFilingDateService;
 
-    public EtfDateExtractor(DividendRecordDateService dividendRecordDateService) {
-        this.dividendRecordDateService = dividendRecordDateService;
+    public EtfDateExtractor(CorporateActionFilingDateService corporateActionFilingDateService) {
+        this.corporateActionFilingDateService = corporateActionFilingDateService;
     }
 
     public EtfDateSignals extractEtfDateSignals(String filingText, LocalDate filingDate) {
@@ -78,7 +78,7 @@ public class EtfDateExtractor {
             confidence = 95;
             resolutionPath = "ex_date";
         } else if (recordDate != null) {
-            effectiveDate = dividendRecordDateService.computeExDividendDate(recordDate);
+            effectiveDate = corporateActionFilingDateService.computeExDividendDate(recordDate);
             if (effectiveDate != null) {
                 confidence = 86;
                 resolutionPath = "record_date";

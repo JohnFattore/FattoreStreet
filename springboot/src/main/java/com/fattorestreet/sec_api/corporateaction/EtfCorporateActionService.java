@@ -82,7 +82,7 @@ public class EtfCorporateActionService {
     private final ListingRepository listingRepository;
     private final CorporateActionRepository corporateActionRepository;
     private final WebService webService;
-    private final DividendRecordDateService dividendRecordDateService;
+    private final CorporateActionFilingDateService corporateActionFilingDateService;
     private final EdgarFilingDiscoveryService filingDiscoveryService;
     private final ObjectMapper objectMapper;
     private final EtfIdentityEvaluator etfIdentityEvaluator;
@@ -94,31 +94,31 @@ public class EtfCorporateActionService {
     public EtfCorporateActionService(ListingRepository listingRepository,
                                      CorporateActionRepository corporateActionRepository,
                                      WebService webService,
-                                     DividendRecordDateService dividendRecordDateService,
+                                     CorporateActionFilingDateService corporateActionFilingDateService,
                                      EdgarFilingDiscoveryService filingDiscoveryService,
                                      ObjectMapper objectMapper) {
         this.listingRepository = listingRepository;
         this.corporateActionRepository = corporateActionRepository;
         this.webService = webService;
-        this.dividendRecordDateService = dividendRecordDateService;
+        this.corporateActionFilingDateService = corporateActionFilingDateService;
         this.filingDiscoveryService = filingDiscoveryService;
         this.objectMapper = objectMapper;
         this.etfIdentityEvaluator = new EtfIdentityEvaluator();
         this.etfAmountExtractor = new EtfAmountExtractor();
-        this.etfDateExtractor = new EtfDateExtractor(dividendRecordDateService);
+        this.etfDateExtractor = new EtfDateExtractor(corporateActionFilingDateService);
         this.etfActionPersister = new EtfActionPersister(corporateActionRepository);
     }
 
     EtfCorporateActionService(ListingRepository listingRepository,
                               CorporateActionRepository corporateActionRepository,
                               WebService webService,
-                              DividendRecordDateService dividendRecordDateService,
+                              CorporateActionFilingDateService corporateActionFilingDateService,
                               ObjectMapper objectMapper) {
         this(
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new EdgarFilingDiscoveryService(webService, objectMapper),
                 objectMapper);
     }
@@ -422,7 +422,7 @@ public class EtfCorporateActionService {
             confidence = 95;
             resolutionPath = "ex_date";
         } else if (recordDate != null) {
-            effectiveDate = dividendRecordDateService.computeExDividendDate(recordDate);
+            effectiveDate = corporateActionFilingDateService.computeExDividendDate(recordDate);
             if (effectiveDate != null) {
                 confidence = 86;
                 resolutionPath = "record_date";

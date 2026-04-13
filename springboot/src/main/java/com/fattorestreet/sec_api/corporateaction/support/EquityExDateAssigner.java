@@ -1,6 +1,6 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.corporateaction.DividendRecordDateService;
+import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
 import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,21 +26,21 @@ public class EquityExDateAssigner {
     private static final long QUARTER_CADENCE_DAYS = 91;
     private static final int FALLBACK_PENALTY = 140;
 
-    private final DividendRecordDateService dividendRecordDateService;
+    private final CorporateActionFilingDateService corporateActionFilingDateService;
 
-    public EquityExDateAssigner(DividendRecordDateService dividendRecordDateService) {
-        this.dividendRecordDateService = dividendRecordDateService;
+    public EquityExDateAssigner(CorporateActionFilingDateService corporateActionFilingDateService) {
+        this.corporateActionFilingDateService = corporateActionFilingDateService;
     }
 
     public EquityCorporateActionService.AssignmentResult assignExDividendDates(
             List<EquityCorporateActionService.DividendEvent> normalized,
-            List<DividendRecordDateService.RecordDateCandidate> recordDateCandidates,
-            List<DividendRecordDateService.ExDividendDateCandidate> exDividendDirectCandidates) {
-        List<DividendRecordDateService.RecordDateCandidate> sortedCandidates = new ArrayList<>(recordDateCandidates);
+            List<CorporateActionFilingDateService.RecordDateCandidate> recordDateCandidates,
+            List<CorporateActionFilingDateService.ExDividendDateCandidate> exDividendDirectCandidates) {
+        List<CorporateActionFilingDateService.RecordDateCandidate> sortedCandidates = new ArrayList<>(recordDateCandidates);
         sortedCandidates.sort(Comparator
-                .comparing(DividendRecordDateService.RecordDateCandidate::recordDate)
-                .thenComparing(DividendRecordDateService.RecordDateCandidate::confidenceScore, Comparator.reverseOrder())
-                .thenComparing(DividendRecordDateService.RecordDateCandidate::filingDate));
+                .comparing(CorporateActionFilingDateService.RecordDateCandidate::recordDate)
+                .thenComparing(CorporateActionFilingDateService.RecordDateCandidate::confidenceScore, Comparator.reverseOrder())
+                .thenComparing(CorporateActionFilingDateService.RecordDateCandidate::filingDate));
 
         List<EquityCorporateActionService.DividendEvent> regularEvents = normalized.stream()
                 .filter(e -> !e.specialEvent())
@@ -61,7 +61,7 @@ public class EquityExDateAssigner {
             Integer directIdx = findBestDirectExIndex(event, exDividendDirectCandidates, usedExDirect);
             if (directIdx != null) {
                 usedExDirect.add(directIdx);
-                DividendRecordDateService.ExDividendDateCandidate chosen = exDividendDirectCandidates.get(directIdx);
+                CorporateActionFilingDateService.ExDividendDateCandidate chosen = exDividendDirectCandidates.get(directIdx);
                 mapped.add(new EquityCorporateActionService.DividendEvent(
                         event.fiscalPeriodEnd(),
                         chosen.exDividendDate(),
@@ -84,7 +84,7 @@ public class EquityExDateAssigner {
             EquityCorporateActionService.DividendEvent event = needsRecordPath.get(i);
             int chosen = assignment.get(i);
             if (chosen >= 0) {
-                DividendRecordDateService.RecordDateCandidate candidate = sortedCandidates.get(chosen);
+                CorporateActionFilingDateService.RecordDateCandidate candidate = sortedCandidates.get(chosen);
                 lastMatchedRecordDate = candidate.recordDate();
                 usedCandidateIndexes.add(chosen);
                 LocalDate effectiveDate = safeComputeExDividendDate(candidate.recordDate(), event.fiscalPeriodEnd());
@@ -132,7 +132,7 @@ public class EquityExDateAssigner {
 
     private Integer findBestDirectExIndex(
             EquityCorporateActionService.DividendEvent event,
-            List<DividendRecordDateService.ExDividendDateCandidate> exDirect,
+            List<CorporateActionFilingDateService.ExDividendDateCandidate> exDirect,
             Set<Integer> used) {
         if (exDirect == null || exDirect.isEmpty()) {
             return null;
@@ -163,7 +163,7 @@ public class EquityExDateAssigner {
 
     private SpecialMappingResult mapSpecialDividendExDate(
             EquityCorporateActionService.DividendEvent event,
-            List<DividendRecordDateService.RecordDateCandidate> sortedCandidates,
+            List<CorporateActionFilingDateService.RecordDateCandidate> sortedCandidates,
             Set<Integer> usedCandidateIndexes) {
         int bestIndex = -1;
         double bestScore = Double.MAX_VALUE;
@@ -171,7 +171,7 @@ public class EquityExDateAssigner {
             if (usedCandidateIndexes.contains(i)) {
                 continue;
             }
-            DividendRecordDateService.RecordDateCandidate candidate = sortedCandidates.get(i);
+            CorporateActionFilingDateService.RecordDateCandidate candidate = sortedCandidates.get(i);
             long dayOffset = ChronoUnit.DAYS.between(event.fiscalPeriodEnd(), candidate.recordDate());
             if (dayOffset < MIN_RECORD_DATE_OFFSET_DAYS || dayOffset > MAX_RECORD_DATE_OFFSET_DAYS) {
                 continue;
@@ -195,7 +195,7 @@ public class EquityExDateAssigner {
 
     private List<Integer> optimizeRecordDateAssignment(
             List<EquityCorporateActionService.DividendEvent> events,
-            List<DividendRecordDateService.RecordDateCandidate> candidates) {
+            List<CorporateActionFilingDateService.RecordDateCandidate> candidates) {
         int n = events.size();
         int m = candidates.size();
         if (n == 0) {
@@ -220,7 +220,7 @@ public class EquityExDateAssigner {
                 double bestScore = FALLBACK_PENALTY + dp[i + 1][prevShift];
                 int bestChoice = -1;
                 for (int j = prev + 1; j < m; j++) {
-                    DividendRecordDateService.RecordDateCandidate candidate = candidates.get(j);
+                    CorporateActionFilingDateService.RecordDateCandidate candidate = candidates.get(j);
                     if (!isCandidateEligible(events.get(i), candidate)) {
                         continue;
                     }
@@ -248,7 +248,7 @@ public class EquityExDateAssigner {
         return assignment;
     }
 
-    private boolean isCandidateEligible(EquityCorporateActionService.DividendEvent event, DividendRecordDateService.RecordDateCandidate candidate) {
+    private boolean isCandidateEligible(EquityCorporateActionService.DividendEvent event, CorporateActionFilingDateService.RecordDateCandidate candidate) {
         long dayOffset = ChronoUnit.DAYS.between(event.fiscalPeriodEnd(), candidate.recordDate());
         if (dayOffset < MIN_RECORD_DATE_OFFSET_DAYS || dayOffset > MAX_RECORD_DATE_OFFSET_DAYS) {
             return false;
@@ -258,8 +258,8 @@ public class EquityExDateAssigner {
 
     private double candidateMatchScore(
             EquityCorporateActionService.DividendEvent event,
-            DividendRecordDateService.RecordDateCandidate candidate,
-            DividendRecordDateService.RecordDateCandidate prevCandidate) {
+            CorporateActionFilingDateService.RecordDateCandidate candidate,
+            CorporateActionFilingDateService.RecordDateCandidate prevCandidate) {
         long dayOffset = ChronoUnit.DAYS.between(event.fiscalPeriodEnd(), candidate.recordDate());
         double score = Math.abs(dayOffset - 42);
         if (prevCandidate != null) {
@@ -285,7 +285,7 @@ public class EquityExDateAssigner {
     }
 
     private LocalDate safeComputeExDividendDate(LocalDate recordDate, LocalDate fallbackDate) {
-        LocalDate computed = dividendRecordDateService.computeExDividendDate(recordDate);
+        LocalDate computed = corporateActionFilingDateService.computeExDividendDate(recordDate);
         if (computed != null) {
             return computed;
         }

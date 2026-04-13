@@ -21,9 +21,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class DividendRecordDateService {
+public class CorporateActionFilingDateService {
 
-    private static final Logger log = LoggerFactory.getLogger(DividendRecordDateService.class);
+    private static final Logger log = LoggerFactory.getLogger(CorporateActionFilingDateService.class);
     private static final LocalDate T_PLUS_ONE_CUTOFF = LocalDate.of(2024, 5, 28);
     private static final int MAX_DIVIDEND_FILINGS_TO_SCAN = 250;
     private static final int MAX_SPLIT_FILINGS_TO_SCAN = 400;
@@ -90,7 +90,7 @@ public class DividendRecordDateService {
     private final EdgarFilingDiscoveryService filingDiscoveryService;
     private final ObjectMapper mapper;
 
-    public DividendRecordDateService(
+    public CorporateActionFilingDateService(
             WebService webService,
             EdgarFilingDiscoveryService filingDiscoveryService,
             ObjectMapper mapper) {

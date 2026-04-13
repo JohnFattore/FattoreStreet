@@ -1,6 +1,6 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.corporateaction.DividendRecordDateService;
+import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
 import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
@@ -35,13 +35,13 @@ public class EquitySplitDetector {
     private static final int MAX_SPLIT_CANDIDATE_LEAD_DAYS = 260;
     private static final int MAX_SPLIT_CANDIDATE_LAG_DAYS = 60;
 
-    private final DividendRecordDateService dividendRecordDateService;
+    private final CorporateActionFilingDateService corporateActionFilingDateService;
     private final CorporateActionRepository corporateActionRepository;
 
     public EquitySplitDetector(
-            DividendRecordDateService dividendRecordDateService,
+            CorporateActionFilingDateService corporateActionFilingDateService,
             CorporateActionRepository corporateActionRepository) {
-        this.dividendRecordDateService = dividendRecordDateService;
+        this.corporateActionFilingDateService = corporateActionFilingDateService;
         this.corporateActionRepository = corporateActionRepository;
     }
 
@@ -70,7 +70,7 @@ public class EquitySplitDetector {
 
         entries.sort(Comparator.comparing(SharesEntry::date));
         removeDuplicateDates(entries);
-        List<DividendRecordDateService.SplitDateCandidate> splitCandidates = dividendRecordDateService.fetchSplitEffectiveDates(cik);
+        List<CorporateActionFilingDateService.SplitDateCandidate> splitCandidates = corporateActionFilingDateService.fetchSplitEffectiveDates(cik);
         Set<String> usedSplitCandidateKeys = new HashSet<>();
         int secDateMatches = 0;
         int fallbackDetectedDate = 0;
@@ -121,13 +121,13 @@ public class EquitySplitDetector {
     private SplitDateResolution resolveSplitEffectiveDate(
             LocalDate prevDate,
             LocalDate detectedDate,
-            List<DividendRecordDateService.SplitDateCandidate> splitCandidates,
+            List<CorporateActionFilingDateService.SplitDateCandidate> splitCandidates,
             Set<String> usedSplitCandidateKeys) {
-        DividendRecordDateService.SplitDateCandidate bestCandidate = null;
+        CorporateActionFilingDateService.SplitDateCandidate bestCandidate = null;
         double bestScore = Double.MAX_VALUE;
         int eligibleCandidates = 0;
         List<String> rejected = new ArrayList<>();
-        for (DividendRecordDateService.SplitDateCandidate candidate : splitCandidates) {
+        for (CorporateActionFilingDateService.SplitDateCandidate candidate : splitCandidates) {
             String candidateKey = candidate.accessionNumber() + "|" + candidate.effectiveDate();
             if (usedSplitCandidateKeys.contains(candidateKey)) {
                 rejected.add(candidateKey + " rejected: already-used");
