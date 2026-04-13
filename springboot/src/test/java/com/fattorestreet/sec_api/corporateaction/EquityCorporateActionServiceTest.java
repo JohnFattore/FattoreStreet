@@ -26,18 +26,18 @@ import static org.mockito.Mockito.*;
 class EquityCorporateActionServiceTest {
 
     @Mock private WebService webService;
-    @Mock private DividendRecordDateService dividendRecordDateService;
+    @Mock private CorporateActionFilingDateService corporateActionFilingDateService;
     @Mock private CorporateActionRepository corporateActionRepository;
     @Spy private ObjectMapper mapper = new ObjectMapper();
     @InjectMocks private EquityCorporateActionService service;
 
     @BeforeEach
     void setDefaults() {
-        lenient().when(dividendRecordDateService.fetchDividendRecordDates(anyLong()))
+        lenient().when(corporateActionFilingDateService.fetchDividendRecordDates(anyLong()))
                 .thenReturn(java.util.Collections.emptyList());
-        lenient().when(dividendRecordDateService.fetchSplitEffectiveDates(anyLong()))
+        lenient().when(corporateActionFilingDateService.fetchSplitEffectiveDates(anyLong()))
                 .thenReturn(java.util.Collections.emptyList());
-        lenient().when(dividendRecordDateService.computeExDividendDate(any()))
+        lenient().when(corporateActionFilingDateService.computeExDividendDate(any()))
                 .thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -96,9 +96,9 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(dividendRecordDateService.fetchSplitEffectiveDates(320193L))
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.SplitDateCandidate(
+                        new CorporateActionFilingDateService.SplitDateCandidate(
                                 LocalDate.of(2020, 8, 31),
                                 LocalDate.of(2020, 7, 30),
                                 "0000320193-20-000062",
@@ -137,14 +137,14 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(dividendRecordDateService.fetchSplitEffectiveDates(320193L))
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.SplitDateCandidate(
+                        new CorporateActionFilingDateService.SplitDateCandidate(
                                 LocalDate.of(2020, 8, 24),
                                 LocalDate.of(2020, 7, 30),
                                 "0000320193-20-000062",
                                 120),
-                        new DividendRecordDateService.SplitDateCandidate(
+                        new CorporateActionFilingDateService.SplitDateCandidate(
                                 LocalDate.of(2020, 8, 31),
                                 LocalDate.of(2020, 7, 30),
                                 "0000320193-20-000062",
@@ -183,9 +183,9 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(dividendRecordDateService.fetchSplitEffectiveDates(320193L))
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.SplitDateCandidate(
+                        new CorporateActionFilingDateService.SplitDateCandidate(
                                 LocalDate.of(2019, 1, 1),
                                 LocalDate.of(2019, 1, 2),
                                 "old-candidate",
@@ -632,14 +632,14 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(dividendRecordDateService.fetchDividendRecordDates(320193L))
+        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2024, 5, 10), LocalDate.of(2024, 5, 3), "0001"),
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2024, 8, 12), LocalDate.of(2024, 8, 2), "0002")
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2024, 5, 10), LocalDate.of(2024, 5, 3), "0001"),
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2024, 8, 12), LocalDate.of(2024, 8, 2), "0002")
                 ));
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2024, 5, 10)))
+        when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2024, 5, 10)))
                 .thenReturn(LocalDate.of(2024, 5, 9));
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2024, 8, 12)))
+        when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2024, 8, 12)))
                 .thenReturn(LocalDate.of(2024, 8, 12));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
         when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
@@ -678,12 +678,12 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(dividendRecordDateService.fetchDividendRecordDates(320193L))
+        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2023, 1, 10), LocalDate.of(2023, 1, 2), "bad1"),
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 2), "bad2")
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2023, 1, 10), LocalDate.of(2023, 1, 2), "bad1"),
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 2), "bad2")
                 ));
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2024, 5, 12)))
+        when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2024, 5, 12)))
                 .thenReturn(LocalDate.of(2024, 5, 10));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
         when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
@@ -698,7 +698,7 @@ class EquityCorporateActionServiceTest {
                         && a.getEffectiveDate().equals(LocalDate.of(2024, 5, 10))
                         && Math.abs(a.getRawDividend() - 0.25) < 0.0001
                         && Math.abs(a.getAdjustedDividend() - 0.25) < 0.0001));
-        verify(dividendRecordDateService).computeExDividendDate(LocalDate.of(2024, 5, 12));
+        verify(corporateActionFilingDateService).computeExDividendDate(LocalDate.of(2024, 5, 12));
     }
 
     @Test
@@ -720,11 +720,11 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(dividendRecordDateService.fetchDividendRecordDates(320193L))
+        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2020, 8, 10), LocalDate.of(2020, 7, 31), "0001", 120)
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2020, 8, 10), LocalDate.of(2020, 7, 31), "0001", 120)
                 ));
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2020, 8, 10)))
+        when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2020, 8, 10)))
                 .thenReturn(LocalDate.of(2020, 8, 7));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
         when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
@@ -760,14 +760,14 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(dividendRecordDateService.fetchDividendRecordDates(320193L))
+        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2020, 6, 15), LocalDate.of(2020, 5, 8), "alt-low", 0),
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2020, 7, 10), LocalDate.of(2020, 7, 2), "must-have", 600)
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2020, 6, 15), LocalDate.of(2020, 5, 8), "alt-low", 0),
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2020, 7, 10), LocalDate.of(2020, 7, 2), "must-have", 600)
                 ));
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2020, 6, 15)))
+        when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2020, 6, 15)))
                 .thenReturn(LocalDate.of(2020, 6, 12));
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2020, 7, 10)))
+        when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2020, 7, 10)))
                 .thenReturn(LocalDate.of(2020, 7, 9));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
         when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
@@ -923,10 +923,10 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(dividendRecordDateService.fetchDividendRecordDates(320193L))
+        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
                 .thenReturn(java.util.List.of(
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2025, 1, 13), LocalDate.of(2025, 1, 10), "r1", 100),
-                        new DividendRecordDateService.RecordDateCandidate(LocalDate.of(2025, 4, 14), LocalDate.of(2025, 4, 10), "r2", 100)
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2025, 1, 13), LocalDate.of(2025, 1, 10), "r1", 100),
+                        new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2025, 4, 14), LocalDate.of(2025, 4, 10), "r2", 100)
                 ));
 
         CorporateAction old1 = new CorporateAction();

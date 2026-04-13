@@ -1,6 +1,6 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.corporateaction.DividendRecordDateService;
+import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,7 +17,7 @@ import static org.mockito.Mockito.when;
 class EtfDateExtractorTest {
 
     @Mock
-    private DividendRecordDateService dividendRecordDateService;
+    private CorporateActionFilingDateService corporateActionFilingDateService;
 
     @InjectMocks
     private EtfDateExtractor extractor;
@@ -39,7 +39,7 @@ class EtfDateExtractorTest {
     void extractEtfDateSignals_recordDateDerivesExDate_gives86Confidence() {
         LocalDate recordDate = LocalDate.of(2024, 3, 15);
         LocalDate derivedEx = LocalDate.of(2024, 3, 14);
-        when(dividendRecordDateService.computeExDividendDate(recordDate)).thenReturn(derivedEx);
+        when(corporateActionFilingDateService.computeExDividendDate(recordDate)).thenReturn(derivedEx);
 
         String text = "Record date 2024-03-15 for shareholders of record.";
 

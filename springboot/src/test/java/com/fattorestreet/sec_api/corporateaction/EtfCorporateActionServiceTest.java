@@ -32,7 +32,7 @@ class EtfCorporateActionServiceTest {
     @Mock
     private WebService webService;
     @Mock
-    private DividendRecordDateService dividendRecordDateService;
+    private CorporateActionFilingDateService corporateActionFilingDateService;
 
     @Test
     void detectAndPersist_with497RecordDate_persistsDividendActionAndDiagnostics() {
@@ -43,7 +43,7 @@ class EtfCorporateActionServiceTest {
         listing.setSecClassTicker("VOO");
         when(listingRepository.findByTicker("VOO")).thenReturn(Optional.of(listing));
 
-        when(dividendRecordDateService.computeExDividendDate(LocalDate.of(2025, 2, 10)))
+        when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2025, 2, 10)))
                 .thenReturn(LocalDate.of(2025, 2, 7));
 
         when(webService.fetchSubmissions(123456L)).thenReturn("""
@@ -81,7 +81,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 
@@ -150,7 +150,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 
@@ -198,7 +198,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 
@@ -240,7 +240,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 
@@ -289,7 +289,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 
@@ -309,7 +309,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 
@@ -366,7 +366,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 
@@ -424,7 +424,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 
@@ -466,7 +466,7 @@ class EtfCorporateActionServiceTest {
                 listingRepository,
                 corporateActionRepository,
                 webService,
-                dividendRecordDateService,
+                corporateActionFilingDateService,
                 new ObjectMapper()
         );
 

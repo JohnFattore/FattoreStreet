@@ -21,7 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
-class DividendRecordDateServiceTest {
+class CorporateActionFilingDateServiceTest {
 
     @Mock
     private WebService webService;
@@ -29,12 +29,12 @@ class DividendRecordDateServiceTest {
     @Spy
     private ObjectMapper mapper = new ObjectMapper();
 
-    private DividendRecordDateService service;
+    private CorporateActionFilingDateService service;
 
     @BeforeEach
     void setUp() {
         EdgarFilingDiscoveryService filingDiscoveryService = new EdgarFilingDiscoveryService(webService, mapper);
-        service = new DividendRecordDateService(webService, filingDiscoveryService, mapper);
+        service = new CorporateActionFilingDateService(webService, filingDiscoveryService, mapper);
     }
 
     @Test
@@ -63,7 +63,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissions(320193L)).thenReturn(submissions);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000062", "d8k.htm")).thenReturn(filing);
 
-        List<DividendRecordDateService.RecordDateCandidate> out = service.fetchDividendRecordDates(320193L);
+        List<CorporateActionFilingDateService.RecordDateCandidate> out = service.fetchDividendRecordDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 10), out.get(0).recordDate());
@@ -95,7 +95,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000063", "d8k.htm")).thenReturn(primary);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000063", "ex99_1.htm")).thenReturn(exhibit);
 
-        List<DividendRecordDateService.RecordDateCandidate> out = service.fetchDividendRecordDates(320193L);
+        List<CorporateActionFilingDateService.RecordDateCandidate> out = service.fetchDividendRecordDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 10), out.get(0).recordDate());
@@ -135,7 +135,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissions(320193L)).thenReturn(submissions);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000062", "d8k.htm")).thenReturn(filing);
 
-        List<DividendRecordDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
+        List<CorporateActionFilingDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
@@ -167,7 +167,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissions(320193L)).thenReturn(submissions);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000062", "d8k.htm")).thenReturn(filing);
 
-        List<DividendRecordDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
+        List<CorporateActionFilingDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
@@ -198,7 +198,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissions(320193L)).thenReturn(submissions);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000062", "d8k.htm")).thenReturn(filing);
 
-        List<DividendRecordDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
+        List<CorporateActionFilingDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
@@ -229,7 +229,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissions(320193L)).thenReturn(submissions);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000062", "d8k.htm")).thenReturn(filing);
 
-        List<DividendRecordDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
+        List<CorporateActionFilingDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
@@ -260,7 +260,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissions(320193L)).thenReturn(submissions);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000062", "d8k.htm")).thenReturn(filing);
 
-        List<DividendRecordDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
+        List<CorporateActionFilingDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
@@ -291,7 +291,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000099", "d8k_newer.htm")).thenReturn(filing);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000062", "d8k_older.htm")).thenReturn(filing);
 
-        List<DividendRecordDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
+        List<CorporateActionFilingDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
@@ -335,7 +335,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissionsFile(320193L, "submissions-001.json")).thenReturn(archived);
         when(webService.fetchFilingDocument(320193L, "0000320193-14-000070", "d8k.htm")).thenReturn(filing);
 
-        List<DividendRecordDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
+        List<CorporateActionFilingDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2014, 6, 9), out.get(0).effectiveDate());
@@ -364,7 +364,7 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissionsFile(org.mockito.ArgumentMatchers.eq(320193L), org.mockito.ArgumentMatchers.anyString()))
                 .thenThrow(new RuntimeException("unavailable"));
 
-        List<DividendRecordDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
+        List<CorporateActionFilingDateService.SplitDateCandidate> out = service.fetchSplitEffectiveDates(320193L);
 
         assertTrue(out.isEmpty());
         verify(webService, times(48)).fetchSubmissionsFile(org.mockito.ArgumentMatchers.eq(320193L), org.mockito.ArgumentMatchers.anyString());
@@ -393,9 +393,10 @@ class DividendRecordDateServiceTest {
         when(webService.fetchSubmissions(320193L)).thenReturn(submissions);
         when(webService.fetchFilingDocument(320193L, "0000320193-21-000099", "d8k.htm")).thenReturn(filing);
 
-        DividendRecordDateService.RecordDateScanResult scan = service.scanDividendRecordDates(320193L);
+        CorporateActionFilingDateService.RecordDateScanResult scan = service.scanDividendRecordDates(320193L);
 
         assertEquals(1, scan.exDividendDirectCandidates().size());
         assertEquals(LocalDate.of(2021, 5, 10), scan.exDividendDirectCandidates().get(0).exDividendDate());
     }
 }
+

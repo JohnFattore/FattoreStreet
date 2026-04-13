@@ -1,6 +1,6 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.corporateaction.DividendRecordDateService;
+import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
 import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,10 +18,10 @@ import static org.mockito.Mockito.when;
 class EquityExDateAssignerTest {
 
     @Mock
-    private DividendRecordDateService dividendRecordDateService;
+    private CorporateActionFilingDateService corporateActionFilingDateService;
 
     private EquityExDateAssigner assigner() {
-        return new EquityExDateAssigner(dividendRecordDateService);
+        return new EquityExDateAssigner(corporateActionFilingDateService);
     }
 
     @Test
@@ -31,11 +31,11 @@ class EquityExDateAssignerTest {
         List<EquityCorporateActionService.DividendEvent> normalized = List.of(
                 new EquityCorporateActionService.DividendEvent(fiscal, null, 0.22, 0.22, 2021, false));
 
-        List<DividendRecordDateService.ExDividendDateCandidate> exDirect = List.of(
-                new DividendRecordDateService.ExDividendDateCandidate(
+        List<CorporateActionFilingDateService.ExDividendDateCandidate> exDirect = List.of(
+                new CorporateActionFilingDateService.ExDividendDateCandidate(
                         directEx, LocalDate.of(2021, 4, 1), "0000000000-21-000001", 130));
 
-        List<DividendRecordDateService.RecordDateCandidate> records = List.of();
+        List<CorporateActionFilingDateService.RecordDateCandidate> records = List.of();
 
         EquityCorporateActionService.AssignmentResult result = assigner().assignExDividendDates(normalized, records, exDirect);
 
@@ -53,11 +53,11 @@ class EquityExDateAssignerTest {
 
         List<EquityCorporateActionService.DividendEvent> normalized = List.of(
                 new EquityCorporateActionService.DividendEvent(fiscal, null, 0.22, 0.22, 2021, false));
-        List<DividendRecordDateService.RecordDateCandidate> records = List.of(
-                new DividendRecordDateService.RecordDateCandidate(recordDate, LocalDate.of(2021, 4, 1), "0000000000-21-000099", 120));
-        List<DividendRecordDateService.ExDividendDateCandidate> exDirect = List.of();
+        List<CorporateActionFilingDateService.RecordDateCandidate> records = List.of(
+                new CorporateActionFilingDateService.RecordDateCandidate(recordDate, LocalDate.of(2021, 4, 1), "0000000000-21-000099", 120));
+        List<CorporateActionFilingDateService.ExDividendDateCandidate> exDirect = List.of();
 
-        when(dividendRecordDateService.computeExDividendDate(recordDate)).thenReturn(expectedEx);
+        when(corporateActionFilingDateService.computeExDividendDate(recordDate)).thenReturn(expectedEx);
 
         EquityCorporateActionService.AssignmentResult result = assigner().assignExDividendDates(normalized, records, exDirect);
 
@@ -75,7 +75,7 @@ class EquityExDateAssignerTest {
         List<EquityCorporateActionService.DividendEvent> normalized = List.of(
                 new EquityCorporateActionService.DividendEvent(fiscal, null, 0.22, 0.22, 2021, false));
 
-        when(dividendRecordDateService.computeExDividendDate(any())).thenReturn(fallbackEx);
+        when(corporateActionFilingDateService.computeExDividendDate(any())).thenReturn(fallbackEx);
 
         EquityCorporateActionService.AssignmentResult result =
                 assigner().assignExDividendDates(normalized, List.of(), List.of());
@@ -95,10 +95,10 @@ class EquityExDateAssignerTest {
         List<EquityCorporateActionService.DividendEvent> normalized = List.of(
                 new EquityCorporateActionService.DividendEvent(fiscal, null, 0.22, 0.22, 2021, false),
                 new EquityCorporateActionService.DividendEvent(fiscal, null, 3.00, 3.00, 2021, true));
-        List<DividendRecordDateService.RecordDateCandidate> records = List.of(
-                new DividendRecordDateService.RecordDateCandidate(recordDate, LocalDate.of(2021, 4, 1), "0000000000-21-000099", 120));
+        List<CorporateActionFilingDateService.RecordDateCandidate> records = List.of(
+                new CorporateActionFilingDateService.RecordDateCandidate(recordDate, LocalDate.of(2021, 4, 1), "0000000000-21-000099", 120));
 
-        when(dividendRecordDateService.computeExDividendDate(any())).thenReturn(fallbackEx);
+        when(corporateActionFilingDateService.computeExDividendDate(any())).thenReturn(fallbackEx);
 
         EquityCorporateActionService.AssignmentResult result =
                 assigner().assignExDividendDates(normalized, records, List.of());
