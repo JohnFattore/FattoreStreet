@@ -42,8 +42,9 @@ DROP TABLE IF EXISTS indexes_stock CASCADE;
 |------|----------|-------------|
 | `load_fred_cache` | Periodic | Pre-caches FRED economic series (DGS10, CPI, UNRATE, etc.) |
 | `load_yfinance_cache` | Periodic | Pre-caches yfinance data for all portfolio tickers |
+| `load_iex_hist` | Optional periodic | Calls Spring Boot `GET /admin/load-hist` (IEX HIST daily price ingest). Requires `SPRINGBOOT_BASE_URL` and Django user `pk=1` for admin JWT. Add a django-celery-beat periodic task pointing at `portfolio.tasks.load_iex_hist`; optional kwargs e.g. `{"days": 20}`. |
 
-Spring Boot admin jobs (IEX HIST ingest, price adjustments, etc.) are not triggered by Django Celery; run them manually or automate separately. If django-celery-beat still has old entries for `portfolio.tasks.load_iex_hist` or `portfolio.tasks.refresh_corporate_actions`, delete those periodic tasks in Django admin.
+Other Spring Boot admin jobs (price adjustments, corporate actions, etc.) are not covered by this task; run them manually or automate separately. If django-celery-beat has a stale entry for `portfolio.tasks.refresh_corporate_actions`, remove it in Django admin if that task no longer exists.
 
 ## Environment Variables
 
@@ -54,6 +55,8 @@ Spring Boot admin jobs (IEX HIST ingest, price adjustments, etc.) are not trigge
 | `DATABASE` | (required) | `postgresLocal` or `postgresDocker` |
 | `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
 | `REDIS_URL` | (required) | Redis connection URL (e.g. `redis://localhost:6379`) |
+| `SPRINGBOOT_BASE_URL` | (empty) | Internal Spring Boot base URL for Celery triggers (no `/springboot/` prefix), e.g. `http://springboot:8080`. Required for `load_iex_hist`. |
+| `SPRINGBOOT_REQUEST_TIMEOUT` | `600` | HTTP timeout in seconds for `load_iex_hist` (IEX ingest can be slow). |
 
 ## Getting Started
 

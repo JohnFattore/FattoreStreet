@@ -87,6 +87,8 @@ Some features (like fetching stock prices) require asynchronous workers.
     celery -A mysite worker --beat -E -n beat
     ```
 
+3.  **Optional — scheduled IEX daily prices:** If you use django-celery-beat to run `portfolio.tasks.load_iex_hist`, set `SPRINGBOOT_BASE_URL` in `django/.env` to your Spring Boot service URL (same `SECRET_KEY` as Django for JWT). See [`django/README.md`](../django/README.md) (Celery tasks).
+
 ### 5. Frontend Styling (Sass)
 
 We use Sass for custom styling of React Bootstrap.

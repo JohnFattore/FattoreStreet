@@ -204,3 +204,8 @@ CELERY_RESULT_EXPIRES = timedelta(days=90)
 CELERY_BROKER_URL = env("REDIS_URL")
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Internal base URL for Spring Boot (no /springboot/ nginx prefix), e.g. http://springboot:8080
+SPRINGBOOT_BASE_URL = env("SPRINGBOOT_BASE_URL", default="")
+# IEX HIST ingest can run for many minutes
+SPRINGBOOT_REQUEST_TIMEOUT = env.int("SPRINGBOOT_REQUEST_TIMEOUT", default=600)
