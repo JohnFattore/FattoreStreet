@@ -7,7 +7,8 @@ class Recommendation(models.Model):
         SHOW   = "SHOW",   "TV Show"
         MUSIC  = "MUSIC",  "Music"                                                                                                                                                                                                                                                                                          
         PODCAST = "PODCAST", "Podcast"
-        GAME   = "GAME",   "Game"                                                                                                                                                                                                                                                                                           
+        GAME   = "GAME",   "Game"
+        WEBSITE   = "WEBSITE",   "Website"
                 
     type   = models.CharField(max_length=10, choices=Type.choices)                                                                                                                                                                                                                                                          
     title  = models.CharField(max_length=200)
