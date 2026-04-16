@@ -415,6 +415,7 @@ export const api = createApi({
         url: `company-fact-sheet?ticker=${ticker}`,
         method: "GET",
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
       }),
     }),
     getSecQuarters: builder.query<ISECQuartersResponse, string>({
@@ -422,6 +423,7 @@ export const api = createApi({
         url: `quarters?ticker=${ticker}`,
         method: "GET",
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
       }),
     }),
     getDjangoQuarters: builder.query<IYFinanceQuarter[], string>({
@@ -439,6 +441,7 @@ export const api = createApi({
               url: `company-fact-sheet?ticker=${ticker}`,
               method: "GET",
               baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+              withAuth: false,
             })
           )
         );
@@ -453,6 +456,7 @@ export const api = createApi({
         url: `prices?ticker=${ticker}`,
         method: "GET",
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
       }),
     }),
     getIexDividends: builder.query<IIexDividendsResponse, string>({
@@ -460,6 +464,7 @@ export const api = createApi({
         url: `dividends?ticker=${ticker}`,
         method: "GET",
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
       }),
     }),
     getIexSplits: builder.query<IIexSplitsResponse, string>({
@@ -467,6 +472,7 @@ export const api = createApi({
         url: `splits?ticker=${ticker}`,
         method: "GET",
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
       }),
     }),
     getFilingSummaries: builder.query<IFilingSummary[], string>({
@@ -474,6 +480,7 @@ export const api = createApi({
         url: `filing-summaries?ticker=${ticker}`,
         method: "GET",
         baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+        withAuth: false,
       }),
       transformResponse: (response: { ticker: string; summaries: IFilingSummary[] }) => response.summaries,
     }),

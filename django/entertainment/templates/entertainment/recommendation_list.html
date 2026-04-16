@@ -1,0 +1,43 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Recommendations{% endblock %}
+
+{% block branding %}
+    <h1 id="site-name">Recommendations</h1>
+{% endblock %}
+
+{% block nav-sidebar %}{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{{ home_url }}">Home</a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    {% for type_label, recs in groups.items %}
+        <h2>{{ type_label }}</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Title</th>
+                    <th scope="col">Artist</th>
+                    <th scope="col">Year</th>
+                    <th scope="col">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rec in recs %}
+                    <tr class="{% cycle 'row1' 'row2' %}">
+                        <td>{{ rec.title }}</td>
+                        <td>{{ rec.artist }}</td>
+                        <td>{{ rec.year|default_if_none:"—" }}</td>
+                        <td>{{ rec.notes|default:"" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% empty %}
+        <p>No recommendations yet.</p>
+    {% endfor %}
+{% endblock %}

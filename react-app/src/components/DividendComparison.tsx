@@ -99,6 +99,15 @@ export default function DividendComparison({ ticker }: { ticker: string }) {
   const { data: yfData, isLoading: yfLoading, error: yfError } = useGetAssetDividendsQuery(ticker);
 
   const rows = useMemo(() => buildRows(myData?.dividends ?? [], yfData ?? []), [myData, yfData]);
+  const totals = useMemo(() => {
+    let internalTotal = 0;
+    let yfTotal = 0;
+    for (const row of rows) {
+      if (row.myDividend != null) internalTotal += row.myDividend;
+      if (row.yfDividend != null) yfTotal += row.yfDividend;
+    }
+    return { internalTotal, yfTotal, diff: yfTotal - internalTotal };
+  }, [rows]);
   const isLoading = myLoading || yfLoading;
   const hasError = myError || yfError;
 
@@ -127,6 +136,18 @@ export default function DividendComparison({ ticker }: { ticker: string }) {
                     <th>Date Gap (Days)</th>
                     <th>Difference</th>
                   </tr>
+                  {rows.length > 0 && (
+                    <tr className="fw-bold table-secondary">
+                      <td>Total</td>
+                      <td>{formatCurrency(totals.internalTotal)}</td>
+                      <td>---</td>
+                      <td>{formatCurrency(totals.yfTotal)}</td>
+                      <td>---</td>
+                      <td className={Math.abs(totals.diff) > 0.01 ? "text-danger" : ""}>
+                        {formatCurrency(totals.diff)}
+                      </td>
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
                   {rows.map((row, idx) => {

@@ -25,7 +25,7 @@ export default function TopNavigation() {
             <Nav.Link as={Link} to="/blog">Blog</Nav.Link>
             <Nav.Link as={Link} to="/economic-indicators">Economic Indicators</Nav.Link>
             <Nav.Link as={Link} to="/restaurants">Restaurants</Nav.Link>
-            <Nav.Link as={Link} to="/entertainment">Entertainment</Nav.Link>
+            <Nav.Link href={import.meta.env.VITE_APP_DJANGO_ENTERTAINMENT_URL}>Entertainment</Nav.Link>                                                                                                                                                                   
             <Nav.Link as={Link} to="/user">Profile</Nav.Link>
             {access && <LogoutButton />}
           </Nav>

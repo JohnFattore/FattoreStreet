@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'chatbot.apps.ChatbotConfig',
     'changeflow.apps.ChangeflowConfig',
     'blog.apps.BlogConfig',
+    'entertainment.apps.EntertainmentConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -209,3 +210,5 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 SPRINGBOOT_BASE_URL = env("SPRINGBOOT_BASE_URL", default="")
 # IEX HIST ingest can run for many minutes
 SPRINGBOOT_REQUEST_TIMEOUT = env.int("SPRINGBOOT_REQUEST_TIMEOUT", default=600)
+
+HOME_URL = env("HOME_URL", default="/")
