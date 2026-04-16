@@ -114,19 +114,13 @@ interface IPaginatedResponse<T> {
   results: T[];
 }
 
-const changeflowBaseUrl =
-  import.meta.env.VITE_APP_DJANGO_CHANGEFLOW_URL ||
-  import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
-    "/portfolio/api/",
-    "/changeflow/api/"
-  );
+const djangoBaseUrl = (import.meta.env.VITE_APP_DJANGO_URL || "").endsWith("/")
+  ? import.meta.env.VITE_APP_DJANGO_URL
+  : `${import.meta.env.VITE_APP_DJANGO_URL}/`;
 
-const blogBaseUrl =
-  import.meta.env.VITE_APP_DJANGO_BLOG_URL ||
-  import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
-    "/portfolio/api/",
-    "/blog/api/"
-  );
+const portfolioApiBaseUrl = djangoBaseUrl + "portfolio/api/";
+const changeflowApiBaseUrl = djangoBaseUrl + "changeflow/api/";
+const blogApiBaseUrl = djangoBaseUrl + "blog/api/";
 
 const axiosBaseQuery =
   (): BaseQueryFn<{
@@ -142,7 +136,7 @@ const axiosBaseQuery =
         const state = api.getState() as RootState;
         const access = state.user.access;
         const result = await axios({
-          url: (baseUrl || import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL) + url,
+          url: (baseUrl || portfolioApiBaseUrl) + url,
           method,
           data,
           params: params,
@@ -222,7 +216,7 @@ export const api = createApi({
         url: "tickets/",
         method: "POST",
         data: ticket,
-        baseUrl: changeflowBaseUrl,
+        baseUrl: changeflowApiBaseUrl,
       }),
     }),
     getBlogPosts: builder.query<
@@ -233,7 +227,7 @@ export const api = createApi({
         url: "posts/",
         method: "GET",
         params,
-        baseUrl: blogBaseUrl,
+        baseUrl: blogApiBaseUrl,
         withAuth: false,
       }),
     }),
@@ -241,7 +235,7 @@ export const api = createApi({
       query: (slug) => ({
         url: `posts/${slug}/`,
         method: "GET",
-        baseUrl: blogBaseUrl,
+        baseUrl: blogApiBaseUrl,
         withAuth: false,
       }),
     }),
@@ -249,7 +243,7 @@ export const api = createApi({
       query: () => ({
         url: "categories/",
         method: "GET",
-        baseUrl: blogBaseUrl,
+        baseUrl: blogApiBaseUrl,
         withAuth: false,
       }),
     }),
@@ -257,7 +251,7 @@ export const api = createApi({
       query: () => ({
         url: "tags/",
         method: "GET",
-        baseUrl: blogBaseUrl,
+        baseUrl: blogApiBaseUrl,
         withAuth: false,
       }),
     }),
@@ -401,6 +395,7 @@ export const api = createApi({
         url: "fred-data/",
         method: "POST",
         data: seriesList,
+        withAuth: false,
       }),
     }),
     getQuote: builder.query<IQuoteResponse, string>({
@@ -408,6 +403,7 @@ export const api = createApi({
         url: "quote/",
         method: "GET",
         params: { symbol: ticker },
+        withAuth: false,
       }),
     }),
     getSecEdgarData: builder.query<ISECData, string>({
@@ -431,6 +427,7 @@ export const api = createApi({
         url: "quarterly-data/",
         method: "GET",
         params: { ticker },
+        withAuth: false,
       }),
     }),
     getSecEdgarDataBatch: builder.query<ISECData[], string[]>({

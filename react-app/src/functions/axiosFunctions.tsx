@@ -3,6 +3,15 @@ import { IRestaurant, IReview } from "../interfaces";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { RootState } from "../main";
 
+const djangoBaseUrl = (import.meta.env.VITE_APP_DJANGO_URL || "").endsWith("/")
+  ? import.meta.env.VITE_APP_DJANGO_URL
+  : `${import.meta.env.VITE_APP_DJANGO_URL}/`;
+
+const usersApiBaseUrl = djangoBaseUrl + "users/api/";
+const portfolioApiBaseUrl = djangoBaseUrl + "portfolio/api/";
+const restaurantsApiBaseUrl = djangoBaseUrl + "restaurants/api/";
+const chatbotApiBaseUrl = djangoBaseUrl + "chatbot/api/";
+
 type RawRestaurantRow = {
   yelp_id: string;
   name: string;
@@ -59,7 +68,7 @@ export const login = createAsyncThunk(
   ) => {
     try {
       const response = await axios.post(
-        import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("token/"),
+        usersApiBaseUrl.concat("token/"),
         {
           username: username,
           password: password,
@@ -86,7 +95,7 @@ export const refreshLogin = createAsyncThunk(
       const state = getState() as RootState;
       const refresh = state.user.refresh;
       const response = await axios.post(
-        import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("token/refresh/"),
+        usersApiBaseUrl.concat("token/refresh/"),
         {
           refresh: refresh,
         }
@@ -113,7 +122,7 @@ export const postUser = createAsyncThunk(
   ) => {
     try {
       const response = await axios.post(
-        import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("users/"),
+        usersApiBaseUrl.concat("users/"),
         {
           username: username,
           password: password,
@@ -129,7 +138,7 @@ export const postUser = createAsyncThunk(
 
 export const getQuote = async (ticker: string) => {
   const response = await axios.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quote/"),
+    portfolioApiBaseUrl.concat("quote/"),
     {
       params: {
         symbol: ticker,
@@ -147,7 +156,7 @@ export const getRestaurants = createAsyncThunk<IRestaurant[]>(
       const state = getState() as RootState;
       const location = state.location;
       const response = await axios.get(
-        import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat(
+        restaurantsApiBaseUrl.concat(
           "restaurant-list-create/"
         ),
         {
@@ -188,7 +197,7 @@ export const getRestaurantRecommendations = createAsyncThunk<IRestaurant[]>(
       const state = getState() as RootState;
       const access = state.user.access;
       const response = await axios.get(
-        import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat(
+        restaurantsApiBaseUrl.concat(
           "restaurant-recommend/"
         ),
         {
@@ -228,7 +237,7 @@ export const getReviews = createAsyncThunk<IReview[]>(
       const state = getState() as RootState;
       const access = state.user.access;
       const response = await axios.get(
-        import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-list/"),
+        restaurantsApiBaseUrl.concat("review-list/"),
         {
           headers: {
             Authorization: " Bearer ".concat(access),
@@ -263,7 +272,7 @@ export const postReview = createAsyncThunk(
       const state = getState() as RootState;
       const access = state.user.access;
       const response = await axios.post(
-        import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat(
+        restaurantsApiBaseUrl.concat(
           "review-create/"
         ),
         {
@@ -292,9 +301,9 @@ export const deleteReview = createAsyncThunk(
       const state = getState() as RootState;
       const access = state.user.access;
       await axios.delete(
-        import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat(
+        restaurantsApiBaseUrl.concat(
           "review/",
-          id,
+          String(id),
           "/"
         ),
         {
@@ -317,9 +326,9 @@ export const patchReview = createAsyncThunk(
       const state = getState() as RootState;
       const access = state.user.access;
       const response = await axios.patch(
-        import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat(
+        restaurantsApiBaseUrl.concat(
           "review-update/",
-          review.id,
+          String(review.id),
           "/"
         ),
         {
@@ -342,7 +351,7 @@ export const patchReview = createAsyncThunk(
 /*
 export const getReview = async (id: number) => {
   const access = store.getState().user.access
-  const response = await axios.get(import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("review/", id, "/"), {
+  const response = await axios.get(portfolioApiBaseUrl.concat("review/", id, "/"), {
     headers: {
       'Authorization': ' Bearer '.concat(access)
     },
@@ -360,7 +369,7 @@ export const getChatbot = createAsyncThunk(
       const state = getState() as RootState;
       const access = state.user.access;
       const response = await axios.get(
-        import.meta.env.VITE_APP_DJANGO_CHATBOT_URL.concat("chatbot/"),
+        chatbotApiBaseUrl.concat("chatbot/"),
         {
           headers: {
             Authorization: " Bearer ".concat(access),
@@ -387,7 +396,7 @@ export const postChatbot = createAsyncThunk(
       const state = getState() as RootState;
       const access = state.user.access;
       const response = await axios.post(
-        import.meta.env.VITE_APP_DJANGO_CHATBOT_URL.concat("chatbot/"),
+        chatbotApiBaseUrl.concat("chatbot/"),
         {
           message: message,
         },

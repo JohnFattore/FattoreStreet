@@ -66,8 +66,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 
 All API calls go through a single RTK Query API slice (`src/functions/api.ts`) using a custom `axiosBaseQuery`. Endpoints are split across two backends:
 
-- **Django** (`VITE_APP_DJANGO_PORTFOLIO_URL`): assets, accounts, quotes, asset-prices, asset-dividends, asset-splits, FRED data, quarterly data, asset-info
-- **Django Changeflow** (`VITE_APP_DJANGO_CHANGEFLOW_URL`, optional fallback from portfolio URL): authenticated ticket submission (`tickets/`)
+- **Django** (`VITE_APP_DJANGO_URL`): React derives per-app API bases (`/users/api/`, `/portfolio/api/`, `/restaurants/api/`, `/chatbot/api/`, `/changeflow/api/`, `/blog/api/`) from this single base; endpoints include assets, accounts, quotes, asset-prices, asset-dividends, asset-splits, FRED data, quarterly data, asset-info, tickets, and blog
 - **Spring Boot** (`VITE_APP_SPRINGBOOT_URL`): SEC EDGAR fact sheets, quarters, IEX prices, dividends, splits, filing summaries, indexes (`/indexes`, `/index-members` with nested `stock` including `stateHQ` / `stateIncorp`), IWB reference weights (`/iwb-reference-holdings`)
 
 The `transformResponse` functions handle snake_case → camelCase conversion.

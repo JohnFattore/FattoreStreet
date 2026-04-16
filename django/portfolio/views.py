@@ -79,6 +79,7 @@ class AssetRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return Asset.objects.filter(user=self.request.user)
 
 class QuoteRetrieveView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     def get(self, request):
         qs = SymbolQuerySerializer(data=request.query_params)
@@ -94,6 +95,7 @@ class QuoteRetrieveView(APIView):
         return Response(data)
 
 class AssetInfoRetrieveView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     def get(self, request):
         tickers = request.query_params.get("tickers")
@@ -140,6 +142,7 @@ class AssetInfoRetrieveView(APIView):
         return Response({"data": data, "errors": errors})
 
 class AssetHistoricalPricesRetrieveView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     def get(self, request):
         qs = TickerQuerySerializer(data=request.query_params)
@@ -153,6 +156,7 @@ class AssetHistoricalPricesRetrieveView(APIView):
 
 
 class AssetHistoricalDividendsRetrieveView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -167,6 +171,7 @@ class AssetHistoricalDividendsRetrieveView(APIView):
 
 
 class AssetHistoricalSplitsRetrieveView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -180,6 +185,7 @@ class AssetHistoricalSplitsRetrieveView(APIView):
         return Response(output)
 
 class QuarterlyDataRetrieveView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     def get(self, request):
         qs = TickerQuerySerializer(data=request.query_params)
@@ -193,6 +199,7 @@ class QuarterlyDataRetrieveView(APIView):
         return Response(data)
 
 class FredDataRetrieveView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     def post(self, request):
         serializer = FredSeriesItemSerializer(data=request.data, many=True)

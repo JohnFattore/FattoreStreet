@@ -10,6 +10,12 @@ import AssetTickerTable from '../src/components/AssetTickerTable';
 import { renderWithProviders } from './testutils';
 import { server } from './mocks/server';
 
+const djangoBaseUrl = (import.meta.env.VITE_APP_DJANGO_URL || "").endsWith("/")
+    ? import.meta.env.VITE_APP_DJANGO_URL
+    : `${import.meta.env.VITE_APP_DJANGO_URL}/`;
+
+const portfolioApiBaseUrl = djangoBaseUrl + "portfolio/api/";
+
 const authenticatedState = {
     user: { access: 'fake-token', refresh: 'fake-refresh', username: 'testuser' }
 };
@@ -32,7 +38,7 @@ describe('AssetTable', () => {
     it('shows Loading... while asset info loads, then resolves', async () => {
         server.use(
             http.get(
-                `${import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL}asset-info/`,
+                `${portfolioApiBaseUrl}asset-info/`,
                 async () => {
                     await delay(500);
                     return Response.json(
@@ -71,7 +77,7 @@ describe('AssetTickerTable', () => {
     it('shows Loading... while asset info loads, then resolves with price', async () => {
         server.use(
             http.get(
-                `${import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL}asset-info/`,
+                `${portfolioApiBaseUrl}asset-info/`,
                 async () => {
                     await delay(500);
                     return Response.json(

@@ -6,6 +6,12 @@ import { useSelector } from "react-redux";
 import { RootState } from '../main';
 import { Link } from 'react-router-dom';
 
+const djangoBaseUrl = (import.meta.env.VITE_APP_DJANGO_URL || "").endsWith("/")
+  ? import.meta.env.VITE_APP_DJANGO_URL
+  : `${import.meta.env.VITE_APP_DJANGO_URL}/`;
+
+const entertainmentBaseUrl = djangoBaseUrl + "entertainment/";
+
 export default function TopNavigation() {
 
   const { access } = useSelector((state: RootState) => state.user);
@@ -25,7 +31,7 @@ export default function TopNavigation() {
             <Nav.Link as={Link} to="/blog">Blog</Nav.Link>
             <Nav.Link as={Link} to="/economic-indicators">Economic Indicators</Nav.Link>
             <Nav.Link as={Link} to="/restaurants">Restaurants</Nav.Link>
-            <Nav.Link href={import.meta.env.VITE_APP_DJANGO_ENTERTAINMENT_URL}>Entertainment</Nav.Link>                                                                                                                                                                   
+            <Nav.Link href={entertainmentBaseUrl}>Entertainment</Nav.Link>
             <Nav.Link as={Link} to="/user">Profile</Nav.Link>
             {access && <LogoutButton />}
           </Nav>

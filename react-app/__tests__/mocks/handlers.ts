@@ -1,22 +1,18 @@
 import { http } from "msw";
 
-const changeflowBaseUrl =
-  import.meta.env.VITE_APP_DJANGO_CHANGEFLOW_URL ||
-  import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
-    "/portfolio/api/",
-    "/changeflow/api/"
-  );
+const djangoBaseUrl = (import.meta.env.VITE_APP_DJANGO_URL || "").endsWith("/")
+  ? import.meta.env.VITE_APP_DJANGO_URL
+  : `${import.meta.env.VITE_APP_DJANGO_URL}/`;
 
-const blogBaseUrl =
-  import.meta.env.VITE_APP_DJANGO_BLOG_URL ||
-  import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(
-    "/portfolio/api/",
-    "/blog/api/"
-  );
+const usersApiBaseUrl = djangoBaseUrl + "users/api/";
+const portfolioApiBaseUrl = djangoBaseUrl + "portfolio/api/";
+const restaurantsApiBaseUrl = djangoBaseUrl + "restaurants/api/";
+const changeflowApiBaseUrl = djangoBaseUrl + "changeflow/api/";
+const blogApiBaseUrl = djangoBaseUrl + "blog/api/";
 
 export const handlers = [
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("accounts/"),
+    portfolioApiBaseUrl.concat("accounts/"),
     () => {
       return Response.json(
         [
@@ -29,7 +25,7 @@ export const handlers = [
   ),
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"),
+    portfolioApiBaseUrl.concat("assets/"),
     () => {
       return Response.json(
         [
@@ -66,7 +62,7 @@ export const handlers = [
   ),
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-info/"),
+    portfolioApiBaseUrl.concat("asset-info/"),
     () => {
       return Response.json(
         {
@@ -203,7 +199,7 @@ export const handlers = [
   }),
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quote/"),
+    portfolioApiBaseUrl.concat("quote/"),
     () => {
       return Response.json(
         {
@@ -216,7 +212,7 @@ export const handlers = [
   ),
 
   http.post(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("fred-data/"),
+    portfolioApiBaseUrl.concat("fred-data/"),
     () => {
       return Response.json(
         {
@@ -334,7 +330,7 @@ export const handlers = [
     }
   ),
 
-  http.post(import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("token/"), () => {
+  http.post(usersApiBaseUrl.concat("token/"), () => {
     return Response.json(
       {
         refresh:
@@ -347,7 +343,7 @@ export const handlers = [
   }),
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat("review-list/"),
+    restaurantsApiBaseUrl.concat("review-list/"),
     () => {
       return Response.json(
         [
@@ -379,7 +375,7 @@ export const handlers = [
   ),
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_RESTAURANTS_URL.concat(
+    restaurantsApiBaseUrl.concat(
       "restaurant-list-create/"
     ),
     () => {
@@ -558,7 +554,7 @@ export const handlers = [
 
   http.get(
     new RegExp(
-      import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
+      portfolioApiBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
         "accounts/\\d+/"
     ),
     () => {
@@ -572,7 +568,7 @@ export const handlers = [
   // --- Asset prices ---
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-prices/"),
+    portfolioApiBaseUrl.concat("asset-prices/"),
     () => {
       return Response.json(
         [
@@ -586,7 +582,7 @@ export const handlers = [
   ),
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-dividends/"),
+    portfolioApiBaseUrl.concat("asset-dividends/"),
     () => {
       return Response.json(
         [
@@ -600,7 +596,7 @@ export const handlers = [
   ),
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("asset-splits/"),
+    portfolioApiBaseUrl.concat("asset-splits/"),
     () => {
       return Response.json(
         [
@@ -615,7 +611,7 @@ export const handlers = [
   // --- Quarterly data (Django / yfinance) ---
 
   http.get(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("quarterly-data/"),
+    portfolioApiBaseUrl.concat("quarterly-data/"),
     () => {
       return Response.json(
         [
@@ -648,7 +644,7 @@ export const handlers = [
   // --- Mutations ---
 
   http.post(
-    import.meta.env.VITE_APP_DJANGO_USERS_URL.concat("users/"),
+    usersApiBaseUrl.concat("users/"),
     () => {
       return Response.json(
         { id: 10, username: "newuser", email: "new@test.com" },
@@ -658,7 +654,7 @@ export const handlers = [
   ),
 
   http.post(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("accounts/"),
+    portfolioApiBaseUrl.concat("accounts/"),
     () => {
       return Response.json(
         { id: 3, name: "New Account", account_type: "ROTH_IRA" },
@@ -668,7 +664,7 @@ export const handlers = [
   ),
 
   http.post(
-    import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL.concat("assets/"),
+    portfolioApiBaseUrl.concat("assets/"),
     () => {
       return Response.json(
         {
@@ -689,7 +685,7 @@ export const handlers = [
     }
   ),
   http.post(
-    changeflowBaseUrl.concat("tickets/"),
+    changeflowApiBaseUrl.concat("tickets/"),
     async ({ request }) => {
       const body = (await request.json()) as { title?: string; description?: string };
       return Response.json(
@@ -708,7 +704,7 @@ export const handlers = [
   ),
 
   // --- Blog (Django) ---
-  http.get(blogBaseUrl.concat("posts/"), () => {
+  http.get(blogApiBaseUrl.concat("posts/"), () => {
     return Response.json(
       {
         count: 1,
@@ -733,7 +729,7 @@ export const handlers = [
     );
   }),
 
-  http.get(blogBaseUrl.concat("posts/hello-world/"), () => {
+  http.get(blogApiBaseUrl.concat("posts/hello-world/"), () => {
     return Response.json(
       {
         title: "Hello World",
