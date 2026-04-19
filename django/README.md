@@ -57,6 +57,7 @@ Other Spring Boot admin jobs (price adjustments, corporate actions, etc.) are no
 | `REDIS_URL` | (required) | Redis connection URL (e.g. `redis://localhost:6379`) |
 | `SPRINGBOOT_BASE_URL` | (empty) | Internal Spring Boot base URL for Celery triggers (no `/springboot/` prefix), e.g. `http://springboot:8080`. Required for `load_iex_hist`. |
 | `SPRINGBOOT_REQUEST_TIMEOUT` | `600` | HTTP timeout in seconds for `load_iex_hist` (IEX ingest can be slow). |
+| `DJANGO_FORCE_SCRIPT_NAME` | (empty) | Public URL prefix where nginx serves Django (e.g. `/django`). Set in production so admin login redirects and `{% url %}` resolve under `/django/...`. Omit or leave empty for local `runserver` at `/admin/`. |
 
 ## Getting Started
 
@@ -106,6 +107,7 @@ python3 manage.py test
 - All services run in Docker containers
 - Kubernetes manifests in `kubernetes/`
 - Hosted on AWS EC2
+- Django admin: with `DJANGO_FORCE_SCRIPT_NAME=/django` (matching nginx `location /django/`), use **`/django/admin/`** in the browser; local dev without that env continues to use **`/admin/`**.
 
 ## Documentation
 

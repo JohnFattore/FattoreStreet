@@ -166,7 +166,11 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+# When nginx proxies Django at /django/, set DJANGO_FORCE_SCRIPT_NAME=/django so redirects and {% url %} include the prefix.
+_script_name = env("DJANGO_FORCE_SCRIPT_NAME", default="").strip()
+FORCE_SCRIPT_NAME = _script_name or None
+
+STATIC_URL = "/static/"
 # collect static files in NGINX folder for distribution
 STATIC_ROOT = os.path.join(BASE_DIR, "../nginx/static")
 

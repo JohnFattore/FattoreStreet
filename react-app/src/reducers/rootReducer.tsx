@@ -7,7 +7,7 @@ import locationReducer from './locationReducer'
 import restaurantRecommendReducer from './restaurantRecommendReducer'
 import chatbotReducer from './chatbotReducer'
 import adminSuccessBarReducer from './adminSuccessBarReducer'
-import { api } from '../functions/api' // adjust path as needed
+import { api } from '../functions/api'
 
 const rootReducer = combineReducers({
     restaurants: restaurantReducer,
@@ -18,8 +18,8 @@ const rootReducer = combineReducers({
     location: locationReducer,
     chatbot: chatbotReducer,
     adminSuccessBar: adminSuccessBarReducer,
-    [api.reducerPath]: api.reducer, // <- add this line
+    [api.reducerPath]: api.reducer,
 });
 
-export type RootState = ReturnType<typeof rootReducer>;  // Type the state of the Redux store
+export type RootState = ReturnType<typeof rootReducer>;
 export default rootReducer;
