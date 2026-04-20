@@ -8,18 +8,21 @@ import { addTicker, clearWatchlistError, errorTicker } from "../reducers/watchLi
 import { RootState, AppDispatch } from "../main";
 import { useSelector, useDispatch } from "react-redux";
 import LoadingButton from "./LoadingButton";
-import { getErrorMessages, useIsEndpointLoading } from "../functions/helperFunctions";
+import { getErrorMessages } from "../functions/helperFunctions";
 
 interface IFormInput {
   ticker: string;
 }
 
-export default function WatchListForm() {
+type WatchListFormProps = {
+  assetInfosLoading: boolean;
+};
+
+export default function WatchListForm({ assetInfosLoading }: WatchListFormProps) {
   const { tickers, loading } = useSelector(
     (state: RootState) => state.watchList
   );
   const dispatch = useDispatch<AppDispatch>();
-  const isLoading = useIsEndpointLoading("getAssetInfos")
 
   const schema = yup.object().shape({
     ticker: yup.string().required().uppercase(),
@@ -62,7 +65,7 @@ export default function WatchListForm() {
           Error: Ticker text field is required
         </Alert>
       )}
-    <LoadingButton label={"Add to Watchlist"} loading={loading || isLoading}/>
+    <LoadingButton label={"Add to Watchlist"} loading={loading || assetInfosLoading}/>
     </Form>
     </>
 

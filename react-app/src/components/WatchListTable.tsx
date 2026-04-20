@@ -1,25 +1,32 @@
 import { useState } from "react";
 import { formatString } from "../functions/helperFunctions";
 import { IEquityInfo, IETFInfo, ISECData } from "../interfaces";
-import { useGetAssetInfosQuery, useGetSecEdgarDataBatchQuery } from "../functions/api";
+import { useGetSecEdgarDataBatchQuery } from "../functions/api";
 import { Button, ButtonGroup } from "react-bootstrap";
-import { useSelector, useDispatch } from "react-redux";
-import { AppDispatch, RootState } from "../main";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "../main";
 import { removeTicker } from "../reducers/watchListReducer";
 import { useNavigate } from "react-router-dom";
 import { SortableTable } from "./SortableTable";
 
 type View = "performance" | "edgar";
 
-export default function WatchListTable() {
+type WatchListTableProps = {
+  tickers: string[];
+  assetInfos: Record<string, IEquityInfo | IETFInfo> | undefined;
+  assetInfosLoading: boolean;
+  assetInfosError: unknown;
+};
+
+export default function WatchListTable({
+  tickers,
+  assetInfos,
+  assetInfosLoading,
+  assetInfosError,
+}: WatchListTableProps) {
   const [view, setView] = useState<View>("performance");
-  const tickers = useSelector((state: RootState) => state.watchList.tickers);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-
-  const { data: dataRaw, isLoading, error } = useGetAssetInfosQuery(tickers, {
-    skip: tickers.length === 0,
-  });
 
   const {
     data: edgarData,
@@ -29,8 +36,7 @@ export default function WatchListTable() {
     skip: tickers.length === 0 || view !== "edgar",
   });
 
-  const data = dataRaw ?? [];
-  const dataArr = Object.values(data as Record<string, IEquityInfo | IETFInfo>);
+  const dataArr = Object.values(assetInfos ?? {});
 
   type PerfRow = IEquityInfo | IETFInfo;
 
@@ -226,8 +232,8 @@ export default function WatchListTable() {
           data={dataArr}
           columns={performanceColumns}
           initialSortKey="ticker"
-          isLoading={isLoading}
-          errors={[error]}
+          isLoading={assetInfosLoading}
+          errors={[assetInfosError]}
         />
       )}
     </div>
