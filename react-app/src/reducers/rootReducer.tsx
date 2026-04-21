@@ -7,7 +7,7 @@ import locationReducer from './locationReducer'
 import restaurantRecommendReducer from './restaurantRecommendReducer'
 import chatbotReducer from './chatbotReducer'
 import adminSuccessBarReducer from './adminSuccessBarReducer'
-import { api } from '../functions/api'
+import { djangoApi, springbootApi } from "../functions/api";
 
 const rootReducer = combineReducers({
     restaurants: restaurantReducer,
@@ -18,7 +18,8 @@ const rootReducer = combineReducers({
     location: locationReducer,
     chatbot: chatbotReducer,
     adminSuccessBar: adminSuccessBarReducer,
-    [api.reducerPath]: api.reducer,
+    [djangoApi.reducerPath]: djangoApi.reducer,
+    [springbootApi.reducerPath]: springbootApi.reducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

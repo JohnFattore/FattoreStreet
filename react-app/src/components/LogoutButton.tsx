@@ -2,7 +2,7 @@ import { Button, Modal } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../main";
 import { logout } from "../reducers/userReducer";
-import { api } from "../functions/api";
+import { djangoApi, springbootApi } from "../functions/api";
 import { useState } from "react";
 
 export default function LogoutButton() {
@@ -11,7 +11,8 @@ export default function LogoutButton() {
 
   const handleLogout = () => {
     dispatch(logout());
-    dispatch(api.util.resetApiState());
+    dispatch(djangoApi.util.resetApiState());
+    dispatch(springbootApi.util.resetApiState());
     setShowConfirm(false);
   };
 

@@ -3,7 +3,7 @@ import { Provider } from "react-redux";
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from '../src/reducers/rootReducer';
-import { api } from '../src/functions/api';
+import { djangoApi, springbootApi } from "../src/functions/api";
 
 export function createTestStore(preloadedState = {}) {
     return configureStore({
@@ -12,7 +12,7 @@ export function createTestStore(preloadedState = {}) {
         middleware: (getDefaultMiddleware) =>
             getDefaultMiddleware({
                 serializableCheck: false,
-            }).concat(api.middleware),
+            }).concat(djangoApi.middleware, springbootApi.middleware),
     });
 }
 

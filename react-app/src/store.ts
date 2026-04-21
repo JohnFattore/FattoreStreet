@@ -2,7 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from './reducers/rootReducer';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import { api } from './functions/api'
+import { djangoApi, springbootApi } from "./functions/api";
 
 const persistConfig = {
     key: 'root', // The key to store the data in storage
@@ -17,5 +17,5 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false, // redux-persist needs this
-    }).concat(api.middleware),
+    }).concat(djangoApi.middleware, springbootApi.middleware),
 });

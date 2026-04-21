@@ -1,23 +1,13 @@
-import { createApi, BaseQueryFn } from "@reduxjs/toolkit/query/react";
-import axios, { AxiosRequestConfig, AxiosError } from "axios";
-import {
+import { createApi } from "@reduxjs/toolkit/query/react";
+import type {
   IAsset,
   IDividendRow,
   IEquityInfo,
   IETFInfo,
-  IFilingSummary,
-  IIexDividendsResponse,
-  IIexPricesResponse,
-  IIexSplitsResponse,
-  ISECData,
-  ISECQuartersResponse,
   ISplitRow,
-  IMarketIndex,
-  IIndexMemberRow,
-  IIwbReferenceHolding,
   IYFinanceQuarter,
-} from "../interfaces";
-import { RootState } from "../main";
+} from "../../interfaces";
+import { axiosBaseQuery } from "./baseQuery";
 
 /** Raw snake_case shape returned by Django for a single asset */
 interface IRawAsset {
@@ -114,54 +104,14 @@ interface IPaginatedResponse<T> {
   results: T[];
 }
 
-const djangoBaseUrl = (import.meta.env.VITE_APP_DJANGO_URL || "").endsWith("/")
-  ? import.meta.env.VITE_APP_DJANGO_URL
-  : `${import.meta.env.VITE_APP_DJANGO_URL}/`;
-
-const portfolioApiBaseUrl = djangoBaseUrl + "portfolio/api/";
-const changeflowApiBaseUrl = djangoBaseUrl + "changeflow/api/";
-const blogApiBaseUrl = djangoBaseUrl + "blog/api/";
-
-const axiosBaseQuery =
-  (): BaseQueryFn<{
-    url: string;
-    method: AxiosRequestConfig["method"];
-    data?: AxiosRequestConfig["data"];
-    params?: AxiosRequestConfig["params"];
-    baseUrl?: string;
-    withAuth?: boolean;
-  }> =>
-    async ({ url, method, data, params, baseUrl, withAuth = true }, api) => {
-      try {
-        const state = api.getState() as RootState;
-        const access = state.user.access;
-        const result = await axios({
-          url: (baseUrl || portfolioApiBaseUrl) + url,
-          method,
-          data,
-          params: params,
-          headers: withAuth && access ? { Authorization: `Bearer ${access}` } : undefined,
-        });
-        return { data: result.data };
-      } catch (axiosError) {
-        const err = axiosError as AxiosError;
-        return {
-          error: {
-            status: err.response?.status,
-            data: err.response?.data || err.message,
-          },
-        };
-      }
-    };
-
-export const api = createApi({
-  reducerPath: "api",
-  baseQuery: axiosBaseQuery(),
+export const djangoApi = createApi({
+  reducerPath: "djangoApi",
+  baseQuery: axiosBaseQuery({ defaultBaseUrl: import.meta.env.VITE_APP_DJANGO_URL }),
   tagTypes: ["Assets", "Accounts"],
   endpoints: (builder) => ({
     getAssets: builder.query<IAsset[], number | void>({
       query: (accountId) => ({
-        url: "assets/",
+        url: "portfolio/api/assets/",
         method: "GET",
         params: accountId ? { account_id: accountId } : undefined,
       }),
@@ -181,23 +131,23 @@ export const api = createApi({
       },
       providesTags: [{ type: "Assets", id: "LIST" }],
     }),
-    getAccounts: builder.query<{ id: number, name: string, account_type: string }[], void>({
+    getAccounts: builder.query<{ id: number; name: string; account_type: string }[], void>({
       query: () => ({
-        url: "accounts/",
+        url: "portfolio/api/accounts/",
         method: "GET",
       }),
       providesTags: [{ type: "Accounts", id: "LIST" }],
     }),
-    getAccount: builder.query<{ id: number, name: string, account_type: string }, number>({
+    getAccount: builder.query<{ id: number; name: string; account_type: string }, number>({
       query: (id) => ({
-        url: `accounts/${id}/`,
+        url: `portfolio/api/accounts/${id}/`,
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Accounts", id }],
     }),
     postNewAsset: builder.mutation<IAsset, { ticker: string; shares: number; buy_date: string; account_id?: number }>({
       query: (newAsset) => ({
-        url: "assets/",
+        url: "portfolio/api/assets/",
         method: "POST",
         data: newAsset,
       }),
@@ -205,7 +155,7 @@ export const api = createApi({
     }),
     createAccount: builder.mutation<{ id: number; name: string; account_type: string }, { name: string; account_type: string }>({
       query: (newAccount) => ({
-        url: "accounts/",
+        url: "portfolio/api/accounts/",
         method: "POST",
         data: newAccount,
       }),
@@ -213,10 +163,9 @@ export const api = createApi({
     }),
     postTicket: builder.mutation<ITicketResponse, ITicketPayload>({
       query: (ticket) => ({
-        url: "tickets/",
+        url: "changeflow/api/tickets/",
         method: "POST",
         data: ticket,
-        baseUrl: changeflowApiBaseUrl,
       }),
     }),
     getBlogPosts: builder.query<
@@ -224,40 +173,36 @@ export const api = createApi({
       { search?: string; category?: string; tag?: string; page?: number; page_size?: number } | void
     >({
       query: (params) => ({
-        url: "posts/",
+        url: "blog/api/posts/",
         method: "GET",
         params,
-        baseUrl: blogApiBaseUrl,
         withAuth: false,
       }),
     }),
     getBlogPost: builder.query<IRawBlogPostDetail, string>({
       query: (slug) => ({
-        url: `posts/${slug}/`,
+        url: `blog/api/posts/${slug}/`,
         method: "GET",
-        baseUrl: blogApiBaseUrl,
         withAuth: false,
       }),
     }),
     getBlogCategories: builder.query<IBlogTaxonomy[], void>({
       query: () => ({
-        url: "categories/",
+        url: "blog/api/categories/",
         method: "GET",
-        baseUrl: blogApiBaseUrl,
         withAuth: false,
       }),
     }),
     getBlogTags: builder.query<IBlogTaxonomy[], void>({
       query: () => ({
-        url: "tags/",
+        url: "blog/api/tags/",
         method: "GET",
-        baseUrl: blogApiBaseUrl,
         withAuth: false,
       }),
     }),
     getAsset: builder.query<IAsset, number>({
       query: (id) => ({
-        url: `assets/${id}`,
+        url: `portfolio/api/assets/${id}`,
         method: "GET",
       }),
       transformResponse: (response: IRawAsset): IAsset => {
@@ -278,25 +223,22 @@ export const api = createApi({
     }),
     deleteAsset: builder.mutation<void, number>({
       query: (id) => ({
-        url: `assets/${id}/`,
+        url: `portfolio/api/assets/${id}/`,
         method: "DELETE",
       }),
       invalidatesTags: [{ type: "Assets", id: "LIST" }],
     }),
     patchAsset: builder.mutation<IAsset, { id: number; [key: string]: unknown }>({
       query: ({ id, ...patch }) => ({
-        url: `assets/${id}/`,
+        url: `portfolio/api/assets/${id}/`,
         method: "PATCH",
         data: patch,
       }),
       invalidatesTags: [{ type: "Assets", id: "LIST" }],
     }),
-    getAssetInfos: builder.query<
-      Record<string, IEquityInfo | IETFInfo>,
-      string[]
-    >({
+    getAssetInfos: builder.query<Record<string, IEquityInfo | IETFInfo>, string[]>({
       query: (tickers) => ({
-        url: "asset-info/",
+        url: "portfolio/api/asset-info/",
         method: "GET",
         params: { tickers: tickers.join(",") },
         withAuth: false,
@@ -352,28 +294,23 @@ export const api = createApi({
               dividendYield: item.dividend_yield,
             };
           } else {
-            throw new Error(
-              `Unknown type '${item.type}' in asset-info response`
-            );
+            throw new Error(`Unknown type '${item.type}' in asset-info response`);
           }
         });
         return result;
       },
     }),
-    getAssetPrices: builder.query<
-      IAssetPrice[],
-      string
-    >({
+    getAssetPrices: builder.query<IAssetPrice[], string>({
       query: (ticker) => ({
-        url: "asset-prices/",
+        url: "portfolio/api/asset-prices/",
         method: "GET",
-        params: { ticker: ticker },
+        params: { ticker },
         withAuth: false,
       }),
     }),
     getAssetDividends: builder.query<IDividendRow[], string>({
       query: (ticker) => ({
-        url: "asset-dividends/",
+        url: "portfolio/api/asset-dividends/",
         method: "GET",
         params: { ticker },
         withAuth: false,
@@ -381,18 +318,15 @@ export const api = createApi({
     }),
     getAssetSplits: builder.query<ISplitRow[], string>({
       query: (ticker) => ({
-        url: "asset-splits/",
+        url: "portfolio/api/asset-splits/",
         method: "GET",
         params: { ticker },
         withAuth: false,
       }),
     }),
-    getFredData: builder.query<
-      Record<string, IFredObservation[]>,
-      { series_id: string; compute_yoy?: boolean }[]
-    >({
+    getFredData: builder.query<Record<string, IFredObservation[]>, { series_id: string; compute_yoy?: boolean }[]>({
       query: (seriesList) => ({
-        url: "fred-data/",
+        url: "portfolio/api/fred-data/",
         method: "POST",
         data: seriesList,
         withAuth: false,
@@ -400,112 +334,17 @@ export const api = createApi({
     }),
     getQuote: builder.query<IQuoteResponse, string>({
       query: (ticker) => ({
-        url: "quote/",
+        url: "portfolio/api/quote/",
         method: "GET",
         params: { symbol: ticker },
         withAuth: false,
       }),
     }),
-    getSecEdgarData: builder.query<ISECData, string>({
-      query: (ticker) => ({
-        url: `company-fact-sheet?ticker=${ticker}`,
-        method: "GET",
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-        withAuth: false,
-      }),
-    }),
-    getSecQuarters: builder.query<ISECQuartersResponse, string>({
-      query: (ticker) => ({
-        url: `quarters?ticker=${ticker}`,
-        method: "GET",
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-        withAuth: false,
-      }),
-    }),
     getDjangoQuarters: builder.query<IYFinanceQuarter[], string>({
       query: (ticker) => ({
-        url: "quarterly-data/",
+        url: "portfolio/api/quarterly-data/",
         method: "GET",
         params: { ticker },
-        withAuth: false,
-      }),
-    }),
-    getSecEdgarDataBatch: builder.query<ISECData[], string[]>({
-      async queryFn(tickers, _queryApi, _extraOptions, fetchWithBQ) {
-        const results = await Promise.all(
-          tickers.map((ticker) =>
-            fetchWithBQ({
-              url: `company-fact-sheet?ticker=${ticker}`,
-              method: "GET",
-              baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-              withAuth: false,
-            })
-          )
-        );
-        const data = results
-          .filter((r) => r.data)
-          .map((r) => r.data as ISECData);
-        return { data };
-      },
-    }),
-    getIexPrices: builder.query<IIexPricesResponse, string>({
-      query: (ticker) => ({
-        url: `prices?ticker=${ticker}`,
-        method: "GET",
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-        withAuth: false,
-      }),
-    }),
-    getIexDividends: builder.query<IIexDividendsResponse, string>({
-      query: (ticker) => ({
-        url: `dividends?ticker=${ticker}`,
-        method: "GET",
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-        withAuth: false,
-      }),
-    }),
-    getIexSplits: builder.query<IIexSplitsResponse, string>({
-      query: (ticker) => ({
-        url: `splits?ticker=${ticker}`,
-        method: "GET",
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-        withAuth: false,
-      }),
-    }),
-    getFilingSummaries: builder.query<IFilingSummary[], string>({
-      query: (ticker) => ({
-        url: `filing-summaries?ticker=${ticker}`,
-        method: "GET",
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-        withAuth: false,
-      }),
-      transformResponse: (response: { ticker: string; summaries: IFilingSummary[] }) => response.summaries,
-    }),
-
-    getIndexes: builder.query<IMarketIndex[], void>({
-      query: () => ({
-        url: "indexes",
-        method: "GET",
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-        withAuth: false,
-      }),
-    }),
-
-    getIndexMembers: builder.query<IIndexMemberRow[], string>({
-      query: (code) => ({
-        url: "index-members",
-        method: "GET",
-        params: { code },
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
-        withAuth: false,
-      }),
-    }),
-
-    getIwbReferenceHoldings: builder.query<IIwbReferenceHolding[], void>({
-      query: () => ({
-        url: "iwb-reference-holdings",
-        method: "GET",
-        baseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
         withAuth: false,
       }),
     }),
@@ -533,15 +372,6 @@ export const {
   usePostTicketMutation,
   useGetAccountsQuery,
   useGetAccountQuery,
-  useGetSecEdgarDataQuery,
-  useGetSecQuartersQuery,
   useGetDjangoQuartersQuery,
-  useGetSecEdgarDataBatchQuery,
-  useGetIexPricesQuery,
-  useGetIexDividendsQuery,
-  useGetIexSplitsQuery,
-  useGetFilingSummariesQuery,
-  useGetIndexesQuery,
-  useGetIndexMembersQuery,
-  useGetIwbReferenceHoldingsQuery,
-} = api;
+} = djangoApi;
+
