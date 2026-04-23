@@ -431,19 +431,19 @@ class LoadIexHistTaskTests(TestCase):
     @override_settings(SPRINGBOOT_BASE_URL="")
     def test_missing_springboot_base_url(self):
         with patch("portfolio.tasks.requests.get") as mock_get:
-            result = load_iex_hist(days=10)
+            with self.assertRaises(ValueError) as ctx:
+                load_iex_hist(days=10)
         mock_get.assert_not_called()
-        self.assertFalse(result["ok"])
-        self.assertIn("SPRINGBOOT_BASE_URL", result["error"])
+        self.assertIn("SPRINGBOOT_BASE_URL", str(ctx.exception))
 
     @override_settings(SPRINGBOOT_BASE_URL="http://springboot:8080")
     def test_missing_user_one(self):
-        get_user_model().objects.filter(pk=1).delete()
+        User = get_user_model()
+        User.objects.filter(pk=1).delete()
         with patch("portfolio.tasks.requests.get") as mock_get:
-            result = load_iex_hist()
+            with self.assertRaises(User.DoesNotExist):
+                load_iex_hist()
         mock_get.assert_not_called()
-        self.assertFalse(result["ok"])
-        self.assertIn("user id 1", result["error"].lower())
 
     @override_settings(SPRINGBOOT_BASE_URL="http://springboot:8080")
     @patch("portfolio.tasks.requests.get")
@@ -456,7 +456,6 @@ class LoadIexHistTaskTests(TestCase):
 
         result = load_iex_hist(days=15)
 
-        self.assertTrue(result["ok"])
         self.assertEqual(result["status_code"], 200)
         self.assertEqual(result["days"], 15)
         mock_get.assert_called_once()
