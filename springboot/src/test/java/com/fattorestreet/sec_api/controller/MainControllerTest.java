@@ -23,7 +23,7 @@ import com.fattorestreet.sec_api.listing.AssetService;
 import com.fattorestreet.sec_api.listing.EtfIdentityService;
 import com.fattorestreet.sec_api.listing.ListingService;
 import com.fattorestreet.sec_api.marketdata.IexHistService;
-import com.fattorestreet.sec_api.marketdata.PriceService;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -78,7 +78,7 @@ class MainControllerTest {
     @MockitoBean private QuarterRepository quarterRepository;
     @MockitoBean private EdgarService edgarService;
     @MockitoBean private FinancialService financialService;
-    @MockitoBean private PriceService priceService;
+    @MockitoBean private DailyPriceRepository dailyPriceRepository;
     @MockitoBean private PriceAdjustmentService priceAdjustmentService;
     @MockitoBean private IexHistService iexHistService;
     @MockitoBean private EtfIdentityService etfIdentityService;
@@ -400,7 +400,7 @@ class MainControllerTest {
         dp.setAdjustedClose(173.35);
         dp.setVolume(45230L);
 
-        when(priceService.getPrices("AAPL")).thenReturn(List.of(dp));
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL")).thenReturn(List.of(dp));
 
         mockMvc.perform(get("/prices").param("ticker", "AAPL"))
                 .andExpect(status().isOk())
@@ -416,7 +416,7 @@ class MainControllerTest {
 
     @Test
     void prices_withDateRange_returns200() throws Exception {
-        when(priceService.getPrices(
+        when(dailyPriceRepository.findByTickerAndTradeDateBetweenOrderByTradeDateDesc(
                 org.mockito.ArgumentMatchers.eq("AAPL"),
                 org.mockito.ArgumentMatchers.any(LocalDate.class),
                 org.mockito.ArgumentMatchers.any(LocalDate.class)))

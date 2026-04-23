@@ -14,7 +14,7 @@ import com.fattorestreet.sec_api.repository.QuarterRepository;
 import com.fattorestreet.sec_api.fundamentals.FinancialService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
-import com.fattorestreet.sec_api.marketdata.PriceService;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -39,7 +39,7 @@ public class PublicController {
     private final AssetRepository assetRepository;
     private final QuarterRepository quarterRepository;
     private final FinancialService financialService;
-    private final PriceService priceService;
+    private final DailyPriceRepository dailyPriceRepository;
     private final CorporateActionRepository corporateActionRepository;
     private final FilingSummaryRepository filingSummaryRepository;
     private final MarketIndexRepository marketIndexRepository;
@@ -49,7 +49,7 @@ public class PublicController {
             AssetRepository assetRepository,
             QuarterRepository quarterRepository,
             FinancialService financialService,
-            PriceService priceService,
+            DailyPriceRepository dailyPriceRepository,
             CorporateActionRepository corporateActionRepository,
             FilingSummaryRepository filingSummaryRepository,
             MarketIndexRepository marketIndexRepository,
@@ -58,7 +58,7 @@ public class PublicController {
         this.assetRepository = assetRepository;
         this.quarterRepository = quarterRepository;
         this.financialService = financialService;
-        this.priceService = priceService;
+        this.dailyPriceRepository = dailyPriceRepository;
         this.corporateActionRepository = corporateActionRepository;
         this.filingSummaryRepository = filingSummaryRepository;
         this.marketIndexRepository = marketIndexRepository;
@@ -169,11 +169,11 @@ public class PublicController {
     ) {
         List<DailyPrice> prices;
         if (start != null && end != null) {
-            prices = priceService.getPrices(ticker, LocalDate.parse(start), LocalDate.parse(end));
+            prices = dailyPriceRepository.findByTickerAndTradeDateBetweenOrderByTradeDateDesc(ticker, LocalDate.parse(start), LocalDate.parse(end));
         } else if (start != null) {
-            prices = priceService.getPrices(ticker, LocalDate.parse(start), LocalDate.now());
+            prices = dailyPriceRepository.findByTickerAndTradeDateBetweenOrderByTradeDateDesc(ticker, LocalDate.parse(start), LocalDate.now());
         } else {
-            prices = priceService.getPrices(ticker);
+            prices = dailyPriceRepository.findByTickerOrderByTradeDateDesc(ticker);
         }
 
         List<Map<String, Object>> priceOutput = new ArrayList<>();

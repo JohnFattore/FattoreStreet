@@ -213,6 +213,6 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 # Internal base URL for Spring Boot (no /springboot/ nginx prefix), e.g. http://springboot:8080
 SPRINGBOOT_BASE_URL = env("SPRINGBOOT_BASE_URL", default="")
 # IEX HIST ingest can run for many minutes
-SPRINGBOOT_REQUEST_TIMEOUT = env.int("SPRINGBOOT_REQUEST_TIMEOUT", default=600)
+SPRINGBOOT_REQUEST_TIMEOUT = env.int("SPRINGBOOT_REQUEST_TIMEOUT", default=10800)
 
 HOME_URL = env("HOME_URL", default="/")

@@ -60,65 +60,33 @@ def load_yfinance_cache():
 
 @shared_task
 def load_iex_hist(days: int = 20) -> dict:
-    """
-    Trigger Spring Boot IEX HIST daily price ingest (GET /admin/load-hist).
-    Requires Django user pk=1 for JWT (Spring Boot admin allows only that user_id).
-    """
     base = (settings.SPRINGBOOT_BASE_URL or "").strip().rstrip("/")
     if not base:
-        logger.error("load_iex_hist: SPRINGBOOT_BASE_URL is not set")
-        return {"ok": False, "error": "SPRINGBOOT_BASE_URL is not set"}
+        raise ValueError("SPRINGBOOT_BASE_URL is not set")
 
     User = get_user_model()
-    try:
-        admin_user = User.objects.get(pk=1)
-    except User.DoesNotExist:
-        logger.error("load_iex_hist: Django user with pk=1 does not exist")
-        return {"ok": False, "error": "Django user id 1 required for Spring Boot admin JWT"}
+    admin_user = User.objects.get(pk=1)
 
     url = urljoin(base + "/", "admin/load-hist")
     token = str(AccessToken.for_user(admin_user))
     headers = {"Authorization": f"Bearer {token}"}
-    timeout = getattr(settings, "SPRINGBOOT_REQUEST_TIMEOUT", 600)
+    timeout = getattr(settings, "SPRINGBOOT_REQUEST_TIMEOUT", 10800)
+
+    response = requests.get(
+        url,
+        params={"days": days},
+        headers=headers,
+        timeout=timeout,
+    )
+    response.raise_for_status()
 
     try:
-        response = requests.get(
-            url,
-            params={"days": days},
-            headers=headers,
-            timeout=timeout,
-        )
-    except requests.RequestException as e:
-        logger.error("load_iex_hist: HTTP request failed: %s", e)
-        return {"ok": False, "error": str(e)}
-
-    body_preview: str | dict
-    try:
-        body_preview = response.json()
+        body = response.json()
     except ValueError:
-        text = (response.text or "")[:500]
-        body_preview = text
+        body = (response.text or "")[:500]
 
-    if response.ok:
-        logger.info(
-            "load_iex_hist: Spring Boot returned %s",
-            response.status_code,
-        )
-        return {
-            "ok": True,
-            "status_code": response.status_code,
-            "days": days,
-            "body": body_preview,
-        }
-    else:
-        logger.error(
-            "load_iex_hist: Spring Boot error %s: %s",
-            response.status_code,
-            body_preview,
-        )
-        return {
-            "ok": False,
-            "status_code": response.status_code,
-            "days": days,
-            "body": body_preview,
-        }
+    return {
+        "status_code": response.status_code,
+        "days": days,
+        "body": body,
+    }
