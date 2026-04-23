@@ -9,6 +9,7 @@ type AxiosBaseQueryArgs = {
   params?: AxiosRequestConfig["params"];
   baseUrl?: string;
   withAuth?: boolean;
+  timeout?: number;
 };
 
 function normalizeBaseUrl(raw: string | undefined): string {
@@ -24,7 +25,7 @@ export function axiosBaseQuery({
 }): BaseQueryFn<AxiosBaseQueryArgs> {
   const normalizedDefaultBaseUrl = normalizeBaseUrl(defaultBaseUrl);
 
-  return async ({ url, method, data, params, baseUrl, withAuth = true }, api) => {
+  return async ({ url, method, data, params, baseUrl, withAuth = true, timeout }, api) => {
     try {
       const state = api.getState() as RootState;
       const access = state.user.access;
@@ -36,6 +37,7 @@ export function axiosBaseQuery({
         data,
         params,
         headers: withAuth && access ? { Authorization: `Bearer ${access}` } : undefined,
+        ...(timeout !== undefined && { timeout }),
       });
 
       return { data: result.data };

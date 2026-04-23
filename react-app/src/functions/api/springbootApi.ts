@@ -89,6 +89,101 @@ export const springbootApi = createApi({
         method: "GET",
       }),
     }),
+
+    adminAssetLoad: builder.mutation<string, { overwriteExisting?: boolean }>({
+      async queryFn(arg, _queryApi, _extraOptions, fetchWithBQ) {
+        const params: Record<string, string> = {};
+        if (arg.overwriteExisting) params.overwriteExisting = "true";
+        const result = await fetchWithBQ({
+          url: "admin/asset-load",
+          method: "GET",
+          params,
+          timeout: 0,
+        });
+        if (result.error && (result.error as { status?: number }).status === 404) {
+          const fallback = await fetchWithBQ({
+            url: "admin/load",
+            method: "GET",
+            timeout: 0,
+          });
+          if (fallback.error) return { error: fallback.error };
+          return { data: typeof fallback.data === "string" ? fallback.data : JSON.stringify(fallback.data) };
+        }
+        if (result.error) return { error: result.error };
+        return { data: typeof result.data === "string" ? result.data : JSON.stringify(result.data) };
+      },
+    }),
+    adminSyncFrames: builder.mutation<string, void>({
+      query: () => ({
+        url: "admin/sync-frames",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) =>
+        typeof response === "string" ? response : JSON.stringify(response),
+    }),
+    adminLoadHist: builder.mutation<string, { days: string }>({
+      query: ({ days }) => ({
+        url: "admin/load-hist",
+        method: "GET",
+        params: { days },
+        timeout: 0,
+      }),
+      transformResponse: (response: unknown) =>
+        typeof response === "string" ? response : JSON.stringify(response),
+    }),
+    adminAdjustPrices: builder.mutation<string, {
+      ticker?: string;
+      force?: boolean;
+      etfOnly?: boolean;
+      equityOnly?: boolean;
+      minConfidence?: number;
+    }>({
+      query: (arg) => {
+        const params: Record<string, string> = {};
+        if (arg.ticker) params.ticker = arg.ticker;
+        if (arg.force) params.force = "true";
+        if (arg.etfOnly) params.etfOnly = "true";
+        if (arg.equityOnly) params.equityOnly = "true";
+        if (arg.minConfidence !== undefined && arg.minConfidence >= 0) {
+          params.minConfidence = String(arg.minConfidence);
+        }
+        return { url: "admin/adjust-prices", method: "GET", params, timeout: 0 };
+      },
+      transformResponse: (response: unknown) =>
+        typeof response === "string" ? response : JSON.stringify(response),
+    }),
+    adminSummarizeFilings: builder.mutation<string, { ticker?: string }>({
+      query: ({ ticker }) => {
+        const params: Record<string, string> = {};
+        if (ticker) params.ticker = ticker;
+        return { url: "admin/summarize-filings", method: "GET", params, timeout: 0 };
+      },
+      transformResponse: (response: unknown) =>
+        typeof response === "string" ? response : JSON.stringify(response),
+    }),
+    adminRefreshIndexMetrics: builder.mutation<string, { scope?: string; ticker?: string }>({
+      query: ({ scope, ticker }) => {
+        const params: Record<string, string> = {};
+        if (ticker) {
+          params.ticker = ticker;
+        } else if (scope && scope !== "russell1000") {
+          params.scope = scope;
+        }
+        return { url: "admin/indexes/refresh-stocks", method: "POST", params, timeout: 0 };
+      },
+      transformResponse: (response: unknown) =>
+        typeof response === "string" ? response : JSON.stringify(response),
+    }),
+    adminRebuildIndexes: builder.mutation<string, { code?: string; refreshMetrics?: boolean }>({
+      query: ({ code, refreshMetrics }) => {
+        const params: Record<string, string> = {};
+        if (refreshMetrics) params.refreshMetrics = "true";
+        if (code) params.code = code;
+        return { url: "admin/indexes/rebuild", method: "POST", params, timeout: 0 };
+      },
+      transformResponse: (response: unknown) =>
+        typeof response === "string" ? response : JSON.stringify(response),
+    }),
   }),
 });
 
@@ -103,5 +198,12 @@ export const {
   useGetIndexesQuery,
   useGetIndexMembersQuery,
   useGetIwbReferenceHoldingsQuery,
+  useAdminAssetLoadMutation,
+  useAdminSyncFramesMutation,
+  useAdminLoadHistMutation,
+  useAdminAdjustPricesMutation,
+  useAdminSummarizeFilingsMutation,
+  useAdminRefreshIndexMetricsMutation,
+  useAdminRebuildIndexesMutation,
 } = springbootApi;
 

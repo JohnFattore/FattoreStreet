@@ -59,7 +59,8 @@ export default function App() {
           const result = await dispatch(refreshLogin()).unwrap();
           originalRequest.headers["Authorization"] = `Bearer ${result.access}`;
           return axios(originalRequest);
-        } else if (error.response?.status === 401 && isTokenError) {
+        } 
+        else if (error.response?.status === 401 && isTokenError) {
           dispatch(logout());
         }
 

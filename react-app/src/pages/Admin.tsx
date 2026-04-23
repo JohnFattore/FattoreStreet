@@ -1,62 +1,62 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useSelector } from "react-redux";
 import { RootState } from '../main';
 import { Button, Form, Alert, Spinner, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import LoginRequired from '../components/LoginRequired';
-import { springAdminApi } from '../functions/springAdminApi';
+import {
+    useAdminAssetLoadMutation,
+    useAdminSyncFramesMutation,
+    useAdminLoadHistMutation,
+    useAdminAdjustPricesMutation,
+    useAdminSummarizeFilingsMutation,
+    useAdminRefreshIndexMetricsMutation,
+    useAdminRebuildIndexesMutation,
+} from '../functions/api/springbootApi';
+
+function formatError(error: unknown): string {
+    const err = error as { status?: number; data?: unknown };
+    if (err.status === 401) {
+        return (
+            'SEC API returned 401 (unauthorized). If this persists after a fresh login, set Spring Boot ' +
+            '`SECRET_KEY` to the same value as Django so JWT signatures match.'
+        );
+    }
+    const { data } = err;
+    if (typeof data === 'string' && data.trim()) return data;
+    if (data && typeof data === 'object') {
+        try {
+            return JSON.stringify(data);
+        } catch {
+            return 'Request failed';
+        }
+    }
+    return 'Request failed';
+}
 
 export default function Admin() {
     const { username, access } = useSelector((state: RootState) => state.user)
     const navigate = useNavigate();
 
-    // Load Tickers state
-    const [loadLoading, setLoadLoading] = useState(false);
-    const [loadResult, setLoadResult] = useState<string | null>(null);
-    const [loadError, setLoadError] = useState<string | null>(null);
+    const [assetLoad, assetLoadState] = useAdminAssetLoadMutation();
+    const [syncFrames, syncFramesState] = useAdminSyncFramesMutation();
+    const [loadHist, loadHistState] = useAdminLoadHistMutation();
+    const [adjustPrices, adjustPricesState] = useAdminAdjustPricesMutation();
+    const [summarizeFilings, summarizeFilingsState] = useAdminSummarizeFilingsMutation();
+    const [refreshIndexMetrics, refreshIndexMetricsState] = useAdminRefreshIndexMetricsMutation();
+    const [rebuildIndexes, rebuildIndexesState] = useAdminRebuildIndexesMutation();
 
-    // Sync Frames state
-    const [syncLoading, setSyncLoading] = useState(false);
-    const [syncResult, setSyncResult] = useState<string | null>(null);
-    const [syncError, setSyncError] = useState<string | null>(null);
-
-    // Load HIST state
-    const [histLoading, setHistLoading] = useState(false);
-    const [histResult, setHistResult] = useState<string | null>(null);
-    const [histError, setHistError] = useState<string | null>(null);
+    const [loadOverwriteExisting, setLoadOverwriteExisting] = useState(false);
     const [histDays, setHistDays] = useState('252');
-
-    // Adjust Prices state
-    const [adjustLoading, setAdjustLoading] = useState(false);
-    const [adjustResult, setAdjustResult] = useState<string | null>(null);
-    const [adjustError, setAdjustError] = useState<string | null>(null);
     const [adjustTicker, setAdjustTicker] = useState('');
     const [adjustForce, setAdjustForce] = useState(false);
     const [adjustEtfOnly, setAdjustEtfOnly] = useState(false);
     const [adjustEquityOnly, setAdjustEquityOnly] = useState(false);
     const [adjustMinConfidence, setAdjustMinConfidence] = useState('70');
-
-    const [loadOverwriteExisting, setLoadOverwriteExisting] = useState(false);
-
-    // Index metrics (ListingIndexMetrics) state
-    const [indexMetricsLoading, setIndexMetricsLoading] = useState(false);
-    const [indexMetricsResult, setIndexMetricsResult] = useState<string | null>(null);
-    const [indexMetricsError, setIndexMetricsError] = useState<string | null>(null);
     const [indexMetricsScope, setIndexMetricsScope] = useState<'russell1000' | 'all'>('russell1000');
     const [indexMetricsTicker, setIndexMetricsTicker] = useState('');
-
-    // Cap-ranked index rebuild (MarketIndex + IndexMember): POST .../rebuild optional ?code=
     const [indexRebuildCode, setIndexRebuildCode] = useState('');
-    const [indexRebuildLoading, setIndexRebuildLoading] = useState(false);
-    const [indexRebuildResult, setIndexRebuildResult] = useState<string | null>(null);
-    const [indexRebuildError, setIndexRebuildError] = useState<string | null>(null);
     const [indexRebuildRefreshMetricsFirst, setIndexRebuildRefreshMetricsFirst] = useState(false);
-
-    // Summarize Filings state
-    const [summaryLoading, setSummaryLoading] = useState(false);
-    const [summaryResult, setSummaryResult] = useState<string | null>(null);
-    const [summaryError, setSummaryError] = useState<string | null>(null);
     const [summaryTicker, setSummaryTicker] = useState('');
 
     if (!access) {
@@ -74,177 +74,6 @@ export default function Admin() {
     if (username !== 'spike') {
         return <h1>Error</h1>;
     }
-
-    const normalizeError = (err: unknown): string => {
-        if (axios.isAxiosError(err)) {
-            if (err.response?.status === 401) {
-                return (
-                    'SEC API returned 401 (unauthorized). If this persists after a fresh login, set Spring Boot ' +
-                    '`SECRET_KEY` to the same value as Django so JWT signatures match.'
-                );
-            }
-            const data = err.response?.data;
-            if (typeof data === 'string' && data.trim()) return data;
-            if (data && typeof data === 'object') {
-                try {
-                    return JSON.stringify(data);
-                } catch {
-                    return 'Request failed';
-                }
-            }
-            if (err.message?.trim()) return err.message;
-            return 'Request failed';
-        }
-        if (err instanceof Error && err.message.trim()) return err.message;
-        return 'Request failed';
-    };
-
-    const handleLoadTickers = async () => {
-        setLoadLoading(true);
-        setLoadResult(null);
-        setLoadError(null);
-        try {
-            const params: Record<string, string> = {};
-            if (loadOverwriteExisting) params.overwriteExisting = 'true';
-            let res;
-            try {
-                res = await springAdminApi.get('admin/asset-load', {
-                    params,
-                    timeout: 0,
-                });
-            } catch (assetLoadErr: unknown) {
-                // Backward-compatible fallback while older backend instances may still expose /admin/load.
-                if (axios.isAxiosError(assetLoadErr) && assetLoadErr.response?.status === 404) {
-                    res = await springAdminApi.get('admin/load', {
-                        timeout: 0,
-                    });
-                } else {
-                    throw assetLoadErr;
-                }
-            }
-            setLoadResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: unknown) {
-            setLoadError(normalizeError(err));
-        } finally {
-            setLoadLoading(false);
-        }
-    };
-
-    const handleSyncFrames = async () => {
-        setSyncLoading(true);
-        setSyncResult(null);
-        setSyncError(null);
-        try {
-            const res = await springAdminApi.get('admin/sync-frames');
-            setSyncResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: unknown) {
-            setSyncError(normalizeError(err));
-        } finally {
-            setSyncLoading(false);
-        }
-    };
-
-    const handleLoadHist = async () => {
-        setHistLoading(true);
-        setHistResult(null);
-        setHistError(null);
-        try {
-            const res = await springAdminApi.get('admin/load-hist', {
-                params: { days: histDays },
-                timeout: 0,
-            });
-            setHistResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: unknown) {
-            setHistError(normalizeError(err));
-        } finally {
-            setHistLoading(false);
-        }
-    };
-
-    const handleAdjustPrices = async () => {
-        setAdjustLoading(true);
-        setAdjustResult(null);
-        setAdjustError(null);
-        try {
-            const params: Record<string, string> = {};
-            if (adjustTicker.trim()) params.ticker = adjustTicker.trim().toUpperCase();
-            if (adjustForce) params.force = 'true';
-            if (adjustEtfOnly) params.etfOnly = 'true';
-            if (adjustEquityOnly) params.equityOnly = 'true';
-            const minConfidence = Number(adjustMinConfidence);
-            if (!Number.isNaN(minConfidence) && minConfidence >= 0) {
-                params.minConfidence = String(minConfidence);
-            }
-            const res = await springAdminApi.get('admin/adjust-prices', {
-                params,
-                timeout: 0,
-            });
-            setAdjustResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: unknown) {
-            setAdjustError(normalizeError(err));
-        } finally {
-            setAdjustLoading(false);
-        }
-    };
-
-    const handleSummarizeFilings = async () => {
-        setSummaryLoading(true);
-        setSummaryResult(null);
-        setSummaryError(null);
-        try {
-            const params: Record<string, string> = {};
-            if (summaryTicker.trim()) params.ticker = summaryTicker.trim().toUpperCase();
-            const res = await springAdminApi.get('admin/summarize-filings', {
-                params,
-                timeout: 0,
-            });
-            setSummaryResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: unknown) {
-            setSummaryError(normalizeError(err));
-        } finally {
-            setSummaryLoading(false);
-        }
-    };
-
-    const handleRefreshIndexMetrics = async () => {
-        setIndexMetricsLoading(true);
-        setIndexMetricsResult(null);
-        setIndexMetricsError(null);
-        try {
-            const params: Record<string, string> = {};
-            const trimmedTicker = indexMetricsTicker.trim();
-            if (trimmedTicker) {
-                // Single-ticker mode: backend ignores scope when ticker is set.
-                params.ticker = trimmedTicker.toUpperCase();
-            } else if (indexMetricsScope !== 'russell1000') {
-                params.scope = indexMetricsScope;
-            }
-            const res = await springAdminApi.post('admin/indexes/refresh-stocks', {}, { params, timeout: 0 });
-            setIndexMetricsResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: unknown) {
-            setIndexMetricsError(normalizeError(err));
-        } finally {
-            setIndexMetricsLoading(false);
-        }
-    };
-
-    const handleRebuildIndexes = async () => {
-        setIndexRebuildLoading(true);
-        setIndexRebuildResult(null);
-        setIndexRebuildError(null);
-        try {
-            const params: Record<string, string> = {};
-            if (indexRebuildRefreshMetricsFirst) params.refreshMetrics = 'true';
-            const c = indexRebuildCode.trim();
-            if (c) params.code = c;
-            const res = await springAdminApi.post('admin/indexes/rebuild', {}, { params, timeout: 0 });
-            setIndexRebuildResult(typeof res.data === 'string' ? res.data : JSON.stringify(res.data));
-        } catch (err: unknown) {
-            setIndexRebuildError(normalizeError(err));
-        } finally {
-            setIndexRebuildLoading(false);
-        }
-    };
 
     return (
         <div className="admin-page">
@@ -278,13 +107,13 @@ export default function Admin() {
                         onChange={(e) => setLoadOverwriteExisting(e.target.checked)}
                     />
                     <Button
-                        onClick={handleLoadTickers}
-                        disabled={loadLoading}
+                        onClick={() => assetLoad({ overwriteExisting: loadOverwriteExisting })}
+                        disabled={assetLoadState.isLoading}
                     >
-                        {loadLoading ? <><Spinner size="sm" />Loading...</> : 'Asset Load'}
+                        {assetLoadState.isLoading ? <><Spinner size="sm" />Loading...</> : 'Asset Load'}
                     </Button>
-                    {loadResult && <Alert variant="success">{loadResult}</Alert>}
-                    {loadError && <Alert variant="danger">{loadError}</Alert>}
+                    {assetLoadState.data && <Alert variant="success">{assetLoadState.data}</Alert>}
+                    {assetLoadState.error ? <Alert variant="danger">{formatError(assetLoadState.error)}</Alert> : null}
                 </Card>
 
                 {/* Sync Frames */}
@@ -296,13 +125,13 @@ export default function Admin() {
                         <code>Quarter</code> and related SEC frame data
                     </p>
                     <Button
-                        onClick={handleSyncFrames}
-                        disabled={syncLoading}
+                        onClick={() => syncFrames()}
+                        disabled={syncFramesState.isLoading}
                     >
-                        {syncLoading ? <><Spinner size="sm" />Syncing...</> : 'Full Sync'}
+                        {syncFramesState.isLoading ? <><Spinner size="sm" />Syncing...</> : 'Full Sync'}
                     </Button>
-                    {syncResult && <Alert variant="success">{syncResult}</Alert>}
-                    {syncError && <Alert variant="danger">{syncError}</Alert>}
+                    {syncFramesState.data && <Alert variant="success">{syncFramesState.data}</Alert>}
+                    {syncFramesState.error ? <Alert variant="danger">{formatError(syncFramesState.error)}</Alert> : null}
                 </Card>
 
                 {/* Download IEX HIST */}
@@ -322,13 +151,13 @@ export default function Admin() {
                         />
                     </Form.Group>
                     <Button
-                        onClick={handleLoadHist}
-                        disabled={histLoading}
+                        onClick={() => loadHist({ days: histDays })}
+                        disabled={loadHistState.isLoading}
                     >
-                        {histLoading ? <><Spinner size="sm" /> Downloading...</> : 'Download HIST'}
+                        {loadHistState.isLoading ? <><Spinner size="sm" /> Downloading...</> : 'Download HIST'}
                     </Button>
-                    {histResult && <Alert variant="success">{histResult}</Alert>}
-                    {histError && <Alert variant="danger">{histError}</Alert>}
+                    {loadHistState.data && <Alert variant="success">{loadHistState.data}</Alert>}
+                    {loadHistState.error ? <Alert variant="danger">{formatError(loadHistState.error)}</Alert> : null}
                 </Card>
 
                 {/* Adjust Prices */}
@@ -390,13 +219,19 @@ export default function Admin() {
                         />
                     </Form.Group>
                     <Button
-                        onClick={handleAdjustPrices}
-                        disabled={adjustLoading}
+                        onClick={() => adjustPrices({
+                            ticker: adjustTicker.trim() ? adjustTicker.trim().toUpperCase() : undefined,
+                            force: adjustForce || undefined,
+                            etfOnly: adjustEtfOnly || undefined,
+                            equityOnly: adjustEquityOnly || undefined,
+                            minConfidence: Number(adjustMinConfidence),
+                        })}
+                        disabled={adjustPricesState.isLoading}
                     >
-                        {adjustLoading ? <><Spinner size="sm" /> Adjusting...</> : 'Adjust Prices'}
+                        {adjustPricesState.isLoading ? <><Spinner size="sm" /> Adjusting...</> : 'Adjust Prices'}
                     </Button>
-                    {adjustResult && <Alert variant="success">{adjustResult}</Alert>}
-                    {adjustError && <Alert variant="danger">{adjustError}</Alert>}
+                    {adjustPricesState.data && <Alert variant="success">{adjustPricesState.data}</Alert>}
+                    {adjustPricesState.error ? <Alert variant="danger">{formatError(adjustPricesState.error)}</Alert> : null}
                 </Card>
 
                 {/* Summarize 10-K Filings */}
@@ -417,13 +252,15 @@ export default function Admin() {
                         />
                     </Form.Group>
                     <Button
-                        onClick={handleSummarizeFilings}
-                        disabled={summaryLoading}
+                        onClick={() => summarizeFilings({
+                            ticker: summaryTicker.trim() ? summaryTicker.trim().toUpperCase() : undefined,
+                        })}
+                        disabled={summarizeFilingsState.isLoading}
                     >
-                        {summaryLoading ? <><Spinner size="sm" /> Summarizing...</> : 'Summarize Filings'}
+                        {summarizeFilingsState.isLoading ? <><Spinner size="sm" /> Summarizing...</> : 'Summarize Filings'}
                     </Button>
-                    {summaryResult && <Alert variant="success">{summaryResult}</Alert>}
-                    {summaryError && <Alert variant="danger">{summaryError}</Alert>}
+                    {summarizeFilingsState.data && <Alert variant="success">{summarizeFilingsState.data}</Alert>}
+                    {summarizeFilingsState.error ? <Alert variant="danger">{formatError(summarizeFilingsState.error)}</Alert> : null}
                 </Card>
 
                 {/* Index metrics + cap-ranked rebuild */}
@@ -460,10 +297,13 @@ export default function Admin() {
                         />
                     </Form.Group>
                     <Button
-                        onClick={handleRefreshIndexMetrics}
-                        disabled={indexMetricsLoading}
+                        onClick={() => refreshIndexMetrics({
+                            scope: indexMetricsScope,
+                            ticker: indexMetricsTicker.trim() ? indexMetricsTicker.trim().toUpperCase() : undefined,
+                        })}
+                        disabled={refreshIndexMetricsState.isLoading}
                     >
-                        {indexMetricsLoading ? (
+                        {refreshIndexMetricsState.isLoading ? (
                             <>
                                 <Spinner size="sm" /> Refreshing…
                             </>
@@ -471,8 +311,8 @@ export default function Admin() {
                             'Refresh index metrics'
                         )}
                     </Button>
-                    {indexMetricsResult && <Alert variant="success">{indexMetricsResult}</Alert>}
-                    {indexMetricsError && <Alert variant="danger">{indexMetricsError}</Alert>}
+                    {refreshIndexMetricsState.data && <Alert variant="success">{refreshIndexMetricsState.data}</Alert>}
+                    {refreshIndexMetricsState.error ? <Alert variant="danger">{formatError(refreshIndexMetricsState.error)}</Alert> : null}
                 </Card>
 
                 <Card>
@@ -506,8 +346,14 @@ export default function Admin() {
                         checked={indexRebuildRefreshMetricsFirst}
                         onChange={(e) => setIndexRebuildRefreshMetricsFirst(e.target.checked)}
                     />
-                    <Button onClick={handleRebuildIndexes} disabled={indexRebuildLoading}>
-                        {indexRebuildLoading ? (
+                    <Button
+                        onClick={() => rebuildIndexes({
+                            code: indexRebuildCode.trim() || undefined,
+                            refreshMetrics: indexRebuildRefreshMetricsFirst || undefined,
+                        })}
+                        disabled={rebuildIndexesState.isLoading}
+                    >
+                        {rebuildIndexesState.isLoading ? (
                             <>
                                 <Spinner size="sm" /> Rebuilding…
                             </>
@@ -515,8 +361,8 @@ export default function Admin() {
                             'Rebuild index(es)'
                         )}
                     </Button>
-                    {indexRebuildResult && <Alert variant="success">{indexRebuildResult}</Alert>}
-                    {indexRebuildError && <Alert variant="danger">{indexRebuildError}</Alert>}
+                    {rebuildIndexesState.data && <Alert variant="success">{rebuildIndexesState.data}</Alert>}
+                    {rebuildIndexesState.error ? <Alert variant="danger">{formatError(rebuildIndexesState.error)}</Alert> : null}
                 </Card>
 
             </Card>
