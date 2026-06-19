@@ -1,0 +1,27 @@
+# Copy to terraform.tfvars and fill in your account-specific values.
+
+aws_region = "us-east-1"
+
+# Same VPC as the EC2 instance running Postgres.
+vpc_id                = "vpc-0123456789abcdef0"
+public_subnet_ids     = ["subnet-0aaa...", "subnet-0bbb..."]
+ec2_security_group_id = "sg-0123456789abcdef0" # SG on the EC2 Postgres instance
+
+# Postgres on the EC2 box.
+db_host     = "10.0.1.23" # instance private IP, or its private DNS name
+db_name     = "springboot"
+db_username = "postgres"
+
+# Secrets Manager ARNs (create these first; see README).
+db_password_secret_arn       = "arn:aws:secretsmanager:us-east-1:111122223333:secret:fattorestreet/db-password-AbCdEf" # pragma: allowlist secret
+django_secret_key_secret_arn = "arn:aws:secretsmanager:us-east-1:111122223333:secret:fattorestreet/secret-key-AbCdEf" # pragma: allowlist secret
+
+# Image + sizing.
+image_tag      = "latest"
+task_memory    = 4096 # drop toward 2048 after profiling a real run
+hist_load_days = 20
+
+# Schedule: 02:00 America/New_York daily.
+schedule_expression = "cron(0 2 * * ? *)"
+schedule_timezone   = "America/New_York"
+schedule_enabled    = true

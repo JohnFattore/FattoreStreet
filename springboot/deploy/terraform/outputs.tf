@@ -1,0 +1,29 @@
+output "ecr_repository_url" {
+  description = "Push the image here (used by the buildx command in README)."
+  value       = aws_ecr_repository.this.repository_url
+}
+
+output "ecs_cluster_name" {
+  description = "ECS cluster name (for manual `aws ecs run-task` test runs)."
+  value       = aws_ecs_cluster.this.name
+}
+
+output "task_definition_family" {
+  description = "Task definition family."
+  value       = aws_ecs_task_definition.this.family
+}
+
+output "task_security_group_id" {
+  description = "Security group attached to the task."
+  value       = aws_security_group.task.id
+}
+
+output "log_group_name" {
+  description = "CloudWatch log group for task output."
+  value       = aws_cloudwatch_log_group.this.name
+}
+
+output "schedule_name" {
+  description = "EventBridge schedule name."
+  value       = aws_scheduler_schedule.this.name
+}

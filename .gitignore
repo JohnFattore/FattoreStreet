@@ -23,9 +23,6 @@ react-app/src/styles/custom.css.map
 
 django/chatbot/secret.txt
 
-awscliv2.zip
-aws/
-
 kubernetes/
 
 nginx/static/
@@ -33,6 +30,13 @@ django/static/
 nginx/dist/
 
 springboot/data/
+
+# Terraform — keep .tfvars.example tracked, ignore real vars + state (contain secrets)
+*.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
 
 llm/llama.cpp/
 llm/stable-diffusion.cpp/
