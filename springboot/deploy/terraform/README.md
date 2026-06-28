@@ -98,4 +98,4 @@ To pause the Fargate schedule without destroying anything: `schedule_enabled = f
 | `task_memory` | `4096` | Lower to `2048` after profiling a real run. |
 | `hist_load_days` | `20` | Days walked back; already-loaded days are skipped (idempotent). |
 | `schedule_expression` / `schedule_timezone` | `cron(0 2 * * ? *)` / `America/New_York` | When it runs. |
-| `schedule_enabled` | `true` | Toggle the nightly trigger. |
+| `schedule_enabled` | `true` | Toggle the nightly trigger. 
