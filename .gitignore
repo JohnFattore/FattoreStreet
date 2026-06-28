@@ -51,3 +51,5 @@ llm/machineLearning/huggingFace.txt
 llm
 
 daily_prices_data.sql
+
+SECRETS.md
