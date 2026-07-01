@@ -25,7 +25,7 @@ sudo docker network create --driver bridge dockerNet
 #     "HOME_URL": "https://fattorestreet.com/",
 #     "SPRINGBOOT_BASE_URL": "https://fattorestreet.com/springboot/",
 #     "SECRET_KEY": "<django-and-springboot-shared-secret-key>",
-#     "DB_PASSWORD": "<postgres-password>",
+#     "POSTGRES_PASSWORD": "<postgres-password>",
 #     "DB_USERNAME": "postgres",
 #     "DB_URL": "jdbc:postgresql://postgres:5432/springboot",
 #     "SEC_CONTACT_EMAIL": "johnefattore@gmail.com",
@@ -40,15 +40,17 @@ SECRETS_ARN=arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:fattorestreet/e
 # ---------------------------------------------------------------------------
 
 # postgres
-# POSTGRES_PASSWORD is read ONLY during first-time init (empty data dir). The
-# volume below is already initialized, so the entrypoint ignores it -- the real
-# password lives in the volume + in fattorestreet/env (DB_PASSWORD).
+# POSTGRES_PASSWORD is the single DB-password key: the postgres image reads it
+# ONLY during first-time init (empty data dir), and django + springboot use the
+# same key to connect. The volume below is already initialized, so the entrypoint
+# ignores it here -- the real password lives in the volume + in fattorestreet/env
+# (POSTGRES_PASSWORD).
 #
 # FRESH VOLUME ONLY: to re-initialize from an empty /mnt/ebs/postgres-data, the
 # password must be supplied once. Fetch it from the secret on the host (the EC2
 # instance role can read it) and pass it just for that run, e.g.:
 #   PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
-#         --query SecretString --output text | jq -r .DB_PASSWORD)
+#         --query SecretString --output text | jq -r .POSTGRES_PASSWORD)
 #   sudo docker run ... -e POSTGRES_PASSWORD="$PW" ... postgres:17
 sudo docker run -d \
   --name postgres \

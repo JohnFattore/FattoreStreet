@@ -65,7 +65,7 @@ Before adding or changing any external data source:
 |----------|---------|-------------|
 | `DB_URL` | `jdbc:postgresql://localhost:5432/springboot` | PostgreSQL JDBC URL |
 | `DB_USERNAME` | `postgres` | Database username |
-| `DB_PASSWORD` | `postgres` | Database password |
+| `POSTGRES_PASSWORD` | `postgres` | Database password (same key Django uses; also the postgres image's init var) |
 | `SHOW_JPA_SQL` | `false` | When `true`, logs Hibernate-generated SQL. Use locally; leave unset or `false` in production. |
 | `SECRET_KEY` | (required) | Must match Django `SECRET_KEY` — used to verify `Authorization: Bearer` JWTs (SimpleJWT HS256). Only access tokens whose `user_id` claim is `1` may call `/admin/**`. |
 | (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore 50 rebuild includes. Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
@@ -100,7 +100,7 @@ docker build -t sec-api .
 docker run -p 8080:8080 \
   -e DB_URL=jdbc:postgresql://host:5432/springboot \
   -e DB_USERNAME=postgres \
-  -e DB_PASSWORD=postgres \
+  -e POSTGRES_PASSWORD=postgres \
   -e SECRET_KEY=same-value-as-django-secret-key \
   sec-api
 ```

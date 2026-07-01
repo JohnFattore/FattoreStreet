@@ -141,7 +141,7 @@ Content lives in one place; the other tool gets a pointer file. Never duplicate 
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)
-- `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` — PostgreSQL connection
+- `DB_URL`, `DB_USERNAME`, `POSTGRES_PASSWORD` — PostgreSQL connection (`POSTGRES_PASSWORD` is the shared DB-password key used by Django and the postgres image too)
 - `SECRET_KEY` — must match Django `SECRET_KEY` for JWT verification on admin routes (`app.django-jwt-secret` defaults to this value)
 - `LLM_SERVER_URL` — llama.cpp server (default `http://localhost:8081`)
 - `DJANGO_PORTFOLIO_BASE_URL` — Django base URL for validation calls

@@ -62,15 +62,12 @@ variable "db_username" {
   default     = "postgres"
 }
 
-variable "db_password_secret_arn" {
-  description = "Secrets Manager ARN holding the Postgres password (plaintext secret, or append :json-key for a key)."
-  type        = string
-}
-
-variable "django_secret_key_secret_arn" {
+variable "env_secret_arn" {
   description = <<-EOT
-    Secrets Manager ARN holding the Django SECRET_KEY. Required at startup because SecurityConfig
-    builds a JwtDecoder from it even though the one-shot task serves no traffic.
+    Secrets Manager ARN of the single app-config secret (fattorestreet/env), a JSON object of
+    KEY -> value pairs. The task pulls POSTGRES_PASSWORD and SECRET_KEY out of it by key, so the
+    EC2 containers and this Fargate task share one secret. Pass the base ARN (no :key suffix);
+    Terraform appends the JSON-key selectors.
   EOT
   type        = string
 }

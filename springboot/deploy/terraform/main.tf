@@ -85,7 +85,7 @@ resource "aws_iam_role_policy_attachment" "execution_managed" {
 data "aws_iam_policy_document" "secrets_read" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.db_password_secret_arn, var.django_secret_key_secret_arn]
+    resources = [var.env_secret_arn]
   }
 }
 
@@ -137,9 +137,11 @@ resource "aws_ecs_task_definition" "this" {
         { name = "DB_USERNAME", value = var.db_username },
       ]
 
+      # Pull individual keys out of the single fattorestreet/env JSON secret.
+      # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
       secrets = [
-        { name = "DB_PASSWORD", valueFrom = var.db_password_secret_arn },
-        { name = "SECRET_KEY", valueFrom = var.django_secret_key_secret_arn },
+        { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
+        { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
       ]
 
       logConfiguration = {

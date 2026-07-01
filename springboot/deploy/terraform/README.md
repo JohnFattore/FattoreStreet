@@ -24,13 +24,18 @@ Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not
 
 ## One-time prerequisites
 
-1. **Secrets** — create the two secrets the task reads (skip either if you already have it):
+1. **Secret** — the task reads the single `fattorestreet/env` secret (the same JSON secret the EC2
+   containers use), pulling `POSTGRES_PASSWORD` and `SECRET_KEY` out of it by key. It should already
+   exist; if not, create it as a JSON object:
    ```bash
-   aws secretsmanager create-secret --name fattorestreet/db-password   --secret-string 'YOUR_DB_PASSWORD'
-   aws secretsmanager create-secret --name fattorestreet/secret-key     --secret-string 'YOUR_DJANGO_SECRET_KEY'
+   aws secretsmanager create-secret --name fattorestreet/env --secret-string '{
+     "POSTGRES_PASSWORD": "<postgres-password>",
+     "SECRET_KEY": "<django-secret-key>"
+   }'   # ...plus the other app keys; see deploy/run.sh
    ```
-   Put their ARNs in `terraform.tfvars`. (If they use a **customer-managed KMS key**, also grant the
-   execution role `kms:Decrypt` on that key — the default `aws/secretsmanager` key needs nothing extra.)
+   Put its ARN in `terraform.tfvars` as `env_secret_arn`. (If it uses a **customer-managed KMS key**,
+   also grant the execution role `kms:Decrypt` on that key — the default `aws/secretsmanager` key
+   needs nothing extra.)
 
 2. **tfvars** — `cp terraform.tfvars.example terraform.tfvars` and fill in VPC, subnets, the EC2
    instance's security group id, and its private IP/DNS for `db_host`.

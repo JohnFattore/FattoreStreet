@@ -12,9 +12,9 @@ db_host     = "10.0.1.23" # instance private IP, or its private DNS name
 db_name     = "springboot"
 db_username = "postgres"
 
-# Secrets Manager ARNs (create these first; see README).
-db_password_secret_arn       = "arn:aws:secretsmanager:us-east-1:111122223333:secret:fattorestreet/db-password-AbCdEf" # pragma: allowlist secret
-django_secret_key_secret_arn = "arn:aws:secretsmanager:us-east-1:111122223333:secret:fattorestreet/secret-key-AbCdEf" # pragma: allowlist secret
+# Secrets Manager ARN of the single app-config secret (fattorestreet/env, a JSON
+# object). The task reads POSTGRES_PASSWORD and SECRET_KEY out of it by key.
+env_secret_arn = "arn:aws:secretsmanager:us-east-1:111122223333:secret:fattorestreet/env-AbCdEf" # pragma: allowlist secret
 
 # Image + sizing.
 image_tag      = "latest"
