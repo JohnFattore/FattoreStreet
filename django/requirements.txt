@@ -1,5 +1,5 @@
 # The Django Framework
-Django==6.0.6
+Django==5.2.15
 # Security for communication with the react frontend
 django-cors-headers==4.9.0
 # API library
@@ -31,7 +31,7 @@ redis==4.5.5
 # PyTorch for machine learning
 # torch==2.0.1 
 # pandas for numerical computations
-pandas==2.1.1
+pandas==2.3.3
 numpy==1.26.0
 google-generativeai==0.8.6
 django-redis==5.4.0
