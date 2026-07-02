@@ -11,8 +11,8 @@ import com.fattorestreet.sec_api.marketdata.IexHistService;
 import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.index.FattoreIndexCodes;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -525,7 +525,7 @@ public class AdminController {
                 if (!dataRow.isArray()) {
                     continue;
                 }
-                com.fasterxml.jackson.databind.node.ObjectNode mappedRow = mapper.createObjectNode();
+                tools.jackson.databind.node.ObjectNode mappedRow = mapper.createObjectNode();
                 int max = Math.min(fields.size(), dataRow.size());
                 for (int i = 0; i < max; i++) {
                     String fieldName = fields.get(i);
@@ -539,7 +539,7 @@ public class AdminController {
             return rows;
         }
 
-        Iterator<Map.Entry<String, JsonNode>> iterator = root.fields();
+        Iterator<Map.Entry<String, JsonNode>> iterator = root.properties().iterator();
         while (iterator.hasNext()) {
             rows.add(iterator.next().getValue());
         }

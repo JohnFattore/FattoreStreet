@@ -4,7 +4,7 @@ import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.ListingRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

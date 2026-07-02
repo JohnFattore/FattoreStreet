@@ -1,6 +1,6 @@
 package com.fattorestreet.sec_api.index;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDate;
 import java.util.Locale;
@@ -299,7 +299,7 @@ public final class SecIndexFactsParser {
         if (pure != null && pure.isArray()) {
             return pure;
         }
-        var fields = units.fields();
+        var fields = units.properties().iterator();
         while (fields.hasNext()) {
             var e = fields.next();
             if (e.getValue().isArray()) {

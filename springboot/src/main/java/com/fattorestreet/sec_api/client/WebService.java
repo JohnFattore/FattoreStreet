@@ -356,7 +356,7 @@ public class WebService {
 
     private String explainException(Exception ex) {
         if (ex instanceof RestClientResponseException responseException) {
-            return "HTTP " + responseException.getRawStatusCode();
+            return "HTTP " + responseException.getStatusCode().value();
         }
         return ex.getClass().getSimpleName() + ": " + ex.getMessage();
     }

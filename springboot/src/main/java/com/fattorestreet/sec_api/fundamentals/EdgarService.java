@@ -3,8 +3,8 @@ package com.fattorestreet.sec_api.fundamentals;
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.Quarter;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -662,7 +662,7 @@ public class EdgarService {
                     continue;
 
                 // Iterate over all units to find matches
-                Iterator<Map.Entry<String, JsonNode>> fields = units.fields();
+                Iterator<Map.Entry<String, JsonNode>> fields = units.properties().iterator();
                 while (fields.hasNext()) {
                     Map.Entry<String, JsonNode> unitEntry = fields.next();
                     JsonNode unitNode = unitEntry.getValue();

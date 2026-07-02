@@ -25,7 +25,7 @@ Pick the right annotation based on what you're testing:
 |--------|-----------|-------|
 | Utility/POJO | None | Plain JUnit, no Spring context |
 | Service | `@ExtendWith(MockitoExtension.class)` | `@Mock` + `@InjectMocks` |
-| Controller | `@WebMvcTest(MyController.class)` | `MockMvc` + `@MockBean` |
+| Controller | `@WebMvcTest(MyController.class)` | `MockMvc` + `@MockitoBean` |
 | Repository | `@DataJpaTest` | In-memory DB, auto-rollback |
 | Full integration | `@SpringBootTest` | Full context, use sparingly |
 
@@ -79,8 +79,8 @@ class EdgarServiceTest {
 
 ```java
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockbean.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -91,7 +91,7 @@ class EdgarControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private EdgarService edgarService;
 
     @Test
@@ -129,7 +129,7 @@ class EdgarRepositoryTest {
 
 1. **Identify the class** -- controller, service, repository, or utility
 2. **Pick the test slice** -- see table above; prefer the lightest annotation that works
-3. **Mock dependencies** -- `@MockBean` for Spring context tests, `@Mock` + `@InjectMocks` for plain Mockito
+3. **Mock dependencies** -- `@MockitoBean` for Spring context tests, `@Mock` + `@InjectMocks` for plain Mockito
 4. **Write tests**:
    - Happy path with valid inputs
    - Edge cases (null, empty, invalid)

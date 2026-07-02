@@ -3,8 +3,8 @@ package com.fattorestreet.sec_api.listing;
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.ListingRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -150,7 +150,7 @@ public class EtfIdentityService {
                 if (!dataRow.isArray()) {
                     continue;
                 }
-                com.fasterxml.jackson.databind.node.ObjectNode mappedRow = objectMapper.createObjectNode();
+                tools.jackson.databind.node.ObjectNode mappedRow = objectMapper.createObjectNode();
                 int max = Math.min(fields.size(), dataRow.size());
                 for (int i = 0; i < max; i++) {
                     String fieldName = fields.get(i);
@@ -164,7 +164,7 @@ public class EtfIdentityService {
             return rows;
         }
 
-        root.fields().forEachRemaining(entry -> rows.add(entry.getValue()));
+        root.properties().forEach(entry -> rows.add(entry.getValue()));
         return rows;
     }
 

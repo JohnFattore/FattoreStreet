@@ -17,8 +17,8 @@ import com.fattorestreet.sec_api.model.FilingSummary;
 import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class FilingSummaryService {

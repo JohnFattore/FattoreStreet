@@ -1,9 +1,9 @@
 package com.fattorestreet.sec_api.corporateaction;
 
 import com.fattorestreet.sec_api.client.WebService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -78,7 +78,7 @@ public class EdgarFilingDiscoveryService {
                             name, cik, ex.toString());
                 }
             }
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             // Keep discovery resilient if recent submissions payload is malformed.
             log.warn("Failed to parse recent submissions payload for CIK {}: {}", cik, ex.getMessage());
         }
@@ -105,7 +105,7 @@ public class EdgarFilingDiscoveryService {
                             parseIsoDate(filing.path("filingDate").asText(null)));
                 }
             }
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             // Keep discovery resilient if a bundle has malformed JSON.
             log.warn("Failed to parse submission JSON ({} chars): {}", json.length(), ex.getMessage());
         }

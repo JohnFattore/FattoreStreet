@@ -1,7 +1,7 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
 import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -37,7 +37,7 @@ public class EquityDividendFactParser {
 
         List<EquityCorporateActionService.DividendFact> allFacts = new ArrayList<>();
         Set<String> consumedConcepts = new TreeSet<>();
-        Iterator<Map.Entry<String, JsonNode>> fields = usGaapNode.fields();
+        Iterator<Map.Entry<String, JsonNode>> fields = usGaapNode.properties().iterator();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
             String conceptName = entry.getKey();
@@ -49,7 +49,7 @@ public class EquityDividendFactParser {
             if (!units.isObject()) {
                 continue;
             }
-            Iterator<Map.Entry<String, JsonNode>> unitFields = units.fields();
+            Iterator<Map.Entry<String, JsonNode>> unitFields = units.properties().iterator();
             while (unitFields.hasNext()) {
                 Map.Entry<String, JsonNode> unitEntry = unitFields.next();
                 String unitName = unitEntry.getKey();

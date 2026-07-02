@@ -25,8 +25,8 @@ import com.fattorestreet.sec_api.model.DailyPrice;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.util.PcapParser;
 import com.fattorestreet.sec_api.util.PcapParser.TradeReport;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class IexHistService {
