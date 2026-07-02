@@ -37,6 +37,9 @@ updates:
       - /nginx
     schedule:
       interval: weekly
+    ignore:
+      # Python base image is pinned until pandas 3 / Django 6 land; bump manually after.
+      - dependency-name: python
 
   - package-ecosystem: github-actions
     directory: /
