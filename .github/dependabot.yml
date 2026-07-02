@@ -23,6 +23,16 @@ updates:
       # 0.5.x requires eslint >=9; unpin after the ESLint 9 migration.
       - dependency-name: eslint-plugin-react-refresh
         versions: [">=0.5.0"]
+      # React 19 is a coordinated migration (testing-library 16+, types,
+      # react-bootstrap/recharts compat) — do it deliberately, not via PR.
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: maven
     directory: /springboot
