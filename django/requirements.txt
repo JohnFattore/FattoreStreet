@@ -25,7 +25,7 @@ django-filter==24.2
 # History
 django-simple-history==3.12.0
 # YFinance API
-yfinance==0.2.65
+yfinance==1.5.1
 # Redis library for Celery and Django
 redis==4.5.5
 # PyTorch for machine learning
