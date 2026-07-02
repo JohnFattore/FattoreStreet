@@ -1,5 +1,5 @@
 # The Django Framework
-Django==5.2.15
+Django==6.0.6
 # Security for communication with the react frontend
 django-cors-headers==4.9.0
 # API library
