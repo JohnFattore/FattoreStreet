@@ -1,7 +1,7 @@
 package com.fattorestreet.sec_api.corporateaction;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;

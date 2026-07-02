@@ -1,8 +1,8 @@
 package com.fattorestreet.sec_api.index;
 
 import com.fattorestreet.sec_api.client.WebService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.DailyPrice;
 import com.fattorestreet.sec_api.model.Listing;

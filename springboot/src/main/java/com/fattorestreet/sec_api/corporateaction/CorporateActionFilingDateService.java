@@ -1,7 +1,7 @@
 package com.fattorestreet.sec_api.corporateaction;
 
 import com.fattorestreet.sec_api.client.WebService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
