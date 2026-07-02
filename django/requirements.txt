@@ -1,29 +1,29 @@
 # The Django Framework
 Django==5.0.4
 # Security for communication with the react frontend
-django-cors-headers==4.2.0
+django-cors-headers==4.9.0
 # API library
-djangorestframework==3.14.0
+djangorestframework==3.17.1
 # User authentication using tokens
 djangorestframework-simplejwt==5.5.1
 # Gunicorn HTTP server
 gunicorn==21.2.0
 # PostgreSQL to Python library
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.12
 # Environment Variables
-django-environ==0.11.2
+django-environ==0.14.0
 # Async and scheduled tasks
-celery==5.3.6
+celery==5.6.3
 # celery task scheduler helper
-django-celery-beat==2.6.0
+django-celery-beat==2.9.0
 # celery save results with django
-django-celery-results==2.5.1
+django-celery-results==2.6.0
 # HTTP requests from python
-requests==2.31
+requests==2.34.2
 # Filtering querysets, used in views
 django-filter==24.2
 # History
-django-simple-history==3.7.0
+django-simple-history==3.12.0
 # YFinance API
 yfinance==0.2.65
 # Redis library for Celery and Django
@@ -33,6 +33,6 @@ redis==4.5.5
 # pandas for numerical computations
 pandas==2.1.1
 numpy==1.26.0
-google-generativeai==0.8.4
+google-generativeai==0.8.6
 django-redis==5.4.0
-pandas-market-calendars==5.1.1
+pandas-market-calendars==5.4.0
