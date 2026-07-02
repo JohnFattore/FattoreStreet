@@ -6,7 +6,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-focal
+FROM eclipse-temurin:19-jre-focal
 WORKDIR /app
 
 # AWS CLI v2 + jq so the entrypoint can pull config from Secrets Manager at start.
