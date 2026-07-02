@@ -7,7 +7,7 @@ djangorestframework==3.17.1
 # User authentication using tokens
 djangorestframework-simplejwt==5.5.1
 # Gunicorn HTTP server
-gunicorn==21.2.0
+gunicorn==22.0.0
 # PostgreSQL to Python library
 psycopg2-binary==2.9.12
 # Environment Variables
