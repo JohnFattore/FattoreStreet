@@ -1,4 +1,4 @@
-FROM nginx:1.25
+FROM nginx:1.31
 
 # copy configuration into image
 # COPY nginx.conf /etc/nginx/nginx.conf
