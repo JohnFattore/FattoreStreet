@@ -82,8 +82,9 @@ sudo docker run --name nginx --network dockerNet \
   --log-opt awslogs-stream=nginx-{{.ID}} \
   -d johnfattore/nginx
 
-# Redis
-sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis
+# Redis (major pinned like postgres above; bump deliberately with the
+# redis-py/django-redis client pins in django/requirements.txt)
+sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis:8
 
 # pgadmin4
 # PGADMIN_DEFAULT_PASSWORD seeds the admin account on first run only (persisted
