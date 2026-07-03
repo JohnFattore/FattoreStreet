@@ -1,5 +1,11 @@
 import { defineConfig } from "vitest/config";
 
+// Node >= 25 ships a stub localStorage global that shadows jsdom's Storage;
+// disable it so tests get jsdom's working localStorage. Workers inherit this env.
+process.env.NODE_OPTIONS = [process.env.NODE_OPTIONS, "--no-experimental-webstorage"]
+  .filter(Boolean)
+  .join(" ");
+
 export default defineConfig({
   define: {
     "import.meta.env.VITE_APP_DJANGO_URL": JSON.stringify("http://127.0.0.1:8000/"),
