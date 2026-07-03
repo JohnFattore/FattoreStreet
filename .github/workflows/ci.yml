@@ -54,19 +54,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
         with:
-          # Must match the base image in django/Dockerfile
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: django/requirements.txt
+          enable-cache: true
+          cache-dependency-glob: django/uv.lock
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        # Python version comes from django/.python-version (matches the
+        # base image in django/Dockerfile); uv installs it if missing.
+        run: uv sync --frozen
 
       - name: Run tests
-        run: python3 manage.py test
+        run: uv run python manage.py test
 
   springboot:
     name: Spring Boot tests

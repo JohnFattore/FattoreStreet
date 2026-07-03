@@ -43,15 +43,13 @@ Service-specific detail: [django/README.md](django/README.md), [springboot/READM
 
 For full details, see [Getting Started](docs/GETTING_STARTED.md). Typical local ports: Django **8000**, Spring Boot **8080**, Vite **5173**.
 
-**Django (primary API)**:
+**Django (primary API)** — requires [uv](https://docs.astral.sh/uv/) (`brew install uv`):
 
 ```bash
 cd django
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python3 manage.py migrate
-python3 manage.py runserver
+uv sync
+uv run python manage.py migrate
+uv run python manage.py runserver
 ```
 
 **Spring Boot (SEC / filings service)** — requires **Java 17**, **Maven**, and **PostgreSQL**. Copy or create `springboot/.env` with database credentials and **`SECRET_KEY` set to the same value as Django** (JWT verification for `/admin/**`; see [springboot/README.md](springboot/README.md)):
