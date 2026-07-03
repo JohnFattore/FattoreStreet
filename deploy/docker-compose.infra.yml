@@ -1,0 +1,60 @@
+# FattoreStreet stateful infrastructure -- postgres, redis, pgadmin.
+#
+# NOT part of the deploy unit: routine deploys (docker compose pull/up in this
+# directory) never touch these services. Manage them explicitly with:
+#   docker compose -f docker-compose.infra.yml up -d
+
+name: fattorestreet-infra
+
+services:
+  # POSTGRES_PASSWORD is the single DB-password key: the postgres image reads it
+  # ONLY during first-time init (empty data dir), and django + springboot use the
+  # same key to connect. With an already-initialized volume the entrypoint
+  # ignores it -- the real password lives in the volume + in fattorestreet/env
+  # (POSTGRES_PASSWORD).
+  #
+  # FRESH VOLUME ONLY: to re-initialize from an empty /mnt/ebs/postgres-data,
+  # fetch the password from the secret on the host (the EC2 instance role can
+  # read it) and pass it just for that run:
+  #   PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
+  #         --query SecretString --output text | jq -r .POSTGRES_PASSWORD)
+  #   POSTGRES_PASSWORD="$PW" docker compose -f docker-compose.infra.yml up -d postgres
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    volumes:
+      - /mnt/ebs/postgres-data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    networks: [dockerNet]
+    restart: unless-stopped
+
+  # Major pinned like postgres; bump deliberately with the redis-py/django-redis
+  # client pins in django/pyproject.toml.
+  redis:
+    image: redis:8
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks: [dockerNet]
+    restart: unless-stopped
+
+  # PGADMIN_DEFAULT_PASSWORD seeds the admin account on first run only
+  # (persisted thereafter). Supply the real value via the host env -- do NOT
+  # hardcode it here.
+  pgadmin4:
+    image: dpage/pgadmin4
+    container_name: pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: johnefattore@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-}
+    networks: [dockerNet]
+    restart: unless-stopped
+
+networks:
+  dockerNet:
+    external: true

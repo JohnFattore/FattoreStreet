@@ -1,0 +1,76 @@
+# FattoreStreet app services -- the deploy unit.
+#
+# SAFE TO COMMIT: no secret values live in this file. All app config/credentials
+# come from a single AWS Secrets Manager secret (fattorestreet/env); each app
+# container is passed only its ARN via SECRETS_ARN (from ./.env, see
+# .env.example) and fetches the rest at start (see each image's
+# docker-entrypoint.sh). Stateful infra (postgres/redis/pgadmin) lives in
+# docker-compose.infra.yml and is never touched by a deploy.
+#
+# deploy (from this directory):
+#   docker compose pull && docker compose up -d
+# migrate:
+#   docker compose run --rm django python manage.py migrate
+#
+# TAG defaults to latest (the only tag build.sh pushes today); once CI publishes
+# per-commit tags, deploy/rollback becomes: TAG=<sha> docker compose pull && up -d
+
+name: fattorestreet
+
+services:
+  django:
+    image: johnfattore/django:${TAG:-latest}
+    container_name: django
+    env_file: .env
+    networks: [dockerNet]
+    restart: unless-stopped
+
+  # Same image + secret as django; only the command differs.
+  celery-worker:
+    image: johnfattore/django:${TAG:-latest}
+    container_name: celery-worker
+    command: celery -A mysite worker -E -n worker
+    env_file: .env
+    networks: [dockerNet]
+    restart: unless-stopped
+
+  celery-beat:
+    image: johnfattore/django:${TAG:-latest}
+    container_name: celery-beat
+    command: celery -A mysite worker --beat -E -n beat
+    env_file: .env
+    networks: [dockerNet]
+    restart: unless-stopped
+
+  springboot:
+    image: johnfattore/springboot:${TAG:-latest}
+    container_name: springboot
+    env_file: .env
+    networks: [dockerNet]
+    restart: unless-stopped
+
+  nginx:
+    image: johnfattore/nginx:${TAG:-latest}
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /mnt/ebs/certbot/letsencrypt:/etc/letsencrypt
+      - /mnt/ebs/certbot/www:/var/www/certbot
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: nginx-logs
+        # tag templates the CloudWatch log stream name per container
+        tag: nginx-{{.ID}}
+    # start after the backends; nginx.conf re-resolves their IPs every 10s
+    # via Docker DNS, so recreated backends are picked up without a restart
+    depends_on: [django, springboot]
+    networks: [dockerNet]
+    restart: unless-stopped
+
+networks:
+  dockerNet:
+    external: true
