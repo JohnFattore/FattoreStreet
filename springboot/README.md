@@ -35,10 +35,10 @@ Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebSer
 
 ### Database migrations
 
-- **[Flyway](https://flywaydb.org/)** (`flyway-core` + `flyway-database-postgresql`) runs migrations from [`src/main/resources/db/migration`](src/main/resources/db/migration) at startup, before Hibernate initializes.
+- **[Flyway](https://flywaydb.org/)** (`spring-boot-starter-flyway` + `flyway-database-postgresql`; Boot 4 moved the auto-configuration into this per-feature starter, so bare `flyway-core` no longer activates it) runs migrations from [`src/main/resources/db/migration`](src/main/resources/db/migration) at startup, before Hibernate initializes.
 - **`spring.jpa.hibernate.ddl-auto=validate`** — Hibernate checks the schema against entities but does not alter tables. Any entity change needs a **new Flyway migration** (for example `V2__...sql`).
 - **Initial install (empty PostgreSQL):** Flyway applies `V1__initial_schema.sql` (base tables + Hibernate Envers `revinfo` and `*_aud` tables).
-- **Existing database** that already matches the app but has no `flyway_schema_history` table: use Flyway **baseline** so duplicate DDL is not applied — for example set `spring.flyway.baseline-on-migrate=true` (and align `spring.flyway.baseline-version` with your situation) or run the Flyway baseline command against that database, then use `V2+` for future changes. Coordinate with your deployment process so greenfield and brownfield paths stay consistent.
+- **Existing database** that already matches the app but has no `flyway_schema_history` table: `application.properties` sets `spring.flyway.baseline-on-migrate=true`, so Flyway baselines at V1 instead of re-applying duplicate DDL; future changes go in `V2+`. A fresh (empty) database still runs `V1__initial_schema.sql` normally.
 - **Tests:** the `test` profile sets `spring.flyway.enabled=false` and uses H2 with `ddl-auto=create-drop`, so Hibernate builds the schema in memory and tests do not require PostgreSQL or Flyway.
 
 ## Data Licensing Policy
