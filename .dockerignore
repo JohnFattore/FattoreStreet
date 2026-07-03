@@ -1,0 +1,18 @@
+# Context filter for repo-root builds (nginx/Dockerfile). Whitelist style:
+# only the three directories that build needs, minus their local artifacts --
+# keeps the context small and stale gitignored files (nginx/dist, custom.css)
+# out of the image. django's own build uses django/ as context with its own
+# django/.dockerignore.
+*
+!django
+!nginx
+!react-app
+django/.venv
+django/db.sqlite3
+django/**/__pycache__
+nginx/dist
+nginx/static
+react-app/node_modules
+react-app/coverage
+react-app/src/styles/custom.css
+react-app/src/styles/custom.css.map

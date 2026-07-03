@@ -136,6 +136,8 @@ On every push and pull request to `main`, [`.github/workflows/ci.yml`](../.githu
 - **Spring Boot** (`springboot/`): `mvn test` (H2 in-memory for tests). Local runs need `SECRET_KEY` in `.env` (same as Django) so JWT validation works for `/admin/**` integration checks.
 - **Secrets**: `pre-commit run detect-secrets --all-files` (same baseline as local pre-commit)
 
+A second workflow, [`.github/workflows/docker-build.yml`](../.github/workflows/docker-build.yml), builds all three production Docker images (`nginx`, `django`, `springboot`) on the same triggers as a merge check — images are built but not pushed. The nginx image is hermetic: it compiles the React bundle and runs `collectstatic` inside the build, so it needs no pre-built local artifacts.
+
 The frontend **lint** step runs `eslint` with zero warnings allowed; if it fails on GitHub, run `npm run lint` in `react-app/` and fix or suppress the reported issues.
 
 ### Backend Tests
