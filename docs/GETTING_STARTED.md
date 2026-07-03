@@ -96,29 +96,32 @@ We use Sass for custom styling of React Bootstrap.
 
 ---
 
-## 🐳 Running with Docker (Staging Setup)
+## 🐳 Running with Docker (Local Compose Deployment)
 
-To replicate the production environment locally using Docker:
+To approximate the production environment locally, use `deploy/docker-compose.dev.yml` — it builds Django/Spring Boot from source, uses plain dev env vars (no AWS Secrets Manager), and serves everything through nginx at `http://localhost`.
 
-1.  **Navigate to the django directory** (where `docker-compose.yml` resides - *Note: Verify if compose file is in root or django dir, assuming django based on previous readme*):
+1.  **Build the frontend and static files** (nginx bind-mounts them):
     ```bash
-    cd django
+    cd react-app
+    npx sass src/styles/custom.scss src/styles/custom.css
+    npx vite build --mode compose --emptyOutDir
+    cd ../django && uv run python manage.py collectstatic --noinput
     ```
 
-2.  **Build and Start Containers:**
+2.  **Build images and start the stack:**
     ```bash
-    docker compose up --build
+    cd deploy
+    docker compose -f docker-compose.dev.yml up -d --build
+    docker compose -f docker-compose.dev.yml run --rm django python manage.py migrate
     ```
-    This spins up:
-    - **Nginx** (Reverse Proxy)
-    - **Gunicorn** (Django App)
-    - **Postgres** (Database)
+    This spins up nginx, Django (Gunicorn), two Celery containers, Spring Boot (Flyway migrates its schema on start), Postgres 17, and Redis 8. Open `http://localhost`.
 
-3.  **Run Frontend (Staging Mode):**
-    In `react-app/`:
+3.  **Teardown** (`-v` also wipes the dev database volume):
     ```bash
-    npm run staging
+    docker compose -f docker-compose.dev.yml down -v
     ```
+
+Full command reference: [`deploy/compose.sh`](../deploy/compose.sh).
 
 ---
 

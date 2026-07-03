@@ -1,0 +1,93 @@
+# FattoreStreet local development deployment -- approximates production on a
+# dev machine. Differences from the production files (docker-compose.yml +
+# docker-compose.infra.yml), which stay untouched:
+#
+#   - django/springboot images are BUILT from local source, not pulled
+#   - config is plain env vars below (no SECRETS_ARN / Secrets Manager;
+#     the entrypoints skip the fetch when SECRETS_ARN is unset)
+#   - stock nginx with nginx.dev.conf + the built frontend bind-mounted
+#     (port 80, no SSL) instead of the baked johnfattore/nginx image
+#   - postgres/redis use a named volume and stay unpublished; the app talks
+#     to them over the compose network
+#   - default json-file logging (no awslogs), own isolated network
+#
+# Prerequisites + commands: see the "Local development deployment" section in
+# compose.sh. All values below are dev-only defaults -- nothing secret.
+
+name: fattorestreet-dev
+
+x-django-env: &django-env
+  DATABASE: postgresDocker
+  POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
+  SECRET_KEY: dev-only-secret-key-do-not-use-in-production  # pragma: allowlist secret
+  DEBUG: "True"
+  REDIS_URL: redis://redis:6379
+  DJANGO_FORCE_SCRIPT_NAME: /django
+  HOME_URL: http://localhost/
+  SPRINGBOOT_BASE_URL: http://springboot:8080/
+  # chatbot views read this at request time; a dummy breaks only the chatbot
+  GOOGLE_API_KEY: dev-dummy-google-api-key  # pragma: allowlist secret
+
+services:
+  postgres:
+    image: postgres:17
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # creates the extra "springboot" database on first init (django uses
+      # the default "postgres" db); Flyway migrates the schema on app start
+      - ./dev-init:/docker-entrypoint-initdb.d:ro
+    environment:
+      POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
+    restart: unless-stopped
+
+  redis:
+    image: redis:8
+    restart: unless-stopped
+
+  django:
+    build: ../django
+    environment: *django-env
+    depends_on: [postgres, redis]
+    restart: unless-stopped
+
+  celery-worker:
+    build: ../django
+    command: celery -A mysite worker -E -n worker
+    environment: *django-env
+    depends_on: [postgres, redis]
+    restart: unless-stopped
+
+  celery-beat:
+    build: ../django
+    command: celery -A mysite worker --beat -E -n beat
+    environment: *django-env
+    depends_on: [postgres, redis]
+    restart: unless-stopped
+
+  springboot:
+    build: ../springboot
+    environment:
+      SECRET_KEY: dev-only-secret-key-do-not-use-in-production  # pragma: allowlist secret
+      DB_URL: jdbc:postgresql://postgres:5432/springboot
+      DB_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
+      SEC_CONTACT_EMAIL: johnefattore@gmail.com
+      DJANGO_PORTFOLIO_BASE_URL: http://django:8000
+      # llama.cpp runs on the host, not in compose
+      LLM_SERVER_URL: http://host.docker.internal:8081
+    depends_on: [postgres]
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.31
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/dist:/var/www/dist:ro
+      - ../nginx/static:/var/www/static:ro
+    depends_on: [django, springboot]
+    restart: unless-stopped
+
+volumes:
+  pgdata:

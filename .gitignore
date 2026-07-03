@@ -16,6 +16,7 @@ react-app/node_modules
 react-app/dist
 .env.*
 !deploy/.env.example
+!react-app/.env.compose
 react-app/coverage
 react-app/.sass-cache
 react-app/src/styles/custom.css
