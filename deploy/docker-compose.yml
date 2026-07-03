@@ -26,11 +26,16 @@ services:
     restart: unless-stopped
 
   # Same image + secret as django; only the command differs.
+  # Off by default (profile): a bare `up -d` skips celery. Opt in with
+  #   docker compose --profile celery up -d
+  # Without the workers the load_fred_cache/load_yfinance_cache scheduled
+  # tasks do not run.
   celery-worker:
     image: johnfattore/django:${TAG:-latest}
     container_name: celery-worker
     command: celery -A mysite worker -E -n worker
     env_file: .env
+    profiles: [celery]
     networks: [dockerNet]
     restart: unless-stopped
 
@@ -39,6 +44,7 @@ services:
     container_name: celery-beat
     command: celery -A mysite worker --beat -E -n beat
     env_file: .env
+    profiles: [celery]
     networks: [dockerNet]
     restart: unless-stopped
 

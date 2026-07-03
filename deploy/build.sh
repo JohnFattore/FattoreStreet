@@ -22,13 +22,9 @@ cd ..
 
 echo "=== All tests passed — starting builds ==="
 
-cd react-app
-npm run build
-cd ..
-
-cd nginx
-docker build -t johnfattore/nginx .
-cd ..
+# nginx is hermetic: it builds the React bundle and Django static itself,
+# but its COPY paths are relative to the repo root, so build from here
+docker build -f nginx/Dockerfile -t johnfattore/nginx .
 
 cd django
 docker build -t johnfattore/django .
