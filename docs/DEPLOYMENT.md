@@ -19,7 +19,7 @@ The production environment runs on a single EC2 instance behind Route 53:
 
 ## 🚀 Build & Deploy
 
-- **CI**: GitHub Actions (`.github/workflows/ci.yml`) runs frontend, Django, and Spring Boot tests plus a secret scan on every push/PR to `main`.
+- **CI**: GitHub Actions (`.github/workflows/ci.yml`) runs frontend, Django, and Spring Boot tests plus a secret scan on every push/PR to `main`. A second workflow (`.github/workflows/docker-build.yml`) builds all three Docker images on the same triggers as a merge check (build-only, no push); the nginx image builds the React bundle and Django static files itself, so it works from a clean checkout.
 - **Build**: `deploy/build.sh` re-runs all tests, builds the React app and the three Docker images (`johnfattore/{nginx,django,springboot}`), and pushes them to Docker Hub.
 - **Deploy**: Docker Compose on the EC2 host, from the `deploy/` directory:
   - `docker-compose.yml` — the deploy unit: `django`, `celery-worker`, `celery-beat`, `springboot`, `nginx`. Deploy = `docker compose pull && docker compose up -d`.

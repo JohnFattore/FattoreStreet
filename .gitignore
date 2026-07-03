@@ -17,6 +17,9 @@ react-app/dist
 .env.*
 !deploy/.env.example
 !react-app/.env.compose
+# public URLs only (no secrets); committed so the hermetic nginx image build
+# produces the real production bundle from a clean checkout
+!react-app/.env.production
 react-app/coverage
 react-app/.sass-cache
 react-app/src/styles/custom.css
