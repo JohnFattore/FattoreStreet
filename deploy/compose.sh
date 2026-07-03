@@ -56,8 +56,12 @@ sudo docker compose up -d
 # Routine operations (from this directory)
 # ---------------------------------------------------------------------------
 
-# deploy the latest pushed images
+# deploy the latest pushed images (celery is off by default -- see below)
 sudo docker compose pull && sudo docker compose up -d
+
+# celery-worker/celery-beat sit behind the "celery" profile: bare compose
+# commands skip them. Include them (enables the FRED/yfinance cache tasks):
+sudo docker compose --profile celery pull && sudo docker compose --profile celery up -d
 
 # apply Django migrations (one-shot container, same image + secret as django)
 sudo docker compose run --rm django python manage.py migrate
