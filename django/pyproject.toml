@@ -35,7 +35,8 @@ dependencies = [
     # pandas for numerical computations
     "pandas==3.0.3",
     "numpy==2.5.0",
-    "google-generativeai==0.8.6",
+    # Google Gemini SDK
+    "google-genai==2.10.0",
     "django-redis==7.0.0",
     "pandas-market-calendars==5.4.0",
 ]
