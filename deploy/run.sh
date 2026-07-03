@@ -1,35 +1,21 @@
 #!/bin/sh
-# FattoreStreet host setup + operations runbook.
+# FattoreStreet container launch commands.
 #
 # SAFE TO COMMIT: no secret values live in this file. All app config/credentials
-# come from a single AWS Secrets Manager secret (fattorestreet/env); containers
-# are passed only its ARN via SECRETS_ARN (from deploy/.env, see .env.example)
-# and fetch the rest at start (see each image's docker-entrypoint.sh).
-#
-# The containers themselves are defined in the compose files next to this
-# script and are NOT started here:
-#   docker-compose.yml        app services (django, celery-worker, celery-beat,
-#                             springboot, nginx) -- the deploy unit
-#   docker-compose.infra.yml  stateful infra (postgres, redis, pgadmin4) --
-#                             never touched by a routine deploy
-#
-# This file is a copy/paste runbook, not a script to execute top-to-bottom.
+# come from a single AWS Secrets Manager secret (fattorestreet/env); each of our
+# containers is passed only its ARN via -e SECRETS_ARN and fetches the rest at
+# start (see each image's docker-entrypoint.sh). Fill in the placeholders below
+# (<...>) on the host before running.
 
-# ---------------------------------------------------------------------------
-# One-time host setup
-# ---------------------------------------------------------------------------
-
-# 1. Shared bridge network (both compose files reference it as external)
+# network
 sudo docker network create --driver bridge dockerNet
 
-# 2. Env file for compose: copy the template and fill in the real secret ARN
-cp .env.example .env
-
-# 3. Secrets: ALL app config lives in ONE Secrets Manager secret,
-# fattorestreet/env. Each container's entrypoint fetches this secret and
-# exports every key as an env var at start. Extra keys a given service doesn't
-# use are harmless. One-time setup (run with the REAL values; they are NOT
-# stored in this file):
+# ---------------------------------------------------------------------------
+# Secrets: ALL app config lives in ONE Secrets Manager secret, fattorestreet/env.
+# Each container is passed only -e SECRETS_ARN (+ -e AWS_REGION); its image's
+# docker-entrypoint.sh fetches this secret and exports every key as an env var at
+# start. Extra keys a given service doesn't use are harmless. One-time setup
+# (run with the REAL values; they are NOT stored in this file):
 #
 #   aws secretsmanager create-secret --name fattorestreet/env --secret-string '{
 #     "DATABASE": "postgresDocker",
@@ -49,19 +35,88 @@ cp .env.example .env
 #
 # Requires: EC2 instance role with secretsmanager:GetSecretValue on the secret,
 # and IMDSv2 hop limit >= 2 (see springboot/deploy/terraform README / the
-# secrets-from-arn skill).
+# secrets-from-arn skill). Substitute the secret's real ARN below.
+SECRETS_ARN=arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:fattorestreet/env-XXXXXX
+# ---------------------------------------------------------------------------
 
-# 4. Stateful infra (postgres, redis, pgadmin4). POSTGRES_PASSWORD is only read
-# on FIRST-TIME init of an empty /mnt/ebs/postgres-data volume -- see the
-# comments in docker-compose.infra.yml for the fetch-from-secret recipe.
-# PGADMIN_DEFAULT_PASSWORD seeds the pgadmin admin account on first run only.
-sudo docker compose -f docker-compose.infra.yml up -d
+# postgres
+# POSTGRES_PASSWORD is the single DB-password key: the postgres image reads it
+# ONLY during first-time init (empty data dir), and django + springboot use the
+# same key to connect. The volume below is already initialized, so the entrypoint
+# ignores it here -- the real password lives in the volume + in fattorestreet/env
+# (POSTGRES_PASSWORD).
+#
+# FRESH VOLUME ONLY: to re-initialize from an empty /mnt/ebs/postgres-data, the
+# password must be supplied once. Fetch it from the secret on the host (the EC2
+# instance role can read it) and pass it just for that run, e.g.:
+#   PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
+#         --query SecretString --output text | jq -r .POSTGRES_PASSWORD)
+#   sudo docker run ... -e POSTGRES_PASSWORD="$PW" ... postgres:17
+sudo docker run -d \
+  --name postgres \
+  --network dockerNet \
+  -v /mnt/ebs/postgres-data:/var/lib/postgresql/data \
+  -p 0.0.0.0:5432:5432 \
+  postgres:17
 
-# 5. App services
-sudo docker compose up -d
+# django (config from fattorestreet/env via SECRETS_ARN)
+sudo docker run --name django --network dockerNet -d \
+  -e SECRETS_ARN=$SECRETS_ARN \
+  -e AWS_REGION=us-east-1 \
+  johnfattore/django
 
-# 6. Certbot get SSL cert (nginx must be up to serve the webroot challenge;
-# rerun to renew)
+# springboot (config from fattorestreet/env via SECRETS_ARN)
+sudo docker run --name springboot --network dockerNet -d \
+  -e SECRETS_ARN=$SECRETS_ARN \
+  -e AWS_REGION=us-east-1 \
+  johnfattore/springboot
+
+# nginx
+sudo docker run --name nginx --network dockerNet \
+  -v /mnt/ebs/certbot/letsencrypt:/etc/letsencrypt \
+  -v /mnt/ebs/certbot/www:/var/www/certbot \
+  -p 80:80 -p 443:443 \
+  --log-driver=awslogs \
+  --log-opt awslogs-region=us-east-1 \
+  --log-opt awslogs-group=nginx-logs \
+  --log-opt awslogs-stream=nginx-{{.ID}} \
+  -d johnfattore/nginx
+
+# Redis (major pinned like postgres above; bump deliberately with the
+# redis-py/django-redis client pins in django/pyproject.toml)
+sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis:8
+
+# pgadmin4
+# PGADMIN_DEFAULT_PASSWORD seeds the admin account on first run only (persisted
+# thereafter). Supply the real value via the $PGADMIN_DEFAULT_PASSWORD env on the
+# host -- do NOT hardcode it here.
+sudo docker run -d \
+  --name pgadmin4 \
+  --network dockerNet \
+  -p 5050:80 \
+  -e PGADMIN_DEFAULT_EMAIL=johnefattore@gmail.com \
+  -e PGADMIN_DEFAULT_PASSWORD="$PGADMIN_DEFAULT_PASSWORD" \
+  dpage/pgadmin4
+
+# Celery beat worker (same image + secret as django; only the command differs)
+sudo docker run \
+  --name celery \
+  --network dockerNet \
+  -e SECRETS_ARN=$SECRETS_ARN \
+  -e AWS_REGION=us-east-1 \
+  -d johnfattore/django \
+  celery -A mysite worker --beat -E -n beat
+
+# Celery worker (same image + secret as django; only the command differs)
+sudo docker run \
+  --name celery \
+  --network dockerNet \
+  -e SECRETS_ARN=$SECRETS_ARN \
+  -e AWS_REGION=us-east-1 \
+  -d johnfattore/django \
+  celery -A mysite worker -E -n worker
+
+# Certbot get SSL cert
 sudo docker run --rm \
   --name certbot \
   --network dockerNet \
@@ -74,35 +129,49 @@ sudo docker run --rm \
   --email johnefattore@gmail.com \
   --agree-tos
 
-# ---------------------------------------------------------------------------
-# One-time cutover from the old docker-run/watchtower setup
-# ---------------------------------------------------------------------------
-# Watchtower is retired: deploys are now an explicit compose pull/up. Data is
-# safe -- postgres/certbot state lives in the /mnt/ebs bind mounts.
-#
-#   sudo docker stop watchtower && sudo docker rm watchtower
-#   sudo docker stop nginx django springboot celery postgres redis pgadmin4
-#   sudo docker rm   nginx django springboot celery postgres redis pgadmin4
-#   sudo docker compose -f docker-compose.infra.yml up -d
-#   sudo docker compose up -d
+# watchtower for updates, doesnt work maybe as well as i hope. if django restarts, nginx needs to as well
+sudo docker run -d \
+  --name watchtower \
+  --network dockerNet \
+  -e WATCHTOWER_POLL_INTERVAL=300 \
+  -e WATCHTOWER_CLEANUP=true \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  containrrr/watchtower
 
 # ---------------------------------------------------------------------------
-# Routine operations (from this directory)
+# Teardown / maintenance
 # ---------------------------------------------------------------------------
+sudo docker stop postgres
+sudo docker container rm postgres
+sudo docker image rm postgres
 
-# deploy the latest pushed images
-sudo docker compose pull && sudo docker compose up -d
+sudo docker stop celery
+sudo docker container rm celery
 
-# apply Django migrations (one-shot container, same image + secret as django)
-sudo docker compose run --rm django python manage.py migrate
+sudo docker stop django
+sudo docker container rm django
+sudo docker image rm johnfattore/django
 
-# status / logs / shell
-sudo docker compose ps
-sudo docker compose logs -f django
+sudo docker stop springboot
+sudo docker container rm springboot
+sudo docker image rm johnfattore/springboot
+
+sudo docker stop nginx
+sudo docker container rm nginx
+sudo docker image rm johnfattore/nginx
+
+sudo docker stop pgadmin4
+sudo docker container rm pgadmin4
+sudo docker image rm dpage/pgadmin4
+
+sudo docker stop redis
+sudo docker container rm redis
+
+sudo docker stop watchtower
+sudo docker container rm watchtower
+
+# exec into django
 sudo docker exec -it django bash
 
-# stop the whole app (infra keeps running)
-sudo docker compose down
-
-# infra changes (rare; postgres/redis version bumps etc.)
-sudo docker compose -f docker-compose.infra.yml up -d
+# migrate database changes
+python3 manage.py migrate

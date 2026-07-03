@@ -26,7 +26,7 @@ The production environment runs on a single EC2 instance behind Route 53:
   - `docker-compose.infra.yml` — stateful infra: `postgres`, `redis`, `pgadmin4`. Never touched by a routine deploy; managed explicitly with `docker compose -f docker-compose.infra.yml up -d`.
   - `SECRETS_ARN`/`AWS_REGION` come from `deploy/.env` on the host (template: `deploy/.env.example`).
 - **Migrations**: `docker compose run --rm django python manage.py migrate` after deploying a release that changes models.
-- **Runbook**: `deploy/run.sh` documents one-time host setup (network, secret creation, certbot) and the routine deploy/migrate/logs commands.
+- **Runbook**: `deploy/compose.sh` documents one-time host setup, the cutover from the old docker-run/watchtower setup, and the routine deploy/migrate/logs commands. `deploy/run.sh` is kept as reference for the pre-Compose setup (including secret creation and certbot commands).
 
 Watchtower-based auto-updates are retired: deploys are an explicit, ordered `compose pull && up -d`, so nginx and the backends restart in a coordinated way.
 
