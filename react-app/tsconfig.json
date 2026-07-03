@@ -10,15 +10,9 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "noImplicitAny": true,
-    "paths": {
-      "react": [
-        "./node_modules/@types/react"
-      ]
-    },
     "esModuleInterop": true,
     /* Bundler mode */
-    "moduleResolution": "node",
-    //"allowImportingTsExtensions": true,
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -32,7 +26,6 @@
   },
   "include": [
     "src",
-    "../../src/components",
     "__tests__/mocks",
     "__tests__/ChatbotIntegration.test.tsx"
   ],

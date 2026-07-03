@@ -7,7 +7,7 @@ description: Write Vitest tests for React components and pages using Testing Lib
 
 ## Stack
 
-Vitest + React Testing Library + MSW (Mock Service Worker) + happy-dom
+Vitest + React Testing Library + MSW (Mock Service Worker) + jsdom
 
 ## File Conventions
 

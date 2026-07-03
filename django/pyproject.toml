@@ -26,8 +26,6 @@ dependencies = [
     "django-celery-results==2.6.0",
     # HTTP requests from python
     "requests==2.34.2",
-    # Filtering querysets, used in views
-    "django-filter==24.2",
     # History
     "django-simple-history==3.12.0",
     # YFinance API
