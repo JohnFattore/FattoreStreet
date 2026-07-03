@@ -1,6 +1,7 @@
 from django.shortcuts import render
 import environ
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from rest_framework.views import APIView
 from .serializer import ChatMessageSerializer, InteractionSerializer
 from rest_framework.response import Response
@@ -31,30 +32,29 @@ class ChatbotView(APIView):
 
     def post(self, request):
         api_key = env("GOOGLE_API_KEY")
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
 
-        generation_config = {
-        "temperature": 0.5,
-        "top_p": 0.95,
-        "top_k": 40,
-        "max_output_tokens": 8192,
-        "response_mime_type": "text/plain",
-        }
-
-        model = genai.GenerativeModel(
-        model_name="gemini-flash-latest",
-        generation_config=generation_config,
-        system_instruction=f"Imagine you are a financial advisor obsessed with index funds. You are a Boglehead who wants everyone to invest in low-cost, highly diverse index funds. {data}"
+        config = types.GenerateContentConfig(
+            temperature=0.5,
+            top_p=0.95,
+            top_k=40,
+            max_output_tokens=8192,
+            response_mime_type="text/plain",
+            system_instruction=f"Imagine you are a financial advisor obsessed with index funds. You are a Boglehead who wants everyone to invest in low-cost, highly diverse index funds. {data}",
         )
 
         # Retrieve previous interactions
         previous_interactions = Interaction.objects.filter(user=request.user).order_by('-timestamp')[:10]
         history = []
         for interaction in reversed(list(previous_interactions)):
-            history.append({"role": "user", "parts": [interaction.input_text]})
-            history.append({"role": "model", "parts": [interaction.output_text]})
+            history.append(types.Content(role="user", parts=[types.Part(text=interaction.input_text)]))
+            history.append(types.Content(role="model", parts=[types.Part(text=interaction.output_text)]))
 
-        chat_session = model.start_chat(history=history)
+        chat_session = client.chats.create(
+            model="gemini-flash-latest",
+            config=config,
+            history=history,
+        )
         msg_serializer = ChatMessageSerializer(data=request.data)
         msg_serializer.is_valid(raise_exception=True)
         user_message = msg_serializer.validated_data["message"]

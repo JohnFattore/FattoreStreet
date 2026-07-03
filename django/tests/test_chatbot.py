@@ -54,10 +54,10 @@ class ChatbotPostTest(BaseAPITestCase):
         patch("chatbot.views.env", return_value="fake-api-key").start()
         self.addCleanup(patch.stopall)
 
-        mock_model = MagicMock()
-        self.mock_genai.GenerativeModel.return_value = mock_model
+        mock_client = MagicMock()
+        self.mock_genai.Client.return_value = mock_client
         mock_chat = MagicMock()
-        mock_model.start_chat.return_value = mock_chat
+        mock_client.chats.create.return_value = mock_chat
         mock_response = MagicMock()
         mock_response.text = "You should invest in low-cost index funds!"
         mock_chat.send_message.return_value = mock_response
