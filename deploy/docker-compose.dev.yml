@@ -18,15 +18,15 @@ name: fattorestreet-dev
 
 x-django-env: &django-env
   DATABASE: postgresDocker
-  POSTGRES_PASSWORD: postgres
-  SECRET_KEY: dev-only-secret-key-do-not-use-in-production
+  POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
+  SECRET_KEY: dev-only-secret-key-do-not-use-in-production  # pragma: allowlist secret
   DEBUG: "True"
   REDIS_URL: redis://redis:6379
   DJANGO_FORCE_SCRIPT_NAME: /django
   HOME_URL: http://localhost/
   SPRINGBOOT_BASE_URL: http://springboot:8080/
   # chatbot views read this at request time; a dummy breaks only the chatbot
-  GOOGLE_API_KEY: dev-dummy-google-api-key
+  GOOGLE_API_KEY: dev-dummy-google-api-key  # pragma: allowlist secret
 
 services:
   postgres:
@@ -37,7 +37,7 @@ services:
       # the default "postgres" db); Flyway migrates the schema on app start
       - ./dev-init:/docker-entrypoint-initdb.d:ro
     environment:
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
     restart: unless-stopped
 
   redis:
@@ -67,10 +67,10 @@ services:
   springboot:
     build: ../springboot
     environment:
-      SECRET_KEY: dev-only-secret-key-do-not-use-in-production
+      SECRET_KEY: dev-only-secret-key-do-not-use-in-production  # pragma: allowlist secret
       DB_URL: jdbc:postgresql://postgres:5432/springboot
       DB_USERNAME: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
       SEC_CONTACT_EMAIL: johnefattore@gmail.com
       DJANGO_PORTFOLIO_BASE_URL: http://django:8000
       # llama.cpp runs on the host, not in compose
