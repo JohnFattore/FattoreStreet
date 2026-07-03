@@ -72,3 +72,31 @@ sudo docker compose down
 
 # infra changes (rare; postgres/redis version bumps etc.)
 sudo docker compose -f docker-compose.infra.yml up -d
+
+# ---------------------------------------------------------------------------
+# Local development deployment (docker-compose.dev.yml)
+# ---------------------------------------------------------------------------
+# Approximates production on a dev machine: builds django/springboot from
+# source, plain dev env vars instead of Secrets Manager, stock nginx on
+# http://localhost (no SSL). No sudo needed with Docker Desktop.
+
+# 1. Build the frontend for the compose mode (URLs point at http://localhost)
+#    and collect Django static files -- nginx bind-mounts both:
+#      cd react-app
+#      npx sass src/styles/custom.scss src/styles/custom.css
+#      npx vite build --mode compose --emptyOutDir
+#      cd ../django && uv run python manage.py collectstatic --noinput
+
+# 2. Build images + start the stack (from deploy/)
+docker compose -f docker-compose.dev.yml up -d --build
+
+# 3. Apply Django migrations (Spring Boot's Flyway migrates itself on start)
+docker compose -f docker-compose.dev.yml run --rm django python manage.py migrate
+
+# App: http://localhost  |  Django admin: http://localhost/django/admin/
+
+# status / logs / teardown (-v also wipes the dev database volume)
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml logs -f django
+docker compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down -v

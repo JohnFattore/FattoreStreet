@@ -32,6 +32,10 @@ Watchtower-based auto-updates are retired: deploys are an explicit, ordered `com
 
 ## 🔄 Environments
 
+### Local (Compose)
+- **Goal**: Approximate production on a dev machine (for day-to-day coding, the dev servers — `npm run dev`, `runserver`, `spring-boot:run` — remain the primary loop).
+- **Config**: `deploy/docker-compose.dev.yml` — builds django/springboot from source, plain dev env vars instead of Secrets Manager, stock nginx on `http://localhost` with `nginx/nginx.dev.conf` (no SSL) and the frontend built via `npx vite build --mode compose`. Commands in `deploy/compose.sh`.
+
 ### Staging
 - **Goal**: Mirror production as closely as possible.
 - **Config**: Uses `nginx.conf` (local), updates Port mappings.
