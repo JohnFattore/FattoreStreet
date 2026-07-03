@@ -24,6 +24,24 @@ describe('ChatbotOutput', () => {
         expect(screen.getByText(/Hello human/)).toBeInTheDocument();
     });
 
+    it('renders model messages as markdown', () => {
+        const preloadedState = {
+            chatbot: {
+                loading: false,
+                messages: [
+                    { role: 'model', text: 'Buy **index funds** and hold' },
+                ],
+                error: '',
+            },
+        };
+
+        renderWithProviders(<ChatbotOutput />, { preloadedState });
+
+        const bold = screen.getByText('index funds');
+        expect(bold.tagName).toBe('STRONG');
+        expect(screen.getByText(/and hold/)).toBeInTheDocument();
+    });
+
     it('renders empty state when no messages exist', () => {
         const preloadedState = {
             chatbot: {

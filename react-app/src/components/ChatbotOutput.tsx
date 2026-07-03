@@ -1,15 +1,9 @@
 import { useSelector } from "react-redux";
 import { RootState } from '../main';
 import { IChatMessage } from '../interfaces';
-import showdown from "showdown";
-import DOMPurify from "dompurify";
-
-function convertMarkdownToHtml(markdownText: string) {
-    if (!markdownText) return "";
-    const text = String(markdownText);
-    const converter = new showdown.Converter();
-    return DOMPurify.sanitize(converter.makeHtml(text));
-}
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 
 export default function ChatbotOutput() {
     const { messages } = useSelector((state: RootState) => state.chatbot);
@@ -23,7 +17,7 @@ export default function ChatbotOutput() {
                     maxWidth: '80%'
                 }}>
                     {msg.role === 'model' ? (
-                        <div dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(msg.text) }} />
+                        <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{msg.text}</Markdown>
                     ) : (
                         <div>{msg.text}</div>
                     )}

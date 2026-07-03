@@ -1,8 +1,8 @@
-import { useMemo } from "react";
 import { Alert, Card, Spinner } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
-import showdown from "showdown";
-import DOMPurify from "dompurify";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { useGetBlogPostQuery } from "../functions/api";
 
 export default function BlogPost() {
@@ -11,19 +11,6 @@ export default function BlogPost() {
   const { data, isLoading, error } = useGetBlogPostQuery(slug || "", {
     skip: !shouldFetch,
   });
-
-  const html = useMemo(() => {
-    const md = data?.body_markdown || "";
-    if (!md) return "";
-    const converter = new showdown.Converter({
-      tables: true,
-      strikethrough: true,
-      openLinksInNewWindow: true,
-      simpleLineBreaks: true,
-    });
-    const rawHtml = converter.makeHtml(md);
-    return DOMPurify.sanitize(rawHtml);
-  }, [data?.body_markdown]);
 
   return (
     <div className="p-3">
@@ -55,13 +42,22 @@ export default function BlogPost() {
           )}
           {!!data.excerpt && <p className="mt-2">{data.excerpt}</p>}
 
-          <div
-            className="mt-3"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+          <div className="mt-3">
+            <Markdown
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              components={{
+                a: ({ href, title, children }) => (
+                  <a href={href} title={title} target="_blank" rel="noreferrer">
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {data.body_markdown || ""}
+            </Markdown>
+          </div>
         </Card>
       )}
     </div>
   );
 }
-
