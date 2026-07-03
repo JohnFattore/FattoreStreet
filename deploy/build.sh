@@ -11,15 +11,8 @@ cd ..
 
 echo "=== Running Django tests ==="
 cd django
-if [ ! -d "venv" ]; then
-  echo "Creating Python venv..."
-  python3 -m venv venv
-fi
-. venv/bin/activate
-pip install -q --upgrade pip setuptools
-pip install -q -r requirements.txt
-python3 manage.py test
-deactivate
+uv sync --frozen
+uv run python manage.py test
 cd ..
 
 echo "=== Running Spring Boot tests ==="

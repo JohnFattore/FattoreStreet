@@ -83,7 +83,7 @@ sudo docker run --name nginx --network dockerNet \
   -d johnfattore/nginx
 
 # Redis (major pinned like postgres above; bump deliberately with the
-# redis-py/django-redis client pins in django/requirements.txt)
+# redis-py/django-redis client pins in django/pyproject.toml)
 sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis:8
 
 # pgadmin4

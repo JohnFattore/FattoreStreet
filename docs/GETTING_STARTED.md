@@ -5,7 +5,7 @@ This guide will help you set up the **Portfolio Manager** project locally for de
 ## Prerequisites
 
 Ensure you have the following installed on your machine:
-- **Python 3.8+** (for Django backend)
+- **[uv](https://docs.astral.sh/uv/)** (for Django backend — manages Python and dependencies)
 - **Node.js 18+** & **npm** (for React frontend)
 - **Docker** & **Docker Compose** (optional, for running in containerized mode)
 - **PostgreSQL** (optional, SQLite is used by default for dev)
@@ -30,26 +30,21 @@ The backend handles the API, database, and business logic.
     cd django
     ```
 
-2.  **Create and activate a virtual environment:**
+2.  **Install dependencies:**
+    Dependencies are managed with [uv](https://docs.astral.sh/uv/) (`brew install uv`, or see the [installation docs](https://docs.astral.sh/uv/getting-started/installation/)). This creates a `.venv/` automatically and installs the exact versions from `uv.lock`:
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    uv sync
     ```
 
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Run Migrations:**
+3.  **Run Migrations:**
     Initialize the database (SQLite by default).
     ```bash
-    python3 manage.py migrate
+    uv run python manage.py migrate
     ```
 
-5.  **Start the Development Server:**
+4.  **Start the Development Server:**
     ```bash
-    python3 manage.py runserver
+    uv run python manage.py runserver
     ```
     The API will be available at `http://localhost:8000`.
 
@@ -84,7 +79,7 @@ Some features (like fetching stock prices) require asynchronous workers.
 
 2.  **Start Celery Worker** (in `django/` dir):
     ```bash
-    celery -A mysite worker --beat -E -n beat
+    uv run celery -A mysite worker --beat -E -n beat
     ```
 
 3.  **Optional — scheduled IEX daily prices:** If you use django-celery-beat to run `portfolio.tasks.load_iex_hist`, set `SPRINGBOOT_BASE_URL` in `django/.env` to your Spring Boot service URL (same `SECRET_KEY` as Django for JWT). See [`django/README.md`](../django/README.md) (Celery tasks).
@@ -134,7 +129,7 @@ To replicate the production environment locally using Docker:
 On every push and pull request to `main`, [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs in parallel:
 
 - **Frontend** (`react-app/`): `npm run lint`, `npm run build`, `npx vitest --run`
-- **Django** (`django/`): `python3 manage.py test` with SQLite and minimal env (`SECRET_KEY`, `DATABASE=sqlite`, `REDIS_URL`)
+- **Django** (`django/`): `uv sync --frozen` then `uv run python manage.py test` with SQLite and minimal env (`SECRET_KEY`, `DATABASE=sqlite`, `REDIS_URL`)
 - **Spring Boot** (`springboot/`): `mvn test` (H2 in-memory for tests). Local runs need `SECRET_KEY` in `.env` (same as Django) so JWT validation works for `/admin/**` integration checks.
 - **Secrets**: `pre-commit run detect-secrets --all-files` (same baseline as local pre-commit)
 
@@ -143,14 +138,14 @@ The frontend **lint** step runs `eslint` with zero warnings allowed; if it fails
 ### Backend Tests
 ```bash
 cd django
-python3 manage.py test
+uv run python manage.py test
 ```
 
 To mirror the CI Django environment locally:
 
 ```bash
 cd django
-SECRET_KEY=test DATABASE=sqlite REDIS_URL=redis://127.0.0.1:6379/0 python3 manage.py test
+SECRET_KEY=test DATABASE=sqlite REDIS_URL=redis://127.0.0.1:6379/0 uv run python manage.py test
 ```
 
 ### Frontend Tests

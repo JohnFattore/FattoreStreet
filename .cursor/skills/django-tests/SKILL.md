@@ -13,8 +13,8 @@ Django unittest + DRF `APITestCase` + `unittest.mock` (no pytest, no factory-boy
 
 - Test files go in `django/tests/` named `test_<app_name>.py`
 - Base class: `django/tests/base.py`
-- Run: `cd django && python manage.py test`
-- Run single file: `python manage.py test tests.test_portfolio`
+- Run: `cd django && uv run python manage.py test`
+- Run single file: `uv run python manage.py test tests.test_portfolio`
 
 ## Base Test Class
 
@@ -105,4 +105,4 @@ def test_authenticated_access(self):
 4. **Mock externals** -- `@patch()` any calls to yfinance, FRED, Google AI, or third-party APIs
 5. **Test auth** -- every protected endpoint needs both authenticated and unauthenticated assertions
 6. **Assert** -- check status codes, JSON structure, expected values, and side effects
-7. **Run** -- `cd django && python manage.py test tests.test_<module>`
+7. **Run** -- `cd django && uv run python manage.py test tests.test_<module>`

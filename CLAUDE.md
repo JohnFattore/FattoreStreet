@@ -29,13 +29,15 @@ npx vitest run --reporter=verbose  # Verbose test output
 
 ### Django (`django/`)
 ```bash
-python3 manage.py runserver              # Dev server (port 8000)
-python3 manage.py migrate                # Apply migrations
-python3 manage.py makemigrations         # Generate migrations
-python3 manage.py test                   # All tests
-python3 manage.py test tests.test_users  # Specific file
-python3 manage.py test tests.test_users.TestUserAPI.test_login  # Specific test
-celery -A mysite worker --beat -E -n beat  # Celery worker + scheduler
+uv sync                                          # Install deps into .venv (from uv.lock)
+uv run python manage.py runserver                # Dev server (port 8000)
+uv run python manage.py migrate                  # Apply migrations
+uv run python manage.py makemigrations           # Generate migrations
+uv run python manage.py test                     # All tests
+uv run python manage.py test tests.test_users    # Specific file
+uv run python manage.py test tests.test_users.TestUserAPI.test_login  # Specific test
+uv run celery -A mysite worker --beat -E -n beat # Celery worker + scheduler
+uv add <package>                                 # Add dependency (pyproject.toml + uv.lock)
 ```
 
 ### Spring Boot (`springboot/`)

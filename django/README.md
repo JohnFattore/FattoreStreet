@@ -63,40 +63,52 @@ Other Spring Boot admin jobs (price adjustments, corporate actions, etc.) are no
 
 ### Prerequisites
 
-- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) (`brew install uv`) — installs Python 3.14 and all dependencies
 - PostgreSQL
 - Redis
 
 ### Install Dependencies
 
+Creates `.venv/` and installs the exact versions from `uv.lock`:
+
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ### Database Migrations
 
 ```bash
-python3 manage.py makemigrations
-python3 manage.py migrate
+uv run python manage.py makemigrations
+uv run python manage.py migrate
 ```
 
 ### Run Dev Server
 
 ```bash
-python3 manage.py runserver
+uv run python manage.py runserver
 ```
 
 ### Run Celery Worker + Beat
 
 ```bash
 docker run -d -p 6379:6379 redis
-celery -A mysite worker --beat -E -n beat
+uv run celery -A mysite worker --beat -E -n beat
 ```
 
 ### Run Tests
 
 ```bash
-python3 manage.py test
+uv run python manage.py test
+```
+
+### Managing Dependencies
+
+Dependencies are declared in `pyproject.toml` (exact pins) and locked in `uv.lock`.
+
+```bash
+uv add <package>        # add a dependency (updates pyproject.toml + uv.lock)
+uv remove <package>     # remove a dependency
+uv sync                 # sync .venv to the lockfile
 ```
 
 ## Production

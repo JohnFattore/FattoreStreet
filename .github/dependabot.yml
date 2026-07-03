@@ -1,11 +1,11 @@
 version: 2
 updates:
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: /django
     schedule:
       interval: weekly
     groups:
-      pip-minor-patch:
+      uv-minor-patch:
         update-types:
           - minor
           - patch

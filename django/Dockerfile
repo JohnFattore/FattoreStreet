@@ -1,8 +1,12 @@
 FROM python:3.14-slim
 
+COPY --from=ghcr.io/astral-sh/uv:0.11.26 /uv /uvx /bin/
+
 # set a directory for this app
 WORKDIR /django/
 ENV PYTHONUNBUFFERED=1
+# Use the base image's Python; never download a uv-managed interpreter.
+ENV UV_PYTHON_DOWNLOADS=never
 
 # AWS CLI v2 + jq so the entrypoint can pull config from Secrets Manager at start.
 # uname -m -> aarch64 | x86_64, which matches the AWS CLI download names exactly.
@@ -13,13 +17,13 @@ RUN apt-get update \
     && /tmp/aws/install \
     && rm -rf /tmp/aws /tmp/awscliv2.zip /var/lib/apt/lists/*
 
-# install dependencies first for better layer caching
-COPY requirements.txt .
-RUN pip3 install -r requirements.txt --no-cache-dir
-#    pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# install dependencies first for better layer caching (exact versions from uv.lock)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-cache --compile-bytecode
 
-# copy the rest of the app
+# copy the rest of the app (.venv is protected by .dockerignore)
 COPY . .
+ENV PATH="/django/.venv/bin:$PATH"
 RUN chmod +x /django/docker-entrypoint.sh
 
 # Entrypoint loads SECRETS_ARN from Secrets Manager (if set), then runs the CMD.
