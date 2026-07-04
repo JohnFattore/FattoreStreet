@@ -7,19 +7,20 @@
 # docker-entrypoint.sh). Stateful infra (postgres/redis/pgadmin) lives in
 # docker-compose.infra.yml and is never touched by a deploy.
 #
-# deploy (from this directory):
-#   docker compose pull && docker compose up -d
-# migrate:
+# Routine deploys are automated: every merge to main builds + publishes the
+# images to GHCR (latest + commit SHA) and runs deploy.sh here via SSM (see
+# DEPLOY.md). Manually, from this directory:
+#   sudo ./deploy.sh <sha>          # or bare for :latest
+# rollback = deploy an older commit's SHA tag:
+#   sudo ./deploy.sh <old-sha>
+# migrate (deploy.sh already does this):
 #   docker compose run --rm django python manage.py migrate
-#
-# TAG defaults to latest (the only tag build.sh pushes today); once CI publishes
-# per-commit tags, deploy/rollback becomes: TAG=<sha> docker compose pull && up -d
 
 name: fattorestreet
 
 services:
   django:
-    image: johnfattore/django:${TAG:-latest}
+    image: ghcr.io/johnfattore/django:${TAG:-latest}
     container_name: django
     env_file: .env
     networks: [dockerNet]
@@ -31,7 +32,7 @@ services:
   # Without the workers the load_fred_cache/load_yfinance_cache scheduled
   # tasks do not run.
   celery-worker:
-    image: johnfattore/django:${TAG:-latest}
+    image: ghcr.io/johnfattore/django:${TAG:-latest}
     container_name: celery-worker
     command: celery -A mysite worker -E -n worker
     env_file: .env
@@ -40,7 +41,7 @@ services:
     restart: unless-stopped
 
   celery-beat:
-    image: johnfattore/django:${TAG:-latest}
+    image: ghcr.io/johnfattore/django:${TAG:-latest}
     container_name: celery-beat
     command: celery -A mysite worker --beat -E -n beat
     env_file: .env
@@ -49,14 +50,14 @@ services:
     restart: unless-stopped
 
   springboot:
-    image: johnfattore/springboot:${TAG:-latest}
+    image: ghcr.io/johnfattore/springboot:${TAG:-latest}
     container_name: springboot
     env_file: .env
     networks: [dockerNet]
     restart: unless-stopped
 
   nginx:
-    image: johnfattore/nginx:${TAG:-latest}
+    image: ghcr.io/johnfattore/nginx:${TAG:-latest}
     container_name: nginx
     ports:
       - "80:80"

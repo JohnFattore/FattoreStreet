@@ -10,6 +10,9 @@ env/
 
 *.log
 deploy.sh
+# the automated deploy script is secret-free (config comes from Secrets
+# Manager via SECRETS_ARN) and must be versioned -- CI deploys it by SHA
+!deploy/deploy.sh
 django/restaurants/yelp_dataset
 
 react-app/node_modules
