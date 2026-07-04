@@ -1,5 +1,7 @@
 # Push-to-main → EC2 deploy via SSM
 
+**Status (2026-07-04):** Part 1 fully implemented — PR [#68](https://github.com/JohnFattore/FattoreStreet/pull/68) (`ssm-deploy-pipeline`, commit `dcd93b3b`). Part 2 is mostly done; remaining unchecked items below (OIDC provider, deploy role, `AWS_DEPLOY_ROLE_ARN` variable, GHCR package visibility).
+
 ## Context
 
 Deploys today are manual: `deploy/build.sh` builds/pushes images from the laptop, and watchtower (being retired) or hand-run compose commands update the EC2 host. Goal: merging to main automatically builds + pushes images and deploys them to the EC2 instance via **SSM RunCommand** (no SSH key, no inbound port), running a **versioned, idempotent deploy script** that self-heals common pre-existing container state (leftover docker-run containers, watchtower, name squatters).
@@ -12,7 +14,13 @@ Decisions already made with the user:
 - SSM targets the instance by **EC2 tag** (`App=fattorestreet`), not instance ID.
 - GitHub → AWS auth via **OIDC** (no stored AWS keys). With GHCR, the design has **zero stored secrets in GitHub**.
 
-## Part 1 — Repo changes (Claude implements)
+## Part 1 — Repo changes (Claude implements) — ✅ ALL DONE in PR #68
+
+Implementation notes vs. the original plan:
+- Eviction uses graceful `docker stop` + `rm` (not `rm -f`) and also covers `postgres`/`redis`/`pgadmin4` (label ≠ `fattorestreet-infra`) — the live ones were docker-run containers and would have name-collided on the first infra `compose up`.
+- `.gitignore` had a blanket `deploy.sh` rule; added a `!deploy/deploy.sh` negation so the script is actually versioned.
+- `CLONE_PATH=/home/ec2-user/FattoreStreet` confirmed live via SSM; the root-git "dubious ownership" failure was reproduced on the box, validating the `sudo -u ec2-user` approach.
+- `docs/DEPLOYMENT.md` Build & Deploy section also updated (auto-update-docs rule).
 
 ### 1. `deploy/deploy.sh` (new, executable)
 Idempotent converge script, run as root on the host from `deploy/`:
@@ -51,26 +59,27 @@ Idempotent converge script, run as root on the host from `deploy/`:
 
 **AWS IAM**
 - [ ] Create the GitHub OIDC identity provider in IAM (`token.actions.githubusercontent.com`) if it doesn't exist yet.
-- [ ] Create IAM role (e.g. `github-deploy-fattorestreet`): trust policy pinned to `repo:JohnFattore/FattoreStreet:ref:refs/heads/main`; permissions policy allowing `ssm:SendCommand` on the `AWS-RunShellScript` document + instances with tag `App=fattorestreet`, and `ssm:GetCommandInvocation`.
-- [ ] Attach `AmazonSSMManagedInstanceCore` to the existing EC2 instance role (the one that already reads `fattorestreet/env`).
+- [ ] Create IAM role (e.g. `github-deploy-fattorestreet`): trust policy pinned to `repo:JohnFattore/FattoreStreet:ref:refs/heads/main`; permissions policy allowing `ssm:SendCommand` on the `AWS-RunShellScript` document + instances with tag `App=fattorestreet`, and `ssm:GetCommandInvocation`/`ListCommandInvocations`. Exact JSON: `deploy/DEPLOY.md` §2.
+- [x] Attach `AmazonSSMManagedInstanceCore` to the existing EC2 instance role (`EC2CloudWatchLoggingRole`, the one that already reads `fattorestreet/env`).
 
 **EC2 instance**
-- [ ] Tag the instance `App=fattorestreet`.
-- [ ] Verify SSM agent is registered: `aws ssm describe-instance-information` shows the instance Online.
-- [ ] Confirm the repo clone path (plan assumes `/home/ec2-user/FattoreStreet`) and that it's owned by `ec2-user` with `origin` pointing at GitHub over HTTPS (public repo, no creds needed).
-- [ ] Confirm the clone's `deploy/.env` has the real `SECRETS_ARN` (already exists per user).
-- [ ] Nothing else — the first automated deploy performs the watchtower/docker-run cutover itself, and the compose file's new `ghcr.io/...` image names pull fresh on that deploy.
-- [ ] (Optional, after first successful deploy) Remove port 22 from the security group.
+- [x] Tag the instance `App=fattorestreet`.
+- [x] Verify SSM agent is registered: instance shows **Online** (needed an agent restart after the policy attach — it was holding stale no-permission credentials). Tag-targeted RunCommand proven end-to-end.
+- [x] Confirm the repo clone path — `/home/ec2-user/FattoreStreet`, verified live via SSM.
+- [x] Confirm the clone's `deploy/.env` has the real `SECRETS_ARN`.
+- [x] Nothing else — the first automated deploy performs the watchtower/docker-run cutover itself, and the compose file's new `ghcr.io/...` image names pull fresh on that deploy. (Watchtower turned out to be already gone from the box.)
+- [ ] (Optional, after first successful deploy) Remove port 22 from the security group; `aws ssm start-session` replaces SSH.
 - [ ] (Optional) `docker image rm` the old `johnfattore/*` Docker Hub-named images — they're tagged, so `docker image prune` won't reclaim them.
 
 **GitHub repo settings**
 - [ ] Variable: `AWS_DEPLOY_ROLE_ARN` = the new role's ARN.
 - [ ] After the first main-branch push builds the images: make the three GHCR packages (`django`, `springboot`, `nginx`) **public** in package settings, and link them to the repo if not auto-linked. Until they're public, the EC2 host's anonymous pull will 401 — so do this before the first deploy attempt, or expect one red run.
-- [ ] No registry secrets needed — `GITHUB_TOKEN` handles the push.
+- [x] No registry secrets needed — `GITHUB_TOKEN` handles the push.
 
 ## Verification
 
-1. Repo-side before merge: `docker compose config` against the modified files; shellcheck-style review of `deploy.sh`; workflow YAML sanity (actionlint if available).
-2. End-to-end after the user finishes Part 2: trigger the workflow via `workflow_dispatch` (or merge this PR to main). Watch the Action: build+push succeeds, SSM invocation output shows eviction/pull/up/migrate/health-check, job goes green.
-3. On the host (Session Manager or the Action output): `docker compose ps` shows django/springboot/nginx running with the SHA-tagged images, watchtower gone; `curl -f https://fattorestreet.com/` returns 200.
-4. Rollback drill (optional): re-run the deploy job from an older commit and confirm the older tag comes up.
+- [x] Repo-side before merge: `docker compose config` on both compose files, `sh -n` on `deploy.sh`, workflow YAML parse + job structure, jq SSM-payload generation tested.
+- [x] SSM transport proven: tag-targeted `AWS-RunShellScript` ran on the instance and returned output (root, no sudo needed for docker).
+- [ ] End-to-end after Part 2 is finished: merge PR #68 (or `workflow_dispatch` on main). Watch the Action: build+push succeeds, SSM invocation output shows eviction/pull/up/migrate/health-check, job goes green.
+- [ ] On the host (Session Manager or the Action output): `docker compose ps` shows django/springboot/nginx running with the SHA-tagged images; `curl -f https://fattorestreet.com/` returns 200.
+- [ ] Rollback drill (optional): re-run the deploy job from an older commit and confirm the older tag comes up.
