@@ -1,6 +1,6 @@
 # Push-to-main → EC2 deploy via SSM
 
-**Status (2026-07-04):** Part 1 fully implemented — PR [#68](https://github.com/JohnFattore/FattoreStreet/pull/68) (`ssm-deploy-pipeline`, commit `dcd93b3b`). Part 2 is mostly done; remaining unchecked items below (OIDC provider, deploy role, `AWS_DEPLOY_ROLE_ARN` variable, GHCR package visibility).
+**Status (2026-07-05): ✅ COMPLETE AND LIVE.** Implemented in PR [#68](https://github.com/JohnFattore/FattoreStreet/pull/68) + arm64 fix in PR [#69](https://github.com/JohnFattore/FattoreStreet/pull/69); first fully green automated deploy shipped #69's merge commit to production. Only optional items remain (port 22 removal, rollback drill).
 
 ## Context
 
@@ -58,8 +58,8 @@ Idempotent converge script, run as root on the host from `deploy/`:
 ## Part 2 — Manual setup (user does; DEPLOY.md will contain exact commands)
 
 **AWS IAM**
-- [ ] Create the GitHub OIDC identity provider in IAM (`token.actions.githubusercontent.com`) if it doesn't exist yet.
-- [ ] Create IAM role (e.g. `github-deploy-fattorestreet`): trust policy pinned to `repo:JohnFattore/FattoreStreet:ref:refs/heads/main`; permissions policy allowing `ssm:SendCommand` on the `AWS-RunShellScript` document + instances with tag `App=fattorestreet`, and `ssm:GetCommandInvocation`/`ListCommandInvocations`. Exact JSON: `deploy/DEPLOY.md` §2.
+- [x] Create the GitHub OIDC identity provider in IAM (`token.actions.githubusercontent.com`).
+- [x] Create IAM role `github-deploy-fattorestreet`: trust policy pinned to `repo:JohnFattore/FattoreStreet:ref:refs/heads/main`; permissions policy allowing `ssm:SendCommand` on the `AWS-RunShellScript` document + instances with tag `App=fattorestreet`, and `ssm:GetCommandInvocation`/`ListCommandInvocations`. Exact JSON: `deploy/DEPLOY.md` §2.
 - [x] Attach `AmazonSSMManagedInstanceCore` to the existing EC2 instance role (`EC2CloudWatchLoggingRole`, the one that already reads `fattorestreet/env`).
 
 **EC2 instance**
@@ -68,18 +68,22 @@ Idempotent converge script, run as root on the host from `deploy/`:
 - [x] Confirm the repo clone path — `/home/ec2-user/FattoreStreet`, verified live via SSM.
 - [x] Confirm the clone's `deploy/.env` has the real `SECRETS_ARN`.
 - [x] Nothing else — the first automated deploy performs the watchtower/docker-run cutover itself, and the compose file's new `ghcr.io/...` image names pull fresh on that deploy. (Watchtower turned out to be already gone from the box.)
-- [ ] (Optional, after first successful deploy) Remove port 22 from the security group; `aws ssm start-session` replaces SSH.
-- [ ] (Optional) `docker image rm` the old `johnfattore/*` Docker Hub-named images — they're tagged, so `docker image prune` won't reclaim them.
+- [ ] (Optional) Remove port 22 from the security group; `aws ssm start-session` replaces SSH. Deliberately deferred until a few more deploys have gone through.
+- [x] `docker image rm` the old `johnfattore/*` Docker Hub-named images (done via SSM after the first green deploy; freed ~1.5 GB).
 
 **GitHub repo settings**
-- [ ] Variable: `AWS_DEPLOY_ROLE_ARN` = the new role's ARN.
-- [ ] After the first main-branch push builds the images: make the three GHCR packages (`django`, `springboot`, `nginx`) **public** in package settings, and link them to the repo if not auto-linked. Until they're public, the EC2 host's anonymous pull will 401 — so do this before the first deploy attempt, or expect one red run.
+- [x] Variable: `AWS_DEPLOY_ROLE_ARN` = `arn:aws:iam::<ACCOUNT_ID>:role/github-deploy-fattorestreet`.
+- [x] GHCR package visibility: turned out to be **automatic** — packages first pushed by a workflow's `GITHUB_TOKEN` are repo-linked and inherit the repo's public visibility. No manual flip was needed (the first failed pull was an arm64 manifest issue, not authorization).
 - [x] No registry secrets needed — `GITHUB_TOKEN` handles the push.
 
 ## Verification
 
 - [x] Repo-side before merge: `docker compose config` on both compose files, `sh -n` on `deploy.sh`, workflow YAML parse + job structure, jq SSM-payload generation tested.
 - [x] SSM transport proven: tag-targeted `AWS-RunShellScript` ran on the instance and returned output (root, no sudo needed for docker).
-- [ ] End-to-end after Part 2 is finished: merge PR #68 (or `workflow_dispatch` on main). Watch the Action: build+push succeeds, SSM invocation output shows eviction/pull/up/migrate/health-check, job goes green.
-- [ ] On the host (Session Manager or the Action output): `docker compose ps` shows django/springboot/nginx running with the SHA-tagged images; `curl -f https://fattorestreet.com/` returns 200.
+- [x] End-to-end: PR #68 merged. First run's deploy failed at the pull — `no matching manifest for linux/arm64/v8`: the host is a t4g (Graviton), CI built amd64. The pull-before-evict ordering (added in `f6a2273c`) kept the site up. Fixed by PR #69 (build on `ubuntu-24.04-arm` runners); its main run went fully green: OIDC assume → SSM → git reset → pull → up → migrate → prune → health check.
+- [x] On the host: `docker ps` shows django/springboot/nginx running `ghcr.io/johnfattore/*:<merge-sha>`; `curl -f https://fattorestreet.com/` → 200. (Infra had already been compose-cutover manually on 2026-07-03; deploy correctly left postgres/redis untouched. Pre-existing, unrelated: pgadmin4 has been crash-looping since that manual cutover because `PGADMIN_DEFAULT_PASSWORD` wasn't set in that shell.)
 - [ ] Rollback drill (optional): re-run the deploy job from an older commit and confirm the older tag comes up.
+
+## Outcome
+
+Pipeline is live as of 2026-07-05: merge to main → arm64 images to GHCR → SSM deploy → health-checked. Zero stored secrets in GitHub; no SSH involved.
