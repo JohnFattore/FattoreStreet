@@ -10,7 +10,6 @@ environ.Env.read_env()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env("SECRET_KEY")
-#DEBUG = env("DEBUG")
 DEBUG = env.bool("DEBUG", default=True)
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fattorestreet.com']
 
@@ -79,7 +78,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
-# these should be env variables
 if (env("DATABASE") == 'postgresDocker'):
         DATABASES = {
         'default': {
@@ -119,17 +117,6 @@ if DEBUG:
             "BACKEND": "django.core.cache.backends.dummy.DummyCache",  # does nothing
         }
     }
-    '''
-    CACHES = {
-        "default": {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": env("REDIS_URL"),
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            }
-        }
-    }
-    '''
 else:
     CACHES = {
         "default": {
@@ -194,14 +181,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
-
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# default is 5 minutes and 1 day
-#SIMPLE_JWT = {
-#    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=10),
-#    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=1),
-#}
 
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_RESULT_EXTENDED = True
