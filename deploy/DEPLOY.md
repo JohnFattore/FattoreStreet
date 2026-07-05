@@ -144,13 +144,14 @@ gh variable set AWS_DEPLOY_ROLE_ARN \
   --body arn:aws:iam::<ACCOUNT_ID>:role/github-deploy-fattorestreet
 ```
 
-### 3. GHCR packages public
+### 3. GHCR package visibility
 
-The EC2 host pulls anonymously, so after the **first** main-branch build
-pushes the images, mark each package public (one-time, GitHub UI):
-`github.com/JohnFattore?tab=packages` → `nginx`, `django`, `springboot` →
-Package settings → Change visibility → Public. Until then the host's pull
-401s — do this before the first deploy attempt, or expect one red run.
+The EC2 host pulls anonymously. In practice this needed no setup: packages
+first pushed by a workflow's `GITHUB_TOKEN` are linked to the repo and
+inherit its (public) visibility. If a package is ever created some other way
+(e.g. a laptop push with a PAT) and comes out private, flip it manually:
+`github.com/JohnFattore?tab=packages` → package → Package settings →
+Change visibility → Public.
 
 ### 4. Host prerequisites
 
