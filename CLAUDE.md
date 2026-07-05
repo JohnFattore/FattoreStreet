@@ -54,14 +54,14 @@ mvn clean test                                   # Clean + test
 ### Request Flow
 ```
 Browser → Nginx (443 SSL)
-  /                     → React static files (SPA)
-  /users/api/           → Django (port 8000)
-  /portfolio/api/       → Django (port 8000)
-  /restaurants/api/     → Django (port 8000)
-  /chatbot/api/         → Django (port 8000)
-  /admin/               → Django admin
-  /springboot/          → Spring Boot (port 8080)  [path rewritten]
+  /             → React static files (SPA, try_files → index.html)
+  /django/      → Django (port 8000)       [prefix stripped]
+  /springboot/  → Spring Boot (port 8080)  [prefix stripped]
+  /pgadmin4/    → pgAdmin                  [prefix stripped]
+  /static/      → Django collected static files
 ```
+
+Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurants/`, `chatbot/`, `changeflow/`, `blog/`, `entertainment/`, plus `admin/`), with API routes at `<app>/api/...` — e.g. `POST /django/users/api/token/` from the browser reaches Django as `POST /users/api/token/`. Set `DJANGO_FORCE_SCRIPT_NAME=/django` in production so redirects and `{% url %}` include the prefix.
 
 ### Authentication
 - Django issues SimpleJWT Access + Refresh tokens via `POST /users/api/token/`
@@ -75,8 +75,10 @@ Browser → Nginx (443 SSL)
 - `chatbot/` — Boglehead AI advisor (Google Gemini)
 - `restaurants/` — Restaurant reviews/recommendations
 - `changeflow/` — Changelog + feedback tickets
+- `blog/` — Blog posts with categories and tags
+- `entertainment/` — Media recommendations (books, movies, shows, music, podcasts, games, websites)
 
-**Async Tasks (Celery)**: `load_fred_cache`, `load_yfinance_cache` — scheduled via django-celery-beat.
+**Async Tasks (Celery)**: `load_fred_cache`, `load_yfinance_cache`, `load_iex_hist` — scheduled via django-celery-beat.
 
 ### Spring Boot Packages
 ```
@@ -106,9 +108,9 @@ Test classes mirror source under `src/test/java/.../sec_api/`.
 - `MarketIndex`, `IndexMember`, `ListingIndexMetrics` — Index infrastructure
 
 ### React State & API
-- All API calls use **RTK Query** via `src/functions/api.ts` with a custom Axios base query
+- Newer API calls use **RTK Query** via `src/functions/api/` (`djangoApi.ts`, `springbootApi.ts`, shared `baseQuery.ts`); use RTK Query for all new code
+- Legacy features (restaurants, chatbot, watchlist, auth forms) still call `createAsyncThunk` thunks in `src/functions/axiosFunctions.tsx` backed by per-entity slices in `src/reducers/` — a migration to RTK Query is pending
 - API responses use snake_case (Django convention); RTK Query transforms to camelCase for components
-- Redux slices in `src/reducers/` for auth and portfolio state
 - All pages protected by `<StateHandler>` for loading/error display
 
 ## Conventions
@@ -138,9 +140,14 @@ Content lives in one place; the other tool gets a pointer file. Never duplicate 
 ### Django (`.env` in `django/`)
 - `SECRET_KEY` — required
 - `DEBUG` — bool, default `True`
-- `DATABASE` — `postgresLocal`, `postgresDocker`, or omit for SQLite
-- `REDIS_URL` — required in production
+- `DATABASE` — required: `postgresLocal`, `postgresDocker`, or any other value (e.g. `sqlite`) for SQLite; unset raises at startup
+- `POSTGRES_PASSWORD` — required when `DATABASE=postgresDocker`
+- `REDIS_URL` — always required (Celery broker; also the cache backend when `DEBUG=False`)
+- `GOOGLE_API_KEY` — Gemini key for the chatbot app
+- `FINNHUB_API_KEY`, `FRED_API_KEY` — portfolio quotes and FRED economic data
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
+- `SPRINGBOOT_BASE_URL` — internal Spring Boot base URL for the `load_iex_hist` Celery task (no nginx prefix, e.g. `http://springboot:8080`)
+- `DJANGO_FORCE_SCRIPT_NAME` — set to `/django` when served behind the nginx prefix
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)
 - `DB_URL`, `DB_USERNAME`, `POSTGRES_PASSWORD` — PostgreSQL connection (`POSTGRES_PASSWORD` is the shared DB-password key used by Django and the postgres image too)
@@ -150,4 +157,8 @@ Content lives in one place; the other tool gets a pointer file. Never duplicate 
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 
 ### React (`.env.*` per mode)
-- `VITE_API_URL` — backend base URL per environment (dev/staging/production)
+- `VITE_APP_DJANGO_URL` — Django base URL (`http://127.0.0.1:8000/` in dev, `https://fattorestreet.com/django/` in production)
+- `VITE_APP_SPRINGBOOT_URL` — Spring Boot base URL
+- `VITE_APP_FINNHUB_URL` — Finnhub API base URL
+
+Committed modes: `development`, `production`, `test`, `compose` (for the local nginx compose stack).
