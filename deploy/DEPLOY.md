@@ -31,12 +31,12 @@ run with real values.
 
 ### 1. EC2 instance → SSM (managed instance)
 
-The instance role (`EC2CloudWatchLoggingRole`, which already reads the
+The instance role (`EC2FattoreStreetRole`, which already reads the
 `fattorestreet/env` secret) needs the SSM agent policy:
 
 ```sh
 aws iam attach-role-policy \
-  --role-name EC2CloudWatchLoggingRole \
+  --role-name EC2FattoreStreetRole \
   --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 ```
 
