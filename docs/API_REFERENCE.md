@@ -18,7 +18,6 @@ All protected endpoints require a valid JWT Access Token in the header:
 | `POST` | `/users/api/users/` | Register a new user. |
 | `POST` | `/users/api/token/` | Login - Obtain Access and Refresh tokens. |
 | `POST` | `/users/api/token/refresh/` | Refresh an expired Access token. |
-| `POST` | `/users/api/send-email/` | Send system emails (e.g., password reset). |
 
 ## 📈 Portfolio (Assets)
 
