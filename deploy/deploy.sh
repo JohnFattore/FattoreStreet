@@ -24,6 +24,12 @@ echo "=== Deploying tag $TAG ==="
 docker network inspect dockerNet >/dev/null 2>&1 \
   || docker network create --driver bridge dockerNet
 
+# Pull FIRST, before touching any running container: if the registry is
+# unreachable (or the GHCR packages aren't public yet), the deploy aborts
+# here as a no-op and the live stack stays up.
+export TAG
+docker compose pull
+
 # Evict containers squatting on our names that compose doesn't own (leftover
 # docker-run containers, watchtower, crashed one-offs). A name collision is
 # the #1 way `compose up` hard-fails. Graceful stop first -- postgres wants a
@@ -52,10 +58,8 @@ done
 # pinned; routine deploys never bump them)
 docker compose -f docker-compose.infra.yml up -d
 
-# App services: pull the exact tag, converge, drop services deleted from the
+# App services: converge to the pulled tag, drop services deleted from the
 # compose file
-export TAG
-docker compose pull
 docker compose up -d --remove-orphans
 
 # Django migrations (Spring Boot's Flyway migrates itself on start)
