@@ -168,6 +168,10 @@ Package settings → Change visibility → Public. Until then the host's pull
 
 ## Notes & limits
 
+- Images are **linux/arm64 only** — the EC2 host is a t4g (Graviton), and CI
+  builds natively on GitHub's arm64 runners. An amd64 host (or local
+  `docker run` on an Intel machine) can't run them without adding a
+  multi-arch build.
 - SSM returns at most ~24 KB of command output to `get-command-invocation`;
   `deploy.sh` keeps its logging terse so failures fit. For full logs:
   `journalctl` / `docker compose logs` on the host.
