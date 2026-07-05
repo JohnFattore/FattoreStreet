@@ -22,7 +22,10 @@ concurrency:
 jobs:
   build:
     name: Build ${{ matrix.image }} image
-    runs-on: ubuntu-latest
+    # arm64 runner: the production EC2 host is a t4g (Graviton/arm64), so the
+    # images must be linux/arm64. Native arm builds avoid QEMU emulation;
+    # these runners are free for public repos.
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
