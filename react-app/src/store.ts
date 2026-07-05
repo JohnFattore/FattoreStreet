@@ -1,8 +1,17 @@
 import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from './reducers/rootReducer';
-import { persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
+import { persistReducer, Storage } from 'redux-persist';
 import { djangoApi, springbootApi } from "./functions/api";
+
+// Vite 8 production builds mis-resolve the CJS default export of
+// redux-persist/lib/storage (the import becomes the module namespace, so
+// storage.getItem is missing and the app crashes on boot). Define the
+// localStorage engine directly instead of importing it.
+const storage: Storage = {
+    getItem: (key) => Promise.resolve(localStorage.getItem(key)),
+    setItem: (key, value) => Promise.resolve(localStorage.setItem(key, value)),
+    removeItem: (key) => Promise.resolve(localStorage.removeItem(key)),
+};
 
 const persistConfig = {
     key: 'root', // The key to store the data in storage
