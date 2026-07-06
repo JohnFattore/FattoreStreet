@@ -3,7 +3,6 @@ from .serializers import RestaurantSerializer, ReviewSerializer
 from .models import Restaurant, Review
 from .permissions import IsOwner
 from .tasks import YelpLoad
-#from .matrixFactorization import getRestaurantRecommendations
 
 # API endpoint for 'get' Restaurants and 'post' Restaurant
 class RestaurantListCreateView(generics.ListCreateAPIView):

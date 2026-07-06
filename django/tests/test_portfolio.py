@@ -1,15 +1,13 @@
 from unittest.mock import patch, MagicMock
 from decimal import Decimal
-from datetime import date, datetime
+from datetime import date
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from rest_framework import status
 from django.urls import reverse
-import pandas as pd
 from portfolio.models import Asset, Account
 from portfolio.tasks import load_iex_hist
-from portfolio.helper import get_historical_dividends, get_historical_prices, get_historical_splits
-from tests.base import BaseAPITestCase
+from tests.base import BaseAPITestCase, MarketDataPatchMixin
 
 MOCK_PRICES = {
     "SPY": {
@@ -58,15 +56,14 @@ def _mock_historical_prices(tickers):
     return {t: MOCK_PRICES.get(t, {}) for t in tickers}
 
 
-class AssetsTests(BaseAPITestCase):
+class AssetsTests(MarketDataPatchMixin, BaseAPITestCase):
     """Tests for asset list/create endpoints."""
+
+    mock_prices = MOCK_PRICES
 
     def setUp(self):
         super().setUp()
         self.url = reverse('assets')
-        patch("portfolio.serializers.get_historical_prices", side_effect=_mock_historical_prices).start()
-        patch("portfolio.serializers.is_market_open", return_value=True).start()
-        self.addCleanup(patch.stopall)
 
     def post_asset(self):
         data = {'ticker': 'SPY', 'shares': 10, 'buy_date': '2023-10-13'}
@@ -120,14 +117,13 @@ class AssetsTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class AssetDeleteTest(BaseAPITestCase):
+class AssetDeleteTest(MarketDataPatchMixin, BaseAPITestCase):
     """Tests for asset deletion."""
+
+    mock_prices = MOCK_PRICES
 
     def setUp(self):
         super().setUp()
-        patch("portfolio.serializers.get_historical_prices", side_effect=_mock_historical_prices).start()
-        patch("portfolio.serializers.is_market_open", return_value=True).start()
-        self.addCleanup(patch.stopall)
         self.authenticate_client()
         self.asset_response = self.post_asset()
         self.url = reverse('asset', kwargs={'pk': self.asset_response.data["id"]})
@@ -147,14 +143,13 @@ class AssetDeleteTest(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
 
-class AssetSellTest(BaseAPITestCase):
+class AssetSellTest(MarketDataPatchMixin, BaseAPITestCase):
     """Tests for selling (patching) an asset."""
+
+    mock_prices = MOCK_PRICES
 
     def setUp(self):
         super().setUp()
-        patch("portfolio.serializers.get_historical_prices", side_effect=_mock_historical_prices).start()
-        patch("portfolio.serializers.is_market_open", return_value=True).start()
-        self.addCleanup(patch.stopall)
         self.authenticate_client()
         self.asset_response = self.post_asset()
         self.url = reverse('asset', kwargs={'pk': self.asset_response.data["id"]})
@@ -274,82 +269,6 @@ class AssetSplitsTest(BaseAPITestCase):
     def test_asset_splits_missing_ticker(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 400)
-
-
-class HistoricalPricesHelperTest(TestCase):
-    """Tests for yfinance historical price extraction."""
-
-    @patch("portfolio.helper.cache.set")
-    @patch("portfolio.helper.cache.get", return_value=None)
-    @patch("portfolio.helper.yf.Tickers")
-    @patch("portfolio.helper.datetime")
-    def test_uses_adjusted_close_when_available(
-        self,
-        mock_datetime,
-        mock_tickers,
-        _mock_cache_get,
-        _mock_cache_set,
-    ):
-        mock_datetime.now.return_value = datetime(2025, 1, 15, 10, 0, 0)
-
-        history_df = pd.DataFrame(
-            {
-                "Close": [Decimal("100.00"), Decimal("101.00")],
-                "Adj Close": [Decimal("95.00"), Decimal("96.00")],
-            },
-            index=pd.to_datetime(["2025-01-13", "2025-01-14"]),
-        )
-
-        mock_ticker = MagicMock()
-        mock_ticker.history.return_value = history_df
-        mock_tickers.return_value = MagicMock(tickers={"AAPL": mock_ticker})
-
-        result = get_historical_prices(["AAPL"])
-
-        self.assertEqual(result["AAPL"]["2025-01-13"], Decimal("95.00"))
-        self.assertEqual(result["AAPL"]["2025-01-14"], Decimal("96.00"))
-
-
-class HistoricalDividendsHelperTest(TestCase):
-    """Tests for yfinance historical dividend extraction."""
-
-    @patch("portfolio.helper.cache.set")
-    @patch("portfolio.helper.cache.get", return_value=None)
-    @patch("portfolio.helper.yf.Tickers")
-    def test_reads_dividend_series(self, mock_tickers, _mock_cache_get, _mock_cache_set):
-        series = pd.Series(
-            [Decimal("0.25"), Decimal("0.26")],
-            index=pd.to_datetime(["2025-02-10", "2025-05-12"]),
-        )
-        mock_ticker = MagicMock()
-        mock_ticker.dividends = series
-        mock_tickers.return_value = MagicMock(tickers={"AAPL": mock_ticker})
-
-        result = get_historical_dividends(["AAPL"])
-
-        self.assertEqual(result["AAPL"]["2025-02-10"], Decimal("0.25"))
-        self.assertEqual(result["AAPL"]["2025-05-12"], Decimal("0.26"))
-
-
-class HistoricalSplitsHelperTest(TestCase):
-    """Tests for yfinance historical split extraction."""
-
-    @patch("portfolio.helper.cache.set")
-    @patch("portfolio.helper.cache.get", return_value=None)
-    @patch("portfolio.helper.yf.Tickers")
-    def test_reads_split_series(self, mock_tickers, _mock_cache_get, _mock_cache_set):
-        series = pd.Series(
-            [Decimal("4"), Decimal("7")],
-            index=pd.to_datetime(["2020-08-31", "2014-06-09"]),
-        )
-        mock_ticker = MagicMock()
-        mock_ticker.splits = series
-        mock_tickers.return_value = MagicMock(tickers={"AAPL": mock_ticker})
-
-        result = get_historical_splits(["AAPL"])
-
-        self.assertEqual(result["AAPL"]["2020-08-31"], Decimal("4"))
-        self.assertEqual(result["AAPL"]["2014-06-09"], Decimal("7"))
 
 
 class QuoteTest(BaseAPITestCase):

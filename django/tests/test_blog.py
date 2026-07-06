@@ -1,11 +1,11 @@
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APITestCase
 
 from blog.models import Category, Post, Tag
+from tests.base import BaseAPITestCase
 
 
-class BlogPublicApiTests(APITestCase):
+class BlogPublicApiTests(BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.now = timezone.now()
