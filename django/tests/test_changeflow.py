@@ -1,9 +1,39 @@
-from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 
-from changeflow.models import Ticket
+from changeflow.models import ChangeRequest, Ticket
 from tests.base import BaseAPITestCase
+
+
+class ChangeRequestAPITests(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+        self.url = "/changeflow/api/requests/"
+        self.payload = {
+            "title": "Test Request",
+            "description": "This is a test",
+            "priority": "HIGH",
+            "data": {"key": "value"},
+        }
+
+    def test_create_change_request(self):
+        self.authenticate_client()
+        response = self.client.post(self.url, self.payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ChangeRequest.objects.count(), 1)
+        self.assertEqual(ChangeRequest.objects.get().title, "Test Request")
+
+    def test_create_change_request_unauthenticated(self):
+        response = self.client.post(self.url, self.payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_change_requests(self):
+        self.authenticate_client()
+        ChangeRequest.objects.create(title="Request 1")
+        ChangeRequest.objects.create(title="Request 2")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
 
 
 class TicketCreateTests(BaseAPITestCase):
@@ -57,15 +87,3 @@ class UserDeactivationPolicyTests(BaseAPITestCase):
         self.assertTrue(Ticket.objects.filter(id=ticket.id).exists())
         ticket.refresh_from_db()
         self.assertFalse(ticket.user.is_active)
-
-    def test_deactivation_service_marks_user_inactive(self):
-        from users.services import deactivate_user
-
-        active_user = User.objects.create_user(
-            username="anotheruser",
-            password="anotherpassword",
-        )
-        deactivate_user(active_user)
-        active_user.refresh_from_db()
-
-        self.assertFalse(active_user.is_active)

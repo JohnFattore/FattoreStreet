@@ -1,12 +1,12 @@
-from django.test import TestCase
-from django.contrib.auth.models import User
 from portfolio.models import Asset, Account
 from decimal import Decimal
 import datetime
 
-class AccountTestCase(TestCase):
+from tests.base import BaseAPITestCase
+
+class AccountTestCase(BaseAPITestCase):
     def setUp(self):
-        self.user = User.objects.create(username='testuser')
+        super().setUp()
         self.account = Account.objects.create(name='Test Account', user=self.user, account_type='ROTH_IRA')
 
     def test_account_creation(self):
