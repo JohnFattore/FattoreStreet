@@ -1,12 +1,14 @@
 import { useSelector } from "react-redux";
 import { RootState } from '../main';
 import { IChatMessage } from '../interfaces';
+import { useGetChatbotQuery } from '../functions/api';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 
 export default function ChatbotOutput() {
-    const { messages } = useSelector((state: RootState) => state.chatbot);
+    const { access } = useSelector((state: RootState) => state.user);
+    const { data: messages = [] } = useGetChatbotQuery(undefined, { skip: !access });
 
     return (
         <div className="overflow-auto mb-4 d-flex flex-column" style={{ maxHeight: '600px' }}>

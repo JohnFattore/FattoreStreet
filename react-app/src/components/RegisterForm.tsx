@@ -2,11 +2,10 @@ import { Form, Button, Alert } from 'react-bootstrap';
 import { useForm /*, SubmitHandler*/ } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { postUser, login } from '../functions/axiosFunctions';
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from '../main';
-import { translateError } from '../functions/helperFunctions';
-import { setUserError } from '../reducers/userReducer';
+import { useSelector } from "react-redux";
+import { RootState } from '../main';
+import { translateError, getApiErrorMessages } from '../functions/helperFunctions';
+import { usePostUserMutation, useLoginMutation } from '../functions/api';
 
 interface IFormInput {
     username: string,
@@ -16,13 +15,14 @@ interface IFormInput {
 }
 
 export default function RegisterForm() {
-    const dispatch = useDispatch<AppDispatch>();
-    const { access, loading, error } = useSelector((state: RootState) => state.user);
+    const { access } = useSelector((state: RootState) => state.user);
+    const [postUser, { error: registerError, isLoading: isRegistering }] = usePostUserMutation();
+    const [login, { error: loginError, isLoading: isLoggingIn }] = useLoginMutation();
 
     const schema = yup.object().shape({
         username: yup.string().required(),
         password: yup.string().required(),
-        password2: yup.string().required(),
+        password2: yup.string().oneOf([yup.ref("password")], "Passwords must match").required(),
         email: yup.string().email().required(),
     });
 
@@ -31,16 +31,17 @@ export default function RegisterForm() {
         resolver: yupResolver(schema)
     })
 
-    const onSubmit = (data: IFormInput) => {
-        if (data.password != data.password2)
-            dispatch(setUserError("Passwords must match"))
-        else {
-            dispatch(postUser(data)).unwrap()
-                .then(() => {
-                    dispatch(login({ username: data.username, password: data.password }))
-                })
+    const onSubmit = async (data: IFormInput) => {
+        try {
+            await postUser({ username: data.username, password: data.password, email: data.email }).unwrap();
+            await login({ username: data.username, password: data.password }).unwrap();
+        } catch {
+            // errors surface through the mutation hooks
         }
     }
+
+    const error = registerError ?? loginError;
+    const isLoading = isRegistering || isLoggingIn;
 
     if (access) {
         return null;
@@ -48,8 +49,8 @@ export default function RegisterForm() {
 
     return (
         <div className="register-form-container">
-            {error && <Alert variant="danger">{translateError(error)}</Alert>}
-            {loading && <Alert variant="info">Loading...</Alert>}
+            {error ? <Alert variant="danger">{translateError(getApiErrorMessages(error)[0])}</Alert> : null}
+            {isLoading && <Alert variant="info">Loading...</Alert>}
             <Form onSubmit={handleSubmit(onSubmit)}>
                 <Form.Group>
                     <Form.Label>Username</Form.Label>
@@ -86,11 +87,12 @@ export default function RegisterForm() {
                         {...register("password2", { required: true })}
                         placeholder='Confirm password'
                     />
+                    {errors.password2 && <Alert variant='danger' role="password2Error">{errors.password2.message}</Alert>}
                 </Form.Group>
 
                 <div>
-                    <Button variant="success" type="submit" disabled={loading}>
-                        {loading ? 'Creating User...' : 'Register User'}
+                    <Button variant="success" type="submit" disabled={isLoading}>
+                        {isLoading ? 'Creating User...' : 'Register User'}
                     </Button>
                 </div>
             </Form>

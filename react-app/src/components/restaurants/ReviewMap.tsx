@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useSelector } from "react-redux";
 import { RootState } from "../../main";
+import { djangoApi, useGetReviewsQuery } from '../../functions/api';
 import 'leaflet.awesome-markers/dist/leaflet.awesome-markers.css';
 import 'leaflet.awesome-markers';
 
@@ -30,8 +31,12 @@ export default function ReviewMap() {
         []
     );
 
-    const { reviews } = useSelector((state: RootState) => state.reviews);
-    const { restaurants } = useSelector((state: RootState) => state.restaurantRecommend);
+    const { access } = useSelector((state: RootState) => state.user);
+    const { data: reviews = [] } = useGetReviewsQuery(undefined, { skip: !access });
+    // Read the recommendations cache without triggering a fetch — markers only
+    // appear once the recommendations button has been clicked
+    const { data: restaurants = [] } =
+        djangoApi.endpoints.getRestaurantRecommendations.useQueryState();
 
     useEffect(() => {
         if (!mapRef.current) {

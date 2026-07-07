@@ -1,10 +1,9 @@
 import { Form, Button, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { getReviews, login } from '../functions/axiosFunctions';
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from '../main';
-import { translateError } from '../functions/helperFunctions';
-import { clearReviewErrors } from '../reducers/reviewReducer';
+import { useSelector } from "react-redux";
+import { RootState } from '../main';
+import { translateError, getApiErrorMessages } from '../functions/helperFunctions';
+import { useLoginMutation } from '../functions/api';
 
 interface IFormInput {
     username: string,
@@ -12,16 +11,12 @@ interface IFormInput {
 }
 
 export default function LoginForm() {
-    const { access, loading, error } = useSelector((state: RootState) => state.user);
-    const dispatch = useDispatch<AppDispatch>();
+    const { access } = useSelector((state: RootState) => state.user);
+    const [login, { error, isLoading }] = useLoginMutation();
 
     const { register, handleSubmit, formState: { errors }, } = useForm<IFormInput>()
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        dispatch(login({ username: data.username, password: data.password }))
-            .then(() => {
-                dispatch(getReviews())
-                dispatch(clearReviewErrors())
-            })
+        login({ username: data.username, password: data.password })
     }
 
     if (access) {
@@ -30,8 +25,8 @@ export default function LoginForm() {
 
     return (
         <div className="login-form-container">
-            {error && <Alert variant="danger">{translateError(error)}</Alert>}
-            {loading && <Alert variant="info">Login Loading...</Alert>}
+            {error ? <Alert variant="danger">{translateError(getApiErrorMessages(error)[0])}</Alert> : null}
+            {isLoading && <Alert variant="info">Login Loading...</Alert>}
             <Form onSubmit={handleSubmit(onSubmit)}>
                 <Form.Group>
                     <Form.Label>Username</Form.Label>
@@ -53,8 +48,8 @@ export default function LoginForm() {
                 </Form.Group>
 
                 <div>
-                    <Button variant="primary" type="submit" disabled={loading}>
-                        {loading ? 'Logging in...' : 'Login'}
+                    <Button variant="primary" type="submit" disabled={isLoading}>
+                        {isLoading ? 'Logging in...' : 'Login'}
                     </Button>
                 </div>
             </Form>

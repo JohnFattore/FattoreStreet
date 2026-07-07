@@ -1,26 +1,28 @@
 import RestaurantRecommendTable from './RestaurantRecommendTable';
-import { getRestaurantRecommendations } from '../../functions/axiosFunctions';
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "../../main";
-import { Alert, Button } from 'react-bootstrap';
+import { useLazyGetRestaurantRecommendationsQuery } from '../../functions/api';
+import { Button } from 'react-bootstrap';
+import { IRestaurant } from '../../interfaces';
 
-export default function Restaurants() {
-    const dispatch = useDispatch<AppDispatch>();
-    const { restaurants, loading } = useSelector((state: RootState) => state.restaurantRecommend);
+export default function RestaurantRecommend({ setRestaurant }: { setRestaurant: (r: IRestaurant) => void }) {
+    const [getRecommendations, { data: restaurants, isLoading, error }] =
+        useLazyGetRestaurantRecommendationsQuery();
 
-    if (restaurants.length == 0 && !loading) {
+    if (!restaurants && !isLoading && !error) {
         return (
-            <Button onClick={() => dispatch(getRestaurantRecommendations())}>
+            <Button onClick={() => getRecommendations()}>
                 Click for Recommendations
             </Button>
         )
     }
 
-    if (loading) return <Alert>Loading Restaurant Recommendations</Alert>;
-
     return (
         <>
-            <RestaurantRecommendTable setRestaurant={console.log} />
+            <RestaurantRecommendTable
+                restaurants={restaurants ?? []}
+                isLoading={isLoading}
+                errors={[error]}
+                setRestaurant={setRestaurant}
+            />
             <p>Data provided by Yelp and is only a subset of all restaurant... All Nashville restaurants seem to be here.</p>
         </>
     )

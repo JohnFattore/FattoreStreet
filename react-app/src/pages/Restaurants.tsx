@@ -1,8 +1,6 @@
 import RestaurantTable from '../components/restaurants/RestaurantTable';
-import { useEffect } from 'react';
-import { getRestaurants, getReviews } from '../functions/axiosFunctions';
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "../main";
+import { useSelector } from "react-redux";
+import { RootState } from "../main";
 import ReviewForm from '../components/restaurants/ReviewForm';
 import { useState } from 'react';
 import { IRestaurant } from '../interfaces';
@@ -10,17 +8,10 @@ import { Button } from 'react-bootstrap';
 import LoginRequired from '../components/LoginRequired';
 import ReviewTable from '../components/restaurants/ReviewTable';
 import ReviewMap from '../components/restaurants/ReviewMap'
-//import RestaurantRecommendTable from '../components/restaurants/RestaurantRecommendTable'
+//import RestaurantRecommend from '../components/restaurants/RestaurantRecommend'
 
 export default function Restaurants() {
-    const dispatch = useDispatch<AppDispatch>();
     const { access } = useSelector((state: RootState) => state.user);
-    //const { restaurants, loading } = useSelector((state: RootState) => state.restaurantRecommend);
-
-    useEffect(() => {
-        dispatch(getRestaurants());
-        dispatch(getReviews())
-    }, [dispatch]);
 
     const [restaurant, setRestaurant] = useState<IRestaurant>({
         yelp_id: '',
@@ -44,22 +35,6 @@ export default function Restaurants() {
         setRestaurant(selectedRestaurant);
         setShowReviewModal(true);
     };
-/*
-    const renderRecommendations = () => {
-
-        if (restaurants.length === 0 && !loading) {
-            return (
-                <Button onClick={() => dispatch(getRestaurantRecommendations())}>
-                    Click for Recommendations
-                </Button>
-            );
-        }
-
-        if (loading) return <Alert>Loading Restaurant Recommendations</Alert>;
-
-        return <RestaurantRecommendTable setRestaurant={handleOpenReviewModal} />
-    };
-*/
     if (!access) {
         return (
             <div className="restaurants-page">
@@ -80,7 +55,7 @@ export default function Restaurants() {
             <ReviewTable />
             <Button onClick={() => setShowMap(prev => !prev)}> {showMap ? 'Hide Map' : 'Show Map'} </Button>
             {showMap && <ReviewMap />}
-            {/*{renderRecommendations()}*/}
+            {/*<RestaurantRecommend setRestaurant={handleOpenReviewModal} />*/}
             <ReviewForm
                 restaurant={restaurant}
                 show={showReviewModal}

@@ -1,9 +1,12 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
   IAsset,
+  IChatMessage,
   IDividendRow,
   IEquityInfo,
   IETFInfo,
+  IRestaurant,
+  IReview,
   ISplitRow,
   IYFinanceQuarter,
 } from "../../interfaces";
@@ -104,11 +107,203 @@ interface IPaginatedResponse<T> {
   results: T[];
 }
 
+/** Raw snake_case shape returned by Django for a restaurant row */
+interface IRawRestaurantRow {
+  yelp_id: string;
+  name: string;
+  address: string;
+  state: string;
+  city: string;
+  latitude: string | number;
+  longitude: string | number;
+  categories: string;
+  stars: string;
+  review_count: number;
+  id: number;
+}
+
+/** Raw snake_case shape returned by Django for a review row */
+interface IRawReviewRow {
+  restaurant: number;
+  restaurant_detail: {
+    name: string;
+    latitude: string | number;
+    longitude: string | number;
+  };
+  user: number;
+  rating: string | number;
+  comment: string;
+  id: number;
+}
+
+/** Raw snake_case shape returned by Django for a chatbot interaction */
+interface IRawChatInteraction {
+  input_text: string;
+  output_text: string;
+  timestamp: string;
+}
+
+const toRestaurant = (row: IRawRestaurantRow): IRestaurant => ({
+  yelp_id: row.yelp_id,
+  name: row.name,
+  address: row.address,
+  state: row.state,
+  city: row.city,
+  latitude: Number(row.latitude),
+  longitude: Number(row.longitude),
+  categories: row.categories,
+  stars: row.stars,
+  review_count: row.review_count,
+  id: row.id,
+});
+
 export const djangoApi = createApi({
   reducerPath: "djangoApi",
   baseQuery: axiosBaseQuery({ defaultBaseUrl: import.meta.env.VITE_APP_DJANGO_URL }),
-  tagTypes: ["Assets", "Accounts"],
+  tagTypes: ["Assets", "Accounts", "Restaurants", "RestaurantRecommendations", "Reviews", "Chatbot"],
   endpoints: (builder) => ({
+    login: builder.mutation<
+      { username: string; access: string; refresh: string },
+      { username: string; password: string }
+    >({
+      query: (credentials) => ({
+        url: "users/api/token/",
+        method: "POST",
+        data: credentials,
+        withAuth: false,
+      }),
+      transformResponse: (
+        response: { access: string; refresh: string },
+        _meta,
+        arg
+      ) => ({
+        username: arg.username,
+        access: response.access,
+        refresh: response.refresh,
+      }),
+    }),
+    refreshLogin: builder.mutation<{ access: string }, string>({
+      query: (refresh) => ({
+        url: "users/api/token/refresh/",
+        method: "POST",
+        data: { refresh },
+        withAuth: false,
+      }),
+    }),
+    postUser: builder.mutation<
+      { id: number; username: string; email: string },
+      { username: string; password: string; email: string }
+    >({
+      query: (newUser) => ({
+        url: "users/api/users/",
+        method: "POST",
+        data: newUser,
+        withAuth: false,
+      }),
+    }),
+    getRestaurants: builder.query<IRestaurant[], { state: string; city: string }>({
+      query: ({ state, city }) => ({
+        url: "restaurants/api/restaurant-list-create/",
+        method: "GET",
+        params: { state, city },
+        withAuth: false,
+      }),
+      transformResponse: (response: IRawRestaurantRow[]): IRestaurant[] =>
+        response.map(toRestaurant),
+      providesTags: [{ type: "Restaurants", id: "LIST" }],
+    }),
+    getRestaurantRecommendations: builder.query<IRestaurant[], void>({
+      query: () => ({
+        url: "restaurants/api/restaurant-recommend/",
+        method: "GET",
+      }),
+      transformResponse: (response: IRawRestaurantRow[]): IRestaurant[] =>
+        response.map(toRestaurant),
+      providesTags: [{ type: "RestaurantRecommendations", id: "LIST" }],
+    }),
+    getReviews: builder.query<IReview[], void>({
+      query: () => ({
+        url: "restaurants/api/review-list/",
+        method: "GET",
+      }),
+      transformResponse: (response: IRawReviewRow[]): IReview[] =>
+        response.map((review) => ({
+          restaurant: review.restaurant,
+          name: review.restaurant_detail.name,
+          user: review.user,
+          rating: Number(review.rating),
+          comment: review.comment,
+          latitude: Number(review.restaurant_detail.latitude),
+          longitude: Number(review.restaurant_detail.longitude),
+          id: review.id,
+        })),
+      providesTags: [{ type: "Reviews", id: "LIST" }],
+    }),
+    postReview: builder.mutation<void, { restaurant: number; rating: number; comment: string }>({
+      query: (review) => ({
+        url: "restaurants/api/review-create/",
+        method: "POST",
+        // TODO: drop the hardcoded user once Django derives it from the JWT
+        data: { ...review, user: 1 },
+      }),
+      invalidatesTags: [{ type: "Reviews", id: "LIST" }],
+    }),
+    deleteReview: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `restaurants/api/review/${id}/`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Reviews", id: "LIST" }],
+    }),
+    patchReview: builder.mutation<void, { id: number; rating: number }>({
+      query: ({ id, rating }) => ({
+        url: `restaurants/api/review-update/${id}/`,
+        method: "PATCH",
+        data: { rating },
+      }),
+      invalidatesTags: [{ type: "Reviews", id: "LIST" }],
+    }),
+    getChatbot: builder.query<IChatMessage[], void>({
+      query: () => ({
+        url: "chatbot/api/chatbot/",
+        method: "GET",
+      }),
+      transformResponse: (response: IRawChatInteraction[]): IChatMessage[] =>
+        response.flatMap((interaction) => [
+          { role: "user", text: interaction.input_text, timestamp: interaction.timestamp },
+          { role: "model", text: interaction.output_text, timestamp: interaction.timestamp },
+        ]),
+      providesTags: ["Chatbot"],
+    }),
+    postChatbot: builder.mutation<IChatMessage, string>({
+      query: (message) => ({
+        url: "chatbot/api/chatbot/",
+        method: "POST",
+        data: { message },
+      }),
+      transformResponse: (response: { message: string }): IChatMessage => ({
+        role: "model",
+        text: response.message,
+      }),
+      async onQueryStarted(message, { dispatch, queryFulfilled }) {
+        // Optimistically show the user's message; roll it back if the request fails
+        const patchResult = dispatch(
+          djangoApi.util.updateQueryData("getChatbot", undefined, (draft) => {
+            draft.push({ role: "user", text: message });
+          })
+        );
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(
+            djangoApi.util.updateQueryData("getChatbot", undefined, (draft) => {
+              draft.push(data);
+            })
+          );
+        } catch {
+          patchResult.undo();
+        }
+      },
+    }),
     getAssets: builder.query<IAsset[], number | void>({
       query: (accountId) => ({
         url: "portfolio/api/assets/",
@@ -368,10 +563,23 @@ export const {
   usePatchAssetMutation,
   useGetFredDataQuery,
   useGetQuoteQuery,
+  useLazyGetQuoteQuery,
   useCreateAccountMutation,
   usePostTicketMutation,
   useGetAccountsQuery,
   useGetAccountQuery,
   useGetDjangoQuartersQuery,
+  useLoginMutation,
+  useRefreshLoginMutation,
+  usePostUserMutation,
+  useGetRestaurantsQuery,
+  useGetRestaurantRecommendationsQuery,
+  useLazyGetRestaurantRecommendationsQuery,
+  useGetReviewsQuery,
+  usePostReviewMutation,
+  useDeleteReviewMutation,
+  usePatchReviewMutation,
+  useGetChatbotQuery,
+  usePostChatbotMutation,
 } = djangoApi;
 

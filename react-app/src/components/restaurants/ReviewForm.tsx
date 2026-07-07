@@ -2,11 +2,10 @@ import { Form, Button, Col, Row, Alert, Modal } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { postReview } from '../../functions/axiosFunctions';
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from '../../main';
 import { useState } from 'react';
 import { IRestaurant } from '../../interfaces';
+import { getApiErrorMessages } from '../../functions/helperFunctions';
+import { usePostReviewMutation } from '../../functions/api';
 
 interface IFormInput {
     rating: number,
@@ -32,8 +31,7 @@ interface ReviewFormProps {
 }
 
 export default function ReviewForm({ restaurant, show, onHide }: ReviewFormProps) {
-    const dispatch = useDispatch<AppDispatch>();
-    const { loading, error } = useSelector((state: RootState) => state.reviews);
+    const [postReview, { error, isLoading, isSuccess }] = usePostReviewMutation();
     const [submission, setSubmission] = useState<string | undefined>(undefined)
 
     const schema = yup.object().shape({
@@ -46,16 +44,11 @@ export default function ReviewForm({ restaurant, show, onHide }: ReviewFormProps
         resolver: yupResolver(schema)
     })
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        dispatch(postReview({
+        postReview({
             restaurant: restaurant.id,
-            name: '',
-            user: 1,
-            rating: data.rating,
+            rating: Number(data.rating),
             comment: data.comment,
-            longitude: 1,
-            latitude: 1,
-            id: 1
-        }))
+        })
         setSubmission(restaurant.name)
         reset();
     }
@@ -105,11 +98,11 @@ export default function ReviewForm({ restaurant, show, onHide }: ReviewFormProps
                         <Button variant="secondary" onClick={handleClose}>
                             Close
                         </Button>
-                        <Button type="submit" disabled={restaurant.id == 0 || loading}>Submit Review</Button>
+                        <Button type="submit" disabled={restaurant.id == 0 || isLoading}>Submit Review</Button>
                     </div>
                 </Form>
-                {error && <Alert variant="danger">{error}</Alert>}
-                {submission && error != 'You have already reviewed this restaurant.' && <Alert>{"Review for ".concat(submission, " submitted")}</Alert>}
+                {error ? <Alert variant="danger">{getApiErrorMessages(error)[0]}</Alert> : null}
+                {submission && isSuccess && <Alert>{"Review for ".concat(submission, " submitted")}</Alert>}
             </Modal.Body>
         </Modal>
 

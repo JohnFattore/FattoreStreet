@@ -157,7 +157,6 @@ export function formatLargeNumber(v: number | null | undefined): string {
   return formatNumber(v);
 }
 
-// phase this out, good error message come from the server, set with axiosFunctions and the reducers
 export function translateError(error: string) {
   if (error == "Request failed with status code 401") return "Please Login";
   if (error == "Request failed with status code 500") return "Server Error";
