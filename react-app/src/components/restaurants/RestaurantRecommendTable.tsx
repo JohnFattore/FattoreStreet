@@ -10,7 +10,8 @@ interface RestaurantRecommendTableProps {
 }
 
 export default function RestaurantRecommendTable({ restaurants, isLoading, errors, setRestaurant }: RestaurantRecommendTableProps) {
-    if (!isLoading && restaurants.length == 0) {
+    const hasError = errors.some(Boolean);
+    if (!isLoading && !hasError && restaurants.length == 0) {
         return (<h3>No Data</h3>)
     }
 
