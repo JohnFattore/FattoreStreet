@@ -1,12 +1,8 @@
 // @vitest-environment jsdom
-import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
-import { render } from '@testing-library/react';
 import { expect, describe, it } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { Provider } from 'react-redux';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import Home from '../src/pages/Home';
 import SECData from '../src/pages/SECData';
 import AccountView from '../src/pages/AccountView';
@@ -18,31 +14,16 @@ import AdminSuccessBar from '../src/pages/AdminSuccessBar';
 import Indexes from '../src/pages/Indexes';
 import Blog from '../src/pages/Blog';
 import BlogPost from '../src/pages/BlogPost';
+import Entertainment from '../src/pages/Entertainment';
 import PriceComparison from '../src/components/PriceComparison';
 import DividendComparison from '../src/components/DividendComparison';
 import SplitComparison from '../src/components/SplitComparison';
 import FilingSummaries from '../src/components/FilingSummaries';
-import { renderWithProviders, createTestStore } from './testutils';
+import { renderWithProviders, renderWithRoute } from './testutils';
 
 const authenticatedState = {
     user: { access: 'fake-token', refresh: 'fake-refresh', username: 'testUser' }
 };
-
-function renderWithRoute(ui: React.ReactElement, { path, initialEntry, preloadedState = {} }: { path: string; initialEntry: string; preloadedState?: Record<string, unknown> }) {
-    const store = createTestStore(preloadedState);
-    return {
-        ...render(
-            <Provider store={store}>
-                <MemoryRouter initialEntries={[initialEntry]}>
-                    <Routes>
-                        <Route path={path} element={ui} />
-                    </Routes>
-                </MemoryRouter>
-            </Provider>
-        ),
-        store,
-    };
-}
 
 describe('Home', () => {
     it('renders the hero section', () => {
@@ -232,6 +213,39 @@ describe("AdminSuccessBar", () => {
         expect(await screen.findByText("AAPL")).toBeInTheDocument();
         expect(await screen.findByText("VOO")).toBeInTheDocument();
         expect(await screen.findByText("Combined Success")).toBeInTheDocument();
+    });
+});
+
+describe('Entertainment', () => {
+    it('renders the section headings', () => {
+        renderWithProviders(<Entertainment />);
+        expect(screen.getByText('Useful Links')).toBeInTheDocument();
+        expect(screen.getByText('Notable Company Ratios')).toBeInTheDocument();
+        expect(screen.getByText('10 10/10 Albums')).toBeInTheDocument();
+    });
+
+    it('renders external links with hrefs', () => {
+        renderWithProviders(<Entertainment />);
+        expect(screen.getByRole('link', { name: 'S&P 500 Heat Map' })).toHaveAttribute(
+            'href',
+            'https://finviz.com/map.ashx'
+        );
+        expect(screen.getByRole('link', { name: 'Stock Screener' })).toBeInTheDocument();
+    });
+
+    it('renders ratio rows with formulas', () => {
+        renderWithProviders(<Entertainment />);
+        // RatioTable headers are copy-pasted from AlbumTable — assert content, not headers
+        expect(screen.getByText('Price To Earnings')).toBeInTheDocument();
+        expect(screen.getByText('Market Capitalization / Annual Income')).toBeInTheDocument();
+        expect(screen.getByText('Dividend Payout Ratio')).toBeInTheDocument();
+    });
+
+    it('renders album rows', () => {
+        renderWithProviders(<Entertainment />);
+        expect(screen.getByText('Flower Boy')).toBeInTheDocument();
+        expect(screen.getByText('Nirvana')).toBeInTheDocument();
+        expect(screen.getByText('Rumours')).toBeInTheDocument();
     });
 });
 

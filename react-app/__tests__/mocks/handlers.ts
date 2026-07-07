@@ -427,23 +427,6 @@ export const handlers = [
     }
   ),
 
-  http.patch(
-    new RegExp(escapeRegExp(restaurantsApiBaseUrl) + "review-update/\\d+/"),
-    async ({ request }) => {
-      const body = (await request.json()) as { rating?: number };
-      return Response.json(
-        {
-          user: 2,
-          rating: String(body.rating ?? 4),
-          comment: "ice cream",
-          id: 17,
-          restaurant: 104622,
-        },
-        { status: 200 }
-      );
-    }
-  ),
-
   http.get(restaurantsApiBaseUrl.concat("restaurant-recommend/"), () => {
     return Response.json(
       [
@@ -513,6 +496,40 @@ export const handlers = [
       );
     }
   ),
+
+  // --- Spring Boot admin jobs (text responses echoing the query string) ---
+
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("admin/asset-load"), ({ request }) => {
+    return new Response("asset-load ok" + new URL(request.url).search, { status: 200 });
+  }),
+
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("admin/load"), () => {
+    return new Response("legacy load ok", { status: 200 });
+  }),
+
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("admin/sync-frames"), () => {
+    return new Response("sync-frames ok", { status: 200 });
+  }),
+
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("admin/load-hist"), ({ request }) => {
+    return new Response("load-hist ok" + new URL(request.url).search, { status: 200 });
+  }),
+
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("admin/adjust-prices"), ({ request }) => {
+    return new Response("adjust-prices ok" + new URL(request.url).search, { status: 200 });
+  }),
+
+  http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("admin/summarize-filings"), ({ request }) => {
+    return new Response("summarize-filings ok" + new URL(request.url).search, { status: 200 });
+  }),
+
+  http.post(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("admin/indexes/refresh-stocks"), ({ request }) => {
+    return new Response("refresh-stocks ok" + new URL(request.url).search, { status: 200 });
+  }),
+
+  http.post(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("admin/indexes/rebuild"), ({ request }) => {
+    return new Response("rebuild ok" + new URL(request.url).search, { status: 200 });
+  }),
 
   // --- Spring Boot SEC EDGAR ---
 

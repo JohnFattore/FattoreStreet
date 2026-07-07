@@ -255,14 +255,6 @@ export const djangoApi = createApi({
       }),
       invalidatesTags: [{ type: "Reviews", id: "LIST" }],
     }),
-    patchReview: builder.mutation<void, { id: number; rating: number }>({
-      query: ({ id, rating }) => ({
-        url: `restaurants/api/review-update/${id}/`,
-        method: "PATCH",
-        data: { rating },
-      }),
-      invalidatesTags: [{ type: "Reviews", id: "LIST" }],
-    }),
     getChatbot: builder.query<IChatMessage[], void>({
       query: () => ({
         url: "chatbot/api/chatbot/",
@@ -380,41 +372,6 @@ export const djangoApi = createApi({
         method: "GET",
         withAuth: false,
       }),
-    }),
-    getBlogCategories: builder.query<IBlogTaxonomy[], void>({
-      query: () => ({
-        url: "blog/api/categories/",
-        method: "GET",
-        withAuth: false,
-      }),
-    }),
-    getBlogTags: builder.query<IBlogTaxonomy[], void>({
-      query: () => ({
-        url: "blog/api/tags/",
-        method: "GET",
-        withAuth: false,
-      }),
-    }),
-    getAsset: builder.query<IAsset, number>({
-      query: (id) => ({
-        url: `portfolio/api/assets/${id}`,
-        method: "GET",
-      }),
-      transformResponse: (response: IRawAsset): IAsset => {
-        return {
-          id: response.id,
-          ticker: response.ticker,
-          shares: Number(response.shares),
-          buyDate: response.buy_date,
-          buyPrice: Number(response.buy_price),
-          snp500PriceBuy: Number(response.buy_SnP500),
-          sellDate: response.sell_date,
-          sellPrice: response.sell_price ? Number(response.sell_price) : null,
-          snp500PriceSell: response.sell_SnP500 ? Number(response.sell_SnP500) : null,
-          account: response.account,
-        };
-      },
-      providesTags: [],
     }),
     deleteAsset: builder.mutation<void, number>({
       query: (id) => ({
@@ -556,9 +513,6 @@ export const {
   usePostNewAssetMutation,
   useGetBlogPostsQuery,
   useGetBlogPostQuery,
-  useGetBlogCategoriesQuery,
-  useGetBlogTagsQuery,
-  useGetAssetQuery,
   useDeleteAssetMutation,
   usePatchAssetMutation,
   useGetFredDataQuery,
@@ -570,15 +524,12 @@ export const {
   useGetAccountQuery,
   useGetDjangoQuartersQuery,
   useLoginMutation,
-  useRefreshLoginMutation,
   usePostUserMutation,
   useGetRestaurantsQuery,
-  useGetRestaurantRecommendationsQuery,
   useLazyGetRestaurantRecommendationsQuery,
   useGetReviewsQuery,
   usePostReviewMutation,
   useDeleteReviewMutation,
-  usePatchReviewMutation,
   useGetChatbotQuery,
   usePostChatbotMutation,
 } = djangoApi;

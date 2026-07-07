@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { http } from 'msw';
 import LoginForm from '../src/components/LoginForm';
+import RegisterForm from '../src/components/RegisterForm';
 import WatchListForm from '../src/components/WatchListForm';
 import { renderWithProviders } from './testutils';
 import { server } from './mocks/server';
@@ -49,6 +50,58 @@ describe('LoginForm', () => {
         expect(
             await screen.findByText('No active account found with the given credentials')
         ).toBeInTheDocument();
+    });
+});
+
+describe('RegisterForm', () => {
+    const fillForm = async (password2: string) => {
+        await userEvent.type(screen.getByPlaceholderText('Enter username'), 'newUser');
+        await userEvent.type(screen.getByPlaceholderText('Enter email'), 'new@test.com');
+        await userEvent.type(screen.getByPlaceholderText('Enter password'), 'hunter2');
+        await userEvent.type(screen.getByPlaceholderText('Confirm password'), password2);
+        await userEvent.click(screen.getByRole('button', { name: /register user/i }));
+    };
+
+    it('rejects mismatched passwords with a validation error', async () => {
+        const { store } = renderWithProviders(<RegisterForm />);
+
+        await fillForm('different');
+
+        expect(await screen.findByRole('password2Error')).toHaveTextContent('Passwords must match');
+        expect(store.getState().user.access).toBe('');
+    });
+
+    it('registers and logs in on success', async () => {
+        const { store } = renderWithProviders(<RegisterForm />);
+
+        await fillForm('hunter2');
+
+        await waitFor(() => {
+            expect(store.getState().user.access).not.toBe('');
+        });
+        expect(store.getState().user.username).toBe('newUser');
+        // RegisterForm renders nothing once logged in
+        expect(screen.queryByPlaceholderText('Enter username')).not.toBeInTheDocument();
+    });
+
+    it('shows the server error when registration fails', async () => {
+        server.use(
+            http.post(djangoBaseUrl.concat("users/api/users/"), () =>
+                Response.json(
+                    { username: ['A user with that username already exists.'] },
+                    { status: 400 }
+                )
+            )
+        );
+
+        const { store } = renderWithProviders(<RegisterForm />);
+
+        await fillForm('hunter2');
+
+        expect(
+            await screen.findByText(/A user with that username already exists/)
+        ).toBeInTheDocument();
+        expect(store.getState().user.access).toBe('');
     });
 });
 
