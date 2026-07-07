@@ -9,6 +9,10 @@ const portfolioApiBaseUrl = djangoBaseUrl + "portfolio/api/";
 const restaurantsApiBaseUrl = djangoBaseUrl + "restaurants/api/";
 const changeflowApiBaseUrl = djangoBaseUrl + "changeflow/api/";
 const blogApiBaseUrl = djangoBaseUrl + "blog/api/";
+const chatbotApiBaseUrl = djangoBaseUrl + "chatbot/api/";
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const handlers = [
   http.get(
@@ -373,6 +377,115 @@ export const handlers = [
       );
     }
   ),
+
+  http.post(usersApiBaseUrl.concat("token/refresh/"), () => {
+    return Response.json(
+      {
+        access:
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQzNjQyMTYzLCJpYXQiOjE3NDM2NDE4NjMsImp0aSI6IjE0Nzc4MDJkNjc4YTQ2OTM5MTMzNmQzMjIzODYxYmFjIiwidXNlcl9pZCI6NH0.refreshed",
+      },
+      { status: 200 }
+    );
+  }),
+
+  http.post(restaurantsApiBaseUrl.concat("review-create/"), async ({ request }) => {
+    const body = (await request.json()) as {
+      restaurant?: number;
+      rating?: number;
+      comment?: string;
+    };
+    return Response.json(
+      {
+        user: 2,
+        rating: String(body.rating ?? 5),
+        comment: body.comment ?? "",
+        id: 18,
+        restaurant: body.restaurant ?? 104585,
+        restaurant_detail: {
+          yelp_id: "bBDDEgkFA1Otx9Lfe7BZUQ",
+          name: "Sonic Drive-In",
+          address: "2312 Dickerson Pike",
+          state: "TN",
+          city: "Nashville",
+          latitude: "36.20810240",
+          longitude: "-86.76816960",
+          categories:
+            "Ice Cream & Frozen Yogurt, Fast Food, Burgers, Restaurants, Food",
+          stars: 1.5,
+          review_count: 10,
+          id: 104585,
+        },
+      },
+      { status: 201 }
+    );
+  }),
+
+  http.delete(
+    new RegExp(escapeRegExp(restaurantsApiBaseUrl) + "review/\\d+/"),
+    () => {
+      return new Response(null, { status: 204 });
+    }
+  ),
+
+  http.patch(
+    new RegExp(escapeRegExp(restaurantsApiBaseUrl) + "review-update/\\d+/"),
+    async ({ request }) => {
+      const body = (await request.json()) as { rating?: number };
+      return Response.json(
+        {
+          user: 2,
+          rating: String(body.rating ?? 4),
+          comment: "ice cream",
+          id: 17,
+          restaurant: 104622,
+        },
+        { status: 200 }
+      );
+    }
+  ),
+
+  http.get(restaurantsApiBaseUrl.concat("restaurant-recommend/"), () => {
+    return Response.json(
+      [
+        {
+          yelp_id: "recommend123",
+          name: "Prince's Hot Chicken",
+          address: "5814 Nolensville Pike",
+          state: "TN",
+          city: "Nashville",
+          latitude: "36.06550000",
+          longitude: "-86.71890000",
+          categories: "Southern, Chicken Shop, Restaurants",
+          stars: 4.5,
+          review_count: 1200,
+          id: 104700,
+        },
+      ],
+      { status: 200 }
+    );
+  }),
+
+  // --- Chatbot (Django) ---
+
+  http.get(chatbotApiBaseUrl.concat("chatbot/"), () => {
+    return Response.json(
+      [
+        {
+          input_text: "Should I buy index funds?",
+          output_text: "**Yes** — low-cost index funds are a great core holding.",
+          timestamp: "2026-03-01T00:00:00Z",
+        },
+      ],
+      { status: 200 }
+    );
+  }),
+
+  http.post(chatbotApiBaseUrl.concat("chatbot/"), () => {
+    return Response.json(
+      { message: "Stay the course and keep costs low." },
+      { status: 200 }
+    );
+  }),
 
   http.get(
     restaurantsApiBaseUrl.concat(

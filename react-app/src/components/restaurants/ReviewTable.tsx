@@ -1,19 +1,9 @@
-import Table from 'react-bootstrap/Table';
-import { formatString } from '../../functions/helperFunctions';
-import { useSelector, useDispatch } from "react-redux";
-import { RootState, AppDispatch } from "../../main";
+import { useSelector } from "react-redux";
+import { RootState } from "../../main";
 import { IReview } from '../../interfaces';
-import { Alert } from 'react-bootstrap';
-import { setReviewSort } from '../../reducers/reviewReducer';
-import { deleteReview, patchReview } from '../../functions/axiosFunctions';
-
-const fields = [
-    { name: "Restaurant", type: "text", field: "name" },
-    { name: "Rating", type: "rating", field: "rating" },
-    { name: "Comment", type: "string", field: "comment" },
-    { name: "Delete", type: "delete", field: "delete" },
-    //{ name: "Update", type: "update", field: "update" },
-]
+import { Alert, Button } from 'react-bootstrap';
+import { SortableTable } from '../SortableTable';
+import { useGetReviewsQuery, useDeleteReviewMutation } from '../../functions/api';
 
 const RATING_CHOICES = [
     { value: 1, label: "1 - Poor" },
@@ -27,73 +17,45 @@ const RATING_CHOICES = [
     { value: 5, label: "5 - Excellent" },
 ];
 
-function ReviewRow({ review }: { review: IReview }) {
-    const dispatch = useDispatch<AppDispatch>();
-    const tableData: JSX.Element[] = [];
-    for (let i = 0; i < fields.length; i++) {
-        if (fields[i]["type"] == "delete") {
-            tableData.push(<td key={i} onClick={() => dispatch(deleteReview(review.id))}>{[fields[i]["field"]]}</td>)
-        }
-        else if (fields[i]["type"] == "rating") {
-            const rating = RATING_CHOICES.find((rating) => rating.value === review.rating)?.label || "Unknown Rating";
-            tableData.push(<td key={i}>{rating}</td>)
-        }
-        else if (fields[i]["type"] == "update") {
-            tableData.push(<td key={i} onClick={() => {
-                console.log("maxwell")
-                const updatedReview = { ...review, rating: 4 }; // Create a copy with updated rating
-                dispatch(patchReview(updatedReview))}}>{[fields[i]["field"]]}</td>)
-        }
-        else {
-            tableData.push(<td key={i}>{formatString((review as unknown as Record<string, string | number>)[fields[i]["field"]], fields[i]["type"])}</td>)
-        }
-    }
-
-    return (
-        <tr key={review.id}>
-            {tableData}
-        </tr>)
-}
-
 export default function ReviewTable() {
-    const { reviews, loading, sort } = useSelector((state: RootState) => state.reviews);
     const { access, username } = useSelector((state: RootState) => state.user);
-    const dispatch = useDispatch<AppDispatch>();
-
-    const handleSort = (sortColumn: string) => {
-        const sortDirection =
-            sort.sortColumn === sortColumn && sort.sortDirection === 'asc'
-                ? 'desc'
-                : 'asc';
-        dispatch(setReviewSort({ sortColumn, sortDirection }));
-    };
-
-    const headers: JSX.Element[] = []
-    for (let i = 0; i < fields.length; i++) {
-        headers.push(<th key={i} onClick={() => handleSort(fields[i]["field"])}>{fields[i].name}</th>)
-    }
-
-    if (loading) return <Alert>Loading Reviews</Alert>;
+    const { data: reviews = [], isLoading, error } = useGetReviewsQuery(undefined, { skip: !access });
+    const [deleteReview, { error: deleteError }] = useDeleteReviewMutation();
 
     if (!access) return null
 
-    if (reviews.length == 0) return (<Alert>{username.concat(" has no reviews")}</Alert>)
-    
+    if (!isLoading && !error && reviews.length == 0) return (<Alert>{username.concat(" has no reviews")}</Alert>)
+
+    const columns = [
+        { label: "Restaurant", sortKey: "name" },
+        {
+            label: "Rating",
+            sortKey: "rating",
+            render: (review: IReview) =>
+                RATING_CHOICES.find((rating) => rating.value === review.rating)?.label || "Unknown Rating",
+        },
+        { label: "Comment", sortKey: "comment" },
+        {
+            label: "Delete",
+            sortKey: "delete",
+            sortable: false,
+            render: (review: IReview) => (
+                <Button variant="danger" size="sm" onClick={() => deleteReview(review.id)}>
+                    Delete
+                </Button>
+            ),
+        },
+    ];
+
     return (
         <>
-        <h3>{username.concat("'s restaurant reviews")}</h3>
-            <Table>
-                <thead>
-                    <tr>
-                        {headers}
-                    </tr>
-                </thead>
-                <tbody>
-                    {reviews.map((review, index) => (
-                        <ReviewRow key={index} review={review} />
-                    ))}
-                </tbody>
-            </Table>
+            <h3>{username.concat("'s restaurant reviews")}</h3>
+            <SortableTable
+                data={reviews}
+                columns={columns}
+                isLoading={isLoading}
+                errors={[error, deleteError]}
+            />
         </>
     );
 }

@@ -108,8 +108,9 @@ Test classes mirror source under `src/test/java/.../sec_api/`.
 - `MarketIndex`, `IndexMember`, `ListingIndexMetrics` — Index infrastructure
 
 ### React State & API
-- Newer API calls use **RTK Query** via `src/functions/api/` (`djangoApi.ts`, `springbootApi.ts`, shared `baseQuery.ts`); use RTK Query for all new code
-- Legacy features (restaurants, chatbot, watchlist, auth forms) still call `createAsyncThunk` thunks in `src/functions/axiosFunctions.tsx` backed by per-entity slices in `src/reducers/` — a migration to RTK Query is pending
+- All API calls use **RTK Query** via `src/functions/api/` (`djangoApi.ts`, `springbootApi.ts`, shared `baseQuery.ts`); the only intentional exception is the raw axios calls in `src/pages/Admin.tsx`
+- Client-only state lives in `createSlice` reducers in `src/reducers/` (`user` for JWT tokens + dark mode, `location`, `watchList`, `adminSuccessBar`); the `user` slice captures tokens from the `login`/`refreshLogin` mutations via `extraReducers` matchers
+- 401 handling is a single global axios response interceptor in `src/App.tsx` that dispatches the `refreshLogin` mutation and retries — it covers RTK Query (whose baseQuery uses global axios) and Admin.tsx alike
 - API responses use snake_case (Django convention); RTK Query transforms to camelCase for components
 - All pages protected by `<StateHandler>` for loading/error display
 

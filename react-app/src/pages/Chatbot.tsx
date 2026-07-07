@@ -1,21 +1,12 @@
-import { useEffect } from "react";
 import ChatbotForm from "../components/ChatbotForm";
 import ChatbotOutput from "../components/ChatbotOutput";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState, AppDispatch } from '../main';
+import { useSelector } from "react-redux";
+import { RootState } from '../main';
 import Principles from "../components/Principles";
-import { getChatbot } from "../functions/axiosFunctions";
 import LoginRequired from "../components/LoginRequired";
 
 export default function Chatbot() {
     const { access } = useSelector((state: RootState) => state.user);
-    const dispatch = useDispatch<AppDispatch>();
-
-    useEffect(() => {
-        if (access) {
-            dispatch(getChatbot());
-        }
-    }, [access, dispatch]);
 
     const renderChatbot = () => {
         if (!access) {

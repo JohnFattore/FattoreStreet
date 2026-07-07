@@ -2,13 +2,13 @@ import Form from "react-bootstrap/Form";
 import { useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { getQuote } from "../functions/axiosFunctions";
 import { Alert } from "react-bootstrap";
 import { addTicker, clearWatchlistError, errorTicker } from "../reducers/watchListReducer";
 import { RootState, AppDispatch } from "../main";
 import { useSelector, useDispatch } from "react-redux";
 import LoadingButton from "./LoadingButton";
-import { getErrorMessages } from "../functions/helperFunctions";
+import { getApiErrorMessages } from "../functions/helperFunctions";
+import { useLazyGetQuoteQuery } from "../functions/api";
 
 interface IFormInput {
   ticker: string;
@@ -23,6 +23,7 @@ export default function WatchListForm({ assetInfosLoading }: WatchListFormProps)
     (state: RootState) => state.watchList
   );
   const dispatch = useDispatch<AppDispatch>();
+  const [getQuote] = useLazyGetQuoteQuery();
 
   const schema = yup.object().shape({
     ticker: yup.string().required().uppercase(),
@@ -42,9 +43,9 @@ export default function WatchListForm({ assetInfosLoading }: WatchListFormProps)
       dispatch(errorTicker("Ticker already on watchlist"));
       return
     } 
-      getQuote(data.ticker).then((response) => {
+      getQuote(data.ticker).unwrap().then((quote) => {
         // a valid ticker wont return null values
-        if (response.data.price == null)
+        if (quote.price == null)
           dispatch(errorTicker("Couldn't retrieve data for ticker"));
         else {
           dispatch(addTicker(data.ticker));
@@ -52,7 +53,7 @@ export default function WatchListForm({ assetInfosLoading }: WatchListFormProps)
           reset();
         }
       }).catch((error) => {
-        dispatch(errorTicker(getErrorMessages(error.response.data)))
+        dispatch(errorTicker(getApiErrorMessages(error)))
       });
   };
 

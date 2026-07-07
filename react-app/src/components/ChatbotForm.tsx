@@ -2,9 +2,8 @@ import { Form, Col, Row, Alert } from 'react-bootstrap';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { postChatbot } from '../functions/axiosFunctions';
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from '../main';
+import { getApiErrorMessages } from '../functions/helperFunctions';
+import { usePostChatbotMutation } from '../functions/api';
 import LoadingButton from './LoadingButton';
 
 interface IFormInput {
@@ -12,8 +11,7 @@ interface IFormInput {
 }
 
 export default function ChatbotForm() {
-    const dispatch = useDispatch<AppDispatch>();
-    const { loading, error } = useSelector((state: RootState) => state.chatbot);
+    const [postChatbot, { error, isLoading }] = usePostChatbotMutation();
 
     const schema = yup.object().shape({
         message: yup.string().required()
@@ -25,7 +23,7 @@ export default function ChatbotForm() {
     })
 
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
-        dispatch(postChatbot(data.message))
+        postChatbot(data.message)
         reset();
     }
 
@@ -41,9 +39,9 @@ export default function ChatbotForm() {
 
                     </Col>
                 </Row>
-                <LoadingButton label={"Ask Chatbot"} loading={loading} />
+                <LoadingButton label={"Ask Chatbot"} loading={isLoading} />
             </Form>
-            {error && <Alert variant="danger">{error}</Alert>}
+            {error ? <Alert variant="danger">{getApiErrorMessages(error)[0]}</Alert> : null}
         </>
     );
 }

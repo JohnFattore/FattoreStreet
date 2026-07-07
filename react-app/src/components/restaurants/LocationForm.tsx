@@ -3,10 +3,9 @@ import Alert from 'react-bootstrap/Alert';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import * as yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from '../../main';
+import { useDispatch } from "react-redux";
+import { AppDispatch } from '../../main';
 import { setLocation } from '../../reducers/locationReducer';
-import { getRestaurants } from '../../functions/axiosFunctions';
 
 const STATE_CHOICES = [
     { value: "AZ", label: "Arizona" },
@@ -35,7 +34,6 @@ interface IFormInput {
 
 export default function LocationForm() {
     const dispatch = useDispatch<AppDispatch>();
-    const { loading } = useSelector((state: RootState) => state.restaurants);
 
     // yup default .date() format does not work with DRF asset api endpoint
     const schema = yup.object().shape({
@@ -47,9 +45,10 @@ export default function LocationForm() {
         resolver: yupResolver(schema),
     })
     //console.log(watch("ticker"))
+    // Changing the location updates the useGetRestaurantsQuery args in
+    // RestaurantTable, which refetches automatically
     const onSubmit: SubmitHandler<IFormInput> = (data) => {
         dispatch(setLocation({ state: data.state, city: data.city }))
-        dispatch(getRestaurants())
     }
 
     return (
@@ -79,7 +78,7 @@ export default function LocationForm() {
                     {errors.city && <Alert variant="danger">Error: City field is required</Alert>}
                 </Col>
             </Row>
-            <Button type="submit" disabled={loading}>Update Location</Button>
+            <Button type="submit">Update Location</Button>
         </Form>
     );
 }

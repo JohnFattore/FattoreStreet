@@ -11,8 +11,8 @@ import EconomicIndicators from "./pages/EconomicIndicators";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "./main";
-import { refreshLogin } from "./functions/axiosFunctions";
-import { logout, clearErrors } from "./reducers/userReducer";
+import { djangoApi } from "./functions/api";
+import { logout } from "./reducers/userReducer";
 import { useEffect } from "react";
 import Chatbot from "./pages/Chatbot";
 import AssetView from "./pages/AssetView";
@@ -36,11 +36,6 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    // Clear errors when the app initializes
-    dispatch(clearErrors());
-  }, [dispatch]);
-
-  useEffect(() => {
     const interceptorId = axios.interceptors.response.use(
       (response) => response,
       async (error) => {
@@ -56,10 +51,17 @@ export default function App() {
           !isTokenError
         ) {
           originalRequest._retry = true;
-          const result = await dispatch(refreshLogin()).unwrap();
-          originalRequest.headers["Authorization"] = `Bearer ${result.access}`;
-          return axios(originalRequest);
-        } 
+          const refreshRequest = dispatch(
+            djangoApi.endpoints.refreshLogin.initiate(refresh)
+          );
+          try {
+            const result = await refreshRequest.unwrap();
+            originalRequest.headers["Authorization"] = `Bearer ${result.access}`;
+            return axios(originalRequest);
+          } finally {
+            refreshRequest.reset();
+          }
+        }
         else if (error.response?.status === 401 && isTokenError) {
           dispatch(logout());
         }
