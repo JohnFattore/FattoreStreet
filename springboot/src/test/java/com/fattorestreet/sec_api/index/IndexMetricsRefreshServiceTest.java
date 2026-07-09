@@ -15,8 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.math.BigDecimal;
@@ -38,7 +36,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class IndexMetricsRefreshServiceTest {
 
     private static final int YEAR = 2026;
@@ -525,7 +522,8 @@ class IndexMetricsRefreshServiceTest {
             String t = "T" + i;
             Listing l = listing(t, asset(1000L + i, false));
             listings.add(l);
-            when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc(t))
+            // lenient: the abort under test stops the loop at 25, leaving the last stubs unused
+            org.mockito.Mockito.lenient().when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc(t))
                     .thenReturn(Optional.of(price(t, 10.0, 100L)));
         }
         when(listingRepository.findAll()).thenReturn(listings);

@@ -106,24 +106,40 @@ class EdgarControllerTest {
 
 ### Repository Test (DataJpaTest)
 
+Boot 4 relocated the JPA test slice: `@DataJpaTest` lives in `spring-boot-data-jpa-test` and `TestEntityManager` in `spring-boot-jpa-test` (both already declared in the pom). Use `@ActiveProfiles("test")` so the H2 URL with `NON_KEYWORDS=YEAR` is used — `spring.test.database.replace=none` in `application-test.properties` keeps it from being swapped out.
+
 ```java
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
+@ActiveProfiles("test")
 class EdgarRepositoryTest {
 
     @Autowired
     private EdgarRepository repository;
+    @Autowired
+    private TestEntityManager em;
 
     @Test
     void findsFilingsByTicker() {
-        // Entity is auto-persisted via test data or setUp
+        // Seed with em.persist(...), then em.flush(); em.clear() before querying
         var results = repository.findByTicker("MSFT");
         assertFalse(results.isEmpty());
     }
 }
 ```
+
+## Shared Test Helpers (`testsupport/`)
+
+- `TestJwtTokens` — mints HS256 JWTs for controller auth tests (`accessToken(secret, userId)`, plus an expiry-aware overload); pair with `@Import(SecurityConfig.class)` and `@TestPropertySource(properties = "SECRET_KEY=...")`
+- `PcapTestData` — builds IEX TOPS pcap byte streams programmatically (no committed binaries) for `PcapParser`/`IexHistService` tests
+
+## Coverage
+
+JaCoCo runs with `mvn test`; report at `target/site/jacoco/index.html`. `mvn verify` fails if bundle line coverage drops below the floor configured in `pom.xml` (`jacoco:check`) — raise the floor when coverage meaningfully improves, never lower it to make a build pass.
 
 ## Workflow
 

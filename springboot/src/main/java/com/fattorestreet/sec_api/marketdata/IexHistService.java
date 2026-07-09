@@ -53,15 +53,22 @@ public class IexHistService {
         return t;
     });
 
+    @org.springframework.beans.factory.annotation.Autowired
     public IexHistService(DailyPriceRepository dailyPriceRepository,
                           ObjectMapper objectMapper) {
-        this.dailyPriceRepository = dailyPriceRepository;
-        this.objectMapper = objectMapper;
-        this.httpClient = HttpClient.newBuilder()
+        this(dailyPriceRepository, objectMapper, HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(60))
-                .build();
+                .build());
+    }
+
+    IexHistService(DailyPriceRepository dailyPriceRepository,
+                   ObjectMapper objectMapper,
+                   HttpClient httpClient) {
+        this.dailyPriceRepository = dailyPriceRepository;
+        this.objectMapper = objectMapper;
+        this.httpClient = httpClient;
     }
 
     /**
