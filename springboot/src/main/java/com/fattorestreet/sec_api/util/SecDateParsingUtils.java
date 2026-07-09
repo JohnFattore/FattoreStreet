@@ -15,7 +15,9 @@ public final class SecDateParsingUtils {
     private static final Pattern ISO_DATE_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2})");
     private static final Pattern YEAR_SLASH_DATE_PATTERN = Pattern.compile("(\\d{4}/\\d{1,2}/\\d{1,2})");
     private static final Pattern SLASH_DATE_PATTERN = Pattern.compile("(\\d{1,2}/\\d{1,2}/\\d{4})");
-    private static final Pattern SLASH_SHORT_YEAR_DATE_PATTERN = Pattern.compile("(\\d{1,2}/\\d{1,2}/\\d{2})");
+    // Digit guards keep this from matching the truncated prefix of a full-year date ("3/15/2024"
+    // must not also yield "3/15/20") or the tail of a year-first date.
+    private static final Pattern SLASH_SHORT_YEAR_DATE_PATTERN = Pattern.compile("(?<!\\d)(\\d{1,2}/\\d{1,2}/\\d{2})(?!\\d)");
     private static final Pattern DASH_DATE_PATTERN = Pattern.compile("(\\d{1,2}-\\d{1,2}-\\d{4})");
     private static final Pattern US_DATE_PATTERN = Pattern.compile(
             "(?i)(Jan\\.?|January|Feb\\.?|February|Mar\\.?|March|Apr\\.?|April|May|Jun\\.?|June|Jul\\.?|July|Aug\\.?|August|Sep\\.?|Sept\\.?|September|Oct\\.?|October|Nov\\.?|November|Dec\\.?|December)\\s+\\d{1,2},?\\s+\\d{4}");
@@ -34,18 +36,30 @@ public final class SecDateParsingUtils {
         }
     }
 
+    // Case-insensitive: US_DATE_PATTERN matches any case (e.g. all-caps filing text), so the
+    // parsers must accept it too.
+    private static final List<DateTimeFormatter> US_DATE_FORMATS = List.of(
+            usFormatter("MMMM d, uuuu"),
+            usFormatter("MMM d, uuuu"),
+            usFormatter("MMMM d uuuu"),
+            usFormatter("MMM d uuuu")
+    );
+
+    private static DateTimeFormatter usFormatter(String pattern) {
+        return new java.time.format.DateTimeFormatterBuilder()
+                .parseCaseInsensitive()
+                .appendPattern(pattern)
+                .toFormatter(Locale.US);
+    }
+
     public static LocalDate parseUsDate(String dateText) {
         if (dateText == null || dateText.isBlank()) {
             return null;
         }
         String normalizedDateText = dateText.replaceAll("(?i)\\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\\.", "$1");
-        List<DateTimeFormatter> formats = List.of(
-                DateTimeFormatter.ofPattern("MMMM d, uuuu", Locale.US),
-                DateTimeFormatter.ofPattern("MMM d, uuuu", Locale.US),
-                DateTimeFormatter.ofPattern("MMMM d uuuu", Locale.US),
-                DateTimeFormatter.ofPattern("MMM d uuuu", Locale.US)
-        );
-        for (DateTimeFormatter format : formats) {
+        // "Sept" is matched by US_DATE_PATTERN but MMM only accepts "Sep"
+        normalizedDateText = normalizedDateText.replaceAll("(?i)\\bSept\\b", "Sep");
+        for (DateTimeFormatter format : US_DATE_FORMATS) {
             try {
                 return LocalDate.parse(normalizedDateText, format);
             } catch (DateTimeParseException ignored) {

@@ -41,13 +41,22 @@ public class CorporateActionValidationService {
     private final HttpClient httpClient;
     private final String djangoPortfolioBaseUrl;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public CorporateActionValidationService(
             CorporateActionRepository corporateActionRepository,
             ObjectMapper objectMapper,
             @Value("${DJANGO_PORTFOLIO_BASE_URL:http://localhost:8000/portfolio}") String djangoPortfolioBaseUrl) {
+        this(corporateActionRepository, objectMapper, djangoPortfolioBaseUrl, HttpClient.newBuilder().build());
+    }
+
+    CorporateActionValidationService(
+            CorporateActionRepository corporateActionRepository,
+            ObjectMapper objectMapper,
+            String djangoPortfolioBaseUrl,
+            HttpClient httpClient) {
         this.corporateActionRepository = corporateActionRepository;
         this.objectMapper = objectMapper;
-        this.httpClient = HttpClient.newBuilder().build();
+        this.httpClient = httpClient;
         this.djangoPortfolioBaseUrl = trimTrailingSlash(djangoPortfolioBaseUrl);
     }
 

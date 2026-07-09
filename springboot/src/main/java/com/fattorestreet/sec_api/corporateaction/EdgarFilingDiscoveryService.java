@@ -54,6 +54,9 @@ public class EdgarFilingDiscoveryService {
             String recentSubmissionJson,
             Map<String, FilingMeta> out,
             int maxSubmissionFilesToScan) {
+        if (recentSubmissionJson == null || recentSubmissionJson.isBlank()) {
+            return;
+        }
         try {
             JsonNode root = objectMapper.readTree(recentSubmissionJson);
             JsonNode files = root.path("filings").path("files");

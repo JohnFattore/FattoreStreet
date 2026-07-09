@@ -268,6 +268,8 @@ Already-summarized filings (by accession number) are skipped on re-runs.
 mvn test
 ```
 
+Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` import in `application.properties` never leaks real secrets into test contexts. JaCoCo runs with the suite: the HTML report lands in `target/site/jacoco/index.html`, and `mvn verify` enforces a minimum line-coverage floor (`jacoco:check`). Repository tests use `@DataJpaTest` against the in-memory H2 database (Boot 4 artifact `spring-boot-data-jpa-test`).
+
 ## Documentation
 
 - [API Reference](../docs/API_REFERENCE.md) (covers all endpoints for Django and Spring Boot)
