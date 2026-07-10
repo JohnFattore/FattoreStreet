@@ -1,8 +1,3 @@
----
-description: Automatically update or add tests when code changes affect application logic
-alwaysApply: true
----
-
 # Auto-Update Tests
 
 After making code changes to application logic, check whether tests need updating. Do this silently as part of your normal workflow -- do NOT ask the user for permission to update tests.

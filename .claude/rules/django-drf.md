@@ -1,7 +1,6 @@
 ---
-description: Django and Django REST Framework conventions
-globs: django/**/*.py
-alwaysApply: false
+paths:
+  - "django/**/*.py"
 ---
 
 # Django / DRF Conventions

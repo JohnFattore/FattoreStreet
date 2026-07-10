@@ -116,25 +116,18 @@ Test classes mirror source under `src/test/java/.../sec_api/`.
 
 ## Conventions
 
-Per-language conventions live in the cursor rules (single source of truth). Per-service `CLAUDE.md` files import them directly. Key rules are also listed in the code-review checklist at `.claude/commands/code-review.md`.
+Per-language conventions live in `.claude/rules/` (single source of truth), scoped to their service via `paths:` frontmatter and auto-loaded when matching files are touched. Repo-wide behavior rules (auto-update tests/docs, data licensing) live there too, without frontmatter, and load every session. Key rules are also listed in the code-review checklist at `.claude/skills/code-review/SKILL.md`.
 
-## Behavior Rules
+Additional conventions:
+- No Hungarian notation
+- Python follows PEP 8; TypeScript strict mode is enabled
+- camelCase in frontend, snake_case in Django; RTK Query `transformResponse` converts between them
+- Infra: Docker Compose stacks and deploy scripts in `deploy/` (images on GHCR, deployed via AWS SSM), Nginx in `nginx/`, Terraform for the one-shot Fargate price load in `springboot/deploy/terraform/`
 
-@.cursor/rules/auto-update-tests.mdc
+## Skills & Rules
 
-@.cursor/rules/auto-update-docs.mdc
-
-@.cursor/rules/data-licensing-commercial-free.mdc
-
-## Shared Skills & Commands
-
-Claude Code and Cursor share skills/commands via cross-references. When creating a new command or skill:
-
-- **New Claude Code command** (`.claude/commands/foo.md`): also create `.cursor/skills/foo/SKILL.md` with frontmatter + `@.claude/commands/foo.md`
-- **New Claude Code agent** (`.claude/agents/foo.md`): also create `.cursor/skills/foo/SKILL.md` with frontmatter + `@.claude/agents/foo.md`
-- **New Cursor skill** (`.cursor/skills/foo/SKILL.md`): also create `.claude/commands/foo.md` referencing the shared content
-
-Content lives in one place; the other tool gets a pointer file. Never duplicate the content.
+- Skills (invocable workflows): `.claude/skills/<name>/SKILL.md` with `name`/`description` frontmatter
+- Rules (always-on or path-scoped conventions): `.claude/rules/<topic>.md`; add a `paths:` frontmatter list of globs to scope a rule to matching files, omit frontmatter for rules that apply every session
 
 ## Environment Variables
 

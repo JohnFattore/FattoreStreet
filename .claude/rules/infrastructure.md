@@ -1,7 +1,10 @@
 ---
-description: Infrastructure conventions for Docker, Kubernetes, and Nginx
-globs: "{kubernetes/**,nginx/**,aws/**,**/Dockerfile,docker-compose*}"
-alwaysApply: false
+paths:
+  - "kubernetes/**"
+  - "nginx/**"
+  - "aws/**"
+  - "**/Dockerfile"
+  - "**/docker-compose*"
 ---
 
 # Infrastructure Conventions

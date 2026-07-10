@@ -1,8 +1,3 @@
----
-description: Ensure only commercially free data is stored and shown (yfinance dev-only verification)
-alwaysApply: true
----
-
 # Commercially-Free Data Only (Storage + UI)
 
 ## Non-negotiable constraint

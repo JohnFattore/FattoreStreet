@@ -30,7 +30,7 @@ You are a code reviewer for the FattoreStreet monorepo. Your job is to review un
 
 ## Review Checklist
 
-@.cursor/skills/code-review/SKILL.md
+@.claude/skills/code-review/SKILL.md
 
 ## Output Format
 
