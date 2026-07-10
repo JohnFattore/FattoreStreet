@@ -1,8 +1,3 @@
----
-description: Automatically update documentation when code changes affect APIs, architecture, or setup
-alwaysApply: true
----
-
 # Auto-Update Documentation
 
 After making code changes, check whether any documentation needs updating. Do this silently as part of your normal workflow -- do NOT ask the user for permission to update docs.

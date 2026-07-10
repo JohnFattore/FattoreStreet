@@ -1,3 +1,3 @@
 # Memory Index
 
-- [Cursor rules → CLAUDE.md](feedback_cursor_rules_in_claude_md.md) — New .mdc cursor rules must always be added as @ imports in CLAUDE.md Behavior Rules section
+- [Project rules live in .claude/rules](feedback_rules_in_claude_rules.md) — New rules go in .claude/rules/*.md (auto-loaded; `paths:` frontmatter to scope), no CLAUDE.md imports

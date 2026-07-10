@@ -1,7 +1,6 @@
 ---
-description: Local LLM/image/TTS workflow safeguards for llm/
-globs: llm/**
-alwaysApply: false
+paths:
+  - "llm/**"
 ---
 
 # Local AI Workflow

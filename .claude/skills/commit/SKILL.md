@@ -1,3 +1,8 @@
+---
+name: commit
+description: Generate a commit message and commit staged changes. Use when the user asks to commit, write a commit message, or save their changes.
+---
+
 Generate a commit message and commit staged changes.
 
 ## Steps

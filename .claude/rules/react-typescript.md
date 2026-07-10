@@ -1,7 +1,6 @@
 ---
-description: React + TypeScript conventions for the frontend
-globs: react-app/**/*.{ts,tsx}
-alwaysApply: false
+paths:
+  - "react-app/**/*.{ts,tsx}"
 ---
 
 # React + TypeScript Conventions

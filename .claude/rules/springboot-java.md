@@ -1,7 +1,6 @@
 ---
-description: Spring Boot and Java conventions for the SEC microservice
-globs: springboot/**/*.java
-alwaysApply: false
+paths:
+  - "springboot/**/*.java"
 ---
 
 # Spring Boot / Java Conventions
