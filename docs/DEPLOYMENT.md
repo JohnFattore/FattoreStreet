@@ -14,7 +14,7 @@ The production environment runs on a single EC2 instance behind Route 53:
 ### Dev Ops System Overview
 1.  **DNS (Route 53)**: `A` record points to the EC2 instance's public IP.
 2.  **Nginx (ports 80/443)**: Port 80 serves ACME challenges and redirects to HTTPS; port 443 terminates SSL and routes `/django/`, `/springboot/`, `/pgadmin4/`, and static paths (see `nginx/nginx.conf`).
-3.  **App containers**: Django (Gunicorn), two Celery containers (worker + beat), Spring Boot.
+3.  **App containers**: Django (Gunicorn), Spring Boot.
 4.  **Data stores**: PostgreSQL 17 and Redis 8 containers on the same Docker network, with Postgres data on the EBS volume.
 
 ## 🚀 Build & Deploy
@@ -22,11 +22,11 @@ The production environment runs on a single EC2 instance behind Route 53:
 - **CI**: GitHub Actions (`.github/workflows/ci.yml`) runs frontend, Django, and Spring Boot tests plus a secret scan on every push/PR to `main`. A second workflow (`.github/workflows/docker-build.yml`) builds all three Docker images on every PR as a merge check (build-only); the nginx image builds the React bundle and Django static files itself, so it works from a clean checkout.
 - **Publish**: on pushes to `main`, the same workflow pushes the images to GHCR (`ghcr.io/johnfattore/{nginx,django,springboot}`) tagged `latest` and the commit SHA, authenticated with the built-in `GITHUB_TOKEN` — no registry credentials are stored. `deploy/build.sh` remains as a legacy/emergency local build path.
 - **Deploy (automated)**: after publishing, the workflow assumes an IAM role via GitHub OIDC and sends an SSM RunCommand (no SSH) to the EC2 instance tagged `App=fattorestreet`. The command resets the host's repo clone to the deployed commit and runs `deploy/deploy.sh <sha>`, which self-heals container state (evicts name-squatting non-compose containers), converges the compose stack to the SHA tag, applies Django migrations, prunes superseded images, and health-checks nginx; its output streams back into the Action log. One-time AWS/GitHub setup: [`deploy/DEPLOY.md`](../deploy/DEPLOY.md).
-  - `docker-compose.yml` — the deploy unit: `django`, `celery-worker`, `celery-beat`, `springboot`, `nginx`.
+  - `docker-compose.yml` — the deploy unit: `django`, `springboot`, `nginx`.
   - `docker-compose.infra.yml` — stateful infra: `postgres`, `redis`, `pgadmin4`. Converged but never version-bumped by a routine deploy (majors are pinned).
   - `SECRETS_ARN`/`AWS_REGION` come from `deploy/.env` on the host (template: `deploy/.env.example`).
 - **Rollback**: re-run the deploy with an older commit's SHA, or on the host `sudo ./deploy.sh <old-sha>`.
-- **Runbook**: `deploy/compose.sh` documents one-time host setup, celery (manual by design, behind the `celery` profile), and emergency manual commands. `deploy/run.sh` is kept as reference for the pre-Compose setup (including secret creation and certbot commands).
+- **Runbook**: `deploy/compose.sh` documents one-time host setup and emergency manual commands. `deploy/run.sh` is kept as reference for the pre-Compose setup (including secret creation and certbot commands).
 
 Watchtower-based auto-updates are retired: deploys are an explicit, ordered, health-checked `deploy.sh` run, so nginx and the backends restart in a coordinated way.
 

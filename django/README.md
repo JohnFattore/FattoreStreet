@@ -6,9 +6,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 
 - Python 3, Django 5.0, Django REST Framework
 - PostgreSQL (via psycopg2)
-- Celery + Redis (async tasks & scheduling)
-- django-celery-beat (database-driven periodic tasks)
-- django-redis (caching layer)
+- django-redis (caching layer, Redis-backed in production)
 - SimpleJWT (authentication)
 - yfinance (market data)
 - FRED API (macroeconomic data)
@@ -36,15 +34,11 @@ DROP TABLE IF EXISTS indexes_indexmember CASCADE;
 DROP TABLE IF EXISTS indexes_stock CASCADE;
 ```
 
-## Celery Tasks
+## Background Jobs & Caching
 
-| Task | Schedule | Description |
-|------|----------|-------------|
-| `load_fred_cache` | Periodic | Pre-caches FRED economic series (DGS10, CPI, UNRATE, etc.) |
-| `load_yfinance_cache` | Periodic | Pre-caches yfinance data for all portfolio tickers |
-| `load_iex_hist` | Optional periodic | Calls Spring Boot `GET /admin/load-hist` (IEX HIST daily price ingest). Requires `SPRINGBOOT_BASE_URL` and Django user `pk=1` for admin JWT. Add a django-celery-beat periodic task pointing at `portfolio.tasks.load_iex_hist`; optional kwargs e.g. `{"days": 20}`. |
+Django runs no task queue. External-data helpers in `portfolio/helper.py` (FRED, yfinance, Finnhub) fetch lazily on the first request and cache the result in Redis (24h TTL for FRED/yfinance, 60s for quotes).
 
-Other Spring Boot admin jobs (price adjustments, corporate actions, etc.) are not covered by this task; run them manually or automate separately. If django-celery-beat has a stale entry for `portfolio.tasks.refresh_corporate_actions`, remove it in Django admin if that task no longer exists.
+The IEX HIST daily price ingest is scheduled outside Django: an EventBridge Scheduler cron launches a one-shot Fargate task running Spring Boot in `hist-load` mode (see `springboot/deploy/terraform/`). Other Spring Boot admin jobs (price adjustments, corporate actions, etc.) are run manually.
 
 ## Environment Variables
 
@@ -54,9 +48,7 @@ Other Spring Boot admin jobs (price adjustments, corporate actions, etc.) are no
 | `DEBUG` | `True` | Debug mode |
 | `DATABASE` | (required) | `postgresLocal` or `postgresDocker` |
 | `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
-| `REDIS_URL` | (required) | Redis connection URL (e.g. `redis://localhost:6379`) |
-| `SPRINGBOOT_BASE_URL` | (empty) | Internal Spring Boot base URL for Celery triggers (no `/springboot/` prefix), e.g. `http://springboot:8080`. Required for `load_iex_hist`. |
-| `SPRINGBOOT_REQUEST_TIMEOUT` | `600` | HTTP timeout in seconds for `load_iex_hist` (IEX ingest can be slow). |
+| `REDIS_URL` | (required when `DEBUG=False`) | Redis connection URL for the cache backend (e.g. `redis://localhost:6379`) |
 | `DJANGO_FORCE_SCRIPT_NAME` | (empty) | Public URL prefix where nginx serves Django (e.g. `/django`). Set in production so admin login redirects and `{% url %}` resolve under `/django/...`. Omit or leave empty for local `runserver` at `/admin/`. |
 
 ## Getting Started
@@ -86,13 +78,6 @@ uv run python manage.py migrate
 
 ```bash
 uv run python manage.py runserver
-```
-
-### Run Celery Worker + Beat
-
-```bash
-docker run -d -p 6379:6379 redis
-uv run celery -A mysite worker --beat -E -n beat
 ```
 
 ### Run Tests

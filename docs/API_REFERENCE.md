@@ -47,7 +47,6 @@ Social feature for reviewing and sharing restaurant experiences.
 | `POST` | `/restaurants/api/review-create/` | Submit a new review. |
 | `GET` | `/restaurants/api/review/<id>/` | View a specific review. |
 | `PUT` | `/restaurants/api/review-update/<id>/` | Edit an existing review. |
-| `GET` | `/restaurants/api/yelp-load/` | Load data from Yelp API. |
 | `GET` | `/restaurants/api/restaurant-recommend/` | Get recommendations based on user history. |
 
 ## 🤖 Chatbot

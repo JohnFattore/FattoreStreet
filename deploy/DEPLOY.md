@@ -18,9 +18,6 @@ Every merge to `main` runs `.github/workflows/docker-build.yml`, which:
 Rollback = re-run the deploy with an older commit's SHA, or on the host:
 `sudo ./deploy.sh <old-sha>`.
 
-Celery is **not** deployed automatically (deliberate): see `compose.sh` for
-the manual `--profile celery` commands.
-
 ---
 
 ## One-time setup

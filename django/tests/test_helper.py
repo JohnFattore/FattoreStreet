@@ -9,7 +9,6 @@ import pandas as pd
 from portfolio.helper import (
     QuoteFetchError,
     _partition_cached,
-    get_all_us_tickers,
     get_fred_data,
     get_historical_dividends,
     get_historical_prices,
@@ -386,25 +385,3 @@ class QuarterlyDataTests(LocMemCacheTestCase):
 
         self.assertEqual(result, [])
         mock_ticker_cls.assert_not_called()
-
-
-class AllUsTickersTests(TestCase):
-    """Tests for the NASDAQ/NYSE symbol directory fetch."""
-
-    @patch("portfolio.helper.pd.read_csv")
-    def test_combines_and_dedupes_both_exchanges(self, mock_read_csv):
-        mock_read_csv.side_effect = [
-            pd.DataFrame({"Symbol": ["AAPL", "MSFT"]}),
-            pd.DataFrame({"ACT Symbol": ["SPY", "AAPL"]}),
-        ]
-
-        result = get_all_us_tickers()
-
-        self.assertEqual(sorted(result), ["AAPL", "MSFT", "SPY"])
-
-    @patch("portfolio.helper.pd.read_csv")
-    def test_raises_connection_error_on_fetch_failure(self, mock_read_csv):
-        mock_read_csv.side_effect = Exception("ftp down")
-
-        with self.assertRaises(ConnectionError):
-            get_all_us_tickers()

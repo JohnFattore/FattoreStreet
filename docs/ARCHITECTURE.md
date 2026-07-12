@@ -17,8 +17,7 @@ graph TD
         Gunicorn[Gunicorn App Server]
         Django[Django REST API]
         Postgres[(PostgreSQL DB)]
-        Celery[Celery Async Workers]
-        Redis[(Redis Broker)]
+        Redis[(Redis Cache)]
         ExtAPI[External APIs (Price Data)]
     end
 
@@ -27,8 +26,7 @@ graph TD
     Nginx -->|Proxy| Gunicorn
     Gunicorn --> Django
     Django -->|Query/Save| Postgres
-    Django -->|Async Tasks| Celery
-    Celery -->|Queue| Redis
+    Django -->|Cache| Redis
     Django -->|Fetch Data| ExtAPI
 ```
 
@@ -41,7 +39,7 @@ graph TD
 | **Styling** | Sass, Bootstrap | Custom styling and responsive layout. |
 | **Backend** | Python, Django, DRF | Robust web framework and REST API toolkit. |
 | **Database** | PostgreSQL | Relational database for production logic. |
-| **Task Queue** | Celery & Redis | Handles background tasks like fetching stock prices. |
+| **Caching** | Redis | Caches external market/economic data fetched on request. |
 | **Web Server** | Nginx & Gunicorn | Production-grade serving and reverse proxying. |
 | **Containerization** | Docker | Consistent environments for staging and production. |
 | **Cloud** | AWS (EC2/Fargate) | Hosting infrastructure. |
@@ -69,7 +67,7 @@ graph TD
     - User adds an asset (e.g., "AAPL").
     - Django requests metadata from external APIs (yfinance/Finnhub).
     - Data is stored in Postgres.
-    - Async workers (Celery) periodically update prices.
+    - External API responses are cached in Redis on first request; daily prices are ingested by a scheduled Fargate run of the Spring Boot service (see `springboot/deploy/terraform/`).
 3.  **Deployment**:
     - Build scripts create Docker images.
     - Images are pushed to container registry.

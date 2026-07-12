@@ -68,21 +68,15 @@ The frontend is a React application built with Vite.
     ```
     The app will be available at `http://localhost:5173`.
 
-### 4. Background Tasks (Celery & Redis)
+### 4. Caching (Redis)
 
-Some features (like fetching stock prices) require asynchronous workers.
+With `DEBUG=True` (the local default) Django uses a dummy cache and Redis is not needed. With `DEBUG=False`, external market/economic data is cached in Redis; start one and set `REDIS_URL`:
 
-1.  **Start Redis** (Message Broker):
-    ```bash
-    docker run -d -p 6379:6379 redis
-    ```
+```bash
+docker run -d -p 6379:6379 redis
+```
 
-2.  **Start Celery Worker** (in `django/` dir):
-    ```bash
-    uv run celery -A mysite worker --beat -E -n beat
-    ```
-
-3.  **Optional — scheduled IEX daily prices:** If you use django-celery-beat to run `portfolio.tasks.load_iex_hist`, set `SPRINGBOOT_BASE_URL` in `django/.env` to your Spring Boot service URL (same `SECRET_KEY` as Django for JWT). See [`django/README.md`](../django/README.md) (Celery tasks).
+Scheduled IEX daily price ingest runs in AWS (EventBridge Scheduler + Fargate), not locally — see [`springboot/deploy/terraform/`](../springboot/deploy/terraform/README.md).
 
 ### 5. Frontend Styling (Sass)
 
@@ -114,7 +108,7 @@ To approximate the production environment locally, use `deploy/docker-compose.de
     docker compose -f docker-compose.dev.yml up -d --build
     docker compose -f docker-compose.dev.yml run --rm django python manage.py migrate
     ```
-    This spins up nginx, Django (Gunicorn), two Celery containers, Spring Boot (Flyway migrates its schema on start), Postgres 17, and Redis 8. Open `http://localhost`.
+    This spins up nginx, Django (Gunicorn), Spring Boot (Flyway migrates its schema on start), Postgres 17, and Redis 8. Open `http://localhost`.
 
 3.  **Teardown** (`-v` also wipes the dev database volume):
     ```bash
