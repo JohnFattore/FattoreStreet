@@ -26,4 +26,4 @@ Skills load lazily; only the name and description load into context at session s
 
 ## Putting it together
 
-The three mechanisms form a hierarchy of context cost. CLAUDE.md is always loaded, so it holds only what every session needs. Rules load when matching files are touched, so they hold path-specific constraints. Skills load on demand, so they hold procedures and workflows. Put each piece of guidance at the cheapest level that still gets it in front of the model when it matters.
+The three mechanisms form a hierarchy of context cost. CLAUDE.md is always loaded, so it holds only what every session needs. Rules load when matching files are touched, so they hold path-specific constraints. Skills load on demand, so they hold procedures and workflows. Specificity follows the same hierarchy. CLAUDE.md needs to be ruthlessly specific because every line taxes every task, rules get a little more room since they only load when relevant, and skills get the most, free to spell out full procedures that cost nothing until invoked. Put each piece of guidance at the cheapest level that still gets it in front of the model when it matters.
