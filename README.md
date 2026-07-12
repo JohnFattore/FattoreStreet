@@ -29,7 +29,7 @@ Service-specific detail: [django/README.md](django/README.md), [springboot/READM
 
 | Directory | Description |
 |-----------|-------------|
-| **[`django/`](django/)** | **Primary API**. Django REST Framework—auth, portfolio, chatbot, restaurants, Celery tasks. |
+| **[`django/`](django/)** | **Primary API**. Django REST Framework—auth, portfolio, chatbot, restaurants. |
 | **[`springboot/`](springboot/)** | **SEC microservice**. Spring Boot—EDGAR data, quarterly financials, corporate actions, index membership, daily prices (IEX ingest). |
 | **[`react-app/`](react-app/)** | **Frontend**. React, TypeScript, Vite. |
 | **[`llm/`](llm/)** | **Local AI**. llama.cpp, optional SD/TTS helpers (not required for the web app). |

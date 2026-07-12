@@ -9,7 +9,7 @@ Update docs when a change affects user-facing behavior, public APIs, setup, or a
 | Change Type | Files to Update |
 |---|---|
 | New/modified Django endpoint or URL pattern | `docs/API_REFERENCE.md` and `django/README.md` |
-| New Django feature, Celery task, or service | `django/README.md` (features/apps list, env vars, Celery section) |
+| New Django feature or service | `django/README.md` (features/apps list, env vars) |
 | New/modified Spring Boot endpoint | `docs/API_REFERENCE.md` and `springboot/README.md` (features list, usage examples) |
 | New Spring Boot feature or service class | `springboot/README.md` (features list, env vars table, usage section) |
 | New/modified React page, component, or RTK Query endpoint | `react-app/README.md` (pages list, key components, API layer section) |

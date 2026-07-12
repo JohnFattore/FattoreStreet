@@ -8,15 +8,15 @@
 # and fetch the rest at start (see each image's docker-entrypoint.sh).
 #
 # The containers are defined in the compose files next to this script:
-#   docker-compose.yml        app services (django, celery-worker, celery-beat,
-#                             springboot, nginx) -- the deploy unit
+#   docker-compose.yml        app services (django, springboot, nginx) --
+#                             the deploy unit
 #   docker-compose.infra.yml  stateful infra (postgres, redis, pgadmin4) --
 #                             never touched by a routine deploy
 #
 # ROUTINE DEPLOYS ARE AUTOMATED: every merge to main builds the images in
 # GitHub Actions, publishes them to GHCR, and runs ./deploy.sh on this host
 # via SSM RunCommand (one-time setup: DEPLOY.md). The commands below are for
-# one-time setup, celery (manual by design), and emergencies.
+# one-time setup and emergencies.
 #
 # This file is a copy/paste runbook, not a script to execute top-to-bottom.
 
@@ -61,15 +61,11 @@ sudo docker compose up -d
 # Routine operations (from this directory)
 # ---------------------------------------------------------------------------
 
-# manual deploy/rollback (normally automated on merge to main; celery is off
-# by default -- see below). deploy.sh also self-heals name-squatting
-# containers, runs migrations, prunes old images, and health-checks nginx:
+# manual deploy/rollback (normally automated on merge to main). deploy.sh
+# also self-heals name-squatting containers, runs migrations, prunes old
+# images, and health-checks nginx:
 sudo ./deploy.sh          # latest
 sudo ./deploy.sh <sha>    # exact commit (rollback = an older sha)
-
-# celery-worker/celery-beat sit behind the "celery" profile: bare compose
-# commands skip them. Include them (enables the FRED/yfinance cache tasks):
-sudo docker compose --profile celery pull && sudo docker compose --profile celery up -d
 
 # apply Django migrations (one-shot container, same image + secret as django)
 sudo docker compose run --rm django python manage.py migrate

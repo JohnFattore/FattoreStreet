@@ -9,7 +9,7 @@ paths:
 
 - App-based structure: `portfolio/`, `users/`, `chatbot/`, `restaurants/`, `changeflow/`
 - Shared helper utilities live in `django/portfolio/helper.py`
-- Async tasks use Celery with Redis as the broker
+- No task queue: external-data helpers fetch lazily and cache in Redis (django-redis) when `DEBUG=False`
 
 ## Code Style
 

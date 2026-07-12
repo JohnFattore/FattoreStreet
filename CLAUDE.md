@@ -9,7 +9,7 @@ FattoreStreet is a full-stack financial portfolio and social platform. It's a mo
 | Component | Directory | Technology |
 |-----------|-----------|------------|
 | Frontend | `react-app/` | React 18, TypeScript, Vite, Redux Toolkit (RTK Query) |
-| Backend API | `django/` | Django 5, DRF, Celery, Redis, SimpleJWT |
+| Backend API | `django/` | Django 5, DRF, Redis cache, SimpleJWT |
 | SEC Microservice | `springboot/` | Spring Boot 4.1, Java 17, Spring Data JPA |
 | Local AI | `llm/` | llama.cpp (Qwen2.5-7B), stable-diffusion.cpp, Kokoro TTS |
 
@@ -36,7 +36,6 @@ uv run python manage.py makemigrations           # Generate migrations
 uv run python manage.py test                     # All tests
 uv run python manage.py test tests.test_users    # Specific file
 uv run python manage.py test tests.test_users.TestUserAPI.test_login  # Specific test
-uv run celery -A mysite worker --beat -E -n beat # Celery worker + scheduler
 uv add <package>                                 # Add dependency (pyproject.toml + uv.lock)
 ```
 
@@ -78,7 +77,7 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 - `blog/` — Blog posts with categories and tags
 - `entertainment/` — Media recommendations (books, movies, shows, music, podcasts, games, websites)
 
-**Async Tasks (Celery)**: `load_fred_cache`, `load_yfinance_cache`, `load_iex_hist` — scheduled via django-celery-beat.
+**Scheduled jobs**: the IEX HIST daily price ingest runs as a Fargate one-shot task on an EventBridge Scheduler cron (see `springboot/deploy/terraform/`), not inside Django. External-data helpers (`portfolio/helper.py`) cache lazily in Redis on first request.
 
 ### Spring Boot Packages
 ```
@@ -136,11 +135,10 @@ Additional conventions:
 - `DEBUG` — bool, default `True`
 - `DATABASE` — required: `postgresLocal`, `postgresDocker`, or any other value (e.g. `sqlite`) for SQLite; unset raises at startup
 - `POSTGRES_PASSWORD` — required when `DATABASE=postgresDocker`
-- `REDIS_URL` — always required (Celery broker; also the cache backend when `DEBUG=False`)
+- `REDIS_URL` — cache backend, required when `DEBUG=False`
 - `GOOGLE_API_KEY` — Gemini key for the chatbot app
 - `FINNHUB_API_KEY`, `FRED_API_KEY` — portfolio quotes and FRED economic data
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
-- `SPRINGBOOT_BASE_URL` — internal Spring Boot base URL for the `load_iex_hist` Celery task (no nginx prefix, e.g. `http://springboot:8080`)
 - `DJANGO_FORCE_SCRIPT_NAME` — set to `/django` when served behind the nginx prefix
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)

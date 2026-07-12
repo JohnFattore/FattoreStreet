@@ -1,8 +1,7 @@
-from rest_framework import permissions, generics, status, response, views
+from rest_framework import permissions, generics
 from .serializers import RestaurantSerializer, ReviewSerializer
 from .models import Restaurant, Review
 from .permissions import IsOwner
-from .tasks import YelpLoad
 
 # API endpoint for 'get' Restaurants and 'post' Restaurant
 class RestaurantListCreateView(generics.ListCreateAPIView):
@@ -36,20 +35,6 @@ class ReviewUpdateView(generics.UpdateAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [IsOwner]
-
-class YelpLoadView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    def post(self, request):
-        # Trigger the Celery task
-        task = YelpLoad.delay()  # Asynchronously starts the task
-        return response.Response(
-            {
-                "message": "YelpLoad task has been initiated.",
-                "task_id": task.id,  # Return the Celery task ID
-            },
-            status=status.HTTP_202_ACCEPTED
-        )
-
 
 #class RestaurantRecommenderView(generics.ListCreateAPIView):
 #    queryset = Restaurant.objects.all()

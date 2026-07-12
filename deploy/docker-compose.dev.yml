@@ -24,7 +24,6 @@ x-django-env: &django-env
   REDIS_URL: redis://redis:6379
   DJANGO_FORCE_SCRIPT_NAME: /django
   HOME_URL: http://localhost/
-  SPRINGBOOT_BASE_URL: http://springboot:8080/
   # chatbot views read this at request time; a dummy breaks only the chatbot
   GOOGLE_API_KEY: dev-dummy-google-api-key  # pragma: allowlist secret
 
@@ -46,20 +45,6 @@ services:
 
   django:
     build: ../django
-    environment: *django-env
-    depends_on: [postgres, redis]
-    restart: unless-stopped
-
-  celery-worker:
-    build: ../django
-    command: celery -A mysite worker -E -n worker
-    environment: *django-env
-    depends_on: [postgres, redis]
-    restart: unless-stopped
-
-  celery-beat:
-    build: ../django
-    command: celery -A mysite worker --beat -E -n beat
     environment: *django-env
     depends_on: [postgres, redis]
     restart: unless-stopped

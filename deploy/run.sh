@@ -23,7 +23,6 @@ sudo docker network create --driver bridge dockerNet
 #     "DJANGO_FORCE_SCRIPT_NAME": "/django",
 #     "REDIS_URL": "redis://redis:6379",
 #     "HOME_URL": "https://fattorestreet.com/",
-#     "SPRINGBOOT_BASE_URL": "https://fattorestreet.com/springboot/",
 #     "SECRET_KEY": "<django-and-springboot-shared-secret-key>",
 #     "POSTGRES_PASSWORD": "<postgres-password>",
 #     "DB_USERNAME": "postgres",
@@ -98,24 +97,6 @@ sudo docker run -d \
   -e PGADMIN_DEFAULT_PASSWORD="$PGADMIN_DEFAULT_PASSWORD" \
   dpage/pgadmin4
 
-# Celery beat worker (same image + secret as django; only the command differs)
-sudo docker run \
-  --name celery \
-  --network dockerNet \
-  -e SECRETS_ARN=$SECRETS_ARN \
-  -e AWS_REGION=us-east-1 \
-  -d johnfattore/django \
-  celery -A mysite worker --beat -E -n beat
-
-# Celery worker (same image + secret as django; only the command differs)
-sudo docker run \
-  --name celery \
-  --network dockerNet \
-  -e SECRETS_ARN=$SECRETS_ARN \
-  -e AWS_REGION=us-east-1 \
-  -d johnfattore/django \
-  celery -A mysite worker -E -n worker
-
 # Certbot get SSL cert
 sudo docker run --rm \
   --name certbot \
@@ -144,9 +125,6 @@ sudo docker run -d \
 sudo docker stop postgres
 sudo docker container rm postgres
 sudo docker image rm postgres
-
-sudo docker stop celery
-sudo docker container rm celery
 
 sudo docker stop django
 sudo docker container rm django

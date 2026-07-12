@@ -83,16 +83,11 @@ aws logs tail "$(terraform output -raw log_group_name)" --follow
 Confirm it connects to Postgres, processes days, and exits `0`. **Profile peak memory** from the
 task's CloudWatch metrics — if it sits well under 4 GB, set `task_memory = 2048` and re-apply.
 
-## Switch the schedule over (manual, one step)
+## Schedule cutover (done)
 
-The old trigger is the django-celery-beat schedule for `portfolio.tasks.load_iex_hist`, stored as a
-**database row** (`CELERY_BEAT_SCHEDULER = DatabaseScheduler`), not in code. Disable it so the job
-isn't run twice:
-
-- Django admin → **Periodic tasks** → uncheck/delete the `load_iex_hist` entry.
-
-The `load_iex_hist` Celery task and the `/admin/load-hist` HTTP endpoint stay in place for manual
-runs; only the *schedule* moves to EventBridge.
+This schedule replaced the old django-celery-beat trigger for `portfolio.tasks.load_iex_hist`;
+Celery has since been removed from the Django service entirely. The Spring Boot
+`/admin/load-hist` HTTP endpoint stays in place for manual runs.
 
 To pause the Fargate schedule without destroying anything: `schedule_enabled = false` + `terraform apply`.
 

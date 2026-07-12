@@ -350,22 +350,3 @@ def get_quarterly_data(ticker: str) -> list[dict]:
 
     cache.set(cache_key, quarters, timeout=60 * 60 * 24)
     return quarters
-
-
-def get_all_us_tickers() -> list[str]:
-    try:
-        # NASDAQ listed
-        nasdaq_url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt"
-        nasdaq_data = pd.read_csv(nasdaq_url, sep="|")
-        nasdaq_tickers = nasdaq_data['Symbol'].tolist()
-
-        # NYSE listed
-        nyse_url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/otherlisted.txt"
-        nyse_data = pd.read_csv(nyse_url, sep="|")
-        nyse_tickers = nyse_data['ACT Symbol'].tolist()
-    except Exception as e:
-        raise ConnectionError(f"Failed to fetch ticker lists: {e}") from e
-
-    # Combine and remove duplicates
-    all_tickers = list(set(nasdaq_tickers + nyse_tickers))
-    return all_tickers

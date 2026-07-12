@@ -1,12 +1,9 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from decimal import Decimal
 from datetime import date
-from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
 from rest_framework import status
 from django.urls import reverse
 from portfolio.models import Asset, Account
-from portfolio.tasks import load_iex_hist
 from tests.base import BaseAPITestCase, MarketDataPatchMixin
 
 MOCK_PRICES = {
@@ -333,54 +330,3 @@ class QuarterlyDataTest(BaseAPITestCase):
     def test_quarterly_data_missing_ticker(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 400)
-
-
-class LoadIexHistTaskTests(TestCase):
-    """Tests for portfolio.tasks.load_iex_hist (Spring Boot /admin/load-hist)."""
-
-    def setUp(self):
-        User = get_user_model()
-        User.objects.filter(pk=1).delete()
-        User.objects.create_user(
-            username="sb_iex_scheduler",
-            password="unused",  # pragma: allowlist secret
-            id=1,
-        )
-
-    @override_settings(SPRINGBOOT_BASE_URL="")
-    def test_missing_springboot_base_url(self):
-        with patch("portfolio.tasks.requests.get") as mock_get:
-            with self.assertRaises(ValueError) as ctx:
-                load_iex_hist(days=10)
-        mock_get.assert_not_called()
-        self.assertIn("SPRINGBOOT_BASE_URL", str(ctx.exception))
-
-    @override_settings(SPRINGBOOT_BASE_URL="http://springboot:8080")
-    def test_missing_user_one(self):
-        User = get_user_model()
-        User.objects.filter(pk=1).delete()
-        with patch("portfolio.tasks.requests.get") as mock_get:
-            with self.assertRaises(User.DoesNotExist):
-                load_iex_hist()
-        mock_get.assert_not_called()
-
-    @override_settings(SPRINGBOOT_BASE_URL="http://springboot:8080")
-    @patch("portfolio.tasks.requests.get")
-    def test_calls_spring_boot_with_bearer_and_days(self, mock_get):
-        mock_response = MagicMock()
-        mock_response.ok = True
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"message": "ok", "processed": 1}
-        mock_get.return_value = mock_response
-
-        result = load_iex_hist(days=15)
-
-        self.assertEqual(result["status_code"], 200)
-        self.assertEqual(result["days"], 15)
-        mock_get.assert_called_once()
-        args, kwargs = mock_get.call_args
-        self.assertTrue(args[0].endswith("/admin/load-hist"))
-        self.assertEqual(kwargs["params"], {"days": 15})
-        auth = kwargs["headers"]["Authorization"]
-        self.assertTrue(auth.startswith("Bearer "))
-        self.assertIn("timeout", kwargs)

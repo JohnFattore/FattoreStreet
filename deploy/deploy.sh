@@ -9,9 +9,6 @@
 # missing network) before bringing the compose stack up to the requested
 # image tag. One-time setup and manual operations live in DEPLOY.md and
 # compose.sh.
-#
-# Celery is intentionally NOT deployed here -- the "celery" profile services
-# stay manual (see compose.sh).
 
 set -eu
 
@@ -33,8 +30,10 @@ docker compose pull
 # Evict containers squatting on our names that compose doesn't own (leftover
 # docker-run containers, watchtower, crashed one-offs). A name collision is
 # the #1 way `compose up` hard-fails. Graceful stop first -- postgres wants a
-# SIGTERM; its data is safe on the /mnt/ebs bind mount either way.
-# celery-worker/celery-beat are compose-owned and manual -- left alone.
+# SIGTERM; its data is safe on the /mnt/ebs bind mount either way. "celery"
+# stays in the list to clean up the retired docker-run container on old hosts;
+# retired compose-owned services (celery-worker/celery-beat) are dropped by
+# `up --remove-orphans` below.
 evict_unless_project() {
   name=$1
   project=$2
