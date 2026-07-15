@@ -1,6 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
   IFilingSummary,
+  IFredObservation,
   IIexDividendsResponse,
   IIexPricesResponse,
   IIexSplitsResponse,
@@ -87,6 +88,14 @@ export const springbootApi = createApi({
       query: () => ({
         url: "iwb-reference-holdings",
         method: "GET",
+      }),
+    }),
+    getFredData: builder.query<Record<string, IFredObservation[]>, { seriesId: string; computeYoy?: boolean }[]>({
+      query: (seriesList) => ({
+        url: "fred-data",
+        method: "POST",
+        data: seriesList,
+        withAuth: false,
       }),
     }),
 
@@ -198,6 +207,7 @@ export const {
   useGetIndexesQuery,
   useGetIndexMembersQuery,
   useGetIwbReferenceHoldingsQuery,
+  useGetFredDataQuery,
   useAdminAssetLoadMutation,
   useAdminSyncFramesMutation,
   useAdminLoadHistMutation,

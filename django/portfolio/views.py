@@ -2,7 +2,7 @@ from rest_framework import generics, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .serializers import AssetSerializer, AccountSerializer, FredSeriesItemSerializer, TickerQuerySerializer, SymbolQuerySerializer
+from .serializers import AssetSerializer, AccountSerializer, TickerQuerySerializer, SymbolQuerySerializer
 from .permissions import IsOwner
 from .models import Asset, Account
 import logging
@@ -10,7 +10,6 @@ import environ
 from .helper import (
     get_realtime_price,
     get_yfinance_data,
-    get_fred_data,
     percent_change,
     get_historical_prices,
     get_market_reference_dates,
@@ -196,17 +195,4 @@ class QuarterlyDataRetrieveView(APIView):
         except Exception as e:
             logger.exception("Error fetching quarterly data for %s", ticker)
             raise serializers.ValidationError({"ticker": str(e)})
-        return Response(data)
-
-class FredDataRetrieveView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    def post(self, request):
-        serializer = FredSeriesItemSerializer(data=request.data, many=True)
-        serializer.is_valid(raise_exception=True)
-        data = {}
-        for item in serializer.validated_data:
-            output = get_fred_data(item["series_id"], item["compute_yoy"])
-            data[item["series_id"]] = output
-
         return Response(data)

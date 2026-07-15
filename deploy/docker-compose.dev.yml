@@ -60,6 +60,8 @@ services:
       DJANGO_PORTFOLIO_BASE_URL: http://django:8000
       # llama.cpp runs on the host, not in compose
       LLM_SERVER_URL: http://host.docker.internal:8081
+      # /fred-data reads this at request time; a dummy breaks only economic indicators
+      FRED_API_KEY: dev-dummy-fred-api-key  # pragma: allowlist secret
     depends_on: [postgres]
     restart: unless-stopped
 

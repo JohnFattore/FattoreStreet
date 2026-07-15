@@ -16,11 +16,12 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Derives dividend ex-dates from SEC 8-K record-date disclosures and settlement-regime logic (pre-2024-05-28 T+2, post-cutover T+1)
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
 - Fetches 10-K filings from SEC EDGAR, extracts the MD&A section, and generates ~500 word summaries via a local LLM (llama.cpp server)
+- Serves FRED (Federal Reserve Economic Data) observation series via public `POST /fred-data` (per-series optional year-over-year `pc1` units, 24h in-memory cache; powers the Economic Indicators page)
 - **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), `GET /iwb-reference-holdings` (bundled IWB CSV tickers + fund weights for UI benchmark), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild` (`Authorization: Bearer` Django JWT for user id `1`, optional `code`, optional `year`). **Fattore 50** / **Fattore 100** / **Fattore 1000** are Russell-style (float-adjusted cap rank) top-50 / top-100 / top-1000 proxies (`FAT50` / `FAT100` / `FAT1000`), not official FTSE Russell products; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist for the target year. Legacy paths `rebuild-fattore-50` / `rebuild-fattore-100` / `rebuild-fattore-1000` remain as aliases.
 
 ## Java package layout
 
-Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebService`), `index`, `corporateaction` and `corporateaction.support`, `fundamentals`, `listing`, `filing`, `marketdata`, plus shared `controller`, `repository`, `model`, `config`, and `util`. The `index` package holds index membership listing, SEC facts parsing, and metrics refresh. Tests mirror those package names under `src/test/java`.
+Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebService`), `index`, `corporateaction` and `corporateaction.support`, `economic` (FRED client/cache), `fundamentals`, `listing`, `filing`, `marketdata`, plus shared `controller`, `repository`, `model`, `config`, and `util`. The `index` package holds index membership listing, SEC facts parsing, and metrics refresh. Tests mirror those package names under `src/test/java`.
 
 ## Stack
 
@@ -78,6 +79,7 @@ Before adding or changing any external data source:
 | `SEC_HTTP_RETRY_MAX_ATTEMPTS` | `3` | Max attempts for transient SEC failures (429/5xx/timeout) |
 | `SEC_HTTP_RETRY_BASE_BACKOFF_MS` | `1000` | Base backoff for SEC retries; multiplied by attempt |
 | `SEC_HTTP_MIN_INTERVAL_MS` | `250` | Minimum delay between SEC requests to reduce throttling |
+| `FRED_API_KEY` | (empty) | FRED API key for the public `POST /fred-data` economic data endpoint |
 
 ### Run Locally
 
@@ -261,6 +263,19 @@ curl "http://localhost:8080/filing-summaries?ticker=AAPL"
 ```
 
 Already-summarized filings (by accession number) are skipped on re-runs.
+
+### FRED Economic Data
+
+Public endpoint (no auth) returning FRED observation series, keyed by series id. Requires `FRED_API_KEY`. Each item may set `computeYoy: true` to request year-over-year percent change (`units=pc1`). Responses are cached in memory for 24 hours per series/units combination; nothing is persisted.
+
+```bash
+curl -X POST http://localhost:8080/fred-data \
+  -H 'Content-Type: application/json' \
+  -d '[{"seriesId": "UNRATE"}, {"seriesId": "CPIAUCSL", "computeYoy": true}]'
+# => {"UNRATE": [{"date": "1948-01-01", "value": 3.4}, ...], "CPIAUCSL": [...]}
+```
+
+FRED data is provided by the Federal Reserve Bank of St. Louis (https://fred.stlouisfed.org/docs/api/fred/) and is served to the UI without persistence.
 
 ### Run Tests
 

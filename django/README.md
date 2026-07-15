@@ -9,14 +9,13 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 - django-redis (caching layer, Redis-backed in production)
 - SimpleJWT (authentication)
 - yfinance (market data)
-- FRED API (macroeconomic data)
 - Google Generative AI (chatbot)
 
 ## Apps
 
 | App | Purpose |
 |-----|---------|
-| `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/splits/info, FRED data, quarterly financials |
+| `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/splits/info, quarterly financials |
 | `users` | User registration, JWT token management |
 | `chatbot` | Boglehead AI financial advisor (Google Gemini) |
 | `restaurants` | Restaurant reviews and recommendations |
@@ -36,7 +35,7 @@ DROP TABLE IF EXISTS indexes_stock CASCADE;
 
 ## Background Jobs & Caching
 
-Django runs no task queue. External-data helpers in `portfolio/helper.py` (FRED, yfinance, Finnhub) fetch lazily on the first request and cache the result in Redis (24h TTL for FRED/yfinance, 60s for quotes).
+Django runs no task queue. External-data helpers in `portfolio/helper.py` (yfinance, Finnhub) fetch lazily on the first request and cache the result in Redis (24h TTL for yfinance, 60s for quotes). FRED economic data is served by the Spring Boot service (`POST /fred-data`), not Django.
 
 The IEX HIST daily price ingest is scheduled outside Django: an EventBridge Scheduler cron launches a one-shot Fargate task running Spring Boot in `hist-load` mode (see `springboot/deploy/terraform/`). Other Spring Boot admin jobs (price adjustments, corporate actions, etc.) are run manually.
 

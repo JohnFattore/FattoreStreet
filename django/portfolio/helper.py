@@ -163,36 +163,6 @@ def get_yfinance_data(tickers: list[str]) -> dict:
         financials[ticker] = financial_data
     return financials
 
-def get_fred_data(series_id: str, compute_yoy: bool = False) -> list[dict]:
-    cache_key = f"FRED_{series_id}_{compute_yoy}"
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        return cached_data
-    
-    api_key = env("FRED_API_KEY")
-    url = f"https://api.stlouisfed.org/fred/series/observations"
-    params = {
-        "series_id": series_id,
-        "api_key": api_key,
-        "file_type": "json",
-    }
-    if compute_yoy:
-        params["units"] = "pc1"
-
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    data = response.json()["observations"]
-    df = pd.DataFrame(data)
-    df["date"] = pd.to_datetime(df["date"]).dt.date
-    df["value"] = pd.to_numeric(df["value"], errors="coerce")
-    df = df.drop(columns=["realtime_start", "realtime_end"])
-    df = df.sort_values("date").reset_index(drop=True)
-
-    df = df.dropna(subset=["value"])
-    output = df.to_dict(orient="records")
-    cache.set(cache_key, output, timeout=60 * 60 * 24)
-    return output
-
 _nyse_calendar = None
 
 def _get_nyse_calendar():

@@ -13,7 +13,6 @@ export {
   useGetBlogPostQuery,
   useDeleteAssetMutation,
   usePatchAssetMutation,
-  useGetFredDataQuery,
   useGetQuoteQuery,
   useCreateAccountMutation,
   usePostTicketMutation,
@@ -43,5 +42,6 @@ export {
   useGetIndexesQuery,
   useGetIndexMembersQuery,
   useGetIwbReferenceHoldingsQuery,
+  useGetFredDataQuery,
 } from "./springbootApi";
 

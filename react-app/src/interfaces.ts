@@ -166,6 +166,11 @@ export interface IIexPricesResponse {
     prices: IIexPrice[];
 }
 
+export interface IFredObservation {
+    date: string;
+    value: number;
+}
+
 export interface IDividendRow {
     date: string;
     value: number;

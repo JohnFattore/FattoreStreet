@@ -11,16 +11,21 @@ import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
 import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 import com.fattorestreet.sec_api.repository.QuarterRepository;
+import com.fattorestreet.sec_api.economic.FredService;
+import com.fattorestreet.sec_api.economic.FredService.FredObservation;
 import com.fattorestreet.sec_api.fundamentals.FinancialService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,6 +49,7 @@ public class PublicController {
     private final FilingSummaryRepository filingSummaryRepository;
     private final MarketIndexRepository marketIndexRepository;
     private final IndexMemberApiService indexMemberApiService;
+    private final FredService fredService;
 
     public PublicController(
             AssetRepository assetRepository,
@@ -53,7 +59,8 @@ public class PublicController {
             CorporateActionRepository corporateActionRepository,
             FilingSummaryRepository filingSummaryRepository,
             MarketIndexRepository marketIndexRepository,
-            IndexMemberApiService indexMemberApiService
+            IndexMemberApiService indexMemberApiService,
+            FredService fredService
     ) {
         this.assetRepository = assetRepository;
         this.quarterRepository = quarterRepository;
@@ -63,9 +70,25 @@ public class PublicController {
         this.filingSummaryRepository = filingSummaryRepository;
         this.marketIndexRepository = marketIndexRepository;
         this.indexMemberApiService = indexMemberApiService;
+        this.fredService = fredService;
     }
 
     public record MarketIndexRow(String code, String displayName) {
+    }
+
+    public record FredSeriesItem(
+            @NotBlank @Size(max = 30) @Pattern(regexp = "^[A-Z][A-Z0-9]*$", message = "Invalid series id format") String seriesId,
+            Boolean computeYoy
+    ) {
+    }
+
+    @PostMapping("/fred-data")
+    public ResponseEntity<?> fredData(@RequestBody List<@Valid FredSeriesItem> series) {
+        Map<String, List<FredObservation>> response = new LinkedHashMap<>();
+        for (FredSeriesItem item : series) {
+            response.put(item.seriesId(), fredService.getSeries(item.seriesId(), Boolean.TRUE.equals(item.computeYoy())));
+        }
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/quarters")

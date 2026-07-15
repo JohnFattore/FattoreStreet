@@ -34,7 +34,6 @@ Management of financial assets and retrieving market data.
 | `GET` | `/portfolio/api/asset-dividends/` | Get historical dividend events per ticker from yfinance. |
 | `GET` | `/portfolio/api/asset-splits/` | Get historical split events per ticker from yfinance. |
 | `GET` | `/portfolio/api/quote/` | Get the latest price quote. |
-| `GET` | `/portfolio/api/fred-data/` | Fetch economic data from Federal Reserve API. |
 
 ## 🍽 Restaurants (Reviews)
 
@@ -92,6 +91,14 @@ Public blog posts (no authentication required).
 | `POST` | `/admin/indexes/rebuild-fattore-50` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT50`. Response uses singular `rebuild` instead of `rebuilds`. |
 | `POST` | `/admin/indexes/rebuild-fattore-100` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT100`. Response uses singular `rebuild` instead of `rebuilds`. |
 | `POST` | `/admin/indexes/rebuild-fattore-1000` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT1000`. Response uses singular `rebuild` instead of `rebuilds`. |
+
+## 📈 FRED Economic Data
+
+Economic observation series from the Federal Reserve Bank of St. Louis (FRED). Previously served by Django at `/portfolio/api/fred-data/`; now handled entirely by Spring Boot. Requires `FRED_API_KEY` on the Spring Boot service. Responses are cached in memory for 24h per series/units combination; nothing is persisted.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/fred-data` | None | Fetch one or more FRED observation series. Request body: JSON array of `{ "seriesId": "UNRATE", "computeYoy": false }` (`computeYoy: true` requests year-over-year percent change, FRED `units=pc1`). Response: object keyed by series id, each value an ascending-date array of `{ "date": "YYYY-MM-DD", "value": number }` with FRED's `"."` missing markers dropped. |
 
 ## 📄 SEC Financial Data
 

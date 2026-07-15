@@ -33,7 +33,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/iex-prices/:ticker` | IexPricesView | IEX daily adjusted OHLCV prices plus side-by-side adjusted price, dividend, and split comparisons vs YFinance |
 | `/react-admin/success-bar` | AdminSuccessBar | Per-ticker corporate-action success overview comparing Spring Boot vs YFinance price/dividend alignment using persisted manual ticker list |
 | `/visualizer` | Visualizer | Chart comparison tool |
-| `/economic-indicators` | EconomicIndicators | FRED macroeconomic data charts with chart-level latest readings (date + value) |
+| `/economic-indicators` | EconomicIndicators | FRED macroeconomic data charts (served by Spring Boot `POST /fred-data`) with chart-level latest readings (date + value) |
 | `/chatbot` | Chatbot | Boglehead AI financial advisor |
 | `/restaurants` | Restaurants | Restaurant reviews and map |
 | `/entertainment` | Entertainment | Music and media |
@@ -62,8 +62,8 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 
 All API calls go through RTK Query API slices using a custom `axiosBaseQuery`. Endpoints are split across two backends:
 
-- **Django** (`VITE_APP_DJANGO_URL`): React derives per-app API bases (`/users/api/`, `/portfolio/api/`, `/restaurants/api/`, `/chatbot/api/`, `/changeflow/api/`, `/blog/api/`) from this single base; endpoints include assets, accounts, quotes, asset-prices, asset-dividends, asset-splits, FRED data, quarterly data, asset-info, tickets, and blog
-- **Spring Boot** (`VITE_APP_SPRINGBOOT_URL`): SEC EDGAR fact sheets, quarters, IEX prices, dividends, splits, filing summaries, indexes (`/indexes`, `/index-members` with nested `stock` including `stateHQ` / `stateIncorp`), IWB reference weights (`/iwb-reference-holdings`)
+- **Django** (`VITE_APP_DJANGO_URL`): React derives per-app API bases (`/users/api/`, `/portfolio/api/`, `/restaurants/api/`, `/chatbot/api/`, `/changeflow/api/`, `/blog/api/`) from this single base; endpoints include assets, accounts, quotes, asset-prices, asset-dividends, asset-splits, quarterly data, asset-info, tickets, and blog
+- **Spring Boot** (`VITE_APP_SPRINGBOOT_URL`): SEC EDGAR fact sheets, quarters, IEX prices, dividends, splits, filing summaries, indexes (`/indexes`, `/index-members` with nested `stock` including `stateHQ` / `stateIncorp`), IWB reference weights (`/iwb-reference-holdings`), FRED economic data (`POST /fred-data`)
 
 The `transformResponse` functions handle snake_case → camelCase conversion.
 
