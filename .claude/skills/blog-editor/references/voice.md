@@ -21,13 +21,13 @@ Distilled from the published posts in `docs/blog-posts/` (PILOT, INDEX_FUNDS_101
 - About one colloquial flourish per post — keep them, they are the voice, not errors: "just buy the whole haystack", "champagne popping", "splitting hairs", "Low cost is king", "incredibly dangerous tools for rapid development".
 - No emoji. No exclamation marks. No rhetorical hype ("game-changing", "revolutionary") — enthusiasm shows through concrete wins instead ("a massive technical win").
 - The author never uses em dashes (—). Where an em dash might be tempting, use a comma, parentheses, or a new sentence instead.
-- Colons mid-sentence are used sparingly. The author tends to remove them in favor of a period and a new sentence; do not add one unless it clearly earns its place (e.g., introducing a short definition or example).
+- The author avoids mid-sentence colons. Constructions like "The rule of thumb: ..." or "there's nothing to configure: ..." are not his style. Write it as a period and a new sentence, or restructure the sentence so no joint is needed. The only acceptable colon is one introducing a code block or a numbered list.
 - Code appears sparingly and only when it teaches (the Django post's three short snippets); financial posts use none.
 
 ## What editing should NOT do
 
 - Never add an em dash (—). If the draft contains one, replace it. This is a hard rule.
-- Do not sprinkle in mid-sentence colons; prefer splitting into two sentences.
+- Never add a mid-sentence colon. This is a hard rule, same tier as the em dash rule. If the draft contains one, rewrite it as two sentences or restructure. Colons are only allowed before a code block or numbered list.
 - Do not bulletize prose paragraphs or add tables.
 - Do not add corporate polish, hedging ("it's worth noting", "arguably"), or filler transitions ("Moreover", "Furthermore").
 - Do not remove casual phrasing or personality; fix only genuine typos, grammar errors, double spaces, and trailing whitespace.
