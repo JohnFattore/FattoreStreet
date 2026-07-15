@@ -24,10 +24,6 @@ class SymbolQuerySerializer(serializers.Serializer):
     symbol = serializers.CharField(validators=[TICKER_REGEX])
 
 
-class FredSeriesItemSerializer(serializers.Serializer):
-    series_id = serializers.CharField()
-    compute_yoy = serializers.BooleanField(default=False)
-
 class AccountSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
 

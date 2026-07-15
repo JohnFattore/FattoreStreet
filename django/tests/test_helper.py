@@ -9,7 +9,6 @@ import pandas as pd
 from portfolio.helper import (
     QuoteFetchError,
     _partition_cached,
-    get_fred_data,
     get_historical_dividends,
     get_historical_prices,
     get_historical_splits,
@@ -244,49 +243,6 @@ class YfinanceDataTests(LocMemCacheTestCase):
 
         self.assertEqual(result["short_name"], "AAPL")
         self.assertEqual(result["type"], "N/A")
-
-
-@patch("portfolio.helper.env", MagicMock(return_value="test-key"))
-class FredDataTests(LocMemCacheTestCase):
-    """Tests for the FRED observations helper."""
-
-    FRED_PAYLOAD = {
-        "observations": [
-            {"date": "2023-02-01", "realtime_start": "x", "realtime_end": "x", "value": "3.4"},
-            {"date": "2023-01-01", "realtime_start": "x", "realtime_end": "x", "value": "3.5"},
-            {"date": "2023-03-01", "realtime_start": "x", "realtime_end": "x", "value": "."},
-        ]
-    }
-
-    @patch("portfolio.helper.requests.get")
-    def test_parses_sorts_and_drops_missing_values(self, mock_get):
-        mock_get.return_value.json.return_value = self.FRED_PAYLOAD
-
-        result = get_fred_data("UNRATE")
-
-        # "." (FRED's missing marker) is coerced to NaN and dropped
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], {"date": date(2023, 1, 1), "value": 3.5})
-        self.assertEqual(result[1], {"date": date(2023, 2, 1), "value": 3.4})
-
-    @patch("portfolio.helper.requests.get")
-    def test_compute_yoy_requests_percent_change_units(self, mock_get):
-        mock_get.return_value.json.return_value = self.FRED_PAYLOAD
-
-        get_fred_data("CPIAUCSL", compute_yoy=True)
-        self.assertEqual(mock_get.call_args.kwargs["params"]["units"], "pc1")
-
-        get_fred_data("CPIAUCSL", compute_yoy=False)
-        self.assertNotIn("units", mock_get.call_args.kwargs["params"])
-
-    @patch("portfolio.helper.requests.get")
-    def test_second_call_served_from_cache(self, mock_get):
-        mock_get.return_value.json.return_value = self.FRED_PAYLOAD
-
-        get_fred_data("UNRATE")
-        get_fred_data("UNRATE")
-
-        mock_get.assert_called_once()
 
 
 class MarketCalendarTests(TestCase):

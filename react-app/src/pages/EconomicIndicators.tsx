@@ -36,37 +36,37 @@ export default function EconomicIndicators() {
 
   const seriesList = [
     // Interest Rates & Yield Curve
-    { series_id: "DGS2", compute_yoy: false },
-    { series_id: "DGS10", compute_yoy: false },
-    { series_id: "DGS30", compute_yoy: false },
-    { series_id: "T10Y2Y", compute_yoy: false },
-    { series_id: "FEDFUNDS", compute_yoy: false },
+    { seriesId: "DGS2", computeYoy: false },
+    { seriesId: "DGS10", computeYoy: false },
+    { seriesId: "DGS30", computeYoy: false },
+    { seriesId: "T10Y2Y", computeYoy: false },
+    { seriesId: "FEDFUNDS", computeYoy: false },
     // Inflation
-    { series_id: "CPIAUCSL", compute_yoy: true },
-    { series_id: "PCEPILFE", compute_yoy: true },
-    { series_id: "T10YIE", compute_yoy: false },
+    { seriesId: "CPIAUCSL", computeYoy: true },
+    { seriesId: "PCEPILFE", computeYoy: true },
+    { seriesId: "T10YIE", computeYoy: false },
     // Labor Market
-    { series_id: "UNRATE", compute_yoy: false },
-    { series_id: "ICSA", compute_yoy: false },
-    { series_id: "PAYEMS", compute_yoy: true },
+    { seriesId: "UNRATE", computeYoy: false },
+    { seriesId: "ICSA", computeYoy: false },
+    { seriesId: "PAYEMS", computeYoy: true },
     // Economic Growth & Consumer
-    { series_id: "GDP", compute_yoy: true },
-    { series_id: "INDPRO", compute_yoy: true },
-    { series_id: "RSAFS", compute_yoy: true },
-    { series_id: "UMCSENT", compute_yoy: false },
+    { seriesId: "GDP", computeYoy: true },
+    { seriesId: "INDPRO", computeYoy: true },
+    { seriesId: "RSAFS", computeYoy: true },
+    { seriesId: "UMCSENT", computeYoy: false },
     // Housing
-    { series_id: "MORTGAGE30US", compute_yoy: false },
-    { series_id: "MORTGAGE15US", compute_yoy: false },
-    { series_id: "CSUSHPINSA", compute_yoy: true },
-    { series_id: "HOUST", compute_yoy: false },
+    { seriesId: "MORTGAGE30US", computeYoy: false },
+    { seriesId: "MORTGAGE15US", computeYoy: false },
+    { seriesId: "CSUSHPINSA", computeYoy: true },
+    { seriesId: "HOUST", computeYoy: false },
     // Financial Markets
-    { series_id: "SP500", compute_yoy: false },
-    { series_id: "VIXCLS", compute_yoy: false },
-    { series_id: "BAMLH0A0HYM2", compute_yoy: false },
+    { seriesId: "SP500", computeYoy: false },
+    { seriesId: "VIXCLS", computeYoy: false },
+    { seriesId: "BAMLH0A0HYM2", computeYoy: false },
     // Monetary Policy
-    { series_id: "DTWEXBGS", compute_yoy: true },
-    { series_id: "M2SL", compute_yoy: true },
-    { series_id: "WALCL", compute_yoy: true },
+    { seriesId: "DTWEXBGS", computeYoy: true },
+    { seriesId: "M2SL", computeYoy: true },
+    { seriesId: "WALCL", computeYoy: true },
   ];
 
   const { data, isLoading, error } = useGetFredDataQuery(seriesList);

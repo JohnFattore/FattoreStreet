@@ -69,7 +69,7 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 - Spring Boot admin endpoints require `Authorization: Bearer` with a Django SimpleJWT access token; JWT signing uses the same `SECRET_KEY` as Django, and only `user_id` claim `1` is allowed for `/admin/**`
 
 ### Django Apps
-- `portfolio/` — Asset & account CRUD, yfinance price data, FRED economic data, quarterly financials
+- `portfolio/` — Asset & account CRUD, yfinance price data, quarterly financials
 - `users/` — Registration, JWT tokens
 - `chatbot/` — Boglehead AI advisor (Google Gemini)
 - `restaurants/` — Restaurant reviews/recommendations
@@ -90,6 +90,7 @@ com.fattorestreet.sec_api/
   listing/           Assets, listings, ETF identity enrichment
   filing/            10-K MD&A fetch + LLM summarization
   marketdata/        Daily prices, IEX HIST binary ingest
+  economic/          FRED economic data client + in-memory cache
   index/             Index membership, metrics refresh
   repository/        Spring Data JPA repositories
   model/             JPA entities
@@ -137,7 +138,7 @@ Additional conventions:
 - `POSTGRES_PASSWORD` — required when `DATABASE=postgresDocker`
 - `REDIS_URL` — cache backend, required when `DEBUG=False`
 - `GOOGLE_API_KEY` — Gemini key for the chatbot app
-- `FINNHUB_API_KEY`, `FRED_API_KEY` — portfolio quotes and FRED economic data
+- `FINNHUB_API_KEY` — portfolio quotes
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 - `DJANGO_FORCE_SCRIPT_NAME` — set to `/django` when served behind the nginx prefix
 
@@ -147,6 +148,7 @@ Additional conventions:
 - `LLM_SERVER_URL` — llama.cpp server (default `http://localhost:8081`)
 - `DJANGO_PORTFOLIO_BASE_URL` — Django base URL for validation calls
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
+- `FRED_API_KEY` — FRED key for the public `POST /fred-data` economic data endpoint
 
 ### React (`.env.*` per mode)
 - `VITE_APP_DJANGO_URL` — Django base URL (`http://127.0.0.1:8000/` in dev, `https://fattorestreet.com/django/` in production)

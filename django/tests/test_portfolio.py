@@ -287,29 +287,6 @@ class QuoteTest(BaseAPITestCase):
         self.assertEqual(response.status_code, 400)
 
 
-class FredDataTest(BaseAPITestCase):
-    """Tests for the FRED data endpoint (public, calls FRED API)."""
-
-    def setUp(self):
-        super().setUp()
-        self.url = reverse('fred-data')
-        patch("portfolio.views.get_fred_data", return_value=[
-            {"date": "2023-01-01", "value": 3.5},
-            {"date": "2023-02-01", "value": 3.4},
-        ]).start()
-        self.addCleanup(patch.stopall)
-
-    def test_fred_data(self):
-        data = [{"series_id": "UNRATE", "compute_yoy": False}]
-        response = self.client.post(self.url, data, format='json')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("UNRATE", response.data)
-
-    def test_fred_data_empty_body(self):
-        response = self.client.post(self.url, [], format='json')
-        self.assertEqual(response.status_code, 200)
-
-
 class QuarterlyDataTest(BaseAPITestCase):
     """Tests for the quarterly-data endpoint (public, calls yfinance)."""
 

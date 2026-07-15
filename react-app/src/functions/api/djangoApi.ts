@@ -60,11 +60,6 @@ interface IQuoteResponse {
   percent_change_daily: number;
 }
 
-interface IFredObservation {
-  date: string;
-  value: number;
-}
-
 interface ITicketPayload {
   title: string;
   description: string;
@@ -476,14 +471,6 @@ export const djangoApi = createApi({
         withAuth: false,
       }),
     }),
-    getFredData: builder.query<Record<string, IFredObservation[]>, { series_id: string; compute_yoy?: boolean }[]>({
-      query: (seriesList) => ({
-        url: "portfolio/api/fred-data/",
-        method: "POST",
-        data: seriesList,
-        withAuth: false,
-      }),
-    }),
     getQuote: builder.query<IQuoteResponse, string>({
       query: (ticker) => ({
         url: "portfolio/api/quote/",
@@ -515,7 +502,6 @@ export const {
   useGetBlogPostQuery,
   useDeleteAssetMutation,
   usePatchAssetMutation,
-  useGetFredDataQuery,
   useGetQuoteQuery,
   useLazyGetQuoteQuery,
   useCreateAccountMutation,

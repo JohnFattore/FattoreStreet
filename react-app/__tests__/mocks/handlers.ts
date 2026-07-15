@@ -216,7 +216,7 @@ export const handlers = [
   ),
 
   http.post(
-    portfolioApiBaseUrl.concat("fred-data/"),
+    import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("fred-data"),
     () => {
       return Response.json(
         {

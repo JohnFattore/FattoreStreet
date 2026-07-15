@@ -11,6 +11,5 @@ urlpatterns = [
     path('api/asset-dividends/', views.AssetHistoricalDividendsRetrieveView.as_view(), name='asset-dividends'),
     path('api/asset-splits/', views.AssetHistoricalSplitsRetrieveView.as_view(), name='asset-splits'),
     path('api/quote/', views.QuoteRetrieveView.as_view(), name='quote'),
-    path('api/quarterly-data/', views.QuarterlyDataRetrieveView.as_view(), name='quarterly-data'),
-    path('api/fred-data/', views.FredDataRetrieveView.as_view(), name='fred-data')
+    path('api/quarterly-data/', views.QuarterlyDataRetrieveView.as_view(), name='quarterly-data')
 ]

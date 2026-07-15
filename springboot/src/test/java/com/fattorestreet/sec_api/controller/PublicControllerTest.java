@@ -1,5 +1,7 @@
 package com.fattorestreet.sec_api.controller;
 
+import com.fattorestreet.sec_api.economic.FredService;
+import com.fattorestreet.sec_api.economic.FredService.FredObservation;
 import com.fattorestreet.sec_api.index.IndexMemberApiService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.StockRow;
@@ -22,6 +24,7 @@ import com.fattorestreet.sec_api.config.SecurityConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,6 +37,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(PublicController.class)
@@ -52,6 +56,7 @@ class PublicControllerTest {
     @MockitoBean private FilingSummaryRepository filingSummaryRepository;
     @MockitoBean private MarketIndexRepository marketIndexRepository;
     @MockitoBean private IndexMemberApiService indexMemberApiService;
+    @MockitoBean private FredService fredService;
 
     private Asset buildAsset(Long cik) {
         Asset a = new Asset();
@@ -431,5 +436,38 @@ class PublicControllerTest {
                 .andExpect(jsonPath("$[0].id").value(2))
                 .andExpect(jsonPath("$[0].index").value("Fattore 50"))
                 .andExpect(jsonPath("$[0].stock.ticker").value("MSFT"));
+    }
+
+    // --- /fred-data endpoint ---
+
+    @Test
+    void fredData_returnsObservationsKeyedBySeriesId() throws Exception {
+        when(fredService.getSeries("UNRATE", false)).thenReturn(List.of(
+                new FredObservation(LocalDate.of(2024, 1, 1), 3.7),
+                new FredObservation(LocalDate.of(2024, 2, 1), 3.9)));
+        when(fredService.getSeries("CPIAUCSL", true)).thenReturn(List.of(
+                new FredObservation(LocalDate.of(2024, 1, 1), 3.1)));
+
+        mockMvc.perform(post("/fred-data")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"seriesId\":\"UNRATE\"},{\"seriesId\":\"CPIAUCSL\",\"computeYoy\":true}]"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.UNRATE", hasSize(2)))
+                .andExpect(jsonPath("$.UNRATE[0].date").value("2024-01-01"))
+                .andExpect(jsonPath("$.UNRATE[0].value").value(3.7))
+                .andExpect(jsonPath("$.CPIAUCSL[0].value").value(3.1));
+
+        verify(fredService).getSeries("UNRATE", false);
+        verify(fredService).getSeries("CPIAUCSL", true);
+    }
+
+    @Test
+    void fredData_invalidSeriesIdFormat_throwsConstraintViolation() {
+        assertThrows(jakarta.servlet.ServletException.class, () ->
+                mockMvc.perform(post("/fred-data")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"seriesId\":\"bad id\"}]"))
+        );
+        verifyNoInteractions(fredService);
     }
 }

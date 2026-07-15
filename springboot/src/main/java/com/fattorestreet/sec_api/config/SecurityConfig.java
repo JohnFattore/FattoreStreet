@@ -81,7 +81,8 @@ public class SecurityConfig {
                                 "/filing-summaries",
                                 "/index-members",
                                 "/indexes",
-                                "/iwb-reference-holdings"
+                                "/iwb-reference-holdings",
+                                "/fred-data"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll())

@@ -29,7 +29,8 @@ sudo docker network create --driver bridge dockerNet
 #     "DB_URL": "jdbc:postgresql://postgres:5432/springboot",
 #     "SEC_CONTACT_EMAIL": "johnefattore@gmail.com",
 #     "LLM_SERVER_URL": "http://localhost:8081",
-#     "SHOW_JPA_SQL": "false"
+#     "SHOW_JPA_SQL": "false",
+#     "FRED_API_KEY": "<fred-api-key>"
 #   }'
 #
 # Requires: EC2 instance role with secretsmanager:GetSecretValue on the secret,
