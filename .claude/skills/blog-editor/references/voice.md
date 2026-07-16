@@ -14,6 +14,7 @@ Distilled from the published posts in `docs/blog-posts/` (PILOT, INDEX_FUNDS_101
 ## Sentence-level voice
 
 - First person singular, active voice, declarative. Confident verdicts stated flat out: "The Dow is not a good index."
+- The author prefers slightly shorter sentences. When a sentence carries two ideas joined by a semicolon or a trailing "since"/"which" clause, split it in two. Err on the side of splitting.
 - Terms are defined inline, immediately after first use, in plain language: "…exactly net asset value (NAV). Net asset value is the underlying value of all the assets the fund owns…"
 - Acronyms expanded with a parenthetical on first use: "exchange traded fund (ETF)", "authorized participants (APs)", "Object-Relational Mapper (ORM)".
 - Abstract claims grounded with concrete numbers and named examples: Nvidia's ~$4.47T market cap vs Netflix, Tesla's five-month S&P 500 delay, $10,000/year on a $1M portfolio at 1%.
