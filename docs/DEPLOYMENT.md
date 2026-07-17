@@ -17,6 +17,11 @@ The production environment runs on a single EC2 instance behind Route 53:
 3.  **App containers**: Django (Gunicorn), Spring Boot.
 4.  **Data stores**: PostgreSQL 17 and Redis 8 containers on the same Docker network, with Postgres data on the EBS volume.
 
+### pgadmin4 (least privilege)
+- No host port: pgadmin is reachable only through nginx at `/pgadmin4/`, over `dockerNet`.
+- The container runs with a read-only root filesystem (only the `/var/lib/pgadmin` volume and a `/tmp` tmpfs are writable), all Linux capabilities dropped, and `no-new-privileges` (see `deploy/docker-compose.infra.yml`).
+- Its database connection uses the read-only `pgadmin_ro` role (SELECT-only on the `postgres` and `springboot` databases), not the `postgres` superuser. Create the role once with `deploy/sql/pgadmin-readonly.sql` (run instructions in the file), store its password in `fattorestreet/env` as `PGADMIN_RO_DB_PASSWORD`, and register the server connection in the pgadmin UI with that role.
+
 ## 🚀 Build & Deploy
 
 - **CI**: GitHub Actions (`.github/workflows/ci.yml`) runs frontend, Django, and Spring Boot tests plus a secret scan on every push/PR to `main`. A second workflow (`.github/workflows/docker-build.yml`) builds all three Docker images on every PR as a merge check (build-only); the nginx image builds the React bundle and Django static files itself, so it works from a clean checkout.

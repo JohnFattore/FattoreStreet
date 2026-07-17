@@ -31,7 +31,8 @@ sudo docker network create --driver bridge dockerNet
 #     "LLM_SERVER_URL": "http://localhost:8081",
 #     "SHOW_JPA_SQL": "false",
 #     "FRED_API_KEY": "<fred-api-key>",
-#     "PGADMIN_DEFAULT_PASSWORD": "<pgadmin-password>"
+#     "PGADMIN_DEFAULT_PASSWORD": "<pgadmin-password>",
+#     "PGADMIN_RO_DB_PASSWORD": "<postgres-password-for-read-only-pgadmin_ro-role>"
 #   }'
 #
 # Requires: EC2 instance role with secretsmanager:GetSecretValue on the secret,
@@ -95,6 +96,12 @@ sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis:8
 # recipe) instead of relying on a host shell var. The account seeds on first run
 # and persists in the /mnt/ebs/pgadmin-data volume thereafter (pgadmin runs as
 # uid 5050, which must own the mount).
+#
+# Least privilege (mirrors docker-compose.infra.yml): no host port (nginx
+# reaches pgadmin4:80 over dockerNet), read-only rootfs with only the data
+# volume and /tmp writable, all capabilities dropped, no privilege escalation.
+# Register the DB connection in pgadmin as the read-only pgadmin_ro role
+# (created once via sql/pgadmin-readonly.sql), not postgres.
 sudo mkdir -p /mnt/ebs/pgadmin-data
 sudo chown 5050:5050 /mnt/ebs/pgadmin-data
 PGADMIN_PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
@@ -103,9 +110,14 @@ sudo docker run -d \
   --name pgadmin4 \
   --network dockerNet \
   -v /mnt/ebs/pgadmin-data:/var/lib/pgadmin \
-  -p 5050:80 \
+  --read-only \
+  --tmpfs /tmp \
+  --tmpfs /var/log/pgadmin \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
   -e PGADMIN_DEFAULT_EMAIL=johnefattore@gmail.com \
   -e PGADMIN_DEFAULT_PASSWORD="$PGADMIN_PW" \
+  -e PGADMIN_LISTEN_PORT=80 \
   dpage/pgadmin4
 
 # Certbot get SSL cert
