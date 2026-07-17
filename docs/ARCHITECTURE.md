@@ -52,13 +52,16 @@ graph TD
     - **`users/`**: Authentication, user profiles, and JWT handling.
     - **`chatbot/`**: Logic for the AI investing assistant.
     - **`restaurants/`**: Restaurant review system.
+    - **`changeflow/`**: Changelog and feedback tickets.
+    - **`blog/`**: Blog posts with categories and tags.
+    - **`entertainment/`**: Media recommendations (books, movies, shows, music, podcasts, games, websites).
 - **`react-app/`**: Frontend source code.
     - **`src/components/`**: Reusable UI components.
     - **`src/pages/`**: Main application views.
-    - **`src/store/`**: Redux state slices.
+    - **`src/reducers/`**: Redux state slices (store setup in `src/store.ts`).
 - **`springboot/`**: Spring Boot `sec-api` service (SEC EDGAR data, IEX-derived daily prices, and market index membership under `/index-members` and `/admin/indexes/*`).
-- **`kubernetes/`**: Scripts and configs for K8s deployment.
-- **`aws/`**: AWS specific configuration files.
+- **`deploy/`**: Docker Compose stacks and build/deploy scripts (see [Deployment](DEPLOYMENT.md)).
+- **`nginx/`**: Reverse proxy configuration.
 
 ## 🔄 Data Flow
 
