@@ -33,10 +33,10 @@ sudo docker network create --driver bridge dockerNet
 #    and IMDSv2 hop limit >= 2)
 cp .env.example .env
 
-# 3. Stateful infra (postgres, redis, pgadmin4). POSTGRES_PASSWORD is only read
-# on FIRST-TIME init of an empty /mnt/ebs/postgres-data volume -- see the
-# comments in docker-compose.infra.yml for the fetch-from-secret recipe.
-# PGADMIN_DEFAULT_PASSWORD seeds the pgadmin admin account on first run only.
+# 3. Stateful infra (postgres, redis, pgadmin4). POSTGRES_PASSWORD and
+# PGADMIN_DEFAULT_PASSWORD are only read on FIRST-TIME init of their empty
+# /mnt/ebs volumes -- see the comments in docker-compose.infra.yml for the
+# fetch-from-secret recipes (pgadmin's volume must be owned by uid 5050).
 sudo docker compose -f docker-compose.infra.yml up -d
 
 # 4. App services
