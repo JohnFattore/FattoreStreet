@@ -41,12 +41,20 @@ services:
     networks: [dockerNet]
     restart: unless-stopped
 
-  # PGADMIN_DEFAULT_PASSWORD seeds the admin account on first run only
-  # (persisted thereafter). Supply the real value via the host env -- do NOT
-  # hardcode it here.
+  # PGADMIN_DEFAULT_PASSWORD seeds the admin account ONLY on first run (empty
+  # /mnt/ebs/pgadmin-data, which pgadmin's uid 5050 must own); the image
+  # hard-fails at startup if it's empty then. Persisted in the volume
+  # thereafter, when the env is ignored -- same lifecycle as POSTGRES_PASSWORD
+  # above. FRESH VOLUME ONLY, fetch it from the secret on the host:
+  #   sudo mkdir -p /mnt/ebs/pgadmin-data && sudo chown 5050:5050 /mnt/ebs/pgadmin-data
+  #   PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
+  #         --query SecretString --output text | jq -r .PGADMIN_DEFAULT_PASSWORD)
+  #   PGADMIN_DEFAULT_PASSWORD="$PW" docker compose -f docker-compose.infra.yml up -d pgadmin4
   pgadmin4:
     image: dpage/pgadmin4
     container_name: pgadmin4
+    volumes:
+      - /mnt/ebs/pgadmin-data:/var/lib/pgadmin
     ports:
       - "5050:80"
     environment:

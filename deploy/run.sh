@@ -30,7 +30,8 @@ sudo docker network create --driver bridge dockerNet
 #     "SEC_CONTACT_EMAIL": "johnefattore@gmail.com",
 #     "LLM_SERVER_URL": "http://localhost:8081",
 #     "SHOW_JPA_SQL": "false",
-#     "FRED_API_KEY": "<fred-api-key>"
+#     "FRED_API_KEY": "<fred-api-key>",
+#     "PGADMIN_DEFAULT_PASSWORD": "<pgadmin-password>"
 #   }'
 #
 # Requires: EC2 instance role with secretsmanager:GetSecretValue on the secret,
@@ -87,15 +88,24 @@ sudo docker run --name nginx --network dockerNet \
 sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis:8
 
 # pgadmin4
-# PGADMIN_DEFAULT_PASSWORD seeds the admin account on first run only (persisted
-# thereafter). Supply the real value via the $PGADMIN_DEFAULT_PASSWORD env on the
-# host -- do NOT hardcode it here.
+# The pgadmin image hard-fails at startup ("You need to define the
+# PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD ...") when the password env
+# is empty and /var/lib/pgadmin/pgadmin4.db doesn't exist yet, so fetch it from
+# fattorestreet/env on the host (same pattern as the postgres fresh-volume
+# recipe) instead of relying on a host shell var. The account seeds on first run
+# and persists in the /mnt/ebs/pgadmin-data volume thereafter (pgadmin runs as
+# uid 5050, which must own the mount).
+sudo mkdir -p /mnt/ebs/pgadmin-data
+sudo chown 5050:5050 /mnt/ebs/pgadmin-data
+PGADMIN_PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
+  --query SecretString --output text | jq -r .PGADMIN_DEFAULT_PASSWORD)
 sudo docker run -d \
   --name pgadmin4 \
   --network dockerNet \
+  -v /mnt/ebs/pgadmin-data:/var/lib/pgadmin \
   -p 5050:80 \
   -e PGADMIN_DEFAULT_EMAIL=johnefattore@gmail.com \
-  -e PGADMIN_DEFAULT_PASSWORD="$PGADMIN_DEFAULT_PASSWORD" \
+  -e PGADMIN_DEFAULT_PASSWORD="$PGADMIN_PW" \
   dpage/pgadmin4
 
 # Certbot get SSL cert
