@@ -37,6 +37,8 @@ cp .env.example .env
 # PGADMIN_DEFAULT_PASSWORD are only read on FIRST-TIME init of their empty
 # /mnt/ebs volumes -- see the comments in docker-compose.infra.yml for the
 # fetch-from-secret recipes (pgadmin's volume must be owned by uid 5050).
+# One-time after postgres is up: create the read-only pgadmin_ro role that
+# pgadmin's server connection should use -- see sql/pgadmin-readonly.sql.
 sudo docker compose -f docker-compose.infra.yml up -d
 
 # 4. App services
