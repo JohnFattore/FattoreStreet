@@ -19,7 +19,7 @@ After making code changes to application logic, check whether tests need updatin
 - Follow the patterns in the existing test files -- do not introduce new testing libraries
 - For Django: use `@patch()` for external APIs, `BaseAPITestCase` for setup, test both auth and unauth paths
 - For Spring Boot: use `@ExtendWith(MockitoExtension.class)` for services, `@WebMvcTest` + `@MockitoBean` for controllers
-- For React: use `renderWithProviders` from `testutils.tsx`, `screen.findByText` for async, `userEvent` for interactions (v13 API -- no `.setup()`)
+- For React: use `renderWithProviders` from `testutils.tsx`, `screen.findByText` for async, `userEvent` for interactions (direct API -- no `.setup()`, matching existing tests)
 - Only add/modify tests for the changed code -- do not rewrite unrelated tests
 - Run the relevant test suite after changes to verify nothing is broken
 

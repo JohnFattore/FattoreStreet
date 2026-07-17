@@ -48,6 +48,9 @@ mvn test -Dtest=MainControllerTest#testGetQuarters  # Specific method
 mvn clean test                                   # Clean + test
 ```
 
+### CI
+GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`: React lint + build + tests, Django tests, Spring Boot tests, and a detect-secrets scan (`pre-commit run detect-secrets --all-files`, config in `.pre-commit-config.yaml`). All four must pass before merge. `docker-build.yml` builds the nginx/django/springboot images (build-only on PRs; pushes to `main` publish to GHCR tagged `latest` + commit SHA).
+
 ## Architecture
 
 ### Request Flow
