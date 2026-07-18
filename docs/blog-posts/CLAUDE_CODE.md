@@ -21,3 +21,7 @@ Skills are packaged, reusable know-how for procedures, checklists, and workflows
 ## External context
 
 Everything above covers context that lives in your repo, but Claude Code can also reach out to the world around it. Anything with a preexisting CLI (git, gh, aws, kubectl) or a well-defined API is usable out of the box. Running shell commands is a core tool, and the model already knows these interfaces from training. Ask it to check a failing GitHub Actions run and it will reach for gh on its own. More complex interfaces improve with an MCP server. MCP (Model Context Protocol) is an open standard for connecting AI agents to external systems. An MCP server is a small program that sits in front of a resource (a database, an issue tracker, an internal service) and exposes a set of well-described operations the agent can call. The server handles authentication behind the scenes, so the model isn't guessing at endpoints or stringing together fragile shell commands. Each connected server loads its tool definitions into context, so only wire up the ones a project actually uses.
+
+## A working example
+
+Everything above is running in the codebase behind fattorestreet.com, which is public at https://github.com/JohnFattore/FattoreStreet. It has a few Claude context injectors worth checking out. There's a CLAUDE.md at the root, rules in .claude/rules/ that load only when matching files are touched, and a handful of skills in .claude/skills/. If you want to see these ideas wired into a real project rather than a toy demo, take a look.
