@@ -1,8 +1,10 @@
 package com.fattorestreet.sec_api.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 @Entity
 @Audited
@@ -36,7 +38,12 @@ public class Listing {
 
     @Column(name = "sec_identity_status", length = 24)
     private String secIdentityStatus;
-    
+
+    /** When SEC corporate-action detection last ran for this ticker; drives the rolling re-detection cadence. */
+    @NotAudited
+    @Column(name = "last_sec_detection_at")
+    private LocalDateTime lastSecDetectionAt;
+
     @ManyToOne
     @JoinColumn(name = "asset_id")
     private Asset asset;    
@@ -68,6 +75,9 @@ public class Listing {
 
     public String getSecIdentityStatus() { return secIdentityStatus; }
     public void setSecIdentityStatus(String secIdentityStatus) { this.secIdentityStatus = secIdentityStatus; }
+
+    public LocalDateTime getLastSecDetectionAt() { return lastSecDetectionAt; }
+    public void setLastSecDetectionAt(LocalDateTime lastSecDetectionAt) { this.lastSecDetectionAt = lastSecDetectionAt; }
 
     public Asset getAsset() { return asset; }
     public void setAsset(Asset asset) { this.asset = asset; }

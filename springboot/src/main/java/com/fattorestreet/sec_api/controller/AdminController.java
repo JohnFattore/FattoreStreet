@@ -8,6 +8,7 @@ import com.fattorestreet.sec_api.listing.AssetService;
 import com.fattorestreet.sec_api.listing.EtfIdentityService;
 import com.fattorestreet.sec_api.listing.ListingService;
 import com.fattorestreet.sec_api.marketdata.IexHistService;
+import com.fattorestreet.sec_api.corporateaction.AdjustedPriceValidationService;
 import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.index.FattoreIndexCodes;
@@ -42,6 +43,8 @@ public class AdminController {
     private final ListingService listingService;
     private final EdgarService edgarService;
     private final PriceAdjustmentService priceAdjustmentService;
+    private final AdjustedPriceValidationService adjustedPriceValidationService;
+    private final com.fattorestreet.sec_api.repository.DailyPriceRepository dailyPriceRepository;
     private final IexHistService iexHistService;
     private final EtfIdentityService etfIdentityService;
     private final FilingSummaryService filingSummaryService;
@@ -60,6 +63,8 @@ public class AdminController {
             ListingService listingService,
             EdgarService edgarService,
             PriceAdjustmentService priceAdjustmentService,
+            AdjustedPriceValidationService adjustedPriceValidationService,
+            com.fattorestreet.sec_api.repository.DailyPriceRepository dailyPriceRepository,
             IexHistService iexHistService,
             EtfIdentityService etfIdentityService,
             FilingSummaryService filingSummaryService,
@@ -77,6 +82,8 @@ public class AdminController {
         this.listingService = listingService;
         this.edgarService = edgarService;
         this.priceAdjustmentService = priceAdjustmentService;
+        this.adjustedPriceValidationService = adjustedPriceValidationService;
+        this.dailyPriceRepository = dailyPriceRepository;
         this.iexHistService = iexHistService;
         this.etfIdentityService = etfIdentityService;
         this.filingSummaryService = filingSummaryService;
@@ -239,6 +246,44 @@ public class AdminController {
         } catch (Exception e) {
             log.error("Error adjusting prices", e);
             return ResponseEntity.internalServerError().body("Error adjusting prices: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Diagnostics-only comparison of stored adjustedClose against the yfinance adjusted-close
+     * reference served by Django. Never persisted; dev/verification use only.
+     */
+    @GetMapping("/admin/validate-adjusted-prices")
+    public ResponseEntity<?> validateAdjustedPrices(
+            @RequestParam(required = false) String ticker,
+            @RequestParam(required = false) String minDate
+    ) {
+        try {
+            long startTime = System.currentTimeMillis();
+            java.time.LocalDate min = (minDate != null && !minDate.isBlank())
+                    ? java.time.LocalDate.parse(minDate)
+                    : java.time.LocalDate.of(2016, 1, 1);
+            Map<String, Object> result;
+            if (ticker != null && !ticker.isBlank()) {
+                result = adjustedPriceValidationService
+                        .validateTicker(ticker.trim().toUpperCase(Locale.US), min)
+                        .toMap();
+            } else {
+                List<AdjustedPriceValidationService.PriceValidationReport> reports = new ArrayList<>();
+                for (String priceTicker : dailyPriceRepository.findDistinctTickers()) {
+                    reports.add(adjustedPriceValidationService.validateTicker(priceTicker, min));
+                }
+                result = adjustedPriceValidationService.summarizeBatch(reports);
+            }
+            String duration = formatDuration(System.currentTimeMillis() - startTime);
+            Map<String, Object> response = new LinkedHashMap<>(result);
+            response.put("duration", duration);
+            return ResponseEntity.ok(response);
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().body("Invalid minDate (expected YYYY-MM-DD): " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error validating adjusted prices", e);
+            return ResponseEntity.internalServerError().body("Error validating adjusted prices: " + e.getMessage());
         }
     }
 

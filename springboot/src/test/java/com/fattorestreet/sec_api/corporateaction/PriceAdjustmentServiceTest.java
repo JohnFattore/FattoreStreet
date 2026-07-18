@@ -8,6 +8,7 @@ import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import com.fattorestreet.sec_api.repository.ListingRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,7 +32,22 @@ class PriceAdjustmentServiceTest {
     @Mock private EquityCorporateActionService equityCorporateActionService;
     @Mock private EtfCorporateActionService etfCorporateActionService;
     @Mock private CorporateActionValidationService corporateActionValidationService;
+    @Mock private AdjustedPriceValidationService adjustedPriceValidationService;
+    @Mock private ListingRepository listingRepository;
     @InjectMocks private PriceAdjustmentService service;
+
+    private Listing freshListing(String ticker) {
+        Listing l = new Listing();
+        l.setTicker(ticker);
+        l.setTitle(ticker);
+        l.setLastSecDetectionAt(LocalDateTime.now());
+        return l;
+    }
+
+    /** Stubs a listing with a fresh detection stamp so adjustTicker skips the SEC fetch. */
+    private void stubFreshListing(String ticker) {
+        when(listingRepository.findByTicker(ticker)).thenReturn(Optional.of(freshListing(ticker)));
+    }
 
     private DailyPrice buildPrice(String ticker, LocalDate date, double close) {
         DailyPrice dp = new DailyPrice();
@@ -76,9 +93,9 @@ class PriceAdjustmentServiceTest {
         return new EquityCorporateActionService.EquityDetectionReport(
                 ticker,
                 cik,
-                new EquityCorporateActionService.SplitDetectionStats(0, 0, savedActions, 0, 0),
+                new EquityCorporateActionService.SplitDetectionStats(0, 0, savedActions, 0, 0, 0, 0, 0, 0, 0),
                 new EquityCorporateActionService.DividendDetectionStats(
-                        0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                         Map.of(), Map.of(), Map.of()),
                 null);
     }
@@ -122,6 +139,7 @@ class PriceAdjustmentServiceTest {
                 .thenReturn(List.of(split));
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(postSplit, splitDay, preSplit));
+        stubFreshListing("AAPL");
 
         service.adjustTicker("AAPL");
 
@@ -204,6 +222,7 @@ class PriceAdjustmentServiceTest {
                 .thenReturn(List.of(dividend));
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(afterDiv, divDay, beforeDiv));
+        stubFreshListing("AAPL");
 
         service.adjustTicker("AAPL");
 
@@ -233,6 +252,7 @@ class PriceAdjustmentServiceTest {
                 .thenReturn(List.of(dividend));
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(afterDiv, divDay, beforeDiv));
+        stubFreshListing("AAPL");
 
         service.adjustTicker("AAPL");
 
@@ -259,6 +279,7 @@ class PriceAdjustmentServiceTest {
                 .thenReturn(List.of(dividend));
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(newest, exDiv, priorTradingDay));
+        stubFreshListing("AAPL");
 
         service.adjustTicker("AAPL");
 
@@ -295,12 +316,64 @@ class PriceAdjustmentServiceTest {
                 .thenReturn(List.of(regular, special));
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("COST"))
                 .thenReturn(List.of(newest, exDiv, priorTradingDay));
+        stubFreshListing("COST");
 
         service.adjustTicker("COST");
 
         assertEquals(100.0, newest.getAdjustedClose());
         assertEquals(118.0, exDiv.getAdjustedClose());
         assertEquals(118.0063, priorTradingDay.getAdjustedClose(), 0.0001);
+    }
+
+    @Test
+    void adjustTicker_actionOnNonTradingDay_snapsToNextTradeDate() {
+        Asset asset = buildAsset(320193L);
+        DailyPrice monday = buildPrice("AAPL", LocalDate.of(2025, 1, 13), 50.0);
+        DailyPrice friday = buildPrice("AAPL", LocalDate.of(2025, 1, 10), 200.0);
+
+        CorporateAction split = new CorporateAction();
+        split.setTicker("AAPL");
+        split.setActionType(ActionType.SPLIT);
+        // Saturday: no matching price row; must apply on Monday instead of being dropped.
+        split.setEffectiveDate(LocalDate.of(2025, 1, 11));
+        split.setRatio(0.25);
+
+        when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(List.of(split));
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(monday, friday));
+        stubFreshListing("AAPL");
+
+        Map<String, Object> result = service.adjustTicker("AAPL");
+
+        assertEquals(50.0, monday.getAdjustedClose());
+        assertEquals(50.0, friday.getAdjustedClose());
+        assertEquals(1, result.get("snappedActions"));
+    }
+
+    @Test
+    void adjustTicker_actionAfterNewestPrice_isIgnoredForNow() {
+        Asset asset = buildAsset(320193L);
+        DailyPrice dp = buildPrice("AAPL", LocalDate.of(2025, 1, 10), 200.0);
+
+        CorporateAction split = new CorporateAction();
+        split.setTicker("AAPL");
+        split.setActionType(ActionType.SPLIT);
+        split.setEffectiveDate(LocalDate.of(2025, 1, 20));
+        split.setRatio(0.25);
+
+        when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(List.of(split));
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(dp));
+        stubFreshListing("AAPL");
+
+        Map<String, Object> result = service.adjustTicker("AAPL");
+
+        assertEquals(200.0, dp.getAdjustedClose());
+        assertEquals(0, result.get("snappedActions"));
     }
 
     @Test
@@ -320,12 +393,16 @@ class PriceAdjustmentServiceTest {
                         "AAPL", 2, 2, 0, 0, 0, 0, List.of());
         when(corporateActionValidationService.validateTicker("AAPL", LocalDate.of(2016, 1, 1)))
                 .thenReturn(validationReport);
+        when(adjustedPriceValidationService.validateTicker("AAPL", LocalDate.of(2016, 1, 1)))
+                .thenReturn(AdjustedPriceValidationService.PriceValidationReport.empty("AAPL", "no_reference_data"));
 
         Map<String, Object> result = service.adjustTicker("AAPL", false, false, false, true);
 
         assertEquals("ok", result.get("status"));
         assertNotNull(result.get("validationReport"));
+        assertNotNull(result.get("priceValidationReport"));
         verify(corporateActionValidationService).validateTicker("AAPL", LocalDate.of(2016, 1, 1));
+        verify(adjustedPriceValidationService).validateTicker("AAPL", LocalDate.of(2016, 1, 1));
     }
 
     @Test
@@ -352,8 +429,9 @@ class PriceAdjustmentServiceTest {
     }
 
     @Test
-    void adjustAllTickers_skipsSecFetchWhenActionsExist() {
+    void adjustAllTickers_skipsSecFetchWhenActionsExistAndDetectionFresh() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
+        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now());
 
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
         when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
@@ -389,6 +467,128 @@ class PriceAdjustmentServiceTest {
 
         assertEquals(1, result.get("tickersProcessed"));
         verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
+    }
+
+    @Test
+    void adjustAllTickers_staleDetectionIsRescheduledAndStamped() {
+        Asset aapl = buildAssetWithListing("AAPL", 320193L);
+        Listing listing = aapl.getListings().get(0);
+        listing.setLastSecDetectionAt(LocalDateTime.now().minusDays(
+                PriceAdjustmentService.SEC_REDETECTION_INTERVAL_DAYS + 1));
+
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(Collections.emptyList());
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
+                .thenReturn(buildEquityReport("AAPL", 320193L, 0));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 1), 100.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(false);
+
+        assertEquals(1, result.get("scheduledDetections"));
+        verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
+        verify(listingRepository).save(listing);
+        assertNotNull(listing.getLastSecDetectionAt());
+        assertTrue(listing.getLastSecDetectionAt().isAfter(LocalDateTime.now().minusMinutes(1)));
+    }
+
+    @Test
+    void adjustAllTickers_capLimitsScheduledDetectionsPerRun() {
+        // 3 tickers all never detected: cap = ceil(3/7) = 1, so only one is re-detected
+        // this run; the rest drain on subsequent runs (oldest first).
+        Asset a = buildAssetWithListing("AAA", 1L);
+        Asset b = buildAssetWithListing("BBB", 2L);
+        Asset c = buildAssetWithListing("CCC", 3L);
+
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(Collections.emptyList());
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAA", "BBB", "CCC"));
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(a, b, c));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAA", "BBB", "CCC"));
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics(anyString(), anyLong()))
+                .thenReturn(buildEquityReport("X", 1L, 0));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc(anyString()))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc(anyString()))
+                .thenReturn(List.of(buildPrice("X", LocalDate.of(2025, 1, 1), 100.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(false);
+
+        assertEquals(1, result.get("scheduledDetections"));
+        verify(equityCorporateActionService, times(1)).detectAndPersistWithDiagnostics(anyString(), anyLong());
+        verify(listingRepository, times(1)).save(any(Listing.class));
+    }
+
+    @Test
+    void adjustAllTickers_priceJumpTriggersImmediateRedetection() {
+        // Fresh stamp and existing actions would normally skip the SEC fetch, but the
+        // -75% overnight move (split signature) forces same-run re-detection.
+        Asset aapl = buildAssetWithListing("AAPL", 320193L);
+        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now());
+
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(dailyPriceRepository.findTop2ByTickerOrderByTradeDateDesc("AAPL")).thenReturn(List.of(
+                buildPrice("AAPL", LocalDate.of(2025, 1, 3), 50.0),
+                buildPrice("AAPL", LocalDate.of(2025, 1, 2), 200.0)));
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
+                .thenReturn(buildEquityReport("AAPL", 320193L, 1));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 3), 50.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(false);
+
+        assertEquals(1, result.get("jumpTriggeredDetections"));
+        verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
+    }
+
+    @Test
+    void adjustAllTickers_normalMoveDoesNotTriggerRedetection() {
+        Asset aapl = buildAssetWithListing("AAPL", 320193L);
+        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now());
+
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(dailyPriceRepository.findTop2ByTickerOrderByTradeDateDesc("AAPL")).thenReturn(List.of(
+                buildPrice("AAPL", LocalDate.of(2025, 1, 3), 202.0),
+                buildPrice("AAPL", LocalDate.of(2025, 1, 2), 200.0)));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 3), 202.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(false);
+
+        assertEquals(0, result.get("jumpTriggeredDetections"));
+        verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
+    }
+
+    @Test
+    void adjustAllTickers_errorLeavesAdjustedNullForRetry() {
+        Asset aapl = buildAssetWithListing("AAPL", 320193L);
+
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(Collections.emptyList());
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
+                .thenThrow(new RuntimeException("SEC fetch failed"));
+
+        Map<String, Object> result = service.adjustAllTickers(false);
+
+        assertEquals(1, result.get("failedTickers"));
+        assertEquals(0, result.get("tickersProcessed"));
+        // No raw-as-adjusted freeze: adjusted stays NULL so the next run retries.
+        verify(dailyPriceRepository, never()).saveAll(anyList());
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,7 @@ class EquityCorporateActionServiceTest {
     @Mock private WebService webService;
     @Mock private CorporateActionFilingDateService corporateActionFilingDateService;
     @Mock private CorporateActionRepository corporateActionRepository;
+    @Mock private DailyPriceRepository dailyPriceRepository;
     @Spy private ObjectMapper mapper = new ObjectMapper();
     @InjectMocks private EquityCorporateActionService service;
 
@@ -830,8 +832,14 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                eq("AAPL"), eq(ActionType.SPLIT), eq(LocalDate.of(2024, 6, 30)))).thenReturn(true);
+        CorporateAction existingSplit = new CorporateAction();
+        existingSplit.setTicker("AAPL");
+        existingSplit.setActionType(ActionType.SPLIT);
+        existingSplit.setEffectiveDate(LocalDate.of(2024, 6, 30));
+        existingSplit.setRatio(0.25);
+        existingSplit.setConfidenceScore(40.0);
+        existingSplit.setExDateSource(CorporateAction.EX_DATE_SOURCE_SHARE_FACT);
+        when(corporateActionRepository.findByTicker("AAPL")).thenReturn(List.of(existingSplit));
 
         int created = service.detectAndPersist("AAPL", 320193L);
 

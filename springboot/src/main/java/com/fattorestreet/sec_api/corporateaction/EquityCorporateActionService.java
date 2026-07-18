@@ -1,11 +1,14 @@
 package com.fattorestreet.sec_api.corporateaction;
 
 import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.corporateaction.support.DividendDeclarationTupleExtractor;
 import com.fattorestreet.sec_api.corporateaction.support.EquityDividendFactParser;
 import com.fattorestreet.sec_api.corporateaction.support.EquityDividendNormalizer;
 import com.fattorestreet.sec_api.corporateaction.support.EquityDividendUpserter;
 import com.fattorestreet.sec_api.corporateaction.support.EquityExDateAssigner;
 import com.fattorestreet.sec_api.corporateaction.support.EquitySplitDetector;
+import com.fattorestreet.sec_api.corporateaction.support.SplitPriceCorroborator;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,12 +41,14 @@ public class EquityCorporateActionService {
     public EquityCorporateActionService(WebService webService,
                                         CorporateActionFilingDateService corporateActionFilingDateService,
                                         CorporateActionRepository corporateActionRepository,
+                                        DailyPriceRepository dailyPriceRepository,
                                         ObjectMapper mapper) {
         this.webService = webService;
         this.corporateActionFilingDateService = corporateActionFilingDateService;
         this.corporateActionRepository = corporateActionRepository;
         this.mapper = mapper;
-        this.equitySplitDetector = new EquitySplitDetector(corporateActionFilingDateService, corporateActionRepository);
+        this.equitySplitDetector = new EquitySplitDetector(corporateActionFilingDateService, corporateActionRepository,
+                new SplitPriceCorroborator(dailyPriceRepository));
         this.equityDividendFactParser = new EquityDividendFactParser();
         this.equityDividendNormalizer = new EquityDividendNormalizer();
         this.equityExDateAssigner = new EquityExDateAssigner(corporateActionFilingDateService);
@@ -93,14 +98,18 @@ public class EquityCorporateActionService {
         List<CorporateActionFilingDateService.ExDividendDateCandidate> exDividendDirect = recordDateScan != null
                 ? recordDateScan.exDividendDirectCandidates()
                 : List.of();
+        List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations = recordDateScan != null
+                ? recordDateScan.declarations()
+                : List.of();
         Map<String, Integer> discoveredForms = recordDateScan != null ? recordDateScan.discoveredByForm() : Map.of();
         Map<String, Integer> selectedForms = recordDateScan != null ? recordDateScan.selectedByForm() : Map.of();
         Map<String, Integer> rejectedForms = recordDateScan != null ? recordDateScan.rejectedByForm() : Map.of();
-        log.info("[{}] Dividend detection inputs: {} SEC facts, {} normalized events, {} record-date candidates, {} direct ex-date candidates",
-                ticker, facts.size(), normalized.size(), recordDates.size(), exDividendDirect.size());
-        AssignmentResult assignmentResult = equityExDateAssigner.assignExDividendDates(normalized, recordDates, exDividendDirect);
-        List<DividendEvent> detectedEvents = assignmentResult.events();
+        log.info("[{}] Dividend detection inputs: {} SEC facts, {} normalized events, {} record-date candidates, {} direct ex-date candidates, {} declaration tuples",
+                ticker, facts.size(), normalized.size(), recordDates.size(), exDividendDirect.size(), declarations.size());
         List<CorporateAction> corporateActions = corporateActionRepository.findByTicker(ticker);
+        AssignmentResult assignmentResult = equityExDateAssigner.assignExDividendDates(
+                normalized, recordDates, exDividendDirect, declarations, corporateActions);
+        List<DividendEvent> detectedEvents = assignmentResult.events();
         List<DividendEvent> splitAdjustedEvents = equityDividendNormalizer.adjustDividendsForFutureSplits(detectedEvents, corporateActions);
 
         UpsertStats upsertStats = equityDividendUpserter.upsertDividendEvents(ticker, splitAdjustedEvents);
@@ -112,8 +121,13 @@ public class EquityCorporateActionService {
                 facts.size(),
                 normalized.size(),
                 recordDates.size(),
+                declarations.size(),
                 assignmentResult.recordBasedAssignments(),
                 assignmentResult.fallbackAssignments(),
+                assignmentResult.tupleMatchedAssignments(),
+                assignmentResult.directExAssignments(),
+                assignmentResult.dpAssignments(),
+                assignmentResult.syntheticAssignments(),
                 upsertStats.changed(),
                 upsertStats.inserted(),
                 upsertStats.updated(),
@@ -172,9 +186,14 @@ public class EquityCorporateActionService {
             int splitDateCandidates,
             int created,
             int secDateMatches,
-            int fallbackDetectedDate) {
+            int fallbackDetectedDate,
+            int priceCorroborated,
+            int priceSnapped,
+            int priceRejected,
+            int priceOnlyDetected,
+            int priceOnlyUnconfirmed) {
         private static SplitDetectionStats empty() {
-            return new SplitDetectionStats(0, 0, 0, 0, 0);
+            return new SplitDetectionStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
         private Map<String, Object> toMap() {
@@ -184,6 +203,11 @@ public class EquityCorporateActionService {
             out.put("created", created);
             out.put("secDateMatches", secDateMatches);
             out.put("fallbackDetectedDate", fallbackDetectedDate);
+            out.put("priceCorroborated", priceCorroborated);
+            out.put("priceSnapped", priceSnapped);
+            out.put("priceRejected", priceRejected);
+            out.put("priceOnlyDetected", priceOnlyDetected);
+            out.put("priceOnlyUnconfirmed", priceOnlyUnconfirmed);
             return out;
         }
     }
@@ -192,8 +216,13 @@ public class EquityCorporateActionService {
             int factsParsed,
             int normalizedEvents,
             int recordDateCandidates,
+            int declarationTuples,
             int exDateFromRecordPath,
             int exDateFallbackPath,
+            int tupleMatchedAssignments,
+            int directExAssignments,
+            int dpAssignments,
+            int syntheticAssignments,
             int changed,
             int inserted,
             int updated,
@@ -202,7 +231,7 @@ public class EquityCorporateActionService {
             Map<String, Integer> recordDateFormsRejected) {
         private static DividendDetectionStats empty(int factsParsed) {
             return new DividendDetectionStats(
-                    factsParsed, 0, 0, 0, 0, 0, 0, 0,
+                    factsParsed, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     Map.of(), Map.of(), Map.of());
         }
 
@@ -211,8 +240,13 @@ public class EquityCorporateActionService {
             out.put("factsParsed", factsParsed);
             out.put("normalizedEvents", normalizedEvents);
             out.put("recordDateCandidates", recordDateCandidates);
+            out.put("declarationTuples", declarationTuples);
             out.put("exDateFromRecordPath", exDateFromRecordPath);
             out.put("exDateFallbackPath", exDateFallbackPath);
+            out.put("tupleMatchedAssignments", tupleMatchedAssignments);
+            out.put("directExAssignments", directExAssignments);
+            out.put("dpAssignments", dpAssignments);
+            out.put("syntheticAssignments", syntheticAssignments);
             out.put("changed", changed);
             out.put("inserted", inserted);
             out.put("updated", updated);
@@ -226,7 +260,11 @@ public class EquityCorporateActionService {
     public static record AssignmentResult(
             List<DividendEvent> events,
             int recordBasedAssignments,
-            int fallbackAssignments) {
+            int fallbackAssignments,
+            int tupleMatchedAssignments,
+            int directExAssignments,
+            int dpAssignments,
+            int syntheticAssignments) {
     }
 
     public static record UpsertStats(int changed, int inserted, int updated, int pruned) {
@@ -243,6 +281,9 @@ public class EquityCorporateActionService {
     /**
      * @param fiscalPeriodEnd quarter-end (or period end) from XBRL facts
      * @param exDividendDate    ex-dividend date; null until {@code assignExDividendDates} runs
+     * @param recordDate      record date when known (from a matched declaration tuple or DP candidate)
+     * @param payDate         payable date when stated in a matched declaration tuple
+     * @param exDateSource    how the ex-date was assigned; see CorporateAction.EX_DATE_SOURCE_* constants
      */
     public static record DividendEvent(
             LocalDate fiscalPeriodEnd,
@@ -250,7 +291,21 @@ public class EquityCorporateActionService {
             double rawAmount,
             double adjustedAmount,
             int year,
-            boolean specialEvent) {
+            boolean specialEvent,
+            LocalDate recordDate,
+            LocalDate payDate,
+            String exDateSource) {
+
+        /** Pre-assignment constructor: provenance fields are filled in by the ex-date assigner. */
+        public DividendEvent(
+                LocalDate fiscalPeriodEnd,
+                LocalDate exDividendDate,
+                double rawAmount,
+                double adjustedAmount,
+                int year,
+                boolean specialEvent) {
+            this(fiscalPeriodEnd, exDividendDate, rawAmount, adjustedAmount, year, specialEvent, null, null, null);
+        }
 
         /** Trading date used for persistence and Yahoo comparison (ex-date when assigned). */
         public LocalDate effectiveDate() {

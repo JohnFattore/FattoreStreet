@@ -3,7 +3,9 @@
 Runs the bulky nightly price load (`IexHistService.loadHistData`) as an **ephemeral Fargate task**
 instead of keeping 4 GB of RAM provisioned 24/7 on the EC2 box. The same Spring Boot jar runs the
 API on EC2 (default `APP_RUN_MODE=server`) and the one-shot load on Fargate (`APP_RUN_MODE=hist-load`,
-via `HistLoadRunner`, which runs the load once and exits).
+via `HistLoadRunner`, which runs the load once and exits). After a successful load the task also runs
+corporate-action price adjustment (`adjustAllTickers`, rolling SEC re-detection included); set
+`HIST_LOAD_ADJUST_ENABLED=false` on the task to skip it.
 
 ## Architecture
 
@@ -12,7 +14,7 @@ EventBridge Scheduler (cron)
         │ RunTask
         ▼
 Fargate task (ARM64, 1 vCPU / 4 GB, public subnet + public IP, no NAT)
-   APP_RUN_MODE=hist-load  → HistLoadRunner → loadHistData() → System.exit
+   APP_RUN_MODE=hist-load  → HistLoadRunner → loadHistData() → adjustAllTickers(false) → System.exit
         │ 5432
         ▼
 Postgres on the EC2 instance  (its SG gets one ingress rule from the task SG)

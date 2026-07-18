@@ -34,4 +34,6 @@ public interface DailyPriceRepository extends JpaRepository<DailyPrice, Long> {
 
     @Query("SELECT DISTINCT d.ticker FROM DailyPrice d WHERE d.adjustedClose IS NULL")
     List<String> findTickersWithUnadjustedPrices();
+
+    List<DailyPrice> findTop2ByTickerOrderByTradeDateDesc(String ticker);
 }

@@ -198,4 +198,71 @@ class EquityDividendUpserterTest {
         assertEquals(0, stats.pruned());
         verify(corporateActionRepository, never()).delete(existOld);
     }
+
+    private EquityCorporateActionService.DividendEvent eventWithProvenance(
+            LocalDate exDate, double raw, String exDateSource, LocalDate recordDate, LocalDate payDate) {
+        return new EquityCorporateActionService.DividendEvent(
+                exDate.minusDays(40), exDate, raw, raw, exDate.getYear(), false,
+                recordDate, payDate, exDateSource);
+    }
+
+    @Test
+    void insertPersistsProvenanceFields() {
+        LocalDate exDate = LocalDate.of(2024, 3, 14);
+        LocalDate recordDate = LocalDate.of(2024, 3, 15);
+        LocalDate payDate = LocalDate.of(2024, 3, 28);
+        when(corporateActionRepository.findByTicker("AAPL")).thenReturn(List.of());
+        when(corporateActionRepository.findAllByTickerAndActionTypeAndEffectiveDate(any(), any(), any()))
+                .thenReturn(List.of());
+        when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        upserter.upsertDividendEvents("AAPL", List.of(eventWithProvenance(
+                exDate, 0.22, CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED, recordDate, payDate)));
+
+        verify(corporateActionRepository).save(argThat(a ->
+                CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED.equals(a.getExDateSource())
+                        && recordDate.equals(a.getRecordDate())
+                        && payDate.equals(a.getPayDate())
+                        && Double.valueOf(95.0).equals(a.getConfidenceScore())));
+    }
+
+    @Test
+    void syntheticEventDoesNotMoveTupleAnchoredDate() {
+        LocalDate tupleDate = LocalDate.of(2024, 3, 14);
+        LocalDate syntheticDate = LocalDate.of(2024, 3, 22);
+        CorporateAction existing = existingDividend("AAPL", tupleDate, 0.22, 0.22);
+        existing.setExDateSource(CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED);
+        existing.setConfidenceScore(95.0);
+        when(corporateActionRepository.findByTicker("AAPL")).thenReturn(List.of(existing));
+
+        EquityCorporateActionService.UpsertStats stats = upserter.upsertDividendEvents("AAPL",
+                List.of(eventWithProvenance(syntheticDate, 0.22, CorporateAction.EX_DATE_SOURCE_SYNTHETIC, null, null)));
+
+        // Amounts unchanged and the date is protected: nothing to save.
+        assertEquals(0, stats.updated());
+        assertEquals(tupleDate, existing.getEffectiveDate());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED, existing.getExDateSource());
+        verify(corporateActionRepository, never()).save(any());
+    }
+
+    @Test
+    void tupleMatchedEventMovesSyntheticDate() {
+        LocalDate syntheticDate = LocalDate.of(2024, 3, 22);
+        LocalDate tupleDate = LocalDate.of(2024, 3, 14);
+        LocalDate recordDate = LocalDate.of(2024, 3, 15);
+        CorporateAction existing = existingDividend("AAPL", syntheticDate, 0.22, 0.22);
+        existing.setExDateSource(CorporateAction.EX_DATE_SOURCE_SYNTHETIC);
+        existing.setConfidenceScore(10.0);
+        when(corporateActionRepository.findByTicker("AAPL")).thenReturn(List.of(existing));
+        when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EquityCorporateActionService.UpsertStats stats = upserter.upsertDividendEvents("AAPL",
+                List.of(eventWithProvenance(tupleDate, 0.22, CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED, recordDate, null)));
+
+        assertEquals(1, stats.updated());
+        assertEquals(tupleDate, existing.getEffectiveDate());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED, existing.getExDateSource());
+        assertEquals(recordDate, existing.getRecordDate());
+        assertEquals(95.0, existing.getConfidenceScore());
+    }
 }

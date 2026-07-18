@@ -166,10 +166,16 @@ curl "http://localhost:8080/index-members?code=FAT1000"
 
 ### Price Adjustments (Splits & Dividends)
 
-Corporate action detection and price adjustment is decoupled from IEX loading. Run it separately:
+Corporate action detection and price adjustment runs automatically at the end of the nightly
+Fargate hist-load task (`APP_RUN_MODE=hist-load`; disable with env `HIST_LOAD_ADJUST_ENABLED=false`,
+property `app.hist-load.adjust-enabled`). Without `force`, SEC detection refreshes on a rolling
+cadence: each run re-detects the stalest ~1/7 of tickers (tracked via `listings.last_sec_detection_at`,
+so every ticker is re-scanned about weekly), and any ticker whose freshly loaded close moved more
+than 25% overnight is re-detected immediately (split signature). The endpoints below stay available
+for manual runs:
 
 ```bash
-# Adjust all tickers (skips SEC re-fetch for tickers with existing actions)
+# Adjust all tickers (rolling SEC re-detection: stalest ~1/7 of tickers + price-jump triggers)
 curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/adjust-prices
 
 # Force re-fetch from SEC for all tickers (catches new splits/dividends)
@@ -183,6 +189,10 @@ curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjus
 
 # Optional diagnostics-only validation against yfinance reference events (via Django portfolio API)
 curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?ticker=AAPL&force=true&validateWithYfinance=true"
+
+# Diagnostics-only adjusted-price comparison against the yfinance adjusted-close reference
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/validate-adjusted-prices?ticker=AAPL"
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/validate-adjusted-prices?minDate=2020-01-01"
 ```
 
 Dividend ingestion behavior:
@@ -190,9 +200,13 @@ Dividend ingestion behavior:
 - Prefers true quarterly facts over cumulative rows for the same period end date (with form-priority tie-breaks) and skips annual-only period-end leakage.
 - Derives missing fiscal Q4 payouts from annual 10-K totals when quarter facts are absent, with guardrails to reject implausible derived values.
 - Carries **fiscal quarter-end** (XBRL) and **ex-dividend date** separately through detection; split-adjustment applies forward-split factors using ex-dates (Yahoo-aligned), not quarter-end alone.
+- **Anchors ex-dates to declaration tuples first**: 8-K / press-release text is mined for (per-share amount, record date, payable date, ex-date) tuples; a tuple whose amount matches the XBRL event (declared basis or split-restated) supplies the record/ex dates directly. Direct ex-date extraction and the DP record-date assignment remain as fallbacks.
 - Derives ex-dates from SEC 8-K record-date disclosures using weighted candidate extraction (primary filing + exhibit scan), filing-date gates, and global quarter-sequence assignment; when filings state an explicit **ex-dividend date**, that date is preferred when it plausibly follows the fiscal period end.
 - Uses confidence-aware inferred fallback ex-dates (cadence/lag based) when no reliable record date can be extracted, instead of persisting quarter-end placeholders.
-- Derives split effective dates from SEC 8-K filing/exhibit text when available (including archived SEC submission bundles), and falls back to SEC shares-jump detection dates with low-confidence logging when unresolved. **Non-standard** forward ratios (e.g. 3:2, 4:3) are only persisted when a filing-derived split effective date aligns with the shares jump (guards against buybacks/secondaries).
+- **Persists ex-date provenance** (`ex_date_source` column, V3 migration): `TUPLE_MATCHED` / `DIRECT_EX_TEXT` / `RECORD_DP` / `SYNTHETIC` for dividends, `PRICE_BREAK` / `FILING_TEXT` / `SHARE_FACT` for splits, with matching `confidenceScore`. A weaker-grounded re-detection never moves a date set by a stronger path (protects tuple-anchored dates from transient filing-fetch failures).
+- **Corroborates splits against raw IEX closes**: the split effective date is snapped to the observed overnight price break (price break > filing text > share-fact date); XBRL split candidates with full price coverage and no matching break are rejected as buyback/issuance artifacts; a same-ratio split within ±90 days is re-dated in place instead of duplicated.
+- **Detects missed splits from price breaks**: unexplained overnight moves that snap to a split multiplier and persist across the surrounding days are persisted as `SEC_PRICE_CORROBORATED` when a SEC filing split-date candidate is within ±14 days, or on price evidence alone for ≥5x moves. This makes the >25% overnight-jump re-detection catch a fresh split the same night.
+- Derives split effective dates from SEC 8-K filing/exhibit text when available (including archived SEC submission bundles), and falls back to SEC shares-jump detection dates with low-confidence logging when unresolved. **Non-standard** forward ratios (e.g. 3:2, 4:3) are persisted when a filing-derived split effective date aligns with the shares jump **or** a corroborating price break exists (guards against buybacks/secondaries).
 - During a single equity ticker load, SEC filing HTTP responses are deduped in-memory (per thread) so overlapping split/dividend scans do not download the same accession documents twice. This is not a cross-ticker or persistent cache.
 - Uses bounded SEC retries with configurable timeouts to prevent indefinite hangs during long reconciliation scans.
 - Stores both SEC raw and split-adjusted dividend values per event (`rawDividend`, `adjustedDividend`), while keeping `ratio` as a compatibility alias to adjusted values.
@@ -211,13 +225,20 @@ Dividend ingestion behavior:
 - Returns equity diagnostics in `/admin/adjust-prices` output:
   - single-equity ticker mode: `equityDiagnostics`
   - batch mode: `equityDiagnosticsSummary`
-  - includes split/date-path counters and dividend parser-path counters (facts parsed, normalized events, record-date path usage, fallback usage, inserts/updates).
+  - includes split/date-path counters and dividend parser-path counters (facts parsed, normalized events, record-date path usage, fallback usage, inserts/updates), plus split price-corroboration counters (`priceCorroborated`, `priceSnapped`, `priceRejected`, `priceOnlyDetected`, `priceOnlyUnconfirmed`) and ex-date assignment-path counters (`declarationTuples`, `tupleMatchedAssignments`, `directExAssignments`, `dpAssignments`, `syntheticAssignments`).
+- Actions dated on non-trading days (weekends, holidays, inferred ex-dates) are snapped forward to the next trade date instead of being silently dropped; batch output reports `totalSnappedActions`, single-ticker output reports `snappedActions`.
+- Per-ticker batch failures leave adjusted columns NULL so the ticker is retried on the next run (no raw-as-adjusted freeze); batch output reports `failedTickers`, plus `scheduledDetections` and `jumpTriggeredDetections` for the rolling re-detection.
 - Optional yfinance validation report (`validateWithYfinance=true`) is diagnostics-only:
   - Spring Boot reads yfinance reference data from Django public endpoints (`/portfolio/api/asset-dividends/`, `/portfolio/api/asset-splits/`) configured by `DJANGO_PORTFOLIO_BASE_URL`.
   - ticker mode adds `validationReport`
   - batch mode adds `validationSummary`
   - mismatch taxonomy: `missing_in_sec`, `extra_in_sec`, `date_drift`, `amount_drift`
+  - ticker mode also adds `priceValidationReport` and batch mode `priceValidationSummary` (see below)
   - **No yfinance values are written to DB**; SEC remains source of truth.
+- Adjusted-price validation (`GET /admin/validate-adjusted-prices?ticker=&minDate=`) compares stored `adjustedClose` against the yfinance adjusted-close reference (`/portfolio/api/asset-prices/`), normalized at the latest common date:
+  - reports `meanAbsDeviation`, `maxAbsDeviation`, `datesOverThreshold` (0.5% level threshold)
+  - reports `breaks`: dates where the sec/yf ratio steps day-over-day by more than 1%, each with the nearest stored corporate action within ±7 days; every break localizes one missing, extra, or misdated event
+  - omit `ticker` for a batch summary (`worstTickers`, `sampleBreaks`); diagnostics-only, never persisted, never called by the nightly job.
 - Public comparison endpoints exposed for UI validation views:
   - `GET /dividends?ticker=...` returns persisted internal dividend actions.
   - `GET /splits?ticker=...` returns persisted internal split actions (`ratio` is `old_shares / new_shares`).

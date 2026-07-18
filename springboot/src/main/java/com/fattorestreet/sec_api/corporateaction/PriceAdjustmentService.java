@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,12 +17,20 @@ import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import com.fattorestreet.sec_api.repository.ListingRepository;
+
+import java.time.LocalDateTime;
 
 @Service
 public class PriceAdjustmentService {
 
     private static final Logger log = LoggerFactory.getLogger(PriceAdjustmentService.class);
     private static final MathContext FACTOR_MATH = MathContext.DECIMAL64;
+    private static final LocalDate VALIDATION_MIN_DATE = LocalDate.of(2016, 1, 1);
+    /** Rolling SEC re-detection cadence: every ticker is re-scanned about weekly. */
+    static final int SEC_REDETECTION_INTERVAL_DAYS = 7;
+    /** Overnight |return| above this forces same-run re-detection (splits show up as huge raw jumps). */
+    static final double JUMP_REDETECTION_RETURN_THRESHOLD = 0.25;
 
     private final DailyPriceRepository dailyPriceRepository;
     private final CorporateActionRepository corporateActionRepository;
@@ -31,19 +38,25 @@ public class PriceAdjustmentService {
     private final EquityCorporateActionService equityCorporateActionService;
     private final EtfCorporateActionService etfCorporateActionService;
     private final CorporateActionValidationService corporateActionValidationService;
+    private final AdjustedPriceValidationService adjustedPriceValidationService;
+    private final ListingRepository listingRepository;
 
     public PriceAdjustmentService(DailyPriceRepository dailyPriceRepository,
                                   CorporateActionRepository corporateActionRepository,
                                   AssetRepository assetRepository,
                                   EquityCorporateActionService equityCorporateActionService,
                                   EtfCorporateActionService etfCorporateActionService,
-                                  CorporateActionValidationService corporateActionValidationService) {
+                                  CorporateActionValidationService corporateActionValidationService,
+                                  AdjustedPriceValidationService adjustedPriceValidationService,
+                                  ListingRepository listingRepository) {
         this.dailyPriceRepository = dailyPriceRepository;
         this.corporateActionRepository = corporateActionRepository;
         this.assetRepository = assetRepository;
         this.equityCorporateActionService = equityCorporateActionService;
         this.etfCorporateActionService = etfCorporateActionService;
         this.corporateActionValidationService = corporateActionValidationService;
+        this.adjustedPriceValidationService = adjustedPriceValidationService;
+        this.listingRepository = listingRepository;
     }
 
     /**
@@ -93,9 +106,12 @@ public class PriceAdjustmentService {
 
         List<CorporateAction> actions = corporateActionRepository.findByTickerOrderByEffectiveDateDesc(normalizedTicker);
         boolean hasEquityDividends = actions.stream().anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
+        Listing listing = listingRepository.findByTicker(normalizedTicker).orElse(null);
         boolean shouldFetchSec = force
                 || actions.isEmpty()
-                || (!isFund && validateWithYfinance && !hasEquityDividends);
+                || isDetectionStale(listing)
+                || (!isFund && validateWithYfinance && !hasEquityDividends)
+                || hasOvernightPriceJump(normalizedTicker);
         int newActions;
         EtfCorporateActionService.EtfDetectionReport etfReport = null;
         EquityCorporateActionService.EquityDetectionReport equityReport = null;
@@ -107,6 +123,7 @@ public class PriceAdjustmentService {
                 equityReport = equityCorporateActionService.detectAndPersistWithDiagnostics(normalizedTicker, asset.getCik());
                 newActions = equityReport.savedActions();
             }
+            stampDetection(listing);
             actions = corporateActionRepository.findByTickerOrderByEffectiveDateDesc(normalizedTicker);
         } else {
             newActions = 0;
@@ -114,14 +131,15 @@ public class PriceAdjustmentService {
         int splits = (int) actions.stream().filter(a -> a.getActionType() == ActionType.SPLIT).count();
         int dividends = (int) actions.stream().filter(a -> a.getActionType() == ActionType.DIVIDEND).count();
 
-        int updated = applyAdjustments(normalizedTicker, actions);
+        AdjustmentOutcome outcome = applyAdjustments(normalizedTicker, actions);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ticker", normalizedTicker);
         out.put("status", "ok");
         out.put("newActions", newActions);
         out.put("splits", splits);
         out.put("dividends", dividends);
-        out.put("pricesUpdated", updated);
+        out.put("pricesUpdated", outcome.pricesUpdated());
+        out.put("snappedActions", outcome.snappedActions());
         if (isFund && etfReport != null) {
             out.put("etfDiagnostics", etfReport.toMap());
         }
@@ -130,8 +148,10 @@ public class PriceAdjustmentService {
         }
         if (validateWithYfinance) {
             CorporateActionValidationService.ValidationReport validationReport =
-                    corporateActionValidationService.validateTicker(normalizedTicker, LocalDate.of(2016, 1, 1));
+                    corporateActionValidationService.validateTicker(normalizedTicker, VALIDATION_MIN_DATE);
             out.put("validationReport", validationReport.toMap());
+            out.put("priceValidationReport",
+                    adjustedPriceValidationService.validateTicker(normalizedTicker, VALIDATION_MIN_DATE).toMap());
         }
         return out;
     }
@@ -166,29 +186,41 @@ public class PriceAdjustmentService {
         Set<String> tickersNeedingAdjustment = new HashSet<>(dailyPriceRepository.findTickersWithUnadjustedPrices());
         Set<String> tickersWithExistingActions = new HashSet<>(corporateActionRepository.findDistinctTickers());
 
-        Map<String, Asset> assetByTicker = assetRepository.findAllWithListings().stream()
-                .flatMap(a -> a.getListings().stream()
-                        .map(listing -> Map.entry(listing.getTicker(), a)))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
+        Map<String, Asset> assetByTicker = new HashMap<>();
+        Map<String, Listing> listingByTicker = new HashMap<>();
+        for (Asset asset : assetRepository.findAllWithListings()) {
+            for (Listing listing : asset.getListings()) {
+                assetByTicker.putIfAbsent(listing.getTicker(), asset);
+                listingByTicker.putIfAbsent(listing.getTicker(), listing);
+            }
+        }
 
         Set<String> allPriceTickers = new HashSet<>(dailyPriceRepository.findDistinctTickers());
 
+        Set<String> scheduledDetections = scheduleStaleDetections(allPriceTickers, listingByTicker);
+
         Set<String> tickersToProcess = new HashSet<>(tickersNeedingAdjustment);
+        tickersToProcess.addAll(scheduledDetections);
         if (force) {
             tickersToProcess.addAll(allPriceTickers);
         }
 
-        log.info("Adjust prices: {} total price tickers, {} needing adjustment, {} with existing actions, force={}",
-                allPriceTickers.size(), tickersNeedingAdjustment.size(), tickersWithExistingActions.size(), force);
+        log.info("Adjust prices: {} total price tickers, {} needing adjustment, {} with existing actions, {} scheduled for re-detection, force={}",
+                allPriceTickers.size(), tickersNeedingAdjustment.size(), tickersWithExistingActions.size(),
+                scheduledDetections.size(), force);
 
         int tickersProcessed = 0;
         int totalSplits = 0;
         int totalDividends = 0;
         int totalPricesUpdated = 0;
+        int totalSnappedActions = 0;
         int skippedNoAsset = 0;
+        int failedTickers = 0;
+        int jumpTriggeredDetections = 0;
         List<EtfCorporateActionService.EtfDetectionReport> etfReports = new ArrayList<>();
         List<EquityCorporateActionService.EquityDetectionReport> equityReports = new ArrayList<>();
         List<CorporateActionValidationService.ValidationReport> validationReports = new ArrayList<>();
+        List<AdjustedPriceValidationService.PriceValidationReport> priceValidationReports = new ArrayList<>();
 
         for (String ticker : tickersToProcess) {
             Asset asset = assetByTicker.get(ticker);
@@ -203,20 +235,33 @@ public class PriceAdjustmentService {
             try {
                 boolean hasExistingActions = tickersWithExistingActions.contains(ticker);
                 boolean isFund = Boolean.TRUE.equals(asset.getIsFund());
-                List<CorporateAction> existingActions = hasExistingActions
-                        ? corporateActionRepository.findByTickerOrderByEffectiveDateDesc(ticker)
-                        : List.of();
-                boolean hasEquityDividends = existingActions.stream()
-                        .anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
-                boolean shouldFetchSec = force
-                        || !hasExistingActions
-                        || (!isFund && validateWithYfinance && !hasEquityDividends);
 
                 if (etfOnly && !isFund) {
                     continue;
                 }
                 if (equityOnly && isFund) {
                     continue;
+                }
+
+                List<CorporateAction> existingActions = hasExistingActions
+                        ? corporateActionRepository.findByTickerOrderByEffectiveDateDesc(ticker)
+                        : List.of();
+                boolean hasEquityDividends = existingActions.stream()
+                        .anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
+                Listing listing = listingByTicker.get(ticker);
+                boolean neverDetected = listing == null || listing.getLastSecDetectionAt() == null;
+                boolean shouldFetchSec = force
+                        || scheduledDetections.contains(ticker)
+                        || (!hasExistingActions && neverDetected)
+                        || (!isFund && validateWithYfinance && !hasEquityDividends);
+                // A huge overnight raw move on freshly loaded prices is the signature of a
+                // just-effective split; re-detect immediately instead of waiting for the
+                // rolling refresh to reach this ticker.
+                if (!shouldFetchSec
+                        && tickersNeedingAdjustment.contains(ticker)
+                        && hasOvernightPriceJump(ticker)) {
+                    jumpTriggeredDetections++;
+                    shouldFetchSec = true;
                 }
 
                 if (shouldFetchSec) {
@@ -229,15 +274,19 @@ public class PriceAdjustmentService {
                                 equityCorporateActionService.detectAndPersistWithDiagnostics(ticker, asset.getCik());
                         equityReports.add(report);
                     }
+                    stampDetection(listing);
                     Thread.sleep(100);
                 }
 
                 List<CorporateAction> actions = corporateActionRepository.findByTickerOrderByEffectiveDateDesc(ticker);
                 totalSplits += actions.stream().filter(a -> a.getActionType() == ActionType.SPLIT).count();
                 totalDividends += actions.stream().filter(a -> a.getActionType() == ActionType.DIVIDEND).count();
-                totalPricesUpdated += applyAdjustments(ticker, actions);
+                AdjustmentOutcome outcome = applyAdjustments(ticker, actions);
+                totalPricesUpdated += outcome.pricesUpdated();
+                totalSnappedActions += outcome.snappedActions();
                 if (validateWithYfinance) {
-                    validationReports.add(corporateActionValidationService.validateTicker(ticker, LocalDate.of(2016, 1, 1)));
+                    validationReports.add(corporateActionValidationService.validateTicker(ticker, VALIDATION_MIN_DATE));
+                    priceValidationReports.add(adjustedPriceValidationService.validateTicker(ticker, VALIDATION_MIN_DATE));
                 }
                 tickersProcessed++;
 
@@ -245,37 +294,103 @@ public class PriceAdjustmentService {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
+                // Leave adjusted columns untouched (NULL rows stay NULL) so the ticker is
+                // retried on the next run instead of freezing raw prices as "adjusted".
+                failedTickers++;
                 log.warn("[{}] Error during adjustment: {}", ticker, e.getMessage());
-                if (tickersNeedingAdjustment.contains(ticker)) {
-                    setRawAsAdjusted(ticker);
-                }
             }
         }
 
-        log.info("Adjustment complete. Processed: {}, Skipped (no asset): {}, Splits: {}, Dividends: {}, Prices updated: {}",
-                tickersProcessed, skippedNoAsset, totalSplits, totalDividends, totalPricesUpdated);
+        log.info("Adjustment complete. Processed: {}, Skipped (no asset): {}, Failed: {}, Splits: {}, Dividends: {}, Prices updated: {}, Snapped actions: {}",
+                tickersProcessed, skippedNoAsset, failedTickers, totalSplits, totalDividends, totalPricesUpdated, totalSnappedActions);
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("tickersProcessed", tickersProcessed);
         out.put("skippedNoAsset", skippedNoAsset);
+        out.put("failedTickers", failedTickers);
         out.put("totalSplits", totalSplits);
         out.put("totalDividends", totalDividends);
         out.put("totalPricesUpdated", totalPricesUpdated);
+        out.put("totalSnappedActions", totalSnappedActions);
+        out.put("scheduledDetections", scheduledDetections.size());
+        out.put("jumpTriggeredDetections", jumpTriggeredDetections);
         out.put("etfDiagnosticsSummary", summarizeEtfDiagnostics(etfReports));
         out.put("equityDiagnosticsSummary", summarizeEquityDiagnostics(equityReports));
         if (validateWithYfinance) {
             out.put("validationSummary", corporateActionValidationService.summarizeBatch(validationReports));
+            out.put("priceValidationSummary", adjustedPriceValidationService.summarizeBatch(priceValidationReports));
         }
         return out;
+    }
+
+    /**
+     * Picks the tickers whose SEC detection is stale (never ran, or older than
+     * {@link #SEC_REDETECTION_INTERVAL_DAYS}), oldest first, capped at roughly
+     * 1/{@value #SEC_REDETECTION_INTERVAL_DAYS} of the price universe per run so the
+     * refresh rolls through every ticker about weekly with bounded runtime and SEC load.
+     */
+    private Set<String> scheduleStaleDetections(Set<String> allPriceTickers, Map<String, Listing> listingByTicker) {
+        LocalDateTime staleCutoff = LocalDateTime.now().minusDays(SEC_REDETECTION_INTERVAL_DAYS);
+        List<String> staleCandidates = new ArrayList<>();
+        for (String ticker : allPriceTickers) {
+            Listing listing = listingByTicker.get(ticker);
+            if (listing == null) {
+                continue;
+            }
+            LocalDateTime last = listing.getLastSecDetectionAt();
+            if (last == null || last.isBefore(staleCutoff)) {
+                staleCandidates.add(ticker);
+            }
+        }
+        staleCandidates.sort(Comparator.comparing(
+                ticker -> listingByTicker.get(ticker).getLastSecDetectionAt(),
+                Comparator.nullsFirst(Comparator.naturalOrder())));
+        int cap = (int) Math.ceil(allPriceTickers.size() / (double) SEC_REDETECTION_INTERVAL_DAYS);
+        return new LinkedHashSet<>(staleCandidates.subList(0, Math.min(cap, staleCandidates.size())));
+    }
+
+    private boolean isDetectionStale(Listing listing) {
+        if (listing == null || listing.getLastSecDetectionAt() == null) {
+            return true;
+        }
+        return listing.getLastSecDetectionAt().isBefore(LocalDateTime.now().minusDays(SEC_REDETECTION_INTERVAL_DAYS));
+    }
+
+    private void stampDetection(Listing listing) {
+        if (listing == null) {
+            return;
+        }
+        listing.setLastSecDetectionAt(LocalDateTime.now());
+        listingRepository.save(listing);
+    }
+
+    /** True when the two most recent raw closes imply an extreme overnight move. */
+    private boolean hasOvernightPriceJump(String ticker) {
+        List<DailyPrice> latest = dailyPriceRepository.findTop2ByTickerOrderByTradeDateDesc(ticker);
+        if (latest.size() < 2) {
+            return false;
+        }
+        Double newClose = latest.get(0).getClosePrice();
+        Double prevClose = latest.get(1).getClosePrice();
+        if (newClose == null || prevClose == null || newClose <= 0 || prevClose <= 0) {
+            return false;
+        }
+        double overnightReturn = newClose / prevClose - 1.0;
+        if (Math.abs(overnightReturn) > JUMP_REDETECTION_RETURN_THRESHOLD) {
+            log.info("[{}] Overnight return {} exceeds jump threshold; forcing SEC re-detection",
+                    ticker, String.format(Locale.US, "%.2f%%", overnightReturn * 100));
+            return true;
+        }
+        return false;
     }
 
     /**
      * Apply cumulative adjustment factors to all DailyPrice records for a ticker.
      * Walks from most recent to oldest, accumulating split and dividend factors.
      */
-    private int applyAdjustments(String ticker, List<CorporateAction> actions) {
+    private AdjustmentOutcome applyAdjustments(String ticker, List<CorporateAction> actions) {
         List<DailyPrice> prices = dailyPriceRepository.findByTickerOrderByTradeDateDesc(ticker);
-        if (prices.isEmpty()) return 0;
+        if (prices.isEmpty()) return new AdjustmentOutcome(0, 0);
 
         if (actions.isEmpty()) {
             for (DailyPrice dp : prices) {
@@ -285,24 +400,42 @@ public class PriceAdjustmentService {
                 dp.setAdjustedClose(dp.getClosePrice());
             }
             dailyPriceRepository.saveAll(prices);
-            return prices.size();
-        }
-
-        Map<LocalDate, List<CorporateAction>> actionsByDate = new HashMap<>();
-        for (CorporateAction a : actions) {
-            actionsByDate.computeIfAbsent(a.getEffectiveDate(), k -> new ArrayList<>()).add(a);
-        }
-        for (List<CorporateAction> dayActions : actionsByDate.values()) {
-            dayActions.sort(Comparator.comparingInt(this::actionPriority));
+            return new AdjustmentOutcome(prices.size(), 0);
         }
 
         Map<LocalDate, Double> priorTradingCloseByDate = new HashMap<>();
+        TreeSet<LocalDate> tradeDates = new TreeSet<>();
         List<DailyPrice> pricesAsc = new ArrayList<>(prices);
         Collections.reverse(pricesAsc);
         Double priorClose = null;
         for (DailyPrice dp : pricesAsc) {
+            tradeDates.add(dp.getTradeDate());
             priorTradingCloseByDate.put(dp.getTradeDate(), priorClose);
             priorClose = dp.getClosePrice();
+        }
+
+        // Actions dated on non-trading days (weekends, holidays, inferred ex-dates) would
+        // never match a price row; snap them forward to the next trade date instead of
+        // silently dropping them.
+        int snappedActions = 0;
+        Map<LocalDate, List<CorporateAction>> actionsByDate = new HashMap<>();
+        for (CorporateAction a : actions) {
+            if (a.getEffectiveDate() == null) {
+                continue;
+            }
+            LocalDate applyDate = tradeDates.ceiling(a.getEffectiveDate());
+            if (applyDate == null) {
+                continue; // effective after the newest price row; nothing to adjust yet
+            }
+            if (!applyDate.equals(a.getEffectiveDate())) {
+                snappedActions++;
+                log.debug("[{}] {} effective {} snapped to trade date {}",
+                        ticker, a.getActionType(), a.getEffectiveDate(), applyDate);
+            }
+            actionsByDate.computeIfAbsent(applyDate, k -> new ArrayList<>()).add(a);
+        }
+        for (List<CorporateAction> dayActions : actionsByDate.values()) {
+            dayActions.sort(Comparator.comparingInt(this::actionPriority));
         }
 
         BigDecimal cumulativeFactor = BigDecimal.ONE;
@@ -341,7 +474,10 @@ public class PriceAdjustmentService {
         }
 
         dailyPriceRepository.saveAll(prices);
-        return prices.size();
+        return new AdjustmentOutcome(prices.size(), snappedActions);
+    }
+
+    private record AdjustmentOutcome(int pricesUpdated, int snappedActions) {
     }
 
     /** For tickers without SEC data, set adjusted = raw. */
@@ -500,11 +636,21 @@ public class PriceAdjustmentService {
         int splitCreated = 0;
         int splitSecDateMatches = 0;
         int splitFallbackDetectedDate = 0;
+        int splitPriceCorroborated = 0;
+        int splitPriceSnapped = 0;
+        int splitPriceRejected = 0;
+        int splitPriceOnlyDetected = 0;
+        int splitPriceOnlyUnconfirmed = 0;
         int dividendFactsParsed = 0;
         int normalizedEvents = 0;
         int recordDateCandidates = 0;
+        int declarationTuples = 0;
         int exDateFromRecordPath = 0;
         int exDateFallbackPath = 0;
+        int tupleMatchedAssignments = 0;
+        int directExAssignments = 0;
+        int dpAssignments = 0;
+        int syntheticAssignments = 0;
         int dividendChanged = 0;
         int dividendInserted = 0;
         int dividendUpdated = 0;
@@ -520,12 +666,22 @@ public class PriceAdjustmentService {
             splitCreated += getInt(split, "created");
             splitSecDateMatches += getInt(split, "secDateMatches");
             splitFallbackDetectedDate += getInt(split, "fallbackDetectedDate");
+            splitPriceCorroborated += getInt(split, "priceCorroborated");
+            splitPriceSnapped += getInt(split, "priceSnapped");
+            splitPriceRejected += getInt(split, "priceRejected");
+            splitPriceOnlyDetected += getInt(split, "priceOnlyDetected");
+            splitPriceOnlyUnconfirmed += getInt(split, "priceOnlyUnconfirmed");
             Map<?, ?> dividend = (Map<?, ?>) row.get("dividend");
             dividendFactsParsed += getInt(dividend, "factsParsed");
             normalizedEvents += getInt(dividend, "normalizedEvents");
             recordDateCandidates += getInt(dividend, "recordDateCandidates");
+            declarationTuples += getInt(dividend, "declarationTuples");
             exDateFromRecordPath += getInt(dividend, "exDateFromRecordPath");
             exDateFallbackPath += getInt(dividend, "exDateFallbackPath");
+            tupleMatchedAssignments += getInt(dividend, "tupleMatchedAssignments");
+            directExAssignments += getInt(dividend, "directExAssignments");
+            dpAssignments += getInt(dividend, "dpAssignments");
+            syntheticAssignments += getInt(dividend, "syntheticAssignments");
             dividendChanged += getInt(dividend, "changed");
             dividendInserted += getInt(dividend, "inserted");
             dividendUpdated += getInt(dividend, "updated");
@@ -538,11 +694,21 @@ public class PriceAdjustmentService {
         out.put("splitCreated", splitCreated);
         out.put("splitSecDateMatches", splitSecDateMatches);
         out.put("splitFallbackDetectedDate", splitFallbackDetectedDate);
+        out.put("splitPriceCorroborated", splitPriceCorroborated);
+        out.put("splitPriceSnapped", splitPriceSnapped);
+        out.put("splitPriceRejected", splitPriceRejected);
+        out.put("splitPriceOnlyDetected", splitPriceOnlyDetected);
+        out.put("splitPriceOnlyUnconfirmed", splitPriceOnlyUnconfirmed);
         out.put("dividendFactsParsed", dividendFactsParsed);
         out.put("normalizedEvents", normalizedEvents);
         out.put("recordDateCandidates", recordDateCandidates);
+        out.put("declarationTuples", declarationTuples);
         out.put("exDateFromRecordPath", exDateFromRecordPath);
         out.put("exDateFallbackPath", exDateFallbackPath);
+        out.put("tupleMatchedAssignments", tupleMatchedAssignments);
+        out.put("directExAssignments", directExAssignments);
+        out.put("dpAssignments", dpAssignments);
+        out.put("syntheticAssignments", syntheticAssignments);
         out.put("dividendChanged", dividendChanged);
         out.put("dividendInserted", dividendInserted);
         out.put("dividendUpdated", dividendUpdated);
