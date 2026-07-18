@@ -52,9 +52,13 @@ services:
     # start after the backends; nginx.conf re-resolves their IPs every 10s
     # via Docker DNS, so recreated backends are picked up without a restart
     depends_on: [django, springboot]
-    networks: [dockerNet]
+    # pgadminNet: pgadmin4 is isolated there (docker-compose.infra.yml); nginx
+    # joins it to proxy /pgadmin4/
+    networks: [dockerNet, pgadminNet]
     restart: unless-stopped
 
 networks:
   dockerNet:
+    external: true
+  pgadminNet:
     external: true
