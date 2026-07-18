@@ -60,6 +60,8 @@ class AdminControllerTest {
     @MockitoBean private ListingService listingService;
     @MockitoBean private EdgarService edgarService;
     @MockitoBean private PriceAdjustmentService priceAdjustmentService;
+    @MockitoBean private com.fattorestreet.sec_api.corporateaction.AdjustedPriceValidationService adjustedPriceValidationService;
+    @MockitoBean private com.fattorestreet.sec_api.repository.DailyPriceRepository dailyPriceRepository;
     @MockitoBean private IexHistService iexHistService;
     @MockitoBean private EtfIdentityService etfIdentityService;
     @MockitoBean private FilingSummaryService filingSummaryService;
@@ -435,6 +437,67 @@ class AdminControllerTest {
     @Test
     void adminAdjustPrices_noBearer_returns401() throws Exception {
         mockMvc.perform(get("/admin/adjust-prices"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // --- /admin/validate-adjusted-prices endpoint ---
+
+    @Test
+    void adminValidateAdjustedPrices_singleTicker_returns200() throws Exception {
+        when(adjustedPriceValidationService.validateTicker(eq("AAPL"), eq(java.time.LocalDate.of(2016, 1, 1))))
+                .thenReturn(new com.fattorestreet.sec_api.corporateaction.AdjustedPriceValidationService.PriceValidationReport(
+                        "AAPL", "ok", 100, java.time.LocalDate.of(2024, 1, 2), java.time.LocalDate.of(2024, 6, 3),
+                        0.0001, 0.002, 0, List.of()));
+
+        mockMvc.perform(get("/admin/validate-adjusted-prices")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
+                        .param("ticker", "aapl"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ticker").value("AAPL"))
+                .andExpect(jsonPath("$.status").value("ok"))
+                .andExpect(jsonPath("$.maxAbsDeviation").value(0.002));
+    }
+
+    @Test
+    void adminValidateAdjustedPrices_batch_returnsSummary() throws Exception {
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL", "MSFT"));
+        when(adjustedPriceValidationService.validateTicker(anyString(), org.mockito.ArgumentMatchers.any(java.time.LocalDate.class)))
+                .thenReturn(com.fattorestreet.sec_api.corporateaction.AdjustedPriceValidationService.PriceValidationReport
+                        .empty("AAPL", "no_reference_data"));
+        when(adjustedPriceValidationService.summarizeBatch(anyList())).thenReturn(
+                Map.of("tickersValidated", 0, "tickersWithoutReference", 2));
+
+        mockMvc.perform(get("/admin/validate-adjusted-prices").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tickersWithoutReference").value(2));
+        verify(adjustedPriceValidationService, times(2)).validateTicker(anyString(), org.mockito.ArgumentMatchers.any(java.time.LocalDate.class));
+    }
+
+    @Test
+    void adminValidateAdjustedPrices_customMinDate_isParsed() throws Exception {
+        when(adjustedPriceValidationService.validateTicker(eq("AAPL"), eq(java.time.LocalDate.of(2020, 6, 1))))
+                .thenReturn(com.fattorestreet.sec_api.corporateaction.AdjustedPriceValidationService.PriceValidationReport
+                        .empty("AAPL", "no_adjusted_prices"));
+
+        mockMvc.perform(get("/admin/validate-adjusted-prices")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
+                        .param("ticker", "AAPL")
+                        .param("minDate", "2020-06-01"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("no_adjusted_prices"));
+    }
+
+    @Test
+    void adminValidateAdjustedPrices_invalidMinDate_returns400() throws Exception {
+        mockMvc.perform(get("/admin/validate-adjusted-prices")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin())
+                        .param("minDate", "not-a-date"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void adminValidateAdjustedPrices_noBearer_returns401() throws Exception {
+        mockMvc.perform(get("/admin/validate-adjusted-prices"))
                 .andExpect(status().isUnauthorized());
     }
 

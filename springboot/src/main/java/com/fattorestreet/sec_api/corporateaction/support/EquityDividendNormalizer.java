@@ -198,7 +198,10 @@ public class EquityDividendNormalizer {
                     event.rawAmount(),
                     round4(event.rawAmount() * factor),
                     event.year(),
-                    event.specialEvent()));
+                    event.specialEvent(),
+                    event.recordDate(),
+                    event.payDate(),
+                    event.exDateSource()));
         }
         return adjusted;
     }

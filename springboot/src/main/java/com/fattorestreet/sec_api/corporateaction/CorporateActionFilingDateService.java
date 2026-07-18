@@ -1,6 +1,8 @@
 package com.fattorestreet.sec_api.corporateaction;
 
 import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.corporateaction.support.DividendDeclarationTupleExtractor;
+import com.fattorestreet.sec_api.corporateaction.support.FilingTextDates;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,9 +12,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.MonthDay;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,10 +28,7 @@ public class CorporateActionFilingDateService {
     private static final int MAX_SPLIT_FILINGS_TO_SCAN = 400;
     private static final int MAX_EXHIBIT_DOCS_TO_SCAN = 6;
 
-    private static final String MONTH_NAME_DATE_PATTERN =
-            "(?:Jan(?:uary)?\\.?|Feb(?:ruary)?\\.?|Mar(?:ch)?\\.?|Apr(?:il)?\\.?|May\\.?|Jun(?:e)?\\.?|Jul(?:y)?\\.?|Aug(?:ust)?\\.?|Sep(?:t(?:ember)?)?\\.?|Oct(?:ober)?\\.?|Nov(?:ember)?\\.?|Dec(?:ember)?\\.?)\\s+\\d{1,2},?\\s+\\d{4}";
-    private static final String NUMERIC_DATE_PATTERN = "\\d{1,2}/\\d{1,2}/\\d{4}";
-    private static final String DATE_PATTERN = "(?:" + MONTH_NAME_DATE_PATTERN + "|" + NUMERIC_DATE_PATTERN + ")";
+    private static final String DATE_PATTERN = FilingTextDates.DATE_PATTERN;
     private static final Pattern RECORD_DATE_NEAR_DIVIDEND = Pattern.compile(
             "(?is)dividend.{0,900}?record\\s+date.{0,220}?(" + DATE_PATTERN + ")");
     private static final Pattern SHAREHOLDER_OF_RECORD = Pattern.compile(
@@ -65,30 +61,10 @@ public class CorporateActionFilingDateService {
     private static final Pattern SENTENCE_DIVIDEND_TRIGGER = Pattern.compile("(?i)\\b(dividend|record date|shareholders of record|holders of record)\\b");
     private static final Pattern HREF_PATTERN = Pattern.compile("(?is)href\\s*=\\s*['\"]([^'\"]+)['\"]");
 
-    private static final DateTimeFormatter MMM_D_YYYY = new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendPattern("MMM d, uuuu")
-            .toFormatter(Locale.US);
-    private static final DateTimeFormatter MMM_D_YYYY_NO_COMMA = new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendPattern("MMM d uuuu")
-            .toFormatter(Locale.US);
-    private static final DateTimeFormatter MMMM_D_YYYY = new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendPattern("MMMM d, uuuu")
-            .toFormatter(Locale.US);
-    private static final DateTimeFormatter MMMM_D_YYYY_NO_COMMA = new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendPattern("MMMM d uuuu")
-            .toFormatter(Locale.US);
-    private static final DateTimeFormatter M_D_YYYY = new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendPattern("M/d/uuuu")
-            .toFormatter(Locale.US);
-
     private final WebService webService;
     private final EdgarFilingDiscoveryService filingDiscoveryService;
     private final ObjectMapper mapper;
+    private final DividendDeclarationTupleExtractor tupleExtractor = new DividendDeclarationTupleExtractor();
 
     public CorporateActionFilingDateService(
             WebService webService,
@@ -106,6 +82,7 @@ public class CorporateActionFilingDateService {
     public RecordDateScanResult scanDividendRecordDates(Long cik) {
         Map<LocalDate, RecordDateCandidate> candidatesByDate = new HashMap<>();
         Map<LocalDate, ExDividendDateCandidate> exDividendByDate = new HashMap<>();
+        Map<String, DividendDeclarationTupleExtractor.DividendDeclaration> declarationsByKey = new HashMap<>();
         FilingSelection selection = selectCandidateFilings(cik, false, MAX_DIVIDEND_FILINGS_TO_SCAN);
         List<FilingCandidate> filings = selection.selected();
         log.info("[CIK {}] Dividend record-date scan starting: {} candidate filings", cik, filings.size());
@@ -142,6 +119,7 @@ public class CorporateActionFilingDateService {
                     }
                 }
                 mergeExDividendCandidates(exDividendByDate, exExtracted, filing);
+                mergeDeclarations(declarationsByKey, extractDeclarationsFromFiling(cik, filing, text));
                 if (extracted.isEmpty()) {
                     continue;
                 }
@@ -172,9 +150,62 @@ public class CorporateActionFilingDateService {
                 .comparing(ExDividendDateCandidate::exDividendDate)
                 .thenComparing(ExDividendDateCandidate::confidenceScore, Comparator.reverseOrder())
                 .thenComparing(ExDividendDateCandidate::filingDate, Comparator.nullsLast(Comparator.naturalOrder())));
-        log.info("[CIK {}] Dividend record-date scan finished: {} record-date candidates, {} direct ex-date candidates, {} filings failed",
-                cik, out.size(), exOut.size(), failedFilings);
-        return new RecordDateScanResult(out, exOut, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm());
+        List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations = new ArrayList<>(declarationsByKey.values());
+        declarations.sort(Comparator
+                .comparing(DividendDeclarationTupleExtractor.DividendDeclaration::recordDate)
+                .thenComparing(DividendDeclarationTupleExtractor.DividendDeclaration::amountPerShare));
+        log.info("[CIK {}] Dividend record-date scan finished: {} record-date candidates, {} direct ex-date candidates, {} declaration tuples, {} filings failed",
+                cik, out.size(), exOut.size(), declarations.size(), failedFilings);
+        return new RecordDateScanResult(out, exOut, declarations, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm());
+    }
+
+    /**
+     * Amount-anchored declaration tuples from the primary doc and press-release exhibits.
+     * Exhibit re-fetches hit the ticker-scoped SEC cache, so this adds no extra HTTP.
+     */
+    private List<DividendDeclarationTupleExtractor.DividendDeclaration> extractDeclarationsFromFiling(
+            Long cik, FilingCandidate filing, String primaryText) {
+        List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations = new ArrayList<>(
+                tupleExtractor.extract(primaryText, filing.filingDate(), filing.accessionNumber()));
+        int scanned = 0;
+        for (String doc : extractExhibitDocumentPaths(primaryText)) {
+            if (scanned >= MAX_EXHIBIT_DOCS_TO_SCAN) {
+                break;
+            }
+            scanned++;
+            try {
+                String exhibitText = webService.fetchFilingDocument(cik, filing.accessionNumber(), doc);
+                declarations.addAll(tupleExtractor.extract(exhibitText, filing.filingDate(), filing.accessionNumber()));
+            } catch (Exception ignored) {
+                // Continue scanning exhibit candidates.
+            }
+        }
+        if (declarations.isEmpty()) {
+            try {
+                String fullSubmissionText = webService.fetchFullSubmissionText(cik, filing.accessionNumber());
+                declarations.addAll(tupleExtractor.extract(fullSubmissionText, filing.filingDate(), filing.accessionNumber()));
+            } catch (Exception ignored) {
+                // Fall back to primary/exhibit parsing only.
+            }
+        }
+        return declarations;
+    }
+
+    private void mergeDeclarations(
+            Map<String, DividendDeclarationTupleExtractor.DividendDeclaration> byKey,
+            List<DividendDeclarationTupleExtractor.DividendDeclaration> extracted) {
+        for (DividendDeclarationTupleExtractor.DividendDeclaration declaration : extracted) {
+            String key = DividendDeclarationTupleExtractor.tupleKey(declaration.amountPerShare(), declaration.recordDate());
+            DividendDeclarationTupleExtractor.DividendDeclaration current = byKey.get(key);
+            if (current == null
+                    || declaration.confidenceScore() > current.confidenceScore()
+                    || (declaration.confidenceScore() == current.confidenceScore()
+                        && declaration.filingDate() != null
+                        && current.filingDate() != null
+                        && declaration.filingDate().isBefore(current.filingDate()))) {
+                byKey.put(key, declaration);
+            }
+        }
     }
 
     private void mergeExDividendCandidates(
@@ -466,53 +497,11 @@ public class CorporateActionFilingDateService {
     }
 
     private Optional<LocalDate> parseUsDate(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return Optional.empty();
-        }
-        String normalized = raw
-                .replace("Sept.", "Sep.")
-                .replace("Sept", "Sep")
-                .replaceAll("\\s+", " ")
-                .trim();
-        normalized = normalized.replace(".", "");
-        try {
-            return Optional.of(LocalDate.parse(normalized, MMM_D_YYYY));
-        } catch (DateTimeParseException ignored) {
-            try {
-                return Optional.of(LocalDate.parse(normalized, MMMM_D_YYYY));
-            } catch (DateTimeParseException ignoredLong) {
-                try {
-                    return Optional.of(LocalDate.parse(normalized, MMM_D_YYYY_NO_COMMA));
-                } catch (DateTimeParseException ignoredShortNoComma) {
-                    try {
-                        return Optional.of(LocalDate.parse(normalized, MMMM_D_YYYY_NO_COMMA));
-                    } catch (DateTimeParseException ignoredLongNoComma) {
-                        try {
-                            return Optional.of(LocalDate.parse(normalized, M_D_YYYY));
-                        } catch (DateTimeParseException e) {
-                            return Optional.empty();
-                        }
-                    }
-                }
-            }
-        }
+        return FilingTextDates.parseUsDate(raw);
     }
 
     private String toSearchableText(String htmlOrText) {
-        if (htmlOrText == null || htmlOrText.isBlank()) {
-            return "";
-        }
-        String withoutScripts = htmlOrText
-                .replaceAll("(?is)<script.*?</script>", " ")
-                .replaceAll("(?is)<style.*?</style>", " ");
-        String noTags = withoutScripts.replaceAll("(?is)<[^>]+>", " ");
-        String unescaped = noTags
-                .replace("&nbsp;", " ")
-                .replace("&amp;", "&")
-                .replace("&#160;", " ")
-                .replace("&#8217;", "'")
-                .replace("&#8211;", "-");
-        return unescaped.replaceAll("\\s+", " ").trim();
+        return FilingTextDates.toSearchableText(htmlOrText);
     }
 
     private FilingSelection selectCandidateFilings(Long cik, boolean splitMode, int maxToScan) {
@@ -968,6 +957,7 @@ public class CorporateActionFilingDateService {
     public record RecordDateScanResult(
             List<RecordDateCandidate> candidates,
             List<ExDividendDateCandidate> exDividendDirectCandidates,
+            List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations,
             Map<String, Integer> discoveredByForm,
             Map<String, Integer> selectedByForm,
             Map<String, Integer> rejectedByForm) {

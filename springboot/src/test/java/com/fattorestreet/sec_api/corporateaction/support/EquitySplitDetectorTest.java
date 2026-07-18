@@ -17,11 +17,13 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,11 +31,15 @@ class EquitySplitDetectorTest {
 
     private static final String TICKER = "AAPL";
     private static final long CIK = 320193L;
+    private static final SplitPriceCorroborator.PriceSeries EMPTY_SERIES =
+            new SplitPriceCorroborator.PriceSeries(List.of(), new double[0]);
 
     @Mock
     private CorporateActionFilingDateService corporateActionFilingDateService;
     @Mock
     private CorporateActionRepository corporateActionRepository;
+    @Mock
+    private SplitPriceCorroborator splitPriceCorroborator;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -41,7 +47,9 @@ class EquitySplitDetectorTest {
 
     @BeforeEach
     void setUp() {
-        detector = new EquitySplitDetector(corporateActionFilingDateService, corporateActionRepository);
+        detector = new EquitySplitDetector(
+                corporateActionFilingDateService, corporateActionRepository, splitPriceCorroborator);
+        lenient().when(splitPriceCorroborator.load(anyString())).thenReturn(EMPTY_SERIES);
     }
 
     private JsonNode facts(String sharesEntries) {
@@ -64,14 +72,28 @@ class EquitySplitDetectorTest {
         return "{\"end\": \"%s\", \"val\": %d, \"form\": \"%s\"}".formatted(end, val, form);
     }
 
+    private static CorporateAction existingSplit(LocalDate effectiveDate, double ratio, Double confidence, String exDateSource) {
+        CorporateAction action = new CorporateAction();
+        action.setTicker(TICKER);
+        action.setActionType(ActionType.SPLIT);
+        action.setEffectiveDate(effectiveDate);
+        action.setRatio(ratio);
+        action.setConfidenceScore(confidence);
+        action.setExDateSource(exDateSource);
+        action.setSourceType(CorporateAction.SourceType.SEC_EQUITY_XBRL);
+        return action;
+    }
+
+    private static SplitPriceCorroborator.Corroboration corroboration(LocalDate breakDate, double multiplier) {
+        return new SplitPriceCorroborator.Corroboration(breakDate, multiplier, multiplier, 0.0);
+    }
+
     @Test
     void detectsForwardSplitWithFallbackDate() {
         JsonNode root = facts("[%s, %s]".formatted(
                 sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
                 sharesEntry("2020-06-30", 200_000_000L, "10-Q")));
         when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                eq(TICKER), eq(ActionType.SPLIT), any())).thenReturn(false);
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
@@ -81,9 +103,10 @@ class EquitySplitDetectorTest {
         assertEquals(TICKER, saved.getTicker());
         assertEquals(ActionType.SPLIT, saved.getActionType());
         assertEquals(0.5, saved.getRatio());
-        // No SEC candidate: falls back to the shares-entry date where the jump was observed.
+        // No SEC candidate and no price coverage: falls back to the shares-entry date.
         assertEquals(LocalDate.of(2020, 6, 30), saved.getEffectiveDate());
         assertEquals(CorporateAction.SourceType.SEC_EQUITY_XBRL, saved.getSourceType());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_SHARE_FACT, saved.getExDateSource());
         assertEquals(1, stats.created());
     }
 
@@ -95,8 +118,6 @@ class EquitySplitDetectorTest {
         SplitDateCandidate candidate = new SplitDateCandidate(
                 LocalDate.of(2020, 8, 31), LocalDate.of(2020, 7, 31), "acc-1", 90);
         when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of(candidate));
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                TICKER, ActionType.SPLIT, LocalDate.of(2020, 8, 31))).thenReturn(false);
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
@@ -104,17 +125,97 @@ class EquitySplitDetectorTest {
         verify(corporateActionRepository).save(captor.capture());
         assertEquals(LocalDate.of(2020, 8, 31), captor.getValue().getEffectiveDate());
         assertEquals(0.25, captor.getValue().getRatio());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_FILING_TEXT, captor.getValue().getExDateSource());
         assertEquals(1, stats.created());
     }
 
     @Test
-    void skipsWhenSplitAlreadyPersisted() {
+    void priceBreakOverridesFilingCandidateDate() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-09-30", 400_000_000L, "10-Q")));
+        SplitDateCandidate candidate = new SplitDateCandidate(
+                LocalDate.of(2020, 8, 31), LocalDate.of(2020, 7, 31), "acc-1", 90);
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of(candidate));
+        when(splitPriceCorroborator.corroborate(any(), anyDouble(), any(), any()))
+                .thenReturn(Optional.of(corroboration(LocalDate.of(2020, 8, 28), 4.0)));
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        ArgumentCaptor<CorporateAction> captor = ArgumentCaptor.forClass(CorporateAction.class);
+        verify(corporateActionRepository).save(captor.capture());
+        assertEquals(LocalDate.of(2020, 8, 28), captor.getValue().getEffectiveDate());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_PRICE_BREAK, captor.getValue().getExDateSource());
+        assertEquals(100.0, captor.getValue().getConfidenceScore());
+        assertEquals(1, stats.priceCorroborated());
+        assertEquals(1, stats.priceSnapped());
+    }
+
+    @Test
+    void coveredWindowWithoutBreakRejectsSplit() {
         JsonNode root = facts("[%s, %s]".formatted(
                 sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
                 sharesEntry("2020-06-30", 200_000_000L, "10-Q")));
         when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                eq(TICKER), eq(ActionType.SPLIT), any())).thenReturn(true);
+        when(splitPriceCorroborator.windowFullyCovered(any(), any(), any())).thenReturn(true);
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        verify(corporateActionRepository, never()).save(any());
+        assertEquals(0, stats.created());
+        assertEquals(1, stats.priceRejected());
+    }
+
+    @Test
+    void reDatingUpdatesExistingRowInsteadOfInserting() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-06-30", 200_000_000L, "10-Q")));
+        CorporateAction existing = existingSplit(
+                LocalDate.of(2020, 6, 30), 0.5, 40.0, CorporateAction.EX_DATE_SOURCE_SHARE_FACT);
+        when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(existing));
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
+        when(splitPriceCorroborator.corroborate(any(), anyDouble(), any(), any()))
+                .thenReturn(Optional.of(corroboration(LocalDate.of(2020, 6, 15), 2.0)));
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        // Same entity re-dated in place; nothing new inserted.
+        verify(corporateActionRepository).save(same(existing));
+        assertEquals(LocalDate.of(2020, 6, 15), existing.getEffectiveDate());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_PRICE_BREAK, existing.getExDateSource());
+        assertEquals(100.0, existing.getConfidenceScore());
+        assertEquals(0, stats.created());
+        assertEquals(1, stats.priceSnapped());
+    }
+
+    @Test
+    void weakerResolutionDoesNotMoveWellGroundedDate() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-06-30", 200_000_000L, "10-Q")));
+        CorporateAction existing = existingSplit(
+                LocalDate.of(2020, 6, 15), 0.5, 100.0, CorporateAction.EX_DATE_SOURCE_PRICE_BREAK);
+        when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(existing));
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        // Share-fact fallback (confidence 40) must not overwrite the price-break date.
+        verify(corporateActionRepository, never()).save(any());
+        assertEquals(LocalDate.of(2020, 6, 15), existing.getEffectiveDate());
+        assertEquals(0, stats.created());
+    }
+
+    @Test
+    void skipsWhenSplitAlreadyPersistedWithSameGrounding() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-06-30", 200_000_000L, "10-Q")));
+        CorporateAction existing = existingSplit(
+                LocalDate.of(2020, 6, 30), 0.5, 40.0, CorporateAction.EX_DATE_SOURCE_SHARE_FACT);
+        when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(existing));
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
@@ -162,7 +263,8 @@ class EquitySplitDetectorTest {
 
     @Test
     void extendedRatioRequiresSecDateConfirmation() {
-        // 3:2 split (x1.5) is an "extended" ratio: skipped without a matching SEC candidate.
+        // 3:2 split (x1.5) is an "extended" ratio: skipped without a matching SEC candidate
+        // or a corroborating price break.
         JsonNode root = facts("[%s, %s]".formatted(
                 sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
                 sharesEntry("2020-06-30", 150_000_000L, "10-Q")));
@@ -182,13 +284,29 @@ class EquitySplitDetectorTest {
         SplitDateCandidate candidate = new SplitDateCandidate(
                 LocalDate.of(2020, 6, 15), LocalDate.of(2020, 5, 20), "acc-2", 80);
         when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of(candidate));
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                TICKER, ActionType.SPLIT, LocalDate.of(2020, 6, 15))).thenReturn(false);
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
         ArgumentCaptor<CorporateAction> captor = ArgumentCaptor.forClass(CorporateAction.class);
         verify(corporateActionRepository).save(captor.capture());
+        assertEquals(1.0 / 1.5, captor.getValue().getRatio(), 1e-9);
+        assertEquals(1, stats.created());
+    }
+
+    @Test
+    void extendedRatioPersistedWhenPriceBreakConfirms() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-06-30", 150_000_000L, "10-Q")));
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
+        when(splitPriceCorroborator.corroborate(any(), anyDouble(), any(), any()))
+                .thenReturn(Optional.of(corroboration(LocalDate.of(2020, 6, 12), 1.5)));
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        ArgumentCaptor<CorporateAction> captor = ArgumentCaptor.forClass(CorporateAction.class);
+        verify(corporateActionRepository).save(captor.capture());
+        assertEquals(LocalDate.of(2020, 6, 12), captor.getValue().getEffectiveDate());
         assertEquals(1.0 / 1.5, captor.getValue().getRatio(), 1e-9);
         assertEquals(1, stats.created());
     }
@@ -213,8 +331,6 @@ class EquitySplitDetectorTest {
                 sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
                 sharesEntry("2020-06-30", 25_000_000L, "10-Q")));
         when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
-        when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
-                eq(TICKER), eq(ActionType.SPLIT), any())).thenReturn(false);
 
         detector.detectSplits(TICKER, CIK, root);
 
@@ -237,5 +353,83 @@ class EquitySplitDetectorTest {
 
         verify(corporateActionRepository, never()).save(any());
         assertEquals(0, stats.created());
+    }
+
+    @Test
+    void priceOnlyBreakWithFilingCandidatePersists() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-06-30", 100_000_000L, "10-Q")));
+        SplitDateCandidate candidate = new SplitDateCandidate(
+                LocalDate.of(2020, 5, 4), LocalDate.of(2020, 4, 20), "acc-3", 85);
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of(candidate));
+        when(splitPriceCorroborator.scanForSplitLikeBreaks(any(), any()))
+                .thenReturn(List.of(corroboration(LocalDate.of(2020, 5, 4), 2.0)));
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        ArgumentCaptor<CorporateAction> captor = ArgumentCaptor.forClass(CorporateAction.class);
+        verify(corporateActionRepository).save(captor.capture());
+        CorporateAction saved = captor.getValue();
+        assertEquals(CorporateAction.SourceType.SEC_PRICE_CORROBORATED, saved.getSourceType());
+        assertEquals(LocalDate.of(2020, 5, 4), saved.getEffectiveDate());
+        assertEquals(0.5, saved.getRatio());
+        assertEquals(90.0, saved.getConfidenceScore());
+        assertEquals("acc-3", saved.getAccessionNumber());
+        assertEquals(1, stats.priceOnlyDetected());
+        assertEquals(1, stats.created());
+    }
+
+    @Test
+    void priceOnlyMidSizeBreakWithoutFilingCandidateStaysUnconfirmed() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-06-30", 100_000_000L, "10-Q")));
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
+        when(splitPriceCorroborator.scanForSplitLikeBreaks(any(), any()))
+                .thenReturn(List.of(corroboration(LocalDate.of(2020, 5, 4), 2.0)));
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        verify(corporateActionRepository, never()).save(any());
+        assertEquals(1, stats.priceOnlyUnconfirmed());
+        assertEquals(0, stats.created());
+    }
+
+    @Test
+    void priceOnlyLargeBreakPersistsWithoutFilingCandidate() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-06-30", 100_000_000L, "10-Q")));
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
+        when(splitPriceCorroborator.scanForSplitLikeBreaks(any(), any()))
+                .thenReturn(List.of(corroboration(LocalDate.of(2020, 5, 4), 10.0)));
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        ArgumentCaptor<CorporateAction> captor = ArgumentCaptor.forClass(CorporateAction.class);
+        verify(corporateActionRepository).save(captor.capture());
+        assertEquals(0.1, captor.getValue().getRatio(), 1e-9);
+        assertEquals(60.0, captor.getValue().getConfidenceScore());
+        assertEquals(1, stats.priceOnlyDetected());
+    }
+
+    @Test
+    void priceOnlyBreakNearExistingSplitIsExplained() {
+        JsonNode root = facts("[%s, %s]".formatted(
+                sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
+                sharesEntry("2020-06-30", 100_000_000L, "10-Q")));
+        CorporateAction existing = existingSplit(
+                LocalDate.of(2020, 5, 1), 0.5, 100.0, CorporateAction.EX_DATE_SOURCE_PRICE_BREAK);
+        when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(existing));
+        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
+        when(splitPriceCorroborator.scanForSplitLikeBreaks(any(), any()))
+                .thenReturn(List.of(corroboration(LocalDate.of(2020, 5, 4), 2.0)));
+
+        SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
+
+        verify(corporateActionRepository, never()).save(any());
+        assertEquals(0, stats.priceOnlyDetected());
+        assertEquals(0, stats.priceOnlyUnconfirmed());
     }
 }

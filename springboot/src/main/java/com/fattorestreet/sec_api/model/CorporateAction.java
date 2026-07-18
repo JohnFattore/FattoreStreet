@@ -12,7 +12,17 @@ import org.hibernate.envers.Audited;
 public class CorporateAction {
 
     public enum ActionType { SPLIT, DIVIDEND }
-    public enum SourceType { SEC_EQUITY_XBRL, SEC_ETF_FILING, MANUAL, OTHER }
+    public enum SourceType { SEC_EQUITY_XBRL, SEC_ETF_FILING, SEC_PRICE_CORROBORATED, MANUAL, OTHER }
+
+    /** {@link #exDateSource} values for DIVIDEND rows. */
+    public static final String EX_DATE_SOURCE_TUPLE_MATCHED = "TUPLE_MATCHED";
+    public static final String EX_DATE_SOURCE_DIRECT_EX_TEXT = "DIRECT_EX_TEXT";
+    public static final String EX_DATE_SOURCE_RECORD_DP = "RECORD_DP";
+    public static final String EX_DATE_SOURCE_SYNTHETIC = "SYNTHETIC";
+    /** {@link #exDateSource} values for SPLIT rows. */
+    public static final String EX_DATE_SOURCE_PRICE_BREAK = "PRICE_BREAK";
+    public static final String EX_DATE_SOURCE_FILING_TEXT = "FILING_TEXT";
+    public static final String EX_DATE_SOURCE_SHARE_FACT = "SHARE_FACT";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -66,6 +76,10 @@ public class CorporateAction {
     @Column(name = "sec_class_contract_id", length = 32)
     private String secClassContractId;
 
+    /** How the effective/ex date was determined; see EX_DATE_SOURCE_* constants. */
+    @Column(name = "ex_date_source", length = 24)
+    private String exDateSource;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -110,4 +124,7 @@ public class CorporateAction {
 
     public String getSecClassContractId() { return secClassContractId; }
     public void setSecClassContractId(String secClassContractId) { this.secClassContractId = secClassContractId; }
+
+    public String getExDateSource() { return exDateSource; }
+    public void setExDateSource(String exDateSource) { this.exDateSource = exDateSource; }
 }

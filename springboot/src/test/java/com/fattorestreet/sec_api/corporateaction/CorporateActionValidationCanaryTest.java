@@ -23,6 +23,10 @@ class CorporateActionValidationCanaryTest {
             "AAPL", "MSFT", "JPM", "KO", "PG", "XOM", "WMT", "DIS", "JNJ", "V",
             "UNH", "HD", "BAC", "PFE", "INTC", "CSCO", "VZ", "T", "MRK", "CVX");
 
+    /** Split-heavy tickers for the adjusted-price break KPI (price-corroborated split detection). */
+    public static final List<String> CANARY_SPLIT_TICKERS = List.of(
+            "AAPL", "NVDA", "TSLA", "GOOGL", "AMZN", "SHOP");
+
     @Mock
     private CorporateActionRepository corporateActionRepository;
 
@@ -62,5 +66,6 @@ class CorporateActionValidationCanaryTest {
     @Test
     void canaryList_hasExpectedSize() {
         assertEquals(20, CANARY_EQUITY_TICKERS.size());
+        assertEquals(6, CANARY_SPLIT_TICKERS.size());
     }
 }

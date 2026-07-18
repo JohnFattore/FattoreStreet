@@ -12,15 +12,18 @@ The equity corporate action pipeline detects stock splits and dividends for a gi
 | 4 | `client/WebService.java` | SEC HTTP client. Fetches XBRL facts, submissions, and filing documents with rate limiting (250ms between requests) and retries (3 attempts, exponential backoff). |
 | 5 | `corporateaction/EdgarFilingDiscoveryService.java` | Discovers filing metadata (accession numbers, form types, primary documents, filing dates) from SEC submissions JSON and archive shards. |
 | 6 | `corporateaction/CorporateActionFilingDateService.java` | Scans filing text with regex patterns for record dates, ex-dividend dates, and split effective dates. Each match carries a confidence score based on pattern strength, document type, and position. |
-| 7 | `corporateaction/support/EquitySplitDetector.java` | Detects splits by finding ratio changes in shares-outstanding XBRL data, then resolves effective dates via SEC filings. |
-| 8 | `corporateaction/support/EquityDividendFactParser.java` | Parses raw dividend-per-share facts from SEC XBRL JSON (e.g., `CommonStockDividendsPerShareDeclared`). |
-| 9 | `corporateaction/support/EquityDividendNormalizer.java` | Deduplicates and selects the best dividend fact per fiscal period. Classifies regular vs special dividends. Also handles split-adjusting historical dividend amounts. |
-| 10 | `corporateaction/support/EquityExDateAssigner.java` | Assigns ex-dividend dates. Tries direct ex-date matches first, then uses dynamic programming to optimally assign record dates across all quarterly events. |
-| 11 | `corporateaction/support/EquityDividendUpserter.java` | Upserts dividend `CorporateAction` rows. Matches existing records, updates changed fields, inserts new, prunes stale. |
-| 12 | `model/CorporateAction.java` | JPA entity with fields: `ticker`, `actionType` (SPLIT/DIVIDEND), `effectiveDate`, `ratio`, `rawDividend`, `adjustedDividend`, `sourceType`, `recordDate`, `confidenceScore`, etc. |
-| 13 | `repository/CorporateActionRepository.java` | Spring Data JPA interface. Provides find/exists queries by ticker, action type, and effective date. |
+| 7 | `corporateaction/support/EquitySplitDetector.java` | Detects splits by finding ratio changes in shares-outstanding XBRL data, then resolves effective dates via price breaks and SEC filings. Also runs price-first detection of splits the XBRL path missed. |
+| 8 | `corporateaction/support/SplitPriceCorroborator.java` | Confirms and dates splits against the raw IEX close series in `daily_prices`: finds the overnight break matching the split multiplier, rejects candidates with no break in a fully covered window, and scans for unexplained split-like breaks. |
+| 9 | `corporateaction/support/EquityDividendFactParser.java` | Parses raw dividend-per-share facts from SEC XBRL JSON (e.g., `CommonStockDividendsPerShareDeclared`). |
+| 10 | `corporateaction/support/EquityDividendNormalizer.java` | Deduplicates and selects the best dividend fact per fiscal period. Classifies regular vs special dividends. Also handles split-adjusting historical dividend amounts. |
+| 11 | `corporateaction/support/EquityExDateAssigner.java` | Assigns ex-dividend dates. Tries amount-anchored declaration tuples first, then direct ex-date matches, then dynamic programming over record-date candidates. |
+| 12 | `corporateaction/support/DividendDeclarationTupleExtractor.java` | Extracts (amount, record date, payable date, declaration date, ex-date) tuples from 8-K / press-release text, anchored to the per-share dollar amount. |
+| 13 | `corporateaction/support/FilingTextDates.java` | Shared date grammar (US date regex + parser) and HTML-to-text normalization used by the filing-date service and the tuple extractor. |
+| 14 | `corporateaction/support/EquityDividendUpserter.java` | Upserts dividend `CorporateAction` rows. Matches existing records, updates changed fields, inserts new, prunes stale, and enforces ex-date provenance priority. |
+| 15 | `model/CorporateAction.java` | JPA entity with fields: `ticker`, `actionType` (SPLIT/DIVIDEND), `effectiveDate`, `ratio`, `rawDividend`, `adjustedDividend`, `sourceType`, `recordDate`, `payDate`, `confidenceScore`, `exDateSource`, etc. |
+| 16 | `repository/CorporateActionRepository.java` | Spring Data JPA interface. Provides find/exists queries by ticker, action type, and effective date. |
 
-Note: The support classes (7-11) are instantiated directly by `EquityCorporateActionService` in its constructor rather than being Spring-managed beans.
+Note: The support classes are instantiated directly by `EquityCorporateActionService` in its constructor rather than being Spring-managed beans (the tuple extractor is owned by `CorporateActionFilingDateService`).
 
 ## Architecture Diagram
 
@@ -45,7 +48,11 @@ EquityCorporateActionService.detectAndPersistWithDiagnostics(ticker, cik)
         |         |         +---> EdgarFilingDiscoveryService.discoverFilings()
         |         |         +---> WebService.fetchFilingDocument()  (per filing)
         |         |
-        |         +---> CorporateActionRepository.save()
+        |         +---> SplitPriceCorroborator.load()/corroborate()   [IEX raw closes]
+        |         |         (snap effective date to price break; reject no-break candidates)
+        |         +---> SplitPriceCorroborator.scanForSplitLikeBreaks()
+        |         |         (price-first detection of missed splits)
+        |         +---> CorporateActionRepository.save()  (reconcile-or-insert)
         |
         +---> detectDividends()                      [Dividend detection]
                   |
@@ -55,8 +62,10 @@ EquityCorporateActionService.detectAndPersistWithDiagnostics(ticker, cik)
                   |         |
                   |         +---> EdgarFilingDiscoveryService.discoverFilings()
                   |         +---> WebService.fetchFilingDocument()  (up to 250 filings)
+                  |         +---> DividendDeclarationTupleExtractor.extract()  (same text)
                   |
                   +---> EquityExDateAssigner.assignExDividendDates()
+                  |         (tuple match -> direct ex-date -> record-date DP -> synthetic)
                   +---> EquityDividendNormalizer.adjustDividendsForFutureSplits()
                   +---> EquityDividendUpserter.upsertDividendEvents()
 ```
@@ -96,19 +105,23 @@ Returns a large JSON blob with all XBRL-reported financial facts: shares outstan
   - Extended (requires filing confirmation): 1.5, 4/3
 - For AAPL, finds a ~7:1 jump (June 2014) and a ~4:1 jump (August 2020)
 
-**Resolve effective dates:**
-- `CorporateActionFilingDateService.fetchSplitEffectiveDates(cik)` discovers filings via `EdgarFilingDiscoveryService`, then scans 8-K and other filing text for split language with regex patterns
-- Each candidate carries a confidence score
-- Scores candidates by: proximity to detected date + confidence score + filing date validity
-- Uses best match (or falls back to the date detected from share count data)
+**Resolve effective dates (price break > filing text > share fact):**
+- `SplitPriceCorroborator.corroborate()` searches the raw IEX close series inside the share-fact bracket (±10 days, widened to include a matched filing candidate) for the overnight `prevClose/close` move matching the split multiplier, in log space. Tolerance: ±15% for multipliers ≥2x (or ≤0.5x), ±6% for extended ratios (3:2, 4:3). A found break becomes the `effectiveDate` (`exDateSource = PRICE_BREAK`, confidence 100) — it is by construction the first trade date at the new price basis, which is exactly what `applyAdjustments` keys on.
+- Otherwise `CorporateActionFilingDateService.fetchSplitEffectiveDates(cik)` candidates are used (`FILING_TEXT`, confidence 70), else the share-fact date (`SHARE_FACT`, confidence 40).
+- **False-positive guard**: if the price series fully covers the search window and no matching break exists, the candidate is rejected (`priceRejected` diagnostic) — the share-count jump was a buyback/issuance artifact, not a split. Extended ratios are confirmed by a filing match OR a price break.
 
-**Persist:**
-- Checks `CorporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate()`
-- If new, saves `CorporateAction`:
+**Persist (reconcile-or-insert):**
+- An existing SPLIT with the same ratio (±1%) within ±90 days is **re-dated in place** when the new resolution is at least as well grounded (confidence comparison) — inserting at the new date would leave both rows live and double-adjust the series.
+- Otherwise saves a new `CorporateAction`:
   - `actionType = SPLIT`
   - `ratio = 1/snappedRatio` (e.g., 0.25 for a 4:1 split, 1/7 for a 7:1 split)
   - `sourceType = SEC_EQUITY_XBRL`
-  - `effectiveDate` from best SEC filing match
+  - `effectiveDate`, `exDateSource`, `confidenceScore` from the resolution above
+
+**Price-first detection of missed splits:**
+- After the XBRL pass, `scanForSplitLikeBreaks()` finds overnight moves that snap (±10%) to a plausible multiplier ({2,3,4,5,7,10,20,50} and reciprocals) and whose surrounding 5-day median levels confirm the move persisted (kills one-day glitches and V-shaped crashes).
+- Breaks already explained by a persisted split (±7 days) are skipped. Unexplained breaks persist as `sourceType = SEC_PRICE_CORROBORATED` when a SEC filing split-date candidate lies within ±14 days (confidence 90), or on price evidence alone for multipliers ≥5x / ≤0.2x (confidence 60). Mid-size breaks without filing support only increment the `priceOnlyUnconfirmed` diagnostic.
+- This makes the nightly >25% overnight-jump re-detection hook effective on split day itself, instead of waiting weeks for the next 10-Q share count.
 
 ### Step 4: Dividend Detection - Parse Facts (EquityDividendFactParser)
 
@@ -154,18 +167,26 @@ Classifies each event as **regular** (quarterly cadence) or **special** (anomalo
 
 4. **Fallbacks**: If the primary document yields nothing, tries the full submission text and up to 6 exhibit documents (exhibit matches penalized by -5 points).
 
-5. **Result**: `RecordDateScanResult` with deduplicated `RecordDateCandidate` and `ExDividendDateCandidate` lists, plus form discovery/selection/rejection statistics.
+5. **Declaration tuples**: `DividendDeclarationTupleExtractor.extract()` runs over the same fetched text (primary + exhibits, full submission as fallback; exhibit re-fetches hit the ticker-scoped SEC cache so no extra HTTP). It finds per-share dollar amount anchors ("$0.24 per share", "dividend of $0.24", "Dividend per share: $0.24") and pairs each with the record / payable / declaration / ex-dividend dates labeled within ±600 characters. A tuple requires amount + record date; tuples dedupe by (amount, recordDate) keeping the highest-confidence extraction.
+
+6. **Result**: `RecordDateScanResult` with deduplicated `RecordDateCandidate`, `ExDividendDateCandidate`, and `DividendDeclaration` lists, plus form discovery/selection/rejection statistics.
 
 ### Step 7: Dividend Detection - Assign Ex-Dates (EquityExDateAssigner)
 
-Receives normalized events, record date candidates, and direct ex-date candidates.
+Receives normalized events, record date candidates, direct ex-date candidates, declaration tuples, and known corporate actions (for split-restatement amount matching).
 
-**Path A - Direct ex-date match (preferred):**
+**Path 0 - Amount-anchored tuple match (preferred, `exDateSource = TUPLE_MATCHED`):**
+- For each event (regular and special), find the unused tuple whose amount matches the event's raw XBRL amount — as-is, or after undoing future-split restatement (declared = raw / product of later split ratios) — and whose record date falls 0-95 days after the fiscal period end
+- Prefer offsets near 45 days, then higher tuple confidence; each tuple is used at most once
+- Ex-date = the tuple's explicit ex-date when stated, else computed from its record date; record and payable dates are carried onto the persisted row
+- This replaces cadence guessing with the dates the company actually declared
+
+**Path A - Direct ex-date match (`exDateSource = DIRECT_EX_TEXT`):**
 - For each regular event, look for an `ExDividendDateCandidate` where `fiscalPeriodEnd < exDate <= fiscalPeriodEnd + 130 days`
 - Score: `|gap - 45 days| - confidenceScore/25` (lower is better)
 - Each candidate used at most once
 
-**Path B - Record date assignment via dynamic programming:**
+**Path B - Record date assignment via dynamic programming (`exDateSource = RECORD_DP`):**
 - For events not matched via Path A, run DP to find the globally optimal assignment of record dates to events
 - State: `dp[i][j]` = minimum cost to assign first `i` events using candidates `0..j`
 - Eligibility: record date 10-80 days after fiscal period end; filing date not before `fiscalPeriodEnd - 5 days`
@@ -175,9 +196,9 @@ Receives normalized events, record date candidates, and direct ex-date candidate
   - Before 2024-05-28: ex-date = previous business day before record date
   - On/after 2024-05-28: ex-date = next business day after record date
 
-**Fallback:**
+**Fallback (`exDateSource = SYNTHETIC`):**
 - Any remaining unmatched events get an inferred record date: last matched record date + 91 days (quarterly cadence), or fiscal period end + 42 days
-- Ex-date computed from the inferred record date
+- Ex-date computed from the inferred record date; still persisted (a missing event is worse than a misdated one) but tagged low-confidence
 
 **Special dividends** assigned separately with a simpler best-match approach against unused candidates.
 
@@ -198,7 +219,9 @@ For each detected event:
   - `ratio = adjustedAmount`
   - `rawDividend`, `adjustedDividend`
   - `sourceType = SEC_EQUITY_XBRL`
-  - `recordDate`, `accessionNumber`, `formType`, `confidenceScore`
+  - `recordDate`, `payDate`, `exDateSource`, `confidenceScore` (95 tuple / 90 direct / 60 DP / 10 synthetic)
+
+**Provenance priority**: a weaker-grounded re-detection may never move a stored date set by a stronger path (rank: `TUPLE_MATCHED` > `DIRECT_EX_TEXT` > `RECORD_DP` > `SYNTHETIC`). This protects tuple-anchored dates when a later run's filing fetch transiently fails; amounts still update.
 
 Stale entries (in DB but not in detected list) are pruned.
 
@@ -220,7 +243,11 @@ Returns a summary map with diagnostics from both split and dividend detection.
 
 - **Split adjustment of historical dividends**: Raw amounts are preserved alongside adjusted amounts so the full history is auditable and can be recalculated if new splits are detected.
 
-- **Two-path ex-date resolution**: Direct ex-date extraction (Path A) is preferred when available since it requires no inference. The record date path (Path B) with DP serves as a robust fallback when filings don't explicitly state ex-dates.
+- **Amount-anchored declarations first**: Matching a declaration tuple by dollar amount ties each XBRL event to the exact 8-K that declared it, so its record/ex dates are read rather than inferred. Direct ex-date extraction and the DP record-date path remain as fallbacks when no tuple matches.
+
+- **Price series as ground truth for splits**: The raw IEX closes already in `daily_prices` are commercially free and deterministic, so they can drive persistence (unlike yfinance, which stays diagnostics-only). A split's overnight break both dates it exactly and vetoes false positives; the persistence-median check keeps crashes and glitches out.
+
+- **Effective-date convention**: A split's `effectiveDate` is the first trade date at the new price basis — the same date `applyAdjustments` assigns the pre-action factor to, and the date a raw-price break identifies. Keeping detection and adjustment on one convention drives the residual price-level error to zero at the break.
 
 ## Key Constants
 
@@ -235,3 +262,9 @@ Returns a summary map with diagnostics from both split and dividend detection.
 | T+1 cutoff date | 2024-05-28 | Settlement rule change |
 | Ratio snap tolerance | 2% | Split ratio matching |
 | SEC rate limit | 250ms | Minimum delay between SEC requests |
+| Tuple record window | 0-95 days | Declaration record date after fiscal period end |
+| Tuple amount tolerance | max(0.0005, 0.5%) | Declared vs XBRL amount match |
+| Price-break tolerance | ±15% (≥2x), ±6% (extended) | Corroborating an XBRL split multiplier |
+| Price-scan tolerance | ±10% + 5-day median persistence | Detecting unexplained split-like breaks |
+| Sole-source multiplier | ≥5x (or ≤0.2x) | Price-only split persisted without filing proof |
+| Reconcile window | ±90 days, ratio ±1% | Re-dating an existing split instead of inserting |

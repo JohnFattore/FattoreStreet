@@ -55,12 +55,19 @@ public class EquityDividendUpserter {
             }
             if (matched != null) {
                 usedActions.add(matched);
-                boolean dateChanged = !matched.getEffectiveDate().equals(target.effectiveDate());
+                // A weaker-grounded re-detection (e.g. synthetic fallback after a transient filing
+                // fetch failure) must not move a date that was anchored to an actual declaration.
+                boolean allowDateMove = exDateSourceRank(target.exDateSource()) >= exDateSourceRank(matched.getExDateSource());
+                boolean dateChanged = allowDateMove && !matched.getEffectiveDate().equals(target.effectiveDate());
                 boolean ratioChanged = Math.abs(matched.getRatio() - target.adjustedAmount()) > DIVIDEND_EPSILON;
                 boolean rawChanged = !roughlyEqual(matched.getRawDividend(), target.rawAmount());
                 boolean adjustedChanged = !roughlyEqual(matched.getAdjustedDividend(), target.adjustedAmount());
-                if (dateChanged || ratioChanged || rawChanged || adjustedChanged) {
-                    matched.setEffectiveDate(target.effectiveDate());
+                boolean provenanceChanged = allowDateMove && provenanceDiffers(matched, target);
+                if (dateChanged || ratioChanged || rawChanged || adjustedChanged || provenanceChanged) {
+                    if (allowDateMove) {
+                        matched.setEffectiveDate(target.effectiveDate());
+                        applyProvenance(matched, target);
+                    }
                     matched.setRatio(target.adjustedAmount());
                     matched.setRawDividend(target.rawAmount());
                     matched.setAdjustedDividend(target.adjustedAmount());
@@ -91,6 +98,7 @@ public class EquityDividendUpserter {
             action.setRawDividend(target.rawAmount());
             action.setAdjustedDividend(target.adjustedAmount());
             action.setSourceType(CorporateAction.SourceType.SEC_EQUITY_XBRL);
+            applyProvenance(action, target);
             CorporateAction saved;
             try {
                 saved = corporateActionRepository.save(action);
@@ -237,5 +245,45 @@ public class EquityDividendUpserter {
             return false;
         }
         return Math.abs(left - right) <= DIVIDEND_EPSILON;
+    }
+
+    private void applyProvenance(CorporateAction action, EquityCorporateActionService.DividendEvent target) {
+        action.setRecordDate(target.recordDate());
+        action.setPayDate(target.payDate());
+        action.setExDateSource(target.exDateSource());
+        action.setConfidenceScore(confidenceForExDateSource(target.exDateSource()));
+    }
+
+    private boolean provenanceDiffers(CorporateAction action, EquityCorporateActionService.DividendEvent target) {
+        return !java.util.Objects.equals(action.getExDateSource(), target.exDateSource())
+                || !java.util.Objects.equals(action.getRecordDate(), target.recordDate())
+                || !java.util.Objects.equals(action.getPayDate(), target.payDate());
+    }
+
+    /** Higher rank = better-grounded ex-date; only equal-or-better sources may move a stored date. */
+    private static int exDateSourceRank(String exDateSource) {
+        if (exDateSource == null) {
+            return 0;
+        }
+        return switch (exDateSource) {
+            case CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED -> 4;
+            case CorporateAction.EX_DATE_SOURCE_DIRECT_EX_TEXT -> 3;
+            case CorporateAction.EX_DATE_SOURCE_RECORD_DP -> 2;
+            case CorporateAction.EX_DATE_SOURCE_SYNTHETIC -> 1;
+            default -> 0;
+        };
+    }
+
+    private static Double confidenceForExDateSource(String exDateSource) {
+        if (exDateSource == null) {
+            return null;
+        }
+        return switch (exDateSource) {
+            case CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED -> 95.0;
+            case CorporateAction.EX_DATE_SOURCE_DIRECT_EX_TEXT -> 90.0;
+            case CorporateAction.EX_DATE_SOURCE_RECORD_DP -> 60.0;
+            case CorporateAction.EX_DATE_SOURCE_SYNTHETIC -> 10.0;
+            default -> null;
+        };
     }
 }
