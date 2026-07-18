@@ -1,23 +1,36 @@
-# Nightly IEX HIST load on Fargate
+# Nightly Fargate loads (IEX HIST + index)
 
-Runs the bulky nightly price load (`IexHistService.loadHistData`) as an **ephemeral Fargate task**
-instead of keeping 4 GB of RAM provisioned 24/7 on the EC2 box. The same Spring Boot jar runs the
-API on EC2 (default `APP_RUN_MODE=server`) and the one-shot load on Fargate (`APP_RUN_MODE=hist-load`,
-via `HistLoadRunner`, which runs the load once and exits). After a successful load the task also runs
-corporate-action price adjustment (`adjustAllTickers`, rolling SEC re-detection included); set
-`HIST_LOAD_ADJUST_ENABLED=false` on the task to skip it.
+Runs two nightly loads as **ephemeral Fargate tasks** instead of keeping the RAM provisioned 24/7
+on the EC2 box. The same Spring Boot jar runs the API on EC2 (default `APP_RUN_MODE=server`) and
+the one-shot loads on Fargate — run mode is selected purely by the `APP_RUN_MODE` env var:
+
+- **`hist-load`** (`HistLoadRunner`) — the bulky IEX price load (`IexHistService.loadHistData`),
+  which runs once and exits. After a successful load the task also runs corporate-action price
+  adjustment (`adjustAllTickers`, rolling SEC re-detection included); set
+  `HIST_LOAD_ADJUST_ENABLED=false` on the task to skip it.
+- **`index-load`** (`IndexLoadRunner`) — index metrics refresh (SEC companyfacts/submissions for
+  the Russell 1000 universe) followed by cap-ranked rebuilds of FAT100, FAT1000, FAT50. Scheduled
+  a few hours **after** the hist load so fresh `DailyPrice` rows exist. Guard: if the refresh
+  processes fewer than `INDEX_LOAD_MIN_PROCESSED` listings (default 800), the task skips the
+  rebuild and exits `1` — the rebuild deletes members by index code, so rebuilding after a
+  mostly-failed refresh (SEC outage, empty new calendar year) would shrink the live indexes.
+
+Both tasks share the ECR repo/image, ECS cluster, IAM roles, and task security group; each has its
+own task definition, log group, and schedule.
 
 ## Architecture
 
 ```
-EventBridge Scheduler (cron)
-        │ RunTask
-        ▼
-Fargate task (ARM64, 1 vCPU / 4 GB, public subnet + public IP, no NAT)
-   APP_RUN_MODE=hist-load  → HistLoadRunner → loadHistData() → adjustAllTickers(false) → System.exit
-        │ 5432
-        ▼
-Postgres on the EC2 instance  (its SG gets one ingress rule from the task SG)
+EventBridge Scheduler (cron)                EventBridge Scheduler (cron, ~3h later)
+        │ RunTask                                   │ RunTask
+        ▼                                           ▼
+Fargate task (ARM64, 1 vCPU / 4 GB)         Fargate task (ARM64, 0.5 vCPU / 2 GB)
+   APP_RUN_MODE=hist-load                      APP_RUN_MODE=index-load
+   → HistLoadRunner → loadHistData()           → IndexLoadRunner → refresh metrics
+   → adjustAllTickers(false) → System.exit     → rebuild FAT100/FAT1000/FAT50 → System.exit
+        │ 5432 (public subnet + public IP, no NAT)  │ 5432
+        ▼                                           ▼
+Postgres on the EC2 instance  (its SG gets one ingress rule from the shared task SG)
 ```
 
 Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not all month.
@@ -85,13 +98,37 @@ aws logs tail "$(terraform output -raw log_group_name)" --follow
 Confirm it connects to Postgres, processes days, and exits `0`. **Profile peak memory** from the
 task's CloudWatch metrics — if it sits well under 4 GB, set `task_memory = 2048` and re-apply.
 
+Same shape for the index load (use the `index_load_*` outputs; it shares the cluster and SG):
+
+```bash
+aws ecs run-task \
+  --cluster "$CLUSTER" \
+  --task-definition "$(terraform output -raw index_load_task_definition_family)" \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxx],securityGroups=[$SG],assignPublicIp=ENABLED}"
+
+aws logs tail "$(terraform output -raw index_load_log_group_name)" --follow
+```
+
+Confirm the refresh progress lines reach 100%, three `Rebuilt FAT...` lines appear, and the exit
+code is `0` (`aws ecs describe-tasks` → `containers[0].exitCode`). Then check
+`GET /index-members?code=FAT50` (and `FAT100`/`FAT1000`) reflects the run. A cheap smoke test
+before a full run: override `INDEX_LOAD_TICKER=AAPL` on the task
+(`--overrides '{"containerOverrides":[{"name":"index-load","environment":[{"name":"INDEX_LOAD_TICKER","value":"AAPL"}]}]}'`)
+to refresh one ticker and still rebuild.
+
 ## Schedule cutover (done)
 
 This schedule replaced the old django-celery-beat trigger for `portfolio.tasks.load_iex_hist`;
 Celery has since been removed from the Django service entirely. The Spring Boot
 `/admin/load-hist` HTTP endpoint stays in place for manual runs.
 
-To pause the Fargate schedule without destroying anything: `schedule_enabled = false` + `terraform apply`.
+To pause either Fargate schedule without destroying anything: `schedule_enabled = false` (hist load)
+or `index_load_schedule_enabled = false` (index load) + `terraform apply`.
+
+The index load had no Celery/beat trigger to replace — it was manual-only via the admin endpoints
+(`POST /admin/indexes/refresh-stocks`, `POST /admin/indexes/rebuild`), which stay in place for
+manual runs.
 
 ## Tuning knobs
 
@@ -99,5 +136,10 @@ To pause the Fargate schedule without destroying anything: `schedule_enabled = f
 |----------|---------|-------|
 | `task_memory` | `4096` | Lower to `2048` after profiling a real run. |
 | `hist_load_days` | `20` | Days walked back; already-loaded days are skipped (idempotent). |
-| `schedule_expression` / `schedule_timezone` | `cron(0 2 * * ? *)` / `America/New_York` | When it runs. |
-| `schedule_enabled` | `true` | Toggle the nightly trigger. 
+| `schedule_expression` / `schedule_timezone` | `cron(0 2 * * ? *)` / `America/New_York` | When the hist load runs. |
+| `schedule_enabled` | `true` | Toggle the nightly hist-load trigger. |
+| `index_load_task_cpu` / `index_load_task_memory` | `512` / `2048` | The index load is SEC-rate-limit bound (mostly idle); profile the first real run. |
+| `index_load_scope` | `russell1000` | Metrics refresh scope (`russell1000` or `all`). |
+| `index_load_min_processed` | `800` | Rebuild guard threshold; below it the task keeps yesterday's members and exits `1`. |
+| `index_load_schedule_expression` | `cron(0 5 * * ? *)` (tfvars) | When the index load runs; shares `schedule_timezone`. Keep it well after the hist load. |
+| `index_load_schedule_enabled` | `true` | Toggle the nightly index-load trigger. 

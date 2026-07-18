@@ -72,6 +72,11 @@ Before adding or changing any external data source:
 | (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore 50 rebuild includes. Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
 | (property) `fattore100.rebuild.top-n` | `100` | How many names the Fattore 100 rebuild includes. Set in `.env` as `fattore100.rebuild.top-n=100` if needed. |
 | (property) `fattore1000.rebuild.top-n` | `1000` | How many names the Fattore 1000 rebuild includes. Set in `.env` as `fattore1000.rebuild.top-n=1000` if needed. |
+| `INDEX_LOAD_YEAR` | `0` (current year) | Target calendar year for the one-shot index load (`APP_RUN_MODE=index-load`) |
+| `INDEX_LOAD_SCOPE` | `russell1000` | Index-load metrics refresh scope: `russell1000` (IWB universe) or `all` |
+| `INDEX_LOAD_SKIP_REFRESH` | `false` | When `true`, the index load skips the metrics refresh and only rebuilds |
+| `INDEX_LOAD_TICKER` | (empty) | When set, the index load refreshes just this ticker (smoke-test mode) before rebuilding |
+| `INDEX_LOAD_MIN_PROCESSED` | `800` | Minimum refreshed listings before the index load rebuilds; below it the task keeps existing members and exits `1` |
 | `LLM_SERVER_URL` | `http://localhost:8081` | URL of the llama.cpp server for 10-K summarization |
 | `DJANGO_PORTFOLIO_BASE_URL` | `http://localhost:8000/portfolio` | Base URL for Django portfolio API used by diagnostics-only yfinance validation |
 | `SEC_HTTP_CONNECT_TIMEOUT_MS` | `15000` | SEC API connect timeout (milliseconds) |
@@ -154,6 +159,8 @@ curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admi
 curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild-fattore-100
 curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild-fattore-1000
 ```
+
+**Scheduled run (Fargate):** the same refresh + rebuild-all sequence runs nightly as an ephemeral Fargate task (`APP_RUN_MODE=index-load` via `IndexLoadRunner`, scheduled after the hist-load task so fresh `DailyPrice` rows exist; see `deploy/terraform/README.md`). The runner skips the rebuild and exits `1` if the refresh processes fewer than `INDEX_LOAD_MIN_PROCESSED` listings — the rebuild deletes members by index code, so rebuilding after a mostly-failed refresh (SEC outage, empty new calendar year) would shrink the live indexes. The admin endpoints above remain for manual runs.
 
 List available indexes and fetch constituents:
 

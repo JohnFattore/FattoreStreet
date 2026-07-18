@@ -37,7 +37,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminController.class)
-@Import(SecurityConfig.class)
+// Real IndexLoadService (built from the mocked refresh/rebuild beans) so the tests exercise the
+// controller's delegation to it rather than stubbing the orchestration away.
+@Import({SecurityConfig.class, com.fattorestreet.sec_api.index.IndexLoadService.class})
 @TestPropertySource(properties = "SECRET_KEY=test-jwt-signing-secret-32chars-min!") // pragma: allowlist secret
 class AdminControllerTest {
 

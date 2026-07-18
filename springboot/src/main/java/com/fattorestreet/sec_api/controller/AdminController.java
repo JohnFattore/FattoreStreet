@@ -50,11 +50,11 @@ public class AdminController {
     private final FilingSummaryService filingSummaryService;
     private final com.fattorestreet.sec_api.repository.AssetRepository assetRepository;
     private final com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService;
+    private final com.fattorestreet.sec_api.index.IndexLoadService indexLoadService;
     private final com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore50IndexRebuildService;
     private final com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore100IndexRebuildService;
     private final com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore1000IndexRebuildService;
     private final Map<String, com.fattorestreet.sec_api.index.FattoreIndexRebuildService> capRankedRebuildByCode;
-    private final List<com.fattorestreet.sec_api.index.FattoreIndexRebuildService> capRankedRebuildAllOrdered;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public AdminController(
@@ -70,6 +70,7 @@ public class AdminController {
             FilingSummaryService filingSummaryService,
             com.fattorestreet.sec_api.repository.AssetRepository assetRepository,
             com.fattorestreet.sec_api.index.IndexMetricsRefreshService indexMetricsRefreshService,
+            com.fattorestreet.sec_api.index.IndexLoadService indexLoadService,
             @Qualifier("fattore50IndexRebuildService")
             com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore50IndexRebuildService,
             @Qualifier("fattore100IndexRebuildService")
@@ -89,6 +90,7 @@ public class AdminController {
         this.filingSummaryService = filingSummaryService;
         this.assetRepository = assetRepository;
         this.indexMetricsRefreshService = indexMetricsRefreshService;
+        this.indexLoadService = indexLoadService;
         this.fattore50IndexRebuildService = fattore50IndexRebuildService;
         this.fattore100IndexRebuildService = fattore100IndexRebuildService;
         this.fattore1000IndexRebuildService = fattore1000IndexRebuildService;
@@ -96,9 +98,6 @@ public class AdminController {
                 FattoreIndexCodes.FAT50.toUpperCase(Locale.ROOT), fattore50IndexRebuildService,
                 FattoreIndexCodes.FAT100.toUpperCase(Locale.ROOT), fattore100IndexRebuildService,
                 FattoreIndexCodes.FAT1000.toUpperCase(Locale.ROOT), fattore1000IndexRebuildService);
-        // Lexicographic by market index code: FAT100, FAT1000, FAT50
-        this.capRankedRebuildAllOrdered = List.of(
-                fattore100IndexRebuildService, fattore1000IndexRebuildService, fattore50IndexRebuildService);
     }
 
     @GetMapping("/admin/asset-load")
@@ -334,16 +333,11 @@ public class AdminController {
                 effectiveScope = "ticker:" + ticker.trim().toUpperCase(Locale.ROOT);
                 r = indexMetricsRefreshService.refreshSingleTicker(ticker, resolvedYear);
             } else {
-                String normalizedScope = scope != null ? scope.trim().toLowerCase(Locale.ROOT) : "russell1000";
-                effectiveScope = normalizedScope;
-                switch (normalizedScope) {
-                    case "russell1000", "iwb" -> r = indexMetricsRefreshService.refreshRussell1000Listings(resolvedYear);
-                    case "all" -> r = indexMetricsRefreshService.refreshAllTickers(resolvedYear);
-                    default -> {
-                        return ResponseEntity.badRequest().body(
-                                "Unknown scope: " + scope + ". Supported: russell1000 (iwb), all"
-                        );
-                    }
+                effectiveScope = scope != null ? scope.trim().toLowerCase(Locale.ROOT) : "russell1000";
+                try {
+                    r = indexLoadService.refresh(scope, resolvedYear);
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.badRequest().body(e.getMessage());
                 }
             }
             String duration = formatDuration(System.currentTimeMillis() - startTime);
@@ -377,18 +371,15 @@ public class AdminController {
             @RequestParam(defaultValue = "false") boolean refreshMetrics,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) String code) {
-        List<com.fattorestreet.sec_api.index.FattoreIndexRebuildService> services;
-        if (code == null || code.isBlank()) {
-            services = capRankedRebuildAllOrdered;
-        } else {
+        com.fattorestreet.sec_api.index.FattoreIndexRebuildService one = null;
+        if (code != null && !code.isBlank()) {
             String normalized = code.trim().toUpperCase(Locale.ROOT);
-            com.fattorestreet.sec_api.index.FattoreIndexRebuildService one = capRankedRebuildByCode.get(normalized);
+            one = capRankedRebuildByCode.get(normalized);
             if (one == null) {
                 return ResponseEntity.badRequest()
                         .body("Unknown index code: " + code.trim() + ". Supported: "
                                 + String.join(", ", capRankedRebuildByCode.keySet()));
             }
-            services = List.of(one);
         }
         try {
             int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
@@ -403,10 +394,11 @@ public class AdminController {
                         "skipped", rr.skipped(),
                         "skippedTickers", rr.skippedTickers()));
             }
-            List<Map<String, Object>> rebuilds = new ArrayList<>();
-            for (com.fattorestreet.sec_api.index.FattoreIndexRebuildService service : services) {
-                rebuilds.add(toRebuildPayload(service.rebuild(resolvedYear)));
-            }
+            List<com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult> results =
+                    (one == null) ? indexLoadService.rebuildAll(resolvedYear) : List.of(one.rebuild(resolvedYear));
+            List<Map<String, Object>> rebuilds = results.stream()
+                    .map(AdminController::toRebuildPayload)
+                    .collect(Collectors.toList());
             payload.put("rebuilds", rebuilds);
             payload.put("duration", formatDuration(System.currentTimeMillis() - startTime));
             return ResponseEntity.ok(payload);

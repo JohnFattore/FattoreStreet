@@ -122,6 +122,59 @@ variable "schedule_enabled" {
   default     = true
 }
 
+# ---------------------------------------------------------------------------
+# Index load (second daily job; shares the cluster, ECR image, IAM roles, and
+# task SG with the hist load — only the task definition, log group, and
+# schedule are its own).
+# ---------------------------------------------------------------------------
+
+variable "index_load_name_prefix" {
+  description = "Name for the index-load task definition family, log group, and schedule."
+  type        = string
+  default     = "fattorestreet-index-load"
+}
+
+variable "index_load_task_cpu" {
+  description = "Index-load Fargate task CPU units. The load is SEC-rate-limit bound (mostly idle), so 0.5 vCPU suffices."
+  type        = number
+  default     = 512
+}
+
+variable "index_load_task_memory" {
+  description = "Index-load Fargate task memory (MiB). Parses one SEC companyfacts JSON at a time; tune after profiling."
+  type        = number
+  default     = 2048
+}
+
+variable "index_load_scope" {
+  description = "Metrics refresh scope (INDEX_LOAD_SCOPE): russell1000 (IWB holdings universe) or all."
+  type        = string
+  default     = "russell1000"
+}
+
+variable "index_load_min_processed" {
+  description = <<-EOT
+    Minimum listings the metrics refresh must process before the rebuild runs
+    (INDEX_LOAD_MIN_PROCESSED). Below it the task keeps yesterday's index members and exits 1 —
+    the rebuild deletes members by index code, so rebuilding after a mostly-failed refresh
+    (SEC outage, empty new calendar year) would shrink the live indexes.
+  EOT
+  type        = number
+  default     = 800
+}
+
+variable "index_load_schedule_expression" {
+  description = "EventBridge Scheduler cron for the index load. Default 09:30 UTC daily, 3h after the hist load so fresh DailyPrice rows exist."
+  type        = string
+  default     = "cron(30 9 * * ? *)"
+}
+
+variable "index_load_schedule_enabled" {
+  description = "Whether the index-load schedule is ENABLED. Set false to deploy the task without auto-running it yet."
+  type        = bool
+  default     = true
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention for the task."
   type        = number

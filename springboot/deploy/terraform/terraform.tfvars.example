@@ -25,3 +25,9 @@ hist_load_days = 20
 schedule_expression = "cron(0 2 * * ? *)"
 schedule_timezone   = "America/New_York"
 schedule_enabled    = true
+
+# Index load: 05:00 America/New_York daily (3h after the hist load so fresh
+# DailyPrice rows exist, still pre-market). Shares schedule_timezone above.
+index_load_schedule_expression = "cron(0 5 * * ? *)"
+index_load_schedule_enabled    = true
+index_load_task_memory         = 2048 # SEC-rate-limit bound; tune after profiling a real run
