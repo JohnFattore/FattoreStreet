@@ -27,3 +27,18 @@ output "schedule_name" {
   description = "EventBridge schedule name."
   value       = aws_scheduler_schedule.this.name
 }
+
+output "index_load_task_definition_family" {
+  description = "Index-load task definition family."
+  value       = aws_ecs_task_definition.index_load.family
+}
+
+output "index_load_log_group_name" {
+  description = "CloudWatch log group for index-load task output."
+  value       = aws_cloudwatch_log_group.index_load.name
+}
+
+output "index_load_schedule_name" {
+  description = "EventBridge schedule name for the index load."
+  value       = aws_scheduler_schedule.index_load.name
+}

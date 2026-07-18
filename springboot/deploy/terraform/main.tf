@@ -1,6 +1,8 @@
 locals {
-  container_name = "hist-load"
-  tags           = merge({ Project = "FattoreStreet", Component = "springboot-hist-load" }, var.tags)
+  container_name       = "hist-load"
+  tags                 = merge({ Project = "FattoreStreet", Component = "springboot-hist-load" }, var.tags)
+  index_container_name = "index-load"
+  index_tags           = merge({ Project = "FattoreStreet", Component = "springboot-index-load" }, var.tags)
 }
 
 # ---------------------------------------------------------------------------
@@ -179,8 +181,13 @@ resource "aws_iam_role" "scheduler" {
 
 data "aws_iam_policy_document" "scheduler_run_task" {
   statement {
-    actions   = ["ecs:RunTask"]
-    resources = ["${aws_ecs_task_definition.this.arn_without_revision}:*", aws_ecs_task_definition.this.arn]
+    actions = ["ecs:RunTask"]
+    resources = [
+      "${aws_ecs_task_definition.this.arn_without_revision}:*",
+      aws_ecs_task_definition.this.arn,
+      "${aws_ecs_task_definition.index_load.arn_without_revision}:*",
+      aws_ecs_task_definition.index_load.arn,
+    ]
     condition {
       test     = "ArnLike"
       variable = "ecs:cluster"
@@ -225,6 +232,103 @@ resource "aws_scheduler_schedule" "this" {
       # Pinned to this revision; `terraform apply` rolls it forward on deploy, and the :tag image is
       # still resolved at launch so re-pushing the same tag picks up new image content.
       task_definition_arn = aws_ecs_task_definition.this.arn
+      task_count          = 1
+      launch_type         = "FARGATE"
+
+      network_configuration {
+        subnets          = var.public_subnet_ids
+        security_groups  = [aws_security_group.task.id]
+        assign_public_ip = true
+      }
+    }
+
+    retry_policy {
+      maximum_retry_attempts = 0
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Index load: second daily one-shot task (metrics refresh + Fattore index
+# rebuilds). Shares the ECR image, cluster, IAM roles, and task SG above —
+# APP_RUN_MODE selects the behavior. Scheduled after the hist load so the
+# refresh sees fresh DailyPrice rows.
+# ---------------------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "index_load" {
+  name              = "/ecs/${var.index_load_name_prefix}"
+  retention_in_days = var.log_retention_days
+  tags              = local.index_tags
+}
+
+resource "aws_ecs_task_definition" "index_load" {
+  family                   = var.index_load_name_prefix
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.index_load_task_cpu
+  memory                   = var.index_load_task_memory
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = local.index_container_name
+      image     = "${aws_ecr_repository.this.repository_url}:${var.image_tag}"
+      essential = true
+
+      environment = [
+        { name = "APP_RUN_MODE", value = "index-load" },
+        { name = "INDEX_LOAD_SCOPE", value = var.index_load_scope },
+        { name = "INDEX_LOAD_MIN_PROCESSED", value = tostring(var.index_load_min_processed) },
+        { name = "DB_URL", value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}" },
+        { name = "DB_USERNAME", value = var.db_username },
+      ]
+
+      # Pull individual keys out of the single fattorestreet/env JSON secret.
+      # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
+      secrets = [
+        { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
+        { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.index_load.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "index-load"
+        }
+      }
+    }
+  ])
+
+  tags = local.index_tags
+}
+
+resource "aws_scheduler_schedule" "index_load" {
+  name       = var.index_load_name_prefix
+  group_name = "default"
+  state      = var.index_load_schedule_enabled ? "ENABLED" : "DISABLED"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression          = var.index_load_schedule_expression
+  schedule_expression_timezone = var.schedule_timezone
+
+  target {
+    arn      = aws_ecs_cluster.this.arn
+    role_arn = aws_iam_role.scheduler.arn
+
+    ecs_parameters {
+      # Pinned to this revision; `terraform apply` rolls it forward on deploy, and the :tag image is
+      # still resolved at launch so re-pushing the same tag picks up new image content.
+      task_definition_arn = aws_ecs_task_definition.index_load.arn
       task_count          = 1
       launch_type         = "FARGATE"
 
