@@ -92,18 +92,9 @@ public class EquityCorporateActionService {
         }
 
         CorporateActionFilingDateService.RecordDateScanResult recordDateScan = corporateActionFilingDateService.scanDividendRecordDates(cik);
-        List<CorporateActionFilingDateService.RecordDateCandidate> recordDates = recordDateScan != null
-                ? recordDateScan.candidates()
-                : corporateActionFilingDateService.fetchDividendRecordDates(cik);
-        List<CorporateActionFilingDateService.ExDividendDateCandidate> exDividendDirect = recordDateScan != null
-                ? recordDateScan.exDividendDirectCandidates()
-                : List.of();
-        List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations = recordDateScan != null
-                ? recordDateScan.declarations()
-                : List.of();
-        Map<String, Integer> discoveredForms = recordDateScan != null ? recordDateScan.discoveredByForm() : Map.of();
-        Map<String, Integer> selectedForms = recordDateScan != null ? recordDateScan.selectedByForm() : Map.of();
-        Map<String, Integer> rejectedForms = recordDateScan != null ? recordDateScan.rejectedByForm() : Map.of();
+        List<CorporateActionFilingDateService.RecordDateCandidate> recordDates = recordDateScan.candidates();
+        List<CorporateActionFilingDateService.ExDividendDateCandidate> exDividendDirect = recordDateScan.exDividendDirectCandidates();
+        List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations = recordDateScan.declarations();
         log.info("[{}] Dividend detection inputs: {} SEC facts, {} normalized events, {} record-date candidates, {} direct ex-date candidates, {} declaration tuples",
                 ticker, facts.size(), normalized.size(), recordDates.size(), exDividendDirect.size(), declarations.size());
         List<CorporateAction> corporateActions = corporateActionRepository.findByTicker(ticker);
@@ -131,30 +122,17 @@ public class EquityCorporateActionService {
                 upsertStats.changed(),
                 upsertStats.inserted(),
                 upsertStats.updated(),
-                discoveredForms,
-                selectedForms,
-                rejectedForms);
+                recordDateScan.discoveredByForm(),
+                recordDateScan.selectedByForm(),
+                recordDateScan.rejectedByForm());
     }
 
-    public static class EquityDetectionReport {
-        private final String ticker;
-        private final Long cik;
-        private final SplitDetectionStats split;
-        private final DividendDetectionStats dividend;
-        private final String failureReason;
-
-        public EquityDetectionReport(
-                String ticker,
-                Long cik,
-                SplitDetectionStats split,
-                DividendDetectionStats dividend,
-                String failureReason) {
-            this.ticker = ticker;
-            this.cik = cik;
-            this.split = split;
-            this.dividend = dividend;
-            this.failureReason = failureReason;
-        }
+    public static record EquityDetectionReport(
+            String ticker,
+            Long cik,
+            SplitDetectionStats split,
+            DividendDetectionStats dividend,
+            String failureReason) {
 
         public static EquityDetectionReport failed(String ticker, Long cik, String failureReason) {
             return new EquityDetectionReport(
@@ -259,12 +237,20 @@ public class EquityCorporateActionService {
 
     public static record AssignmentResult(
             List<DividendEvent> events,
-            int recordBasedAssignments,
-            int fallbackAssignments,
             int tupleMatchedAssignments,
             int directExAssignments,
             int dpAssignments,
             int syntheticAssignments) {
+
+        /** Events whose ex-date is grounded in a filing (tuple, direct ex-text, or record-date DP). */
+        public int recordBasedAssignments() {
+            return tupleMatchedAssignments + directExAssignments + dpAssignments;
+        }
+
+        /** Events that fell through to a cadence-inferred synthetic ex-date. */
+        public int fallbackAssignments() {
+            return syntheticAssignments;
+        }
     }
 
     public static record UpsertStats(int changed, int inserted, int updated, int pruned) {

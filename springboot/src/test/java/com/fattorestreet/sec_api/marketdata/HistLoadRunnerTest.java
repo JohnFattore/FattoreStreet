@@ -44,7 +44,7 @@ class HistLoadRunnerTest {
     }
 
     private void stubSuccessfulAdjustment() {
-        when(priceAdjustmentService.adjustAllTickers(false)).thenReturn(
+        when(priceAdjustmentService.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS)).thenReturn(
                 Map.of("tickersProcessed", 5, "failedTickers", 0, "scheduledDetections", 1,
                         "jumpTriggeredDetections", 0, "totalPricesUpdated", 100, "totalSnappedActions", 0));
     }
@@ -55,7 +55,7 @@ class HistLoadRunnerTest {
         stubSuccessfulAdjustment();
 
         assertEquals(0, runner.runLoad());
-        verify(priceAdjustmentService).adjustAllTickers(false);
+        verify(priceAdjustmentService).adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
     }
 
     @Test
@@ -83,7 +83,7 @@ class HistLoadRunnerTest {
                 Map.of("processed", 0, "skipped", 0, "notAvailable", 0, "errors", 4));
 
         assertEquals(1, runner.runLoad());
-        verify(priceAdjustmentService, never()).adjustAllTickers(false);
+        verify(priceAdjustmentService, never()).adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
     }
 
     @Test
@@ -91,13 +91,13 @@ class HistLoadRunnerTest {
         when(iexHistService.loadHistData(20)).thenThrow(new RuntimeException("boom"));
 
         assertEquals(1, runner.runLoad());
-        verify(priceAdjustmentService, never()).adjustAllTickers(false);
+        verify(priceAdjustmentService, never()).adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
     }
 
     @Test
     void returnsOneWhenAdjustmentThrows() throws Exception {
         stubSuccessfulLoad();
-        when(priceAdjustmentService.adjustAllTickers(false)).thenThrow(new RuntimeException("adjust boom"));
+        when(priceAdjustmentService.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS)).thenThrow(new RuntimeException("adjust boom"));
 
         assertEquals(1, runner.runLoad());
     }
@@ -108,6 +108,6 @@ class HistLoadRunnerTest {
         ReflectionTestUtils.setField(runner, "adjustEnabled", false);
 
         assertEquals(0, runner.runLoad());
-        verify(priceAdjustmentService, never()).adjustAllTickers(false);
+        verify(priceAdjustmentService, never()).adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
     }
 }

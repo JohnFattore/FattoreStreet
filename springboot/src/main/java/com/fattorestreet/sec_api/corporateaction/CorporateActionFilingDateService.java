@@ -14,6 +14,7 @@ import java.time.Month;
 import java.time.MonthDay;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.regex.Matcher;
@@ -75,10 +76,6 @@ public class CorporateActionFilingDateService {
         this.mapper = mapper;
     }
 
-    public List<RecordDateCandidate> fetchDividendRecordDates(Long cik) {
-        return scanDividendRecordDates(cik).candidates();
-    }
-
     public RecordDateScanResult scanDividendRecordDates(Long cik) {
         Map<LocalDate, RecordDateCandidate> candidatesByDate = new HashMap<>();
         Map<LocalDate, ExDividendDateCandidate> exDividendByDate = new HashMap<>();
@@ -98,24 +95,20 @@ public class CorporateActionFilingDateService {
                 String text = webService.fetchFilingDocument(cik, filing.accessionNumber(), filing.primaryDocument());
                 List<ExtractedRecordDate> extracted = new ArrayList<>(
                         extractRecordDateCandidates(text, "primary:" + filing.primaryDocument()));
-                extracted.addAll(extractRecordDateCandidatesFromExhibits(cik, filing.accessionNumber(), text));
+                extracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractRecordDateCandidates));
                 List<ExtractedRecordDate> exExtracted = new ArrayList<>(
                         extractExDividendDateCandidates(text, "primary:" + filing.primaryDocument()));
-                exExtracted.addAll(extractExDividendDateCandidatesFromExhibits(cik, filing.accessionNumber(), text));
+                exExtracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractExDividendDateCandidates));
                 if (extracted.isEmpty()) {
-                    try {
-                        String fullSubmissionText = webService.fetchFullSubmissionText(cik, filing.accessionNumber());
+                    String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
+                    if (fullSubmissionText != null) {
                         extracted.addAll(extractRecordDateCandidates(fullSubmissionText, "submission_txt"));
-                    } catch (Exception ignored) {
-                        // Fall back to primary/exhibit parsing only.
                     }
                 }
                 if (exExtracted.isEmpty()) {
-                    try {
-                        String fullSubmissionText = webService.fetchFullSubmissionText(cik, filing.accessionNumber());
+                    String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
+                    if (fullSubmissionText != null) {
                         exExtracted.addAll(extractExDividendDateCandidates(fullSubmissionText, "submission_txt"));
-                    } catch (Exception ignored) {
-                        // Ignore secondary fetch failures.
                     }
                 }
                 mergeExDividendCandidates(exDividendByDate, exExtracted, filing);
@@ -167,12 +160,7 @@ public class CorporateActionFilingDateService {
             Long cik, FilingCandidate filing, String primaryText) {
         List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations = new ArrayList<>(
                 tupleExtractor.extract(primaryText, filing.filingDate(), filing.accessionNumber()));
-        int scanned = 0;
         for (String doc : extractExhibitDocumentPaths(primaryText)) {
-            if (scanned >= MAX_EXHIBIT_DOCS_TO_SCAN) {
-                break;
-            }
-            scanned++;
             try {
                 String exhibitText = webService.fetchFilingDocument(cik, filing.accessionNumber(), doc);
                 declarations.addAll(tupleExtractor.extract(exhibitText, filing.filingDate(), filing.accessionNumber()));
@@ -181,14 +169,21 @@ public class CorporateActionFilingDateService {
             }
         }
         if (declarations.isEmpty()) {
-            try {
-                String fullSubmissionText = webService.fetchFullSubmissionText(cik, filing.accessionNumber());
+            String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
+            if (fullSubmissionText != null) {
                 declarations.addAll(tupleExtractor.extract(fullSubmissionText, filing.filingDate(), filing.accessionNumber()));
-            } catch (Exception ignored) {
-                // Fall back to primary/exhibit parsing only.
             }
         }
         return declarations;
+    }
+
+    /** Full-submission text as a fallback source; null when the fetch fails. */
+    private String fetchFullSubmissionTextQuietly(Long cik, String accessionNumber) {
+        try {
+            return webService.fetchFullSubmissionText(cik, accessionNumber);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void mergeDeclarations(
@@ -247,13 +242,11 @@ public class CorporateActionFilingDateService {
                 String text = webService.fetchFilingDocument(cik, filing.accessionNumber(), filing.primaryDocument());
                 List<ExtractedRecordDate> extracted = new ArrayList<>(
                         extractSplitDateCandidates(text, "primary:" + filing.primaryDocument()));
-                extracted.addAll(extractSplitDateCandidatesFromExhibits(cik, filing.accessionNumber(), text));
+                extracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractSplitDateCandidates));
                 if (extracted.isEmpty()) {
-                    try {
-                        String fullSubmissionText = webService.fetchFullSubmissionText(cik, filing.accessionNumber());
+                    String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
+                    if (fullSubmissionText != null) {
                         extracted.addAll(extractSplitDateCandidates(fullSubmissionText, "submission_txt"));
-                    } catch (Exception ignored) {
-                        // Fall back to primary/exhibit parsing only.
                     }
                 }
                 if (extracted.isEmpty()) {
@@ -273,7 +266,7 @@ public class CorporateActionFilingDateService {
                         cik, filing.accessionNumber(), best.date(), best.score(), best.intentRank(), best.confidenceLabel(), best.source(), best.patternLabel());
                 SplitDateCandidate candidate = new SplitDateCandidate(best.date(), filing.filingDate(), filing.accessionNumber(), best.score());
                 SplitDateCandidate current = candidatesByDate.get(candidate.effectiveDate());
-                if (current == null || isPreferredSplitCandidate(candidate, current)) {
+                if (current == null || isPreferredCandidate(candidate, current)) {
                     candidatesByDate.put(candidate.effectiveDate(), candidate);
                 }
             } catch (Exception e) {
@@ -339,18 +332,20 @@ public class CorporateActionFilingDateService {
         return mergeCandidates(regexCandidates, sentenceCandidates);
     }
 
-    private List<ExtractedRecordDate> extractRecordDateCandidatesFromExhibits(Long cik, String accession, String filingHtml) {
-        List<String> exhibitDocuments = extractExhibitDocumentPaths(filingHtml);
+    /**
+     * Runs a date extractor over a filing's exhibit documents, penalizing exhibit matches
+     * by 5 points relative to primary-document matches.
+     */
+    private List<ExtractedRecordDate> extractFromExhibits(
+            Long cik,
+            String accession,
+            String filingHtml,
+            BiFunction<String, String, List<ExtractedRecordDate>> extractor) {
         List<ExtractedRecordDate> candidates = new ArrayList<>();
-        int scanned = 0;
-        for (String doc : exhibitDocuments) {
-            if (scanned >= MAX_EXHIBIT_DOCS_TO_SCAN) {
-                break;
-            }
-            scanned++;
+        for (String doc : extractExhibitDocumentPaths(filingHtml)) {
             try {
                 String exhibitText = webService.fetchFilingDocument(cik, accession, doc);
-                for (ExtractedRecordDate extracted : extractRecordDateCandidates(exhibitText, "exhibit:" + doc)) {
+                for (ExtractedRecordDate extracted : extractor.apply(exhibitText, "exhibit:" + doc)) {
                     candidates.add(new ExtractedRecordDate(
                             extracted.date(),
                             extracted.score() - 5,
@@ -378,34 +373,6 @@ public class CorporateActionFilingDateService {
         return extractDatedCandidates(searchable, specs, source);
     }
 
-    private List<ExtractedRecordDate> extractExDividendDateCandidatesFromExhibits(Long cik, String accession, String filingHtml) {
-        List<String> exhibitDocuments = extractExhibitDocumentPaths(filingHtml);
-        List<ExtractedRecordDate> candidates = new ArrayList<>();
-        int scanned = 0;
-        for (String doc : exhibitDocuments) {
-            if (scanned >= MAX_EXHIBIT_DOCS_TO_SCAN) {
-                break;
-            }
-            scanned++;
-            try {
-                String exhibitText = webService.fetchFilingDocument(cik, accession, doc);
-                for (ExtractedRecordDate extracted : extractExDividendDateCandidates(exhibitText, "exhibit:" + doc)) {
-                    candidates.add(new ExtractedRecordDate(
-                            extracted.date(),
-                            extracted.score() - 5,
-                            extracted.matchIndex(),
-                            extracted.source(),
-                            extracted.patternLabel(),
-                            extracted.intentRank(),
-                            extracted.confidenceLabel()));
-                }
-            } catch (Exception ignored) {
-                // Continue scanning exhibit candidates.
-            }
-        }
-        return candidates;
-    }
-
     private List<ExtractedRecordDate> extractSplitDateCandidates(String text, String source) {
         String searchable = toSearchableText(text);
         if (searchable.isBlank()) {
@@ -427,34 +394,6 @@ public class CorporateActionFilingDateService {
         List<ExtractedRecordDate> regexCandidates = extractDatedCandidates(searchable, specs, source);
         List<ExtractedRecordDate> sentenceCandidates = extractSentenceCandidates(searchable, source, true);
         return mergeCandidates(regexCandidates, sentenceCandidates);
-    }
-
-    private List<ExtractedRecordDate> extractSplitDateCandidatesFromExhibits(Long cik, String accession, String filingHtml) {
-        List<String> exhibitDocuments = extractExhibitDocumentPaths(filingHtml);
-        List<ExtractedRecordDate> candidates = new ArrayList<>();
-        int scanned = 0;
-        for (String doc : exhibitDocuments) {
-            if (scanned >= MAX_EXHIBIT_DOCS_TO_SCAN) {
-                break;
-            }
-            scanned++;
-            try {
-                String exhibitText = webService.fetchFilingDocument(cik, accession, doc);
-                for (ExtractedRecordDate extracted : extractSplitDateCandidates(exhibitText, "exhibit:" + doc)) {
-                    candidates.add(new ExtractedRecordDate(
-                            extracted.date(),
-                            extracted.score() - 5,
-                            extracted.matchIndex(),
-                            extracted.source(),
-                            extracted.patternLabel(),
-                            extracted.intentRank(),
-                            extracted.confidenceLabel()));
-                }
-            } catch (Exception ignored) {
-                // Continue scanning exhibit candidates.
-            }
-        }
-        return candidates;
     }
 
     private List<String> extractExhibitDocumentPaths(String filingHtml) {
@@ -863,17 +802,8 @@ public class CorporateActionFilingDateService {
         return easter.minusDays(2);
     }
 
-    private boolean isPreferredCandidate(RecordDateCandidate left, RecordDateCandidate right) {
-        if (left.confidenceScore() != right.confidenceScore()) {
-            return left.confidenceScore() > right.confidenceScore();
-        }
-        if (left.filingDate() != null && right.filingDate() != null && !left.filingDate().equals(right.filingDate())) {
-            return left.filingDate().isBefore(right.filingDate());
-        }
-        return left.accessionNumber().compareTo(right.accessionNumber()) < 0;
-    }
-
-    private boolean isPreferredSplitCandidate(SplitDateCandidate left, SplitDateCandidate right) {
+    /** Higher confidence wins; ties prefer the earlier filing, then the lower accession number. */
+    private boolean isPreferredCandidate(FilingDatedCandidate left, FilingDatedCandidate right) {
         if (left.confidenceScore() != right.confidenceScore()) {
             return left.confidenceScore() > right.confidenceScore();
         }
@@ -937,7 +867,15 @@ public class CorporateActionFilingDateService {
         }
     }
 
-    public record RecordDateCandidate(LocalDate recordDate, LocalDate filingDate, String accessionNumber, int confidenceScore) {
+    /** Shared shape of candidates extracted from a dated SEC filing. */
+    private interface FilingDatedCandidate {
+        LocalDate filingDate();
+        String accessionNumber();
+        int confidenceScore();
+    }
+
+    public record RecordDateCandidate(LocalDate recordDate, LocalDate filingDate, String accessionNumber, int confidenceScore)
+            implements FilingDatedCandidate {
         public RecordDateCandidate(LocalDate recordDate, LocalDate filingDate, String accessionNumber) {
             this(recordDate, filingDate, accessionNumber, 0);
         }
@@ -948,10 +886,11 @@ public class CorporateActionFilingDateService {
             LocalDate exDividendDate,
             LocalDate filingDate,
             String accessionNumber,
-            int confidenceScore) {
+            int confidenceScore) implements FilingDatedCandidate {
     }
 
-    public record SplitDateCandidate(LocalDate effectiveDate, LocalDate filingDate, String accessionNumber, int confidenceScore) {
+    public record SplitDateCandidate(LocalDate effectiveDate, LocalDate filingDate, String accessionNumber, int confidenceScore)
+            implements FilingDatedCandidate {
     }
 
     public record RecordDateScanResult(

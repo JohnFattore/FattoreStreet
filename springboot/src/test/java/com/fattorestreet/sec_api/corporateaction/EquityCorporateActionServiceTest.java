@@ -35,14 +35,26 @@ class EquityCorporateActionServiceTest {
 
     @BeforeEach
     void setDefaults() {
-        lenient().when(corporateActionFilingDateService.fetchDividendRecordDates(anyLong()))
-                .thenReturn(java.util.Collections.emptyList());
+        lenient().when(corporateActionFilingDateService.scanDividendRecordDates(anyLong()))
+                .thenReturn(emptyScanResult());
         lenient().when(corporateActionFilingDateService.fetchSplitEffectiveDates(anyLong()))
                 .thenReturn(java.util.Collections.emptyList());
         lenient().when(corporateActionFilingDateService.computeExDividendDate(any()))
                 .thenAnswer(inv -> inv.getArgument(0));
         lenient().when(corporateActionRepository.existsByTickerAndActionTypeAndEffectiveDate(
                 anyString(), any(), any())).thenReturn(false);
+    }
+
+    private static CorporateActionFilingDateService.RecordDateScanResult emptyScanResult() {
+        return scanResult(java.util.List.of());
+    }
+
+    /** Scan result carrying only record-date candidates, matching how these tests drive the service. */
+    private static CorporateActionFilingDateService.RecordDateScanResult scanResult(
+            java.util.List<CorporateActionFilingDateService.RecordDateCandidate> candidates) {
+        return new CorporateActionFilingDateService.RecordDateScanResult(
+                candidates, java.util.List.of(), java.util.List.of(),
+                java.util.Map.of(), java.util.Map.of(), java.util.Map.of());
     }
 
     @Test
@@ -626,11 +638,11 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
-                .thenReturn(java.util.List.of(
+        when(corporateActionFilingDateService.scanDividendRecordDates(320193L))
+                .thenReturn(scanResult(java.util.List.of(
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2024, 5, 10), LocalDate.of(2024, 5, 3), "0001"),
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2024, 8, 12), LocalDate.of(2024, 8, 2), "0002")
-                ));
+                )));
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2024, 5, 10)))
                 .thenReturn(LocalDate.of(2024, 5, 9));
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2024, 8, 12)))
@@ -671,11 +683,11 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
-                .thenReturn(java.util.List.of(
+        when(corporateActionFilingDateService.scanDividendRecordDates(320193L))
+                .thenReturn(scanResult(java.util.List.of(
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2023, 1, 10), LocalDate.of(2023, 1, 2), "bad1"),
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 2), "bad2")
-                ));
+                )));
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2024, 5, 12)))
                 .thenReturn(LocalDate.of(2024, 5, 10));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
@@ -712,10 +724,10 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
-                .thenReturn(java.util.List.of(
+        when(corporateActionFilingDateService.scanDividendRecordDates(320193L))
+                .thenReturn(scanResult(java.util.List.of(
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2020, 8, 10), LocalDate.of(2020, 7, 31), "0001", 120)
-                ));
+                )));
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2020, 8, 10)))
                 .thenReturn(LocalDate.of(2020, 8, 7));
         when(corporateActionRepository.findByTicker("AAPL")).thenReturn(java.util.Collections.emptyList());
@@ -751,11 +763,11 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
-                .thenReturn(java.util.List.of(
+        when(corporateActionFilingDateService.scanDividendRecordDates(320193L))
+                .thenReturn(scanResult(java.util.List.of(
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2020, 6, 15), LocalDate.of(2020, 5, 8), "alt-low", 0),
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2020, 7, 10), LocalDate.of(2020, 7, 2), "must-have", 600)
-                ));
+                )));
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2020, 6, 15)))
                 .thenReturn(LocalDate.of(2020, 6, 12));
         when(corporateActionFilingDateService.computeExDividendDate(LocalDate.of(2020, 7, 10)))
@@ -917,11 +929,11 @@ class EquityCorporateActionServiceTest {
         }
         """;
         when(webService.fetchFinancials(320193L)).thenReturn(json);
-        when(corporateActionFilingDateService.fetchDividendRecordDates(320193L))
-                .thenReturn(java.util.List.of(
+        when(corporateActionFilingDateService.scanDividendRecordDates(320193L))
+                .thenReturn(scanResult(java.util.List.of(
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2025, 1, 13), LocalDate.of(2025, 1, 10), "r1", 100),
                         new CorporateActionFilingDateService.RecordDateCandidate(LocalDate.of(2025, 4, 14), LocalDate.of(2025, 4, 10), "r2", 100)
-                ));
+                )));
 
         CorporateAction old1 = new CorporateAction();
         old1.setTicker("AAPL");

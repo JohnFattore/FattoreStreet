@@ -360,7 +360,7 @@ class AdminControllerTest {
 
     @Test
     void adminAdjustPrices_validKey_returns200() throws Exception {
-        when(priceAdjustmentService.adjustAllTickers(false, false, false, false)).thenReturn(
+        when(priceAdjustmentService.adjustAllTickers(new PriceAdjustmentService.AdjustmentOptions(false, false, false, false))).thenReturn(
                 Map.of("tickersProcessed", 10, "skippedNoAsset", 5,
                        "totalSplits", 2, "totalDividends", 8, "totalPricesUpdated", 500));
 
@@ -373,7 +373,7 @@ class AdminControllerTest {
 
     @Test
     void adminAdjustPrices_forceTrue_passesForceParam() throws Exception {
-        when(priceAdjustmentService.adjustAllTickers(true, false, false, false)).thenReturn(
+        when(priceAdjustmentService.adjustAllTickers(new PriceAdjustmentService.AdjustmentOptions(true, false, false, false))).thenReturn(
                 Map.of("tickersProcessed", 50, "skippedNoAsset", 0,
                        "totalSplits", 5, "totalDividends", 20, "totalPricesUpdated", 5000));
 
@@ -386,7 +386,7 @@ class AdminControllerTest {
 
     @Test
     void adminAdjustPrices_etfOnly_passesFlags() throws Exception {
-        when(priceAdjustmentService.adjustAllTickers(false, true, false, false)).thenReturn(
+        when(priceAdjustmentService.adjustAllTickers(new PriceAdjustmentService.AdjustmentOptions(false, true, false, false))).thenReturn(
                 Map.of("tickersProcessed", 3, "skippedNoAsset", 0,
                         "totalSplits", 0, "totalDividends", 6, "totalPricesUpdated", 756));
 
@@ -399,7 +399,7 @@ class AdminControllerTest {
 
     @Test
     void adminAdjustPrices_singleTicker_returns200() throws Exception {
-        when(priceAdjustmentService.adjustTicker("AAPL", false, false, false, false)).thenReturn(
+        when(priceAdjustmentService.adjustTicker("AAPL", new PriceAdjustmentService.AdjustmentOptions(false, false, false, false))).thenReturn(
                 Map.of("ticker", "AAPL", "status", "ok", "newActions", 1,
                        "splits", 1, "dividends", 4, "pricesUpdated", 252));
 
@@ -414,7 +414,7 @@ class AdminControllerTest {
 
     @Test
     void adminAdjustPrices_singleTicker_passesEtfFlags() throws Exception {
-        when(priceAdjustmentService.adjustTicker("VOO", true, true, false, false)).thenReturn(
+        when(priceAdjustmentService.adjustTicker("VOO", new PriceAdjustmentService.AdjustmentOptions(true, true, false, false))).thenReturn(
                 Map.of("ticker", "VOO", "status", "ok", "newActions", 2,
                         "splits", 0, "dividends", 2, "pricesUpdated", 400,
                         "etfDiagnostics", Map.of(

@@ -25,7 +25,7 @@ import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
  * inside the isolated task, which keeps the boot path identical to the running service.
  *
  * <p>After a successful load, the corporate-action price adjustment runs
- * ({@code adjustAllTickers(force=false)}) unless {@code app.hist-load.adjust-enabled=false}: the
+ * (default {@code AdjustmentOptions}, i.e. no force) unless {@code app.hist-load.adjust-enabled=false}: the
  * newly loaded rows have NULL adjusted columns, which selects exactly the tickers needing
  * recomputation, and the service's rolling staleness window plus price-jump trigger keep SEC
  * detection fresh. yfinance validation is never invoked here (dev-only diagnostics).
@@ -103,7 +103,7 @@ public class HistLoadRunner implements ApplicationRunner {
         long startTime = System.currentTimeMillis();
         log.info("Starting corporate-action price adjustment");
         try {
-            Map<String, Object> result = priceAdjustmentService.adjustAllTickers(false);
+            Map<String, Object> result = priceAdjustmentService.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
             long elapsedMs = System.currentTimeMillis() - startTime;
             log.info("Price adjustment finished in {}m {}s -- tickersProcessed={}, failedTickers={}, "
                             + "scheduledDetections={}, jumpTriggeredDetections={}, pricesUpdated={}, snappedActions={}",

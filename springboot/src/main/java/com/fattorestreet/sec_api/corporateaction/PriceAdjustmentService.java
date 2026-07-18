@@ -60,28 +60,27 @@ public class PriceAdjustmentService {
     }
 
     /**
+     * Knobs for a detection/adjustment run.
+     *
+     * @param force                re-fetch SEC data even when detection is fresh
+     * @param etfOnly              only process fund tickers
+     * @param equityOnly           only process non-fund tickers
+     * @param validateWithYfinance attach yfinance diagnostic reports (dev verification only)
+     */
+    public record AdjustmentOptions(boolean force, boolean etfOnly, boolean equityOnly, boolean validateWithYfinance) {
+        public static final AdjustmentOptions DEFAULTS = new AdjustmentOptions(false, false, false, false);
+    }
+
+    /**
      * Detect corporate actions from SEC and adjust prices for a single ticker.
      * @return summary map
      */
     public Map<String, Object> adjustTicker(String ticker) {
-        return adjustTicker(ticker, false, false, false, false);
+        return adjustTicker(ticker, AdjustmentOptions.DEFAULTS);
     }
 
-    public Map<String, Object> adjustTicker(
-            String ticker,
-            boolean force,
-            boolean etfOnly,
-            boolean equityOnly) {
-        return adjustTicker(ticker, force, etfOnly, equityOnly, false);
-    }
-
-    public Map<String, Object> adjustTicker(
-            String ticker,
-            boolean force,
-            boolean etfOnly,
-            boolean equityOnly,
-            boolean validateWithYfinance) {
-        if (etfOnly && equityOnly) {
+    public Map<String, Object> adjustTicker(String ticker, AdjustmentOptions options) {
+        if (options.etfOnly() && options.equityOnly()) {
             return Map.of(
                     "ticker", ticker,
                     "status", "invalid_args",
@@ -97,20 +96,20 @@ public class PriceAdjustmentService {
         }
 
         boolean isFund = Boolean.TRUE.equals(asset.getIsFund());
-        if (etfOnly && !isFund) {
+        if (options.etfOnly() && !isFund) {
             return Map.of("ticker", normalizedTicker, "status", "skipped_mode", "pricesUpdated", 0);
         }
-        if (equityOnly && isFund) {
+        if (options.equityOnly() && isFund) {
             return Map.of("ticker", normalizedTicker, "status", "skipped_mode", "pricesUpdated", 0);
         }
 
         List<CorporateAction> actions = corporateActionRepository.findByTickerOrderByEffectiveDateDesc(normalizedTicker);
         boolean hasEquityDividends = actions.stream().anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
         Listing listing = listingRepository.findByTicker(normalizedTicker).orElse(null);
-        boolean shouldFetchSec = force
+        boolean shouldFetchSec = options.force()
                 || actions.isEmpty()
                 || isDetectionStale(listing)
-                || (!isFund && validateWithYfinance && !hasEquityDividends)
+                || (!isFund && options.validateWithYfinance() && !hasEquityDividends)
                 || hasOvernightPriceJump(normalizedTicker);
         int newActions;
         EtfCorporateActionService.EtfDetectionReport etfReport = null;
@@ -146,7 +145,7 @@ public class PriceAdjustmentService {
         if (!isFund && equityReport != null) {
             out.put("equityDiagnostics", equityReport.toMap());
         }
-        if (validateWithYfinance) {
+        if (options.validateWithYfinance()) {
             CorporateActionValidationService.ValidationReport validationReport =
                     corporateActionValidationService.validateTicker(normalizedTicker, VALIDATION_MIN_DATE);
             out.put("validationReport", validationReport.toMap());
@@ -158,25 +157,11 @@ public class PriceAdjustmentService {
 
     /**
      * Detect and adjust for all tickers that have price data and a corresponding SEC CIK.
-     *
-     * @param force when false, skips SEC re-fetch for tickers that already have corporate
-     *              actions detected; when true, re-fetches SEC data for all tickers to
-     *              catch new splits/dividends
+     * When {@code options.force()} is false, SEC re-fetch is skipped for tickers whose
+     * detection is fresh; when true, SEC data is re-fetched for all tickers.
      */
-    public Map<String, Object> adjustAllTickers(boolean force) {
-        return adjustAllTickers(force, false, false, false);
-    }
-
-    public Map<String, Object> adjustAllTickers(boolean force, boolean etfOnly, boolean equityOnly) {
-        return adjustAllTickers(force, etfOnly, equityOnly, false);
-    }
-
-    public Map<String, Object> adjustAllTickers(
-            boolean force,
-            boolean etfOnly,
-            boolean equityOnly,
-            boolean validateWithYfinance) {
-        if (etfOnly && equityOnly) {
+    public Map<String, Object> adjustAllTickers(AdjustmentOptions options) {
+        if (options.etfOnly() && options.equityOnly()) {
             return Map.of(
                     "status", "invalid_args",
                     "message", "etfOnly and equityOnly cannot both be true"
@@ -201,13 +186,13 @@ public class PriceAdjustmentService {
 
         Set<String> tickersToProcess = new HashSet<>(tickersNeedingAdjustment);
         tickersToProcess.addAll(scheduledDetections);
-        if (force) {
+        if (options.force()) {
             tickersToProcess.addAll(allPriceTickers);
         }
 
         log.info("Adjust prices: {} total price tickers, {} needing adjustment, {} with existing actions, {} scheduled for re-detection, force={}",
                 allPriceTickers.size(), tickersNeedingAdjustment.size(), tickersWithExistingActions.size(),
-                scheduledDetections.size(), force);
+                scheduledDetections.size(), options.force());
 
         int tickersProcessed = 0;
         int totalSplits = 0;
@@ -236,10 +221,10 @@ public class PriceAdjustmentService {
                 boolean hasExistingActions = tickersWithExistingActions.contains(ticker);
                 boolean isFund = Boolean.TRUE.equals(asset.getIsFund());
 
-                if (etfOnly && !isFund) {
+                if (options.etfOnly() && !isFund) {
                     continue;
                 }
-                if (equityOnly && isFund) {
+                if (options.equityOnly() && isFund) {
                     continue;
                 }
 
@@ -250,10 +235,10 @@ public class PriceAdjustmentService {
                         .anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
                 Listing listing = listingByTicker.get(ticker);
                 boolean neverDetected = listing == null || listing.getLastSecDetectionAt() == null;
-                boolean shouldFetchSec = force
+                boolean shouldFetchSec = options.force()
                         || scheduledDetections.contains(ticker)
                         || (!hasExistingActions && neverDetected)
-                        || (!isFund && validateWithYfinance && !hasEquityDividends);
+                        || (!isFund && options.validateWithYfinance() && !hasEquityDividends);
                 // A huge overnight raw move on freshly loaded prices is the signature of a
                 // just-effective split; re-detect immediately instead of waiting for the
                 // rolling refresh to reach this ticker.
@@ -284,7 +269,7 @@ public class PriceAdjustmentService {
                 AdjustmentOutcome outcome = applyAdjustments(ticker, actions);
                 totalPricesUpdated += outcome.pricesUpdated();
                 totalSnappedActions += outcome.snappedActions();
-                if (validateWithYfinance) {
+                if (options.validateWithYfinance()) {
                     validationReports.add(corporateActionValidationService.validateTicker(ticker, VALIDATION_MIN_DATE));
                     priceValidationReports.add(adjustedPriceValidationService.validateTicker(ticker, VALIDATION_MIN_DATE));
                 }
@@ -316,7 +301,7 @@ public class PriceAdjustmentService {
         out.put("jumpTriggeredDetections", jumpTriggeredDetections);
         out.put("etfDiagnosticsSummary", summarizeEtfDiagnostics(etfReports));
         out.put("equityDiagnosticsSummary", summarizeEquityDiagnostics(equityReports));
-        if (validateWithYfinance) {
+        if (options.validateWithYfinance()) {
             out.put("validationSummary", corporateActionValidationService.summarizeBatch(validationReports));
             out.put("priceValidationSummary", adjustedPriceValidationService.summarizeBatch(priceValidationReports));
         }
@@ -554,12 +539,11 @@ public class PriceAdjustmentService {
             belowConfidence += report.belowConfidence();
             duplicates += report.duplicates();
             saved += report.saved();
-            Map<String, Object> reportMap = report.toMap();
-            candidateDocumentsScanned += ((Number) reportMap.getOrDefault("candidateDocumentsScanned", 0)).intValue();
-            mergeCounter(identityScoreBuckets, castCounter(reportMap.get("identityScoreBuckets")));
-            mergeCounter(amountSourceCounts, castCounter(reportMap.get("amountSourceCounts")));
-            mergeCounter(dateResolutionPathCounts, castCounter(reportMap.get("dateResolutionPathCounts")));
-            mergeCounter(dateSourceCounts, castCounter(reportMap.get("dateSourceCounts")));
+            candidateDocumentsScanned += report.candidateDocumentsScanned();
+            mergeCounter(identityScoreBuckets, report.identityScoreBuckets());
+            mergeCounter(amountSourceCounts, report.amountSourceCounts());
+            mergeCounter(dateResolutionPathCounts, report.dateResolutionPathCounts());
+            mergeCounter(dateSourceCounts, report.dateSourceCounts());
             report.skipReasons().forEach((reason, count) -> skipReasons.merge(reason, count, Integer::sum));
             if (sampleSkips.size() < 10) {
                 for (Map<String, Object> row : report.sampleSkips()) {
@@ -599,33 +583,8 @@ public class PriceAdjustmentService {
         return out;
     }
 
-    private Map<String, Integer> castCounter(Object raw) {
-        Map<String, Integer> out = new LinkedHashMap<>();
-        if (!(raw instanceof Map<?, ?> map)) {
-            return out;
-        }
-        for (Map.Entry<?, ?> entry : map.entrySet()) {
-            if (!(entry.getKey() instanceof String key) || !(entry.getValue() instanceof Number value)) {
-                continue;
-            }
-            out.put(key, value.intValue());
-        }
-        return out;
-    }
-
     private void mergeCounter(Map<String, Integer> target, Map<String, Integer> source) {
         source.forEach((key, value) -> target.merge(key, value, Integer::sum));
-    }
-
-    private int getInt(Map<?, ?> source, String key) {
-        if (source == null) {
-            return 0;
-        }
-        Object value = source.get(key);
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        return 0;
     }
 
     private Map<String, Object> summarizeEquityDiagnostics(List<EquityCorporateActionService.EquityDetectionReport> reports) {
@@ -655,36 +614,34 @@ public class PriceAdjustmentService {
         int dividendInserted = 0;
         int dividendUpdated = 0;
         for (EquityCorporateActionService.EquityDetectionReport report : reports) {
-            Map<String, Object> row = report.toMap();
-            savedActions += (int) row.getOrDefault("savedActions", 0);
-            Object failureReason = row.get("failureReason");
-            if (failureReason instanceof String reason && !reason.isBlank()) {
-                failureReasons.merge(reason, 1, Integer::sum);
+            savedActions += report.savedActions();
+            if (report.failureReason() != null && !report.failureReason().isBlank()) {
+                failureReasons.merge(report.failureReason(), 1, Integer::sum);
             }
-            Map<?, ?> split = (Map<?, ?>) row.get("split");
-            splitFactsParsed += getInt(split, "sharesFactsParsed");
-            splitCreated += getInt(split, "created");
-            splitSecDateMatches += getInt(split, "secDateMatches");
-            splitFallbackDetectedDate += getInt(split, "fallbackDetectedDate");
-            splitPriceCorroborated += getInt(split, "priceCorroborated");
-            splitPriceSnapped += getInt(split, "priceSnapped");
-            splitPriceRejected += getInt(split, "priceRejected");
-            splitPriceOnlyDetected += getInt(split, "priceOnlyDetected");
-            splitPriceOnlyUnconfirmed += getInt(split, "priceOnlyUnconfirmed");
-            Map<?, ?> dividend = (Map<?, ?>) row.get("dividend");
-            dividendFactsParsed += getInt(dividend, "factsParsed");
-            normalizedEvents += getInt(dividend, "normalizedEvents");
-            recordDateCandidates += getInt(dividend, "recordDateCandidates");
-            declarationTuples += getInt(dividend, "declarationTuples");
-            exDateFromRecordPath += getInt(dividend, "exDateFromRecordPath");
-            exDateFallbackPath += getInt(dividend, "exDateFallbackPath");
-            tupleMatchedAssignments += getInt(dividend, "tupleMatchedAssignments");
-            directExAssignments += getInt(dividend, "directExAssignments");
-            dpAssignments += getInt(dividend, "dpAssignments");
-            syntheticAssignments += getInt(dividend, "syntheticAssignments");
-            dividendChanged += getInt(dividend, "changed");
-            dividendInserted += getInt(dividend, "inserted");
-            dividendUpdated += getInt(dividend, "updated");
+            EquityCorporateActionService.SplitDetectionStats split = report.split();
+            splitFactsParsed += split.sharesFactsParsed();
+            splitCreated += split.created();
+            splitSecDateMatches += split.secDateMatches();
+            splitFallbackDetectedDate += split.fallbackDetectedDate();
+            splitPriceCorroborated += split.priceCorroborated();
+            splitPriceSnapped += split.priceSnapped();
+            splitPriceRejected += split.priceRejected();
+            splitPriceOnlyDetected += split.priceOnlyDetected();
+            splitPriceOnlyUnconfirmed += split.priceOnlyUnconfirmed();
+            EquityCorporateActionService.DividendDetectionStats dividend = report.dividend();
+            dividendFactsParsed += dividend.factsParsed();
+            normalizedEvents += dividend.normalizedEvents();
+            recordDateCandidates += dividend.recordDateCandidates();
+            declarationTuples += dividend.declarationTuples();
+            exDateFromRecordPath += dividend.exDateFromRecordPath();
+            exDateFallbackPath += dividend.exDateFallbackPath();
+            tupleMatchedAssignments += dividend.tupleMatchedAssignments();
+            directExAssignments += dividend.directExAssignments();
+            dpAssignments += dividend.dpAssignments();
+            syntheticAssignments += dividend.syntheticAssignments();
+            dividendChanged += dividend.changed();
+            dividendInserted += dividend.inserted();
+            dividendUpdated += dividend.updated();
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("equityTickersScanned", tickersScanned);

@@ -1105,6 +1105,26 @@ public class EtfCorporateActionService {
             return duplicates;
         }
 
+        public int candidateDocumentsScanned() {
+            return candidateDocumentsScanned;
+        }
+
+        public Map<String, Integer> identityScoreBuckets() {
+            return Collections.unmodifiableMap(identityScoreBuckets);
+        }
+
+        public Map<String, Integer> amountSourceCounts() {
+            return Collections.unmodifiableMap(amountSourceCounts);
+        }
+
+        public Map<String, Integer> dateResolutionPathCounts() {
+            return Collections.unmodifiableMap(dateResolutionPathCounts);
+        }
+
+        public Map<String, Integer> dateSourceCounts() {
+            return Collections.unmodifiableMap(dateSourceCounts);
+        }
+
         public void recordIdentityScore(int score) {
             String bucket;
             if (score <= 1) {

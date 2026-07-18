@@ -194,7 +194,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("VOO"))
                 .thenReturn(List.of(dp));
 
-        Map<String, Object> result = service.adjustTicker("VOO", false, false, false);
+        Map<String, Object> result = service.adjustTicker("VOO");
 
         assertEquals("ok", result.get("status"));
         verify(etfCorporateActionService).detectAndPersist("VOO", 111111L);
@@ -396,7 +396,7 @@ class PriceAdjustmentServiceTest {
         when(adjustedPriceValidationService.validateTicker("AAPL", LocalDate.of(2016, 1, 1)))
                 .thenReturn(AdjustedPriceValidationService.PriceValidationReport.empty("AAPL", "no_reference_data"));
 
-        Map<String, Object> result = service.adjustTicker("AAPL", false, false, false, true);
+        Map<String, Object> result = service.adjustTicker("AAPL", new PriceAdjustmentService.AdjustmentOptions(false, false, false, true));
 
         assertEquals("ok", result.get("status"));
         assertNotNull(result.get("validationReport"));
@@ -421,7 +421,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc(anyString()))
                 .thenReturn(List.of(buildPrice("X", LocalDate.of(2025, 1, 1), 100.0)));
 
-        Map<String, Object> result = service.adjustAllTickers(false);
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
 
         assertEquals(2, result.get("tickersProcessed"));
         assertEquals(0, result.get("skippedNoAsset"));
@@ -442,7 +442,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 1), 100.0)));
 
-        Map<String, Object> result = service.adjustAllTickers(false);
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
 
         assertEquals(1, result.get("tickersProcessed"));
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
@@ -463,7 +463,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 1), 100.0)));
 
-        Map<String, Object> result = service.adjustAllTickers(true);
+        Map<String, Object> result = service.adjustAllTickers(new PriceAdjustmentService.AdjustmentOptions(true, false, false, false));
 
         assertEquals(1, result.get("tickersProcessed"));
         verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
@@ -487,7 +487,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 1), 100.0)));
 
-        Map<String, Object> result = service.adjustAllTickers(false);
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
 
         assertEquals(1, result.get("scheduledDetections"));
         verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
@@ -515,7 +515,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc(anyString()))
                 .thenReturn(List.of(buildPrice("X", LocalDate.of(2025, 1, 1), 100.0)));
 
-        Map<String, Object> result = service.adjustAllTickers(false);
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
 
         assertEquals(1, result.get("scheduledDetections"));
         verify(equityCorporateActionService, times(1)).detectAndPersistWithDiagnostics(anyString(), anyLong());
@@ -543,7 +543,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 3), 50.0)));
 
-        Map<String, Object> result = service.adjustAllTickers(false);
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
 
         assertEquals(1, result.get("jumpTriggeredDetections"));
         verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
@@ -566,7 +566,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
                 .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 3), 202.0)));
 
-        Map<String, Object> result = service.adjustAllTickers(false);
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
 
         assertEquals(0, result.get("jumpTriggeredDetections"));
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
@@ -583,7 +583,7 @@ class PriceAdjustmentServiceTest {
         when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
                 .thenThrow(new RuntimeException("SEC fetch failed"));
 
-        Map<String, Object> result = service.adjustAllTickers(false);
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
 
         assertEquals(1, result.get("failedTickers"));
         assertEquals(0, result.get("tickersProcessed"));
@@ -600,7 +600,7 @@ class PriceAdjustmentServiceTest {
         when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("FAKE"))
                 .thenReturn(List.of(buildPrice("FAKE", LocalDate.of(2025, 1, 1), 50.0)));
 
-        Map<String, Object> result = service.adjustAllTickers(false);
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
 
         assertEquals(1, result.get("skippedNoAsset"));
         assertEquals(0, result.get("tickersProcessed"));

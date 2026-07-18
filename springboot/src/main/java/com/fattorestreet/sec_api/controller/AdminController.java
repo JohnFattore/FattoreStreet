@@ -222,22 +222,13 @@ public class AdminController {
     ) {
         try {
             long startTime = System.currentTimeMillis();
+            PriceAdjustmentService.AdjustmentOptions options =
+                    new PriceAdjustmentService.AdjustmentOptions(force, etfOnly, equityOnly, validateWithYfinance);
             Map<String, Object> result;
             if (ticker != null && !ticker.isBlank()) {
-                result = priceAdjustmentService.adjustTicker(
-                        ticker,
-                        force,
-                        etfOnly,
-                        equityOnly,
-                        validateWithYfinance
-                );
+                result = priceAdjustmentService.adjustTicker(ticker, options);
             } else {
-                result = priceAdjustmentService.adjustAllTickers(
-                        force,
-                        etfOnly,
-                        equityOnly,
-                        validateWithYfinance
-                );
+                result = priceAdjustmentService.adjustAllTickers(options);
             }
             String duration = formatDuration(System.currentTimeMillis() - startTime);
             Map<String, Object> response = new LinkedHashMap<>(result);
