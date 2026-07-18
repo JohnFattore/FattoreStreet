@@ -24,8 +24,11 @@
 # One-time host setup
 # ---------------------------------------------------------------------------
 
-# 1. Shared bridge network (both compose files reference it as external)
+# 1. Bridge networks (both compose files reference them as external):
+#    dockerNet for the app stack, pgadminNet to isolate pgadmin4 (members:
+#    pgadmin4, postgres, nginx only)
 sudo docker network create --driver bridge dockerNet
+sudo docker network create --driver bridge pgadminNet
 
 # 2. Env file for compose: copy the template and fill in the real secret ARN
 #    (the fattorestreet/env secret itself is created per the doc block in

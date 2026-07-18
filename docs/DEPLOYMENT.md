@@ -18,9 +18,11 @@ The production environment runs on a single EC2 instance behind Route 53:
 4.  **Data stores**: PostgreSQL 17 and Redis 8 containers on the same Docker network, with Postgres data on the EBS volume.
 
 ### pgadmin4 (least privilege)
-- No host port: pgadmin is reachable only through nginx at `/pgadmin4/`, over `dockerNet`.
-- The container runs with a read-only root filesystem (only the `/var/lib/pgadmin` volume and a `/tmp` tmpfs are writable), all Linux capabilities dropped, and `no-new-privileges` (see `deploy/docker-compose.infra.yml`).
+- No host port: pgadmin is reachable only through nginx at `/pgadmin4/`.
+- Network isolation: pgadmin lives on its own bridge network `pgadminNet` whose only members are `pgadmin4`, `postgres`, and `nginx` — a compromised pgadmin cannot reach redis, Django, or Spring Boot. Both networks are external; create them once on the host with `docker network create --driver bridge <name>`.
+- The container runs with a read-only root filesystem (only the `/var/lib/pgadmin` volume and `/tmp` + `/var/log/pgadmin` tmpfs are writable), all Linux capabilities dropped, `no-new-privileges`, the bundled Postfix disabled, 512m/100-PID resource limits, and the image major pinned (`dpage/pgadmin4:9`) like postgres/redis (see `deploy/docker-compose.infra.yml`).
 - Its database connection uses the read-only `pgadmin_ro` role (SELECT-only on the `postgres` and `springboot` databases), not the `postgres` superuser. Create the role once with `deploy/sql/pgadmin-readonly.sql` (run instructions in the file), store its password in `fattorestreet/env` as `PGADMIN_RO_DB_PASSWORD`, and register the server connection in the pgadmin UI with that role.
+- Postgres publishes `5432` on `127.0.0.1` only (admin `psql` from the EC2 host, or a laptop via SSM port forwarding); redis has no host port at all (no auth — debug with `docker exec -it redis redis-cli`). Apps are unaffected: they connect container-to-container over `dockerNet`.
 
 ## 🚀 Build & Deploy
 

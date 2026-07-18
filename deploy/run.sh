@@ -7,8 +7,10 @@
 # start (see each image's docker-entrypoint.sh). Fill in the placeholders below
 # (<...>) on the host before running.
 
-# network
+# networks: dockerNet for the app stack, pgadminNet to isolate pgadmin4
+# (members: pgadmin4, postgres, nginx only)
 sudo docker network create --driver bridge dockerNet
+sudo docker network create --driver bridge pgadminNet
 
 # ---------------------------------------------------------------------------
 # Secrets: ALL app config lives in ONE Secrets Manager secret, fattorestreet/env.
@@ -54,12 +56,16 @@ SECRETS_ARN=arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:fattorestreet/e
 #   PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
 #         --query SecretString --output text | jq -r .POSTGRES_PASSWORD)
 #   sudo docker run ... -e POSTGRES_PASSWORD="$PW" ... postgres:17
+# Host-local port only: apps connect over dockerNet; admin psql from the EC2
+# host (or a laptop via SSM port forwarding) uses 127.0.0.1. Also joined to
+# pgadminNet so the isolated pgadmin4 container can reach it.
 sudo docker run -d \
   --name postgres \
   --network dockerNet \
   -v /mnt/ebs/postgres-data:/var/lib/postgresql/data \
-  -p 0.0.0.0:5432:5432 \
+  -p 127.0.0.1:5432:5432 \
   postgres:17
+sudo docker network connect pgadminNet postgres
 
 # django (config from fattorestreet/env via SECRETS_ARN)
 sudo docker run --name django --network dockerNet -d \
@@ -83,10 +89,15 @@ sudo docker run --name nginx --network dockerNet \
   --log-opt awslogs-group=nginx-logs \
   --log-opt awslogs-stream=nginx-{{.ID}} \
   -d johnfattore/nginx
+# docker run only attaches one network at create; join pgadminNet after so
+# nginx can proxy /pgadmin4/ to the isolated pgadmin4 container
+sudo docker network connect pgadminNet nginx
 
 # Redis (major pinned like postgres above; bump deliberately with the
-# redis-py/django-redis client pins in django/pyproject.toml)
-sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis:8
+# redis-py/django-redis client pins in django/pyproject.toml). No host port:
+# redis has no auth, and django reaches it over dockerNet (redis://redis:6379);
+# debug with `docker exec -it redis redis-cli`.
+sudo docker run --network dockerNet --name redis -d redis:8
 
 # pgadmin4
 # The pgadmin image hard-fails at startup ("You need to define the
@@ -98,27 +109,33 @@ sudo docker run --network dockerNet --name redis -d -p 6379:6379 redis:8
 # uid 5050, which must own the mount).
 #
 # Least privilege (mirrors docker-compose.infra.yml): no host port (nginx
-# reaches pgadmin4:80 over dockerNet), read-only rootfs with only the data
-# volume and /tmp writable, all capabilities dropped, no privilege escalation.
-# Register the DB connection in pgadmin as the read-only pgadmin_ro role
-# (created once via sql/pgadmin-readonly.sql), not postgres.
+# reaches pgadmin4:80 over pgadminNet), isolated on pgadminNet (can only reach
+# postgres, not redis/django/springboot), read-only rootfs with only the data
+# volume and the tmpfs mounts writable, all capabilities dropped, no privilege
+# escalation, bundled postfix disabled (root process, unused), memory/PID
+# limits. Major pinned like postgres/redis. Register the DB connection in
+# pgadmin as the read-only pgadmin_ro role (created once via
+# sql/pgadmin-readonly.sql), not postgres.
 sudo mkdir -p /mnt/ebs/pgadmin-data
 sudo chown 5050:5050 /mnt/ebs/pgadmin-data
 PGADMIN_PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
   --query SecretString --output text | jq -r .PGADMIN_DEFAULT_PASSWORD)
 sudo docker run -d \
   --name pgadmin4 \
-  --network dockerNet \
+  --network pgadminNet \
   -v /mnt/ebs/pgadmin-data:/var/lib/pgadmin \
   --read-only \
   --tmpfs /tmp \
   --tmpfs /var/log/pgadmin \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
+  --memory 512m \
+  --pids-limit 100 \
   -e PGADMIN_DEFAULT_EMAIL=johnefattore@gmail.com \
   -e PGADMIN_DEFAULT_PASSWORD="$PGADMIN_PW" \
   -e PGADMIN_LISTEN_PORT=80 \
-  dpage/pgadmin4
+  -e PGADMIN_DISABLE_POSTFIX=True \
+  dpage/pgadmin4:9
 
 # Certbot get SSL cert
 sudo docker run --rm \

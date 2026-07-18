@@ -24,20 +24,22 @@ services:
     container_name: postgres
     volumes:
       - /mnt/ebs/postgres-data:/var/lib/postgresql/data
+    # Host-local only: apps connect over dockerNet; admin psql from the EC2
+    # host (or a laptop via SSM port forwarding) uses 127.0.0.1
     ports:
-      - "0.0.0.0:5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
-    networks: [dockerNet]
+    networks: [dockerNet, pgadminNet]
     restart: unless-stopped
 
   # Major pinned like postgres; bump deliberately with the redis-py/django-redis
-  # client pins in django/pyproject.toml.
+  # client pins in django/pyproject.toml. No host port: redis has no auth, and
+  # django reaches it over dockerNet (redis://redis:6379); debug with
+  # `docker exec -it redis redis-cli`.
   redis:
     image: redis:8
     container_name: redis
-    ports:
-      - "6379:6379"
     networks: [dockerNet]
     restart: unless-stopped
 
@@ -51,13 +53,16 @@ services:
   #         --query SecretString --output text | jq -r .PGADMIN_DEFAULT_PASSWORD)
   #   PGADMIN_DEFAULT_PASSWORD="$PW" docker compose -f docker-compose.infra.yml up -d pgadmin4
   #
-  # Least privilege: no host port (nginx reaches pgadmin4:80 over dockerNet),
-  # read-only rootfs (only the data volume and /tmp are writable), all Linux
-  # capabilities dropped, and no privilege escalation. The DB connection
-  # registered in pgadmin should use the read-only pgadmin_ro role, not
-  # postgres -- see sql/pgadmin-readonly.sql.
+  # Least privilege: no host port (nginx reaches pgadmin4:80 over pgadminNet),
+  # isolated on pgadminNet (can only reach postgres, not redis/django/
+  # springboot), read-only rootfs (only the data volume and the tmpfs mounts
+  # are writable), all Linux capabilities dropped, no privilege escalation,
+  # bundled postfix disabled (root process, unused), and memory/PID limits so
+  # it can't starve the host. Major pinned like postgres/redis. The DB
+  # connection registered in pgadmin should use the read-only pgadmin_ro role,
+  # not postgres -- see sql/pgadmin-readonly.sql.
   pgadmin4:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:9
     container_name: pgadmin4
     volumes:
       - /mnt/ebs/pgadmin-data:/var/lib/pgadmin
@@ -67,6 +72,7 @@ services:
       # Pinned: newer images default to 8080, which would silently break the
       # nginx upstream (http://pgadmin4) on an image pull
       PGADMIN_LISTEN_PORT: 80
+      PGADMIN_DISABLE_POSTFIX: "True"
     read_only: true
     tmpfs:
       - /tmp
@@ -74,9 +80,14 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
-    networks: [dockerNet]
+    mem_limit: 512m
+    pids_limit: 100
+    networks: [pgadminNet]
     restart: unless-stopped
 
+# Both created once on the host: docker network create --driver bridge <name>
 networks:
   dockerNet:
+    external: true
+  pgadminNet:
     external: true
