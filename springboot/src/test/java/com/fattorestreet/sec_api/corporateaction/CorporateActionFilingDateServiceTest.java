@@ -38,7 +38,7 @@ class CorporateActionFilingDateServiceTest {
     }
 
     @Test
-    void fetchDividendRecordDates_supportsMonthNameWithoutComma() {
+    void scanDividendRecordDates_supportsMonthNameWithoutComma() {
         String submissions = """
         {
           "filings": {
@@ -63,7 +63,7 @@ class CorporateActionFilingDateServiceTest {
         when(webService.fetchSubmissions(320193L)).thenReturn(submissions);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000062", "d8k.htm")).thenReturn(filing);
 
-        List<CorporateActionFilingDateService.RecordDateCandidate> out = service.fetchDividendRecordDates(320193L);
+        List<CorporateActionFilingDateService.RecordDateCandidate> out = service.scanDividendRecordDates(320193L).candidates();
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 10), out.get(0).recordDate());
@@ -71,7 +71,7 @@ class CorporateActionFilingDateServiceTest {
     }
 
     @Test
-    void fetchDividendRecordDates_scansExhibitsAndParsesNumericDate() {
+    void scanDividendRecordDates_scansExhibitsAndParsesNumericDate() {
         String submissions = """
         {
           "filings": {
@@ -95,7 +95,7 @@ class CorporateActionFilingDateServiceTest {
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000063", "d8k.htm")).thenReturn(primary);
         when(webService.fetchFilingDocument(320193L, "0000320193-20-000063", "ex99_1.htm")).thenReturn(exhibit);
 
-        List<CorporateActionFilingDateService.RecordDateCandidate> out = service.fetchDividendRecordDates(320193L);
+        List<CorporateActionFilingDateService.RecordDateCandidate> out = service.scanDividendRecordDates(320193L).candidates();
 
         assertEquals(1, out.size());
         assertEquals(LocalDate.of(2020, 8, 10), out.get(0).recordDate());

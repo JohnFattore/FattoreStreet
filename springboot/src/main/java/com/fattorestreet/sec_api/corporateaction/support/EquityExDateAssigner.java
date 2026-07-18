@@ -67,8 +67,6 @@ public class EquityExDateAssigner {
                 declarations == null ? List.of() : declarations;
 
         List<EquityCorporateActionService.DividendEvent> mapped = new ArrayList<>(normalized.size());
-        int recordBasedAssignments = 0;
-        int fallbackAssignments = 0;
         int tupleMatchedAssignments = 0;
         int directExAssignments = 0;
         int dpAssignments = 0;
@@ -83,7 +81,6 @@ public class EquityExDateAssigner {
                 usedTuples.add(tupleIdx);
                 mapped.add(eventFromTuple(event, tuples.get(tupleIdx), false));
                 tupleMatchedAssignments++;
-                recordBasedAssignments++;
             } else {
                 needsDirectPath.add(event);
             }
@@ -106,7 +103,6 @@ public class EquityExDateAssigner {
                         null,
                         CorporateAction.EX_DATE_SOURCE_DIRECT_EX_TEXT));
                 directExAssignments++;
-                recordBasedAssignments++;
                 log.debug("Direct ex-date {} for fiscal period end {} (from filing {})",
                         chosen.exDividendDate(), event.fiscalPeriodEnd(), chosen.accessionNumber());
             } else {
@@ -136,7 +132,6 @@ public class EquityExDateAssigner {
                         null,
                         CorporateAction.EX_DATE_SOURCE_RECORD_DP));
                 dpAssignments++;
-                recordBasedAssignments++;
                 continue;
             }
             LocalDate inferred = inferFallbackExDate(event.fiscalPeriodEnd(), lastMatchedRecordDate);
@@ -153,7 +148,6 @@ public class EquityExDateAssigner {
                     null,
                     CorporateAction.EX_DATE_SOURCE_SYNTHETIC));
             syntheticAssignments++;
-            fallbackAssignments++;
         }
 
         for (EquityCorporateActionService.DividendEvent special : specialEvents) {
@@ -162,7 +156,6 @@ public class EquityExDateAssigner {
                 usedTuples.add(tupleIdx);
                 mapped.add(eventFromTuple(special, tuples.get(tupleIdx), true));
                 tupleMatchedAssignments++;
-                recordBasedAssignments++;
                 continue;
             }
             SpecialMappingResult specialMapping = mapSpecialDividendExDate(special, sortedCandidates, usedCandidateIndexes);
@@ -180,16 +173,13 @@ public class EquityExDateAssigner {
                             : CorporateAction.EX_DATE_SOURCE_SYNTHETIC));
             if (specialMapping.recordBased()) {
                 dpAssignments++;
-                recordBasedAssignments++;
             } else {
                 syntheticAssignments++;
-                fallbackAssignments++;
             }
         }
         mapped.sort(Comparator.comparing(EquityCorporateActionService.DividendEvent::effectiveDate).thenComparing(EquityCorporateActionService.DividendEvent::rawAmount));
         return new EquityCorporateActionService.AssignmentResult(
-                mapped, recordBasedAssignments, fallbackAssignments,
-                tupleMatchedAssignments, directExAssignments, dpAssignments, syntheticAssignments);
+                mapped, tupleMatchedAssignments, directExAssignments, dpAssignments, syntheticAssignments);
     }
 
     private EquityCorporateActionService.DividendEvent eventFromTuple(
