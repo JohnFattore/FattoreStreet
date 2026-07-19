@@ -344,3 +344,84 @@ resource "aws_scheduler_schedule" "index_load" {
     }
   }
 }
+
+# ---------------------------------------------------------------------------
+# Failure alerting: email (SNS) when any task in the cluster stops with a
+# non-zero exit code or never starts. Both nightly loads exit 1 only on total
+# failure (partial errors self-heal next run), so an alert means that night's
+# run did no useful work. Created only when notification_email is set.
+# ---------------------------------------------------------------------------
+resource "aws_sns_topic" "task_failures" {
+  count = var.notification_email != "" ? 1 : 0
+  name  = "${var.name_prefix}-task-failures"
+  tags  = local.tags
+}
+
+resource "aws_sns_topic_subscription" "task_failures_email" {
+  count     = var.notification_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.task_failures[0].arn
+  protocol  = "email"
+  endpoint  = var.notification_email
+}
+
+data "aws_iam_policy_document" "task_failures_topic" {
+  count = var.notification_email != "" ? 1 : 0
+
+  statement {
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.task_failures[0].arn]
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = [aws_cloudwatch_event_rule.task_failures[0].arn]
+    }
+  }
+}
+
+resource "aws_sns_topic_policy" "task_failures" {
+  count  = var.notification_email != "" ? 1 : 0
+  arn    = aws_sns_topic.task_failures[0].arn
+  policy = data.aws_iam_policy_document.task_failures_topic[0].json
+}
+
+resource "aws_cloudwatch_event_rule" "task_failures" {
+  count       = var.notification_email != "" ? 1 : 0
+  name        = "${var.name_prefix}-task-failures"
+  description = "Nightly load task stopped with a non-zero exit code or failed to start"
+
+  event_pattern = jsonencode({
+    source      = ["aws.ecs"]
+    detail-type = ["ECS Task State Change"]
+    detail = {
+      clusterArn = [aws_ecs_cluster.this.arn]
+      lastStatus = ["STOPPED"]
+      "$or" = [
+        { containers = { exitCode = [{ anything-but = [0] }] } },
+        { stopCode = ["TaskFailedToStart"] }
+      ]
+    }
+  })
+
+  tags = local.tags
+}
+
+resource "aws_cloudwatch_event_target" "task_failures_sns" {
+  count = var.notification_email != "" ? 1 : 0
+  rule  = aws_cloudwatch_event_rule.task_failures[0].name
+  arn   = aws_sns_topic.task_failures[0].arn
+
+  input_transformer {
+    input_paths = {
+      group    = "$.detail.group"
+      exitCode = "$.detail.containers[0].exitCode"
+      reason   = "$.detail.stoppedReason"
+      taskArn  = "$.detail.taskArn"
+    }
+    # Output must be a JSON value; the surrounding quotes make it a JSON string.
+    input_template = "\"FattoreStreet nightly load failed: <group> stopped with exit code <exitCode>. Reason: <reason>. Task: <taskArn>. Logs: /ecs/${var.name_prefix} or /ecs/${var.index_load_name_prefix}.\""
+  }
+}
