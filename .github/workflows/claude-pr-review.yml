@@ -1,0 +1,58 @@
+name: Claude PR Review
+
+# The "PR review on GitHub Actions trigger" Claude Code routine
+# (https://claude.ai/code/routines) fires on PR events via its own GitHub
+# trigger, reviews the diff with the repo's code-review skill, and posts one
+# comment per head SHA containing a "Verdict: PASS|FAIL" line. This job waits
+# for that comment and turns the verdict into a pass/fail check on the PR.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: read
+  issues: read
+
+jobs:
+  claude-review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Wait for review verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          marker="<!-- claude-routine-review: ${HEAD_SHA} -->"
+          echo "Waiting for review comment containing: $marker"
+          for i in $(seq 1 50); do
+            review=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate |
+              jq -r --arg m "$marker" '[.[] | select(.body | contains($m)) | .body] | last // empty' |
+              tr -d '\r')
+            if [ -n "$review" ]; then
+              echo "----- Claude review -----"
+              echo "$review"
+              echo "-------------------------"
+              if printf '%s\n' "$review" | grep -qx 'Verdict: PASS'; then
+                exit 0
+              elif printf '%s\n' "$review" | grep -qx 'Verdict: FAIL'; then
+                echo "::error::Claude review verdict is FAIL — see the review comment on the PR."
+                exit 1
+              else
+                echo "::error::Review comment found but no 'Verdict: PASS|FAIL' line."
+                exit 1
+              fi
+            fi
+            sleep 30
+          done
+          echo "::error::Timed out waiting for the Claude review comment (25 min)."
+          exit 1
