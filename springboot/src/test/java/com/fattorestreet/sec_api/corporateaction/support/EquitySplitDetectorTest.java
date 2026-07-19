@@ -228,11 +228,12 @@ class EquitySplitDetectorTest {
         JsonNode root = facts("[%s, %s]".formatted(
                 sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
                 sharesEntry("2020-06-30", 101_000_000L, "10-Q")));
-        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
         verify(corporateActionRepository, never()).save(any());
+        // No ratio jump and no price break: the filing scan is skipped entirely.
+        verify(corporateActionFilingDateService, never()).fetchSplitEffectiveDates(anyLong());
         assertEquals(0, stats.created());
         assertEquals(2, stats.sharesFactsParsed());
     }
@@ -253,12 +254,12 @@ class EquitySplitDetectorTest {
         JsonNode root = facts("[%s, %s]".formatted(
                 sharesEntry("2020-03-31", 100_000_000L, "S-1"),
                 sharesEntry("2020-06-30", 200_000_000L, "S-1")));
-        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
         assertEquals(0, stats.sharesFactsParsed());
         verify(corporateActionRepository, never()).save(any());
+        verify(corporateActionFilingDateService, never()).fetchSplitEffectiveDates(anyLong());
     }
 
     @Test
@@ -317,11 +318,11 @@ class EquitySplitDetectorTest {
         JsonNode root = facts("[%s, %s]".formatted(
                 sharesEntry("2018-03-31", 100_000_000L, "10-K"),
                 sharesEntry("2020-06-30", 200_000_000L, "10-K")));
-        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
         verify(corporateActionRepository, never()).save(any());
+        verify(corporateActionFilingDateService, never()).fetchSplitEffectiveDates(anyLong());
         assertEquals(0, stats.created());
     }
 
@@ -347,11 +348,11 @@ class EquitySplitDetectorTest {
                 sharesEntry("2020-03-31", 100_000_000L, "10-Q"),
                 sharesEntry("2020-03-31", 200_000_000L, "10-Q/A"),
                 sharesEntry("2020-06-30", 200_000_000L, "10-Q")));
-        when(corporateActionFilingDateService.fetchSplitEffectiveDates(anyLong())).thenReturn(List.of());
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
         verify(corporateActionRepository, never()).save(any());
+        verify(corporateActionFilingDateService, never()).fetchSplitEffectiveDates(anyLong());
         assertEquals(0, stats.created());
     }
 
@@ -422,13 +423,14 @@ class EquitySplitDetectorTest {
         CorporateAction existing = existingSplit(
                 LocalDate.of(2020, 5, 1), 0.5, 100.0, CorporateAction.EX_DATE_SOURCE_PRICE_BREAK);
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(existing));
-        when(corporateActionFilingDateService.fetchSplitEffectiveDates(CIK)).thenReturn(List.of());
         when(splitPriceCorroborator.scanForSplitLikeBreaks(any(), any()))
                 .thenReturn(List.of(corroboration(LocalDate.of(2020, 5, 4), 2.0)));
 
         SplitDetectionStats stats = detector.detectSplits(TICKER, CIK, root);
 
         verify(corporateActionRepository, never()).save(any());
+        // The break is already explained by the persisted split, so no filing scan either.
+        verify(corporateActionFilingDateService, never()).fetchSplitEffectiveDates(anyLong());
         assertEquals(0, stats.priceOnlyDetected());
         assertEquals(0, stats.priceOnlyUnconfirmed());
     }

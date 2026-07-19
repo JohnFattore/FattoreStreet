@@ -202,6 +202,35 @@ class EquityDividendNormalizerTest {
         assertEquals(0.82, out.get(0).adjustedAmount(), 1e-6);
     }
 
+    @Test
+    void adjustDividendsForFutureSplits_unRestatesRawForAlreadyAdjustedPreSplitEvents() {
+        // Pre-split events whose reported amounts already sit at the post-split scale (issuer
+        // restated the facts) keep their adjusted amount, but raw must be scaled back up so the
+        // dividend/price factor divides a pre-split cash amount by a pre-split raw close.
+        CorporateAction split = split("A", LocalDate.of(2020, 8, 31), 0.25);
+        List<EquityCorporateActionService.DividendEvent> events = List.of(
+                // Pre-split events already restated to post-split scale (0.205 ≈ post-split 0.82/4).
+                new EquityCorporateActionService.DividendEvent(
+                        LocalDate.of(2020, 3, 31), LocalDate.of(2020, 5, 11), 0.205, 0.205, 2020, false),
+                new EquityCorporateActionService.DividendEvent(
+                        LocalDate.of(2020, 6, 30), LocalDate.of(2020, 8, 10), 0.205, 0.205, 2020, false),
+                // Post-split event at the same scale anchors the "already adjusted" inference.
+                new EquityCorporateActionService.DividendEvent(
+                        LocalDate.of(2020, 9, 30), LocalDate.of(2020, 11, 6), 0.205, 0.205, 2020, false));
+
+        List<EquityCorporateActionService.DividendEvent> out = normalizer.adjustDividendsForFutureSplits(events, List.of(split));
+
+        assertEquals(3, out.size());
+        // Pre-split events: adjusted stays post-split scale, raw is un-restated to price scale.
+        assertEquals(0.205, out.get(0).adjustedAmount(), 1e-6);
+        assertEquals(0.82, out.get(0).rawAmount(), 1e-6);
+        assertEquals(0.205, out.get(1).adjustedAmount(), 1e-6);
+        assertEquals(0.82, out.get(1).rawAmount(), 1e-6);
+        // Post-split event untouched.
+        assertEquals(0.205, out.get(2).rawAmount(), 1e-6);
+        assertEquals(0.205, out.get(2).adjustedAmount(), 1e-6);
+    }
+
     private static EquityCorporateActionService.DividendFact fact(LocalDate start, LocalDate end, double value, String form) {
         return new EquityCorporateActionService.DividendFact(start, end, value, form, end.plusDays(30), "CommonStockDividendsPerShareDeclared");
     }

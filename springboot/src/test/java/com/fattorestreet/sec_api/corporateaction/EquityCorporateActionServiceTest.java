@@ -54,7 +54,8 @@ class EquityCorporateActionServiceTest {
             java.util.List<CorporateActionFilingDateService.RecordDateCandidate> candidates) {
         return new CorporateActionFilingDateService.RecordDateScanResult(
                 candidates, java.util.List.of(), java.util.List.of(),
-                java.util.Map.of(), java.util.Map.of(), java.util.Map.of());
+                java.util.Map.of(), java.util.Map.of(), java.util.Map.of(),
+                candidates.size(), 0);
     }
 
     @Test

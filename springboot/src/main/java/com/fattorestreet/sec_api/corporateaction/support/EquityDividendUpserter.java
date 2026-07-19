@@ -36,6 +36,18 @@ public class EquityDividendUpserter {
     public EquityCorporateActionService.UpsertStats upsertDividendEvents(
             String ticker,
             List<EquityCorporateActionService.DividendEvent> detectedEvents) {
+        return upsertDividendEvents(ticker, detectedEvents, false);
+    }
+
+    /**
+     * @param degradedScan true when the filing scan had enough fetch failures that missing
+     *                     declarations are not evidence of absence; suppresses synthetic-dated
+     *                     inserts and pruning so a transient SEC outage cannot degrade stored data
+     */
+    public EquityCorporateActionService.UpsertStats upsertDividendEvents(
+            String ticker,
+            List<EquityCorporateActionService.DividendEvent> detectedEvents,
+            boolean degradedScan) {
         List<CorporateAction> existing = corporateActionRepository.findByTicker(ticker).stream()
                 .filter(a -> a.getActionType() == ActionType.DIVIDEND)
                 .sorted(Comparator
@@ -85,6 +97,11 @@ public class EquityDividendUpserter {
                         String.format(Locale.US, "%.4f", target.adjustedAmount()));
                 continue;
             }
+            if (degradedScan && exDateSourceRank(target.exDateSource()) <= 1) {
+                log.warn("[{}] Degraded filing scan: skipping synthetic-dated dividend insert on {} raw={}",
+                        ticker, target.effectiveDate(), String.format(Locale.US, "%.4f", target.rawAmount()));
+                continue;
+            }
             List<CorporateAction> sameDateExisting = corporateActionRepository.findAllByTickerAndActionTypeAndEffectiveDate(
                     ticker, ActionType.DIVIDEND, target.effectiveDate());
             if (hasExactSignature(sameDateExisting, target)) {
@@ -121,7 +138,7 @@ public class EquityDividendUpserter {
             inserted++;
         }
         int pruned = 0;
-        if (!sortedDetected.isEmpty()) {
+        if (!sortedDetected.isEmpty() && !degradedScan) {
             int minYear = sortedDetected.stream().mapToInt(EquityCorporateActionService.DividendEvent::year).min().orElse(Integer.MAX_VALUE);
             int maxYear = sortedDetected.stream().mapToInt(EquityCorporateActionService.DividendEvent::year).max().orElse(Integer.MIN_VALUE);
             for (CorporateAction action : existing) {
@@ -135,10 +152,19 @@ public class EquityDividendUpserter {
                 if (year < minYear || year > maxYear) {
                     continue;
                 }
+                if (exDateSourceRank(action.getExDateSource()) >= 3) {
+                    // Deleting a declaration-anchored row and re-inserting a synthetic-dated one
+                    // would bypass the rank guard above; anchored orphans need manual review.
+                    log.warn("[{}] Not pruning declaration-anchored dividend record: {} raw={} source={}",
+                            ticker, action.getEffectiveDate(), action.getRawDividend(), action.getExDateSource());
+                    continue;
+                }
                 log.info("[{}] Pruning orphaned SEC dividend record: {} raw={}", ticker, action.getEffectiveDate(), action.getRawDividend());
                 corporateActionRepository.delete(action);
                 pruned++;
             }
+        } else if (degradedScan && !sortedDetected.isEmpty()) {
+            log.warn("[{}] Degraded filing scan: skipping orphan pruning this run", ticker);
         }
         if (pruned > 0) {
             changed += pruned;

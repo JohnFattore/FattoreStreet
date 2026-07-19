@@ -95,9 +95,13 @@ class PriceAdjustmentServiceTest {
                 cik,
                 new EquityCorporateActionService.SplitDetectionStats(0, 0, savedActions, 0, 0, 0, 0, 0, 0, 0),
                 new EquityCorporateActionService.DividendDetectionStats(
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false,
                         Map.of(), Map.of(), Map.of()),
                 null);
+    }
+
+    private EquityCorporateActionService.EquityDetectionReport buildFailedEquityReport(String ticker, Long cik) {
+        return EquityCorporateActionService.EquityDetectionReport.failed(ticker, cik, "sec_fetch_failed");
     }
 
     @Test
@@ -533,7 +537,11 @@ class PriceAdjustmentServiceTest {
         when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
         when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
         when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
-        when(dailyPriceRepository.findTop2ByTickerOrderByTradeDateDesc("AAPL")).thenReturn(List.of(
+        // The split break is buried two rows deep (multi-day catch-up load); the jump check
+        // must still find it among the recent rows.
+        when(dailyPriceRepository.findTop6ByTickerOrderByTradeDateDesc("AAPL")).thenReturn(List.of(
+                buildPrice("AAPL", LocalDate.of(2025, 1, 7), 51.0),
+                buildPrice("AAPL", LocalDate.of(2025, 1, 6), 50.5),
                 buildPrice("AAPL", LocalDate.of(2025, 1, 3), 50.0),
                 buildPrice("AAPL", LocalDate.of(2025, 1, 2), 200.0)));
         when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
@@ -558,7 +566,7 @@ class PriceAdjustmentServiceTest {
         when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
         when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
         when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
-        when(dailyPriceRepository.findTop2ByTickerOrderByTradeDateDesc("AAPL")).thenReturn(List.of(
+        when(dailyPriceRepository.findTop6ByTickerOrderByTradeDateDesc("AAPL")).thenReturn(List.of(
                 buildPrice("AAPL", LocalDate.of(2025, 1, 3), 202.0),
                 buildPrice("AAPL", LocalDate.of(2025, 1, 2), 200.0)));
         when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
@@ -570,6 +578,72 @@ class PriceAdjustmentServiceTest {
 
         assertEquals(0, result.get("jumpTriggeredDetections"));
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
+    }
+
+    @Test
+    void adjustAllTickers_failedDetectionDoesNotStampListing() {
+        // A swallowed SEC fetch failure must leave the listing stale so the ticker is
+        // retried next run instead of waiting out the full re-detection interval.
+        Asset aapl = buildAssetWithListing("AAPL", 320193L);
+
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(Collections.emptyList());
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
+                .thenReturn(buildFailedEquityReport("AAPL", 320193L));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 1), 100.0)));
+
+        service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+
+        verify(listingRepository, never()).save(any(Listing.class));
+    }
+
+    @Test
+    void adjustTicker_failedDetectionDoesNotStampListing() {
+        Asset asset = buildAsset(320193L);
+        Listing listing = freshListing("AAPL");
+        listing.setLastSecDetectionAt(null);
+
+        when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
+        when(listingRepository.findByTicker("AAPL")).thenReturn(Optional.of(listing));
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
+                .thenReturn(buildFailedEquityReport("AAPL", 320193L));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 10), 150.0)));
+
+        service.adjustTicker("AAPL");
+
+        verify(listingRepository, never()).save(any(Listing.class));
+        assertNull(listing.getLastSecDetectionAt());
+    }
+
+    @Test
+    void adjustTicker_alreadyAdjustedRows_areNotRewritten() {
+        Asset asset = buildAsset(320193L);
+        DailyPrice dp = buildPrice("AAPL", LocalDate.of(2025, 1, 10), 150.0);
+        dp.setAdjustedOpen(dp.getOpenPrice());
+        dp.setAdjustedHigh(dp.getHighPrice());
+        dp.setAdjustedLow(dp.getLowPrice());
+        dp.setAdjustedClose(dp.getClosePrice());
+
+        when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
+                .thenReturn(buildEquityReport("AAPL", 320193L, 0));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(dp));
+
+        Map<String, Object> result = service.adjustTicker("AAPL");
+
+        assertEquals(0, result.get("pricesUpdated"));
+        verify(dailyPriceRepository, never()).saveAll(anyList());
     }
 
     @Test

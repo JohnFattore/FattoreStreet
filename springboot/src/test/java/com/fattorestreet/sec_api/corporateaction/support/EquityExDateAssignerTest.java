@@ -261,4 +261,67 @@ class EquityExDateAssignerTest {
         assertEquals(1, result.tupleMatchedAssignments());
         assertEquals(1, result.syntheticAssignments());
     }
+
+    @Test
+    void promotesRecentUnmatchedDeclarationToProvisionalEvent() {
+        // A declared-but-not-yet-reported dividend (8-K before the next 10-Q) becomes a
+        // provisional tuple-anchored event so price adjustment sees it without the XBRL lag.
+        LocalDate newestPeriodEnd = LocalDate.now().minusDays(60);
+        LocalDate declaredRecord = LocalDate.now().minusDays(10);
+        LocalDate expectedEx = declaredRecord.minusDays(1);
+
+        List<EquityCorporateActionService.DividendEvent> normalized = List.of(
+                new EquityCorporateActionService.DividendEvent(newestPeriodEnd, null, 0.22, 0.22,
+                        newestPeriodEnd.getYear(), false));
+
+        when(corporateActionFilingDateService.computeExDividendDate(any()))
+                .thenAnswer(inv -> ((LocalDate) inv.getArgument(0)).minusDays(1));
+
+        EquityCorporateActionService.AssignmentResult result = assigner().assignExDividendDates(
+                normalized, List.of(), List.of(),
+                List.of(declaration(0.24, declaredRecord, declaredRecord.plusDays(14), null, 95)),
+                List.of());
+
+        assertEquals(1, result.promotedTupleEvents());
+        assertEquals(2, result.events().size());
+        EquityCorporateActionService.DividendEvent promoted = result.events().get(1);
+        assertEquals(expectedEx, promoted.exDividendDate());
+        assertEquals(0.24, promoted.rawAmount(), 1e-9);
+        assertEquals(declaredRecord, promoted.recordDate());
+        assertEquals(declaredRecord.plusDays(14), promoted.payDate());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED, promoted.exDateSource());
+    }
+
+    @Test
+    void doesNotPromoteLowConfidenceOrStaleOrOutOfBandDeclarations() {
+        LocalDate newestPeriodEnd = LocalDate.now().minusDays(300);
+
+        List<EquityCorporateActionService.DividendEvent> normalized = List.of(
+                new EquityCorporateActionService.DividendEvent(newestPeriodEnd, null, 0.22, 0.22,
+                        newestPeriodEnd.getYear(), false));
+
+        when(corporateActionFilingDateService.computeExDividendDate(any()))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        EquityCorporateActionService.AssignmentResult result = assigner().assignExDividendDates(
+                normalized, List.of(), List.of(),
+                List.of(
+                        // Below the promotion confidence floor.
+                        declaration(0.24, LocalDate.now().minusDays(10), null, null, 70),
+                        // Older than the promotion recency window (blind-window only).
+                        declaration(0.24, LocalDate.now().minusDays(250), null, null, 95),
+                        // Amount far outside the plausibility band vs the latest regular event.
+                        declaration(9.99, LocalDate.now().minusDays(10), null, null, 95)),
+                List.of());
+
+        assertEquals(0, result.promotedTupleEvents());
+        assertEquals(1, result.events().size());
+    }
+
+    private static DividendDeclarationTupleExtractor.DividendDeclaration declaration(
+            double amount, LocalDate recordDate, LocalDate payDate, LocalDate exDate, int confidence) {
+        return new DividendDeclarationTupleExtractor.DividendDeclaration(
+                amount, null, recordDate, payDate, exDate,
+                recordDate.minusDays(14), "0000000000-25-000042", confidence);
+    }
 }

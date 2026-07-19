@@ -118,11 +118,12 @@ public class PriceAdjustmentService {
             if (isFund) {
                 etfReport = etfCorporateActionService.detectAndPersist(normalizedTicker, asset.getCik());
                 newActions = etfReport.saved();
+                stampDetection(listing);
             } else {
                 equityReport = equityCorporateActionService.detectAndPersistWithDiagnostics(normalizedTicker, asset.getCik());
                 newActions = equityReport.savedActions();
+                stampDetectionIfSucceeded(listing, equityReport);
             }
-            stampDetection(listing);
             actions = corporateActionRepository.findByTickerOrderByEffectiveDateDesc(normalizedTicker);
         } else {
             newActions = 0;
@@ -254,12 +255,13 @@ public class PriceAdjustmentService {
                         EtfCorporateActionService.EtfDetectionReport report =
                                 etfCorporateActionService.detectAndPersist(ticker, asset.getCik());
                         etfReports.add(report);
+                        stampDetection(listing);
                     } else {
                         EquityCorporateActionService.EquityDetectionReport report =
                                 equityCorporateActionService.detectAndPersistWithDiagnostics(ticker, asset.getCik());
                         equityReports.add(report);
+                        stampDetectionIfSucceeded(listing, report);
                     }
-                    stampDetection(listing);
                     Thread.sleep(100);
                 }
 
@@ -349,22 +351,38 @@ public class PriceAdjustmentService {
         listingRepository.save(listing);
     }
 
-    /** True when the two most recent raw closes imply an extreme overnight move. */
+    /**
+     * Stamps the detection timestamp only when the SEC fetch actually succeeded; a failed fetch
+     * must leave the listing stale so the ticker is retried on the next run instead of waiting
+     * out a full re-detection interval with zero actions detected.
+     */
+    private void stampDetectionIfSucceeded(Listing listing, EquityCorporateActionService.EquityDetectionReport report) {
+        if (report != null && report.failureReason() != null) {
+            log.warn("[{}] Skipping detection stamp: detection failed ({})", report.ticker(), report.failureReason());
+            return;
+        }
+        stampDetection(listing);
+    }
+
+    /**
+     * True when any recent overnight raw-close move is extreme. Checks the last few rows, not just
+     * the newest pair, so a split buried by a multi-day catch-up load still triggers re-detection.
+     */
     private boolean hasOvernightPriceJump(String ticker) {
-        List<DailyPrice> latest = dailyPriceRepository.findTop2ByTickerOrderByTradeDateDesc(ticker);
-        if (latest.size() < 2) {
-            return false;
-        }
-        Double newClose = latest.get(0).getClosePrice();
-        Double prevClose = latest.get(1).getClosePrice();
-        if (newClose == null || prevClose == null || newClose <= 0 || prevClose <= 0) {
-            return false;
-        }
-        double overnightReturn = newClose / prevClose - 1.0;
-        if (Math.abs(overnightReturn) > JUMP_REDETECTION_RETURN_THRESHOLD) {
-            log.info("[{}] Overnight return {} exceeds jump threshold; forcing SEC re-detection",
-                    ticker, String.format(Locale.US, "%.2f%%", overnightReturn * 100));
-            return true;
+        List<DailyPrice> latest = dailyPriceRepository.findTop6ByTickerOrderByTradeDateDesc(ticker);
+        for (int i = 0; i + 1 < latest.size(); i++) {
+            Double newClose = latest.get(i).getClosePrice();
+            Double prevClose = latest.get(i + 1).getClosePrice();
+            if (newClose == null || prevClose == null || newClose <= 0 || prevClose <= 0) {
+                continue;
+            }
+            double overnightReturn = newClose / prevClose - 1.0;
+            if (Math.abs(overnightReturn) > JUMP_REDETECTION_RETURN_THRESHOLD) {
+                log.info("[{}] Overnight return {} into {} exceeds jump threshold; forcing SEC re-detection",
+                        ticker, String.format(Locale.US, "%.2f%%", overnightReturn * 100),
+                        latest.get(i).getTradeDate());
+                return true;
+            }
         }
         return false;
     }
@@ -378,14 +396,16 @@ public class PriceAdjustmentService {
         if (prices.isEmpty()) return new AdjustmentOutcome(0, 0);
 
         if (actions.isEmpty()) {
+            List<DailyPrice> dirty = new ArrayList<>();
             for (DailyPrice dp : prices) {
-                dp.setAdjustedOpen(dp.getOpenPrice());
-                dp.setAdjustedHigh(dp.getHighPrice());
-                dp.setAdjustedLow(dp.getLowPrice());
-                dp.setAdjustedClose(dp.getClosePrice());
+                if (applyAdjustedIfChanged(dp, dp.getOpenPrice(), dp.getHighPrice(), dp.getLowPrice(), dp.getClosePrice())) {
+                    dirty.add(dp);
+                }
             }
-            dailyPriceRepository.saveAll(prices);
-            return new AdjustmentOutcome(prices.size(), 0);
+            if (!dirty.isEmpty()) {
+                dailyPriceRepository.saveAll(dirty);
+            }
+            return new AdjustmentOutcome(dirty.size(), 0);
         }
 
         Map<LocalDate, Double> priorTradingCloseByDate = new HashMap<>();
@@ -419,19 +439,32 @@ public class PriceAdjustmentService {
             }
             actionsByDate.computeIfAbsent(applyDate, k -> new ArrayList<>()).add(a);
         }
-        for (List<CorporateAction> dayActions : actionsByDate.values()) {
+        for (Map.Entry<LocalDate, List<CorporateAction>> entry : actionsByDate.entrySet()) {
+            List<CorporateAction> dayActions = entry.getValue();
             dayActions.sort(Comparator.comparingInt(this::actionPriority));
+            boolean hasSplit = dayActions.stream().anyMatch(a -> a.getActionType() == ActionType.SPLIT);
+            boolean hasDividend = dayActions.stream().anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
+            if (hasSplit && hasDividend) {
+                // The dividend factor divides by the pre-split prior close while the dividend cash
+                // may be post-split scale; the combined factor can be off by the split ratio.
+                log.warn("[{}] Split and dividend share effective date {}; dividend factor may be mis-scaled",
+                        ticker, entry.getKey());
+            }
         }
 
         BigDecimal cumulativeFactor = BigDecimal.ONE;
+        List<DailyPrice> dirty = new ArrayList<>();
 
         for (DailyPrice dp : prices) {
             LocalDate date = dp.getTradeDate();
             double factor = cumulativeFactor.doubleValue();
-            dp.setAdjustedOpen(round(dp.getOpenPrice() * factor));
-            dp.setAdjustedHigh(round(dp.getHighPrice() * factor));
-            dp.setAdjustedLow(round(dp.getLowPrice() * factor));
-            dp.setAdjustedClose(round(dp.getClosePrice() * factor));
+            if (applyAdjustedIfChanged(dp,
+                    round(dp.getOpenPrice() * factor),
+                    round(dp.getHighPrice() * factor),
+                    round(dp.getLowPrice() * factor),
+                    round(dp.getClosePrice() * factor))) {
+                dirty.add(dp);
+            }
 
             List<CorporateAction> dayActions = actionsByDate.get(date);
             if (dayActions != null) {
@@ -458,24 +491,45 @@ public class PriceAdjustmentService {
             }
         }
 
-        dailyPriceRepository.saveAll(prices);
-        return new AdjustmentOutcome(prices.size(), snappedActions);
+        if (!dirty.isEmpty()) {
+            dailyPriceRepository.saveAll(dirty);
+        }
+        return new AdjustmentOutcome(dirty.size(), snappedActions);
     }
 
     private record AdjustmentOutcome(int pricesUpdated, int snappedActions) {
     }
 
+    /**
+     * Applies the computed adjusted OHLC to the row only when a value actually differs, so the
+     * nightly run writes just the new rows (and any rows whose factors changed) instead of
+     * rewriting the entire price history for every ticker.
+     */
+    private boolean applyAdjustedIfChanged(DailyPrice dp, Double open, Double high, Double low, Double close) {
+        boolean changed = !Objects.equals(dp.getAdjustedOpen(), open)
+                || !Objects.equals(dp.getAdjustedHigh(), high)
+                || !Objects.equals(dp.getAdjustedLow(), low)
+                || !Objects.equals(dp.getAdjustedClose(), close);
+        if (changed) {
+            dp.setAdjustedOpen(open);
+            dp.setAdjustedHigh(high);
+            dp.setAdjustedLow(low);
+            dp.setAdjustedClose(close);
+        }
+        return changed;
+    }
+
     /** For tickers without SEC data, set adjusted = raw. */
     private void setRawAsAdjusted(String ticker) {
         List<DailyPrice> prices = dailyPriceRepository.findByTickerOrderByTradeDateDesc(ticker);
+        List<DailyPrice> dirty = new ArrayList<>();
         for (DailyPrice dp : prices) {
-            dp.setAdjustedOpen(dp.getOpenPrice());
-            dp.setAdjustedHigh(dp.getHighPrice());
-            dp.setAdjustedLow(dp.getLowPrice());
-            dp.setAdjustedClose(dp.getClosePrice());
+            if (applyAdjustedIfChanged(dp, dp.getOpenPrice(), dp.getHighPrice(), dp.getLowPrice(), dp.getClosePrice())) {
+                dirty.add(dp);
+            }
         }
-        if (!prices.isEmpty()) {
-            dailyPriceRepository.saveAll(prices);
+        if (!dirty.isEmpty()) {
+            dailyPriceRepository.saveAll(dirty);
         }
     }
 
@@ -610,9 +664,12 @@ public class PriceAdjustmentService {
         int directExAssignments = 0;
         int dpAssignments = 0;
         int syntheticAssignments = 0;
+        int promotedTupleEvents = 0;
         int dividendChanged = 0;
         int dividendInserted = 0;
         int dividendUpdated = 0;
+        int scanFailedFilings = 0;
+        int scanDegradedTickers = 0;
         for (EquityCorporateActionService.EquityDetectionReport report : reports) {
             savedActions += report.savedActions();
             if (report.failureReason() != null && !report.failureReason().isBlank()) {
@@ -639,9 +696,14 @@ public class PriceAdjustmentService {
             directExAssignments += dividend.directExAssignments();
             dpAssignments += dividend.dpAssignments();
             syntheticAssignments += dividend.syntheticAssignments();
+            promotedTupleEvents += dividend.promotedTupleEvents();
             dividendChanged += dividend.changed();
             dividendInserted += dividend.inserted();
             dividendUpdated += dividend.updated();
+            scanFailedFilings += dividend.scanFailedFilings();
+            if (dividend.scanDegraded()) {
+                scanDegradedTickers++;
+            }
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("equityTickersScanned", tickersScanned);
@@ -666,9 +728,12 @@ public class PriceAdjustmentService {
         out.put("directExAssignments", directExAssignments);
         out.put("dpAssignments", dpAssignments);
         out.put("syntheticAssignments", syntheticAssignments);
+        out.put("promotedTupleEvents", promotedTupleEvents);
         out.put("dividendChanged", dividendChanged);
         out.put("dividendInserted", dividendInserted);
         out.put("dividendUpdated", dividendUpdated);
+        out.put("scanFailedFilings", scanFailedFilings);
+        out.put("scanDegradedTickers", scanDegradedTickers);
         return out;
     }
 }

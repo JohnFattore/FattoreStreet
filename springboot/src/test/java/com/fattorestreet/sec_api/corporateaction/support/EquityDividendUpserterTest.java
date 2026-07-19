@@ -265,4 +265,51 @@ class EquityDividendUpserterTest {
         assertEquals(recordDate, existing.getRecordDate());
         assertEquals(95.0, existing.getConfidenceScore());
     }
+
+    @Test
+    void orphanedTupleAnchoredRecordIsNotPruned() {
+        // A declaration-anchored row must never be deleted by the pruner: delete + re-insert
+        // would bypass the rank guard that protects anchored dates from synthetic re-detections.
+        LocalDate anchoredDate = LocalDate.of(2024, 3, 14);
+        LocalDate unrelatedDate = LocalDate.of(2024, 9, 20);
+        CorporateAction anchored = existingDividend("AAPL", anchoredDate, 0.22, 0.22);
+        anchored.setExDateSource(CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED);
+        when(corporateActionRepository.findByTicker("AAPL")).thenReturn(List.of(anchored));
+        when(corporateActionRepository.findAllByTickerAndActionTypeAndEffectiveDate(any(), any(), any()))
+                .thenReturn(List.of());
+        when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EquityCorporateActionService.UpsertStats stats = upserter.upsertDividendEvents("AAPL",
+                List.of(event(unrelatedDate, 0.25, 0.25, 2024)));
+
+        assertEquals(0, stats.pruned());
+        verify(corporateActionRepository, never()).delete(any());
+    }
+
+    @Test
+    void degradedScanSkipsPruningAndSyntheticInserts() {
+        // Filing scan failures mean missing declarations are not evidence of absence: no orphan
+        // pruning and no synthetic-dated inserts, but grounded events still insert.
+        LocalDate orphanDate = LocalDate.of(2024, 3, 14);
+        LocalDate syntheticDate = LocalDate.of(2024, 6, 20);
+        LocalDate tupleDate = LocalDate.of(2024, 9, 12);
+        CorporateAction orphan = existingDividend("AAPL", orphanDate, 0.22, 0.22);
+        orphan.setExDateSource(CorporateAction.EX_DATE_SOURCE_SYNTHETIC);
+        when(corporateActionRepository.findByTicker("AAPL")).thenReturn(List.of(orphan));
+        when(corporateActionRepository.findAllByTickerAndActionTypeAndEffectiveDate(any(), any(), any()))
+                .thenReturn(List.of());
+        when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EquityCorporateActionService.UpsertStats stats = upserter.upsertDividendEvents("AAPL",
+                List.of(
+                        eventWithProvenance(syntheticDate, 0.25, CorporateAction.EX_DATE_SOURCE_SYNTHETIC, null, null),
+                        eventWithProvenance(tupleDate, 0.25, CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED,
+                                tupleDate.plusDays(1), null)),
+                true);
+
+        assertEquals(1, stats.inserted());
+        assertEquals(0, stats.pruned());
+        verify(corporateActionRepository, never()).delete(any());
+        verify(corporateActionRepository).save(argThat(a -> tupleDate.equals(a.getEffectiveDate())));
+    }
 }

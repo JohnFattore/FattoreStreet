@@ -37,6 +37,7 @@ public class EquityDividendFactParser {
 
         List<EquityCorporateActionService.DividendFact> allFacts = new ArrayList<>();
         Set<String> consumedConcepts = new TreeSet<>();
+        Set<String> skippedNonUsdStreams = new TreeSet<>();
         Iterator<Map.Entry<String, JsonNode>> fields = usGaapNode.properties().iterator();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
@@ -54,6 +55,7 @@ public class EquityDividendFactParser {
                 Map.Entry<String, JsonNode> unitEntry = unitFields.next();
                 String unitName = unitEntry.getKey();
                 if (!isPerShareUsdUnit(unitName)) {
+                    skippedNonUsdStreams.add(conceptName + ":" + unitName);
                     continue;
                 }
                 JsonNode values = unitEntry.getValue();
@@ -70,6 +72,12 @@ public class EquityDividendFactParser {
             }
         }
 
+        if (!skippedNonUsdStreams.isEmpty()) {
+            // Non-USD declarations are dropped by design (adjusted prices are USD); surface the
+            // gap so foreign filers with zero events are explainable from the logs.
+            log.info("[{}] Skipped {} non-USD dividend unit streams: {}",
+                    ticker, skippedNonUsdStreams.size(), String.join(", ", skippedNonUsdStreams));
+        }
         if (allFacts.isEmpty()) {
             return Collections.emptyList();
         }
@@ -134,22 +142,13 @@ public class EquityDividendFactParser {
             return false;
         }
         String normalized = form.trim().toUpperCase(Locale.US);
-        if (normalized.equals("10-Q")
-                || normalized.equals("10-Q/A")
-                || normalized.equals("10-K")
-                || normalized.equals("10-K/A")
-                || normalized.equals("8-K")
-                || normalized.equals("8-K/A")) {
-            return true;
-        }
-        if (normalized.equals("DEF 14A")
-                || normalized.equals("DEFA14A")
-                || normalized.equals("6-K")
-                || normalized.equals("20-F")
-                || normalized.equals("40-F")) {
-            return true;
-        }
-        return normalized.endsWith("/A");
+        String base = normalized.endsWith("/A")
+                ? normalized.substring(0, normalized.length() - 2)
+                : normalized;
+        return switch (base) {
+            case "10-Q", "10-K", "8-K", "DEF 14A", "DEFA14A", "6-K", "20-F", "40-F" -> true;
+            default -> false;
+        };
     }
 
     private boolean isDividendPerShareConcept(String conceptName) {

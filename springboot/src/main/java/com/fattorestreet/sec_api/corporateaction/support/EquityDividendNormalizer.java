@@ -183,19 +183,27 @@ public class EquityDividendNormalizer {
         for (EquityCorporateActionService.DividendEvent event : events) {
             LocalDate splitAnchor = event.exDividendDate() != null ? event.exDividendDate() : event.fiscalPeriodEnd();
             double factor = 1.0;
+            // Product of split price-ratios the issuer already baked into the reported amount
+            // (restated facts). rawAmount must be un-restated by this so rawDividend stays on the
+            // raw price scale that PriceAdjustmentService divides by at the ex-date.
+            double restatedFactor = 1.0;
             for (CorporateAction split : snappedSplits) {
                 if (split.getEffectiveDate().isAfter(splitAnchor)) {
                     LocalDate cutoff = alreadyAdjustedCutoffs.get(split.getEffectiveDate());
                     if (cutoff != null && !splitAnchor.isBefore(cutoff)) {
+                        restatedFactor *= split.getRatio();
                         continue;
                     }
                     factor *= split.getRatio();
                 }
             }
+            double rawOnPriceScale = restatedFactor != 1.0
+                    ? round4(event.rawAmount() / restatedFactor)
+                    : event.rawAmount();
             adjusted.add(new EquityCorporateActionService.DividendEvent(
                     event.fiscalPeriodEnd(),
                     event.exDividendDate(),
-                    event.rawAmount(),
+                    rawOnPriceScale,
                     round4(event.rawAmount() * factor),
                     event.year(),
                     event.specialEvent(),

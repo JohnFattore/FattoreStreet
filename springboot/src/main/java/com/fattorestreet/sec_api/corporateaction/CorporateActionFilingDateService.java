@@ -2,7 +2,9 @@ package com.fattorestreet.sec_api.corporateaction;
 
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.corporateaction.support.DividendDeclarationTupleExtractor;
+import com.fattorestreet.sec_api.corporateaction.support.FilingExtractionStore;
 import com.fattorestreet.sec_api.corporateaction.support.FilingTextDates;
+import com.fattorestreet.sec_api.model.FilingExtraction;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,13 @@ public class CorporateActionFilingDateService {
 
     private static final Logger log = LoggerFactory.getLogger(CorporateActionFilingDateService.class);
     private static final LocalDate T_PLUS_ONE_CUTOFF = LocalDate.of(2024, 5, 28);
+    /** T+2 settlement took effect 2017-09-05; before that (T+3) the ex-date was two business days before record. */
+    private static final LocalDate T_PLUS_TWO_CUTOFF = LocalDate.of(2017, 9, 5);
+    /**
+     * Per-run budget of fresh document fetch+extractions. Persisted extractions are free, so
+     * over successive runs the budget walks backward through unextracted history (newest first)
+     * until the whole filing history is covered.
+     */
     private static final int MAX_DIVIDEND_FILINGS_TO_SCAN = 250;
     private static final int MAX_SPLIT_FILINGS_TO_SCAN = 400;
     private static final int MAX_EXHIBIT_DOCS_TO_SCAN = 6;
@@ -64,15 +73,18 @@ public class CorporateActionFilingDateService {
 
     private final WebService webService;
     private final EdgarFilingDiscoveryService filingDiscoveryService;
+    private final FilingExtractionStore extractionStore;
     private final ObjectMapper mapper;
     private final DividendDeclarationTupleExtractor tupleExtractor = new DividendDeclarationTupleExtractor();
 
     public CorporateActionFilingDateService(
             WebService webService,
             EdgarFilingDiscoveryService filingDiscoveryService,
+            FilingExtractionStore extractionStore,
             ObjectMapper mapper) {
         this.webService = webService;
         this.filingDiscoveryService = filingDiscoveryService;
+        this.extractionStore = extractionStore;
         this.mapper = mapper;
     }
 
@@ -80,57 +92,48 @@ public class CorporateActionFilingDateService {
         Map<LocalDate, RecordDateCandidate> candidatesByDate = new HashMap<>();
         Map<LocalDate, ExDividendDateCandidate> exDividendByDate = new HashMap<>();
         Map<String, DividendDeclarationTupleExtractor.DividendDeclaration> declarationsByKey = new HashMap<>();
-        FilingSelection selection = selectCandidateFilings(cik, false, MAX_DIVIDEND_FILINGS_TO_SCAN);
+        FilingSelection selection = selectCandidateFilings(cik, false);
         List<FilingCandidate> filings = selection.selected();
-        log.info("[CIK {}] Dividend record-date scan starting: {} candidate filings", cik, filings.size());
+        Map<String, FilingExtraction> persisted = extractionStore.loadByCik(cik);
+        log.info("[CIK {}] Dividend record-date scan starting: {} candidate filings, {} persisted extractions",
+                cik, filings.size(), persisted.size());
         int processed = 0;
         int failedFilings = 0;
+        int cachedFilings = 0;
+        int fetchedFilings = 0;
+        int budgetSkipped = 0;
         for (FilingCandidate filing : filings) {
+            FilingExtraction row = persisted.get(filing.accessionNumber());
+            Optional<FilingExtractionStore.DividendExtraction> stored = extractionStore.dividendSection(row);
+            FilingExtractionStore.DividendExtraction extraction;
+            if (stored.isPresent()) {
+                cachedFilings++;
+                extraction = stored.get();
+            } else if (fetchedFilings >= MAX_DIVIDEND_FILINGS_TO_SCAN) {
+                budgetSkipped++;
+                continue;
+            } else {
+                fetchedFilings++;
+                if (fetchedFilings == 1 || fetchedFilings % 25 == 0) {
+                    log.info("[CIK {}] Dividend record-date scan progress: {} fetched ({} failed), {} cached, {} unique record-date candidates",
+                            cik, fetchedFilings, failedFilings, cachedFilings, candidatesByDate.size());
+                }
+                try {
+                    extraction = extractDividendSectionFromFiling(cik, filing);
+                    persisted.put(filing.accessionNumber(), extractionStore.saveDividendSection(
+                            cik, filing.accessionNumber(), filing.filingDate(), filing.formType(), row, extraction));
+                } catch (Exception e) {
+                    failedFilings++;
+                    log.warn("[CIK {}] Failed to process dividend filing {}: {}", cik, filing.accessionNumber(), e.getMessage());
+                    continue;
+                }
+            }
             processed++;
-            if (processed == 1 || processed % 25 == 0 || processed == filings.size()) {
-                log.info("[CIK {}] Dividend record-date scan progress: {}/{} filings processed ({} failed), {} unique record-date candidates, {} direct ex-date candidates",
-                        cik, processed, filings.size(), failedFilings, candidatesByDate.size(), exDividendByDate.size());
-            }
-            try {
-                String text = webService.fetchFilingDocument(cik, filing.accessionNumber(), filing.primaryDocument());
-                List<ExtractedRecordDate> extracted = new ArrayList<>(
-                        extractRecordDateCandidates(text, "primary:" + filing.primaryDocument()));
-                extracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractRecordDateCandidates));
-                List<ExtractedRecordDate> exExtracted = new ArrayList<>(
-                        extractExDividendDateCandidates(text, "primary:" + filing.primaryDocument()));
-                exExtracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractExDividendDateCandidates));
-                if (extracted.isEmpty()) {
-                    String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
-                    if (fullSubmissionText != null) {
-                        extracted.addAll(extractRecordDateCandidates(fullSubmissionText, "submission_txt"));
-                    }
-                }
-                if (exExtracted.isEmpty()) {
-                    String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
-                    if (fullSubmissionText != null) {
-                        exExtracted.addAll(extractExDividendDateCandidates(fullSubmissionText, "submission_txt"));
-                    }
-                }
-                mergeExDividendCandidates(exDividendByDate, exExtracted, filing);
-                mergeDeclarations(declarationsByKey, extractDeclarationsFromFiling(cik, filing, text));
-                if (extracted.isEmpty()) {
-                    continue;
-                }
-                ExtractedRecordDate best = extracted.stream()
-                        .max(candidateSelectionComparator())
-                        .orElse(null);
-                if (best == null) {
-                    continue;
-                }
-                RecordDateCandidate candidate = new RecordDateCandidate(best.date(), filing.filingDate(), filing.accessionNumber(), best.score());
-                RecordDateCandidate current = candidatesByDate.get(candidate.recordDate());
-                if (current == null || isPreferredCandidate(candidate, current)) {
-                    candidatesByDate.put(candidate.recordDate(), candidate);
-                }
-            } catch (Exception e) {
-                failedFilings++;
-                log.warn("[CIK {}] Failed to process dividend filing {}: {}", cik, filing.accessionNumber(), e.getMessage());
-            }
+            applyDividendExtraction(candidatesByDate, exDividendByDate, declarationsByKey, filing, extraction);
+        }
+        if (budgetSkipped > 0) {
+            log.info("[CIK {}] Dividend record-date scan deferred {} unextracted filings past the per-run fetch budget",
+                    cik, budgetSkipped);
         }
 
         List<RecordDateCandidate> out = new ArrayList<>(candidatesByDate.values());
@@ -147,9 +150,80 @@ public class CorporateActionFilingDateService {
         declarations.sort(Comparator
                 .comparing(DividendDeclarationTupleExtractor.DividendDeclaration::recordDate)
                 .thenComparing(DividendDeclarationTupleExtractor.DividendDeclaration::amountPerShare));
-        log.info("[CIK {}] Dividend record-date scan finished: {} record-date candidates, {} direct ex-date candidates, {} declaration tuples, {} filings failed",
-                cik, out.size(), exOut.size(), declarations.size(), failedFilings);
-        return new RecordDateScanResult(out, exOut, declarations, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm());
+        log.info("[CIK {}] Dividend record-date scan finished: {} record-date candidates, {} direct ex-date candidates, {} declaration tuples ({} cached, {} fetched, {} failed, {} deferred)",
+                cik, out.size(), exOut.size(), declarations.size(), cachedFilings, fetchedFilings, failedFilings, budgetSkipped);
+        return new RecordDateScanResult(out, exOut, declarations, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm(),
+                processed, failedFilings);
+    }
+
+    /**
+     * Fetches a filing's documents and reduces them to the persistable dividend extraction:
+     * the single best record-date candidate, ex-date candidates deduped by date, and the
+     * declaration tuples.
+     */
+    private FilingExtractionStore.DividendExtraction extractDividendSectionFromFiling(Long cik, FilingCandidate filing) {
+        String text = webService.fetchFilingDocument(cik, filing.accessionNumber(), filing.primaryDocument());
+        List<ExtractedRecordDate> extracted = new ArrayList<>(
+                extractRecordDateCandidates(text, "primary:" + filing.primaryDocument()));
+        extracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractRecordDateCandidates));
+        List<ExtractedRecordDate> exExtracted = new ArrayList<>(
+                extractExDividendDateCandidates(text, "primary:" + filing.primaryDocument()));
+        exExtracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractExDividendDateCandidates));
+        if (extracted.isEmpty()) {
+            String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
+            if (fullSubmissionText != null) {
+                extracted.addAll(extractRecordDateCandidates(fullSubmissionText, "submission_txt"));
+            }
+        }
+        if (exExtracted.isEmpty()) {
+            String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
+            if (fullSubmissionText != null) {
+                exExtracted.addAll(extractExDividendDateCandidates(fullSubmissionText, "submission_txt"));
+            }
+        }
+        ExtractedRecordDate best = extracted.stream()
+                .max(candidateSelectionComparator())
+                .orElse(null);
+        FilingExtractionStore.DatedScore bestRecordDate = best == null
+                ? null
+                : new FilingExtractionStore.DatedScore(best.date(), best.score());
+        Map<LocalDate, Integer> exBestByDate = new HashMap<>();
+        for (ExtractedRecordDate ex : exExtracted) {
+            exBestByDate.merge(ex.date(), ex.score(), Math::max);
+        }
+        List<FilingExtractionStore.DatedScore> exCandidates = exBestByDate.entrySet().stream()
+                .map(e -> new FilingExtractionStore.DatedScore(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparing(FilingExtractionStore.DatedScore::date))
+                .toList();
+        return new FilingExtractionStore.DividendExtraction(
+                bestRecordDate, exCandidates, extractDeclarationsFromFiling(cik, filing, text));
+    }
+
+    /** Merges one filing's extraction (fresh or persisted) into the scan-level candidate maps. */
+    private void applyDividendExtraction(
+            Map<LocalDate, RecordDateCandidate> candidatesByDate,
+            Map<LocalDate, ExDividendDateCandidate> exDividendByDate,
+            Map<String, DividendDeclarationTupleExtractor.DividendDeclaration> declarationsByKey,
+            FilingCandidate filing,
+            FilingExtractionStore.DividendExtraction extraction) {
+        if (extraction.bestRecordDate() != null) {
+            RecordDateCandidate candidate = new RecordDateCandidate(
+                    extraction.bestRecordDate().date(), filing.filingDate(), filing.accessionNumber(),
+                    extraction.bestRecordDate().score());
+            RecordDateCandidate current = candidatesByDate.get(candidate.recordDate());
+            if (current == null || isPreferredCandidate(candidate, current)) {
+                candidatesByDate.put(candidate.recordDate(), candidate);
+            }
+        }
+        for (FilingExtractionStore.DatedScore ex : extraction.exDateCandidates()) {
+            ExDividendDateCandidate candidate = new ExDividendDateCandidate(
+                    ex.date(), filing.filingDate(), filing.accessionNumber(), ex.score());
+            ExDividendDateCandidate current = exDividendByDate.get(candidate.exDividendDate());
+            if (current == null || candidate.confidenceScore() > current.confidenceScore()) {
+                exDividendByDate.put(candidate.exDividendDate(), candidate);
+            }
+        }
+        mergeDeclarations(declarationsByKey, extraction.declarations());
     }
 
     /**
@@ -203,23 +277,6 @@ public class CorporateActionFilingDateService {
         }
     }
 
-    private void mergeExDividendCandidates(
-            Map<LocalDate, ExDividendDateCandidate> byDate,
-            List<ExtractedRecordDate> extracted,
-            FilingCandidate filing) {
-        if (extracted == null || extracted.isEmpty()) {
-            return;
-        }
-        for (ExtractedRecordDate row : extracted) {
-            ExDividendDateCandidate candidate = new ExDividendDateCandidate(
-                    row.date(), filing.filingDate(), filing.accessionNumber(), row.score());
-            ExDividendDateCandidate current = byDate.get(candidate.exDividendDate());
-            if (current == null || candidate.confidenceScore() > current.confidenceScore()) {
-                byDate.put(candidate.exDividendDate(), candidate);
-            }
-        }
-    }
-
     public List<SplitDateCandidate> fetchSplitEffectiveDates(Long cik) {
         return scanSplitEffectiveDates(cik).candidates();
     }
@@ -227,52 +284,55 @@ public class CorporateActionFilingDateService {
     public SplitDateScanResult scanSplitEffectiveDates(Long cik) {
         Map<LocalDate, SplitDateCandidate> candidatesByDate = new HashMap<>();
         Map<String, Integer> splitIntentCounts = new TreeMap<>();
-        FilingSelection selection = selectCandidateFilings(cik, true, MAX_SPLIT_FILINGS_TO_SCAN);
+        FilingSelection selection = selectCandidateFilings(cik, true);
         List<FilingCandidate> filings = selection.selected();
-        log.info("[CIK {}] Split effective-date scan starting: {} candidate filings", cik, filings.size());
-        int processed = 0;
+        Map<String, FilingExtraction> persisted = extractionStore.loadByCik(cik);
+        log.info("[CIK {}] Split effective-date scan starting: {} candidate filings, {} persisted extractions",
+                cik, filings.size(), persisted.size());
         int failedFilings = 0;
+        int cachedFilings = 0;
+        int fetchedFilings = 0;
+        int budgetSkipped = 0;
         for (FilingCandidate filing : filings) {
-            processed++;
-            if (processed == 1 || processed % 25 == 0 || processed == filings.size()) {
-                log.info("[CIK {}] Split effective-date scan progress: {}/{} filings processed ({} failed), {} unique candidates",
-                        cik, processed, filings.size(), failedFilings, candidatesByDate.size());
-            }
-            try {
-                String text = webService.fetchFilingDocument(cik, filing.accessionNumber(), filing.primaryDocument());
-                List<ExtractedRecordDate> extracted = new ArrayList<>(
-                        extractSplitDateCandidates(text, "primary:" + filing.primaryDocument()));
-                extracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractSplitDateCandidates));
-                if (extracted.isEmpty()) {
-                    String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
-                    if (fullSubmissionText != null) {
-                        extracted.addAll(extractSplitDateCandidates(fullSubmissionText, "submission_txt"));
-                    }
+            FilingExtraction row = persisted.get(filing.accessionNumber());
+            Optional<FilingExtractionStore.SplitExtraction> stored = extractionStore.splitSection(row);
+            FilingExtractionStore.SplitExtraction extraction;
+            if (stored.isPresent()) {
+                cachedFilings++;
+                extraction = stored.get();
+            } else if (fetchedFilings >= MAX_SPLIT_FILINGS_TO_SCAN) {
+                budgetSkipped++;
+                continue;
+            } else {
+                fetchedFilings++;
+                if (fetchedFilings == 1 || fetchedFilings % 25 == 0) {
+                    log.info("[CIK {}] Split effective-date scan progress: {} fetched ({} failed), {} cached, {} unique candidates",
+                            cik, fetchedFilings, failedFilings, cachedFilings, candidatesByDate.size());
                 }
-                if (extracted.isEmpty()) {
+                try {
+                    extraction = extractSplitSectionFromFiling(cik, filing, splitIntentCounts);
+                    persisted.put(filing.accessionNumber(), extractionStore.saveSplitSection(
+                            cik, filing.accessionNumber(), filing.filingDate(), filing.formType(), row, extraction));
+                } catch (Exception e) {
+                    failedFilings++;
+                    log.warn("[CIK {}] Failed to process split filing {}: {}", cik, filing.accessionNumber(), e.getMessage());
                     continue;
                 }
-                for (ExtractedRecordDate candidate : extracted) {
-                    splitIntentCounts.merge(candidate.patternLabel(), 1, Integer::sum);
-                }
-                logSplitCandidateRanking(cik, filing, extracted);
-                ExtractedRecordDate best = extracted.stream()
-                        .max(candidateSelectionComparator())
-                        .orElse(null);
-                if (best == null) {
-                    continue;
-                }
-                log.info("[CIK {}] Split candidate selected for accession {}: date={}, score={}, intent={}, confidence={}, source={}, pattern={}",
-                        cik, filing.accessionNumber(), best.date(), best.score(), best.intentRank(), best.confidenceLabel(), best.source(), best.patternLabel());
-                SplitDateCandidate candidate = new SplitDateCandidate(best.date(), filing.filingDate(), filing.accessionNumber(), best.score());
-                SplitDateCandidate current = candidatesByDate.get(candidate.effectiveDate());
-                if (current == null || isPreferredCandidate(candidate, current)) {
-                    candidatesByDate.put(candidate.effectiveDate(), candidate);
-                }
-            } catch (Exception e) {
-                failedFilings++;
-                log.warn("[CIK {}] Failed to process split filing {}: {}", cik, filing.accessionNumber(), e.getMessage());
             }
+            if (extraction.bestSplitDate() == null) {
+                continue;
+            }
+            SplitDateCandidate candidate = new SplitDateCandidate(
+                    extraction.bestSplitDate().date(), filing.filingDate(), filing.accessionNumber(),
+                    extraction.bestSplitDate().score());
+            SplitDateCandidate current = candidatesByDate.get(candidate.effectiveDate());
+            if (current == null || isPreferredCandidate(candidate, current)) {
+                candidatesByDate.put(candidate.effectiveDate(), candidate);
+            }
+        }
+        if (budgetSkipped > 0) {
+            log.info("[CIK {}] Split effective-date scan deferred {} unextracted filings past the per-run fetch budget",
+                    cik, budgetSkipped);
         }
 
         List<SplitDateCandidate> out = new ArrayList<>(candidatesByDate.values());
@@ -296,8 +356,43 @@ public class CorporateActionFilingDateService {
                     .collect(Collectors.joining(", "));
             log.info("[CIK {}] Split candidate intent summary: {}", cik, intentSummary);
         }
-        log.info("[CIK {}] Split effective-date scan finished: {} unique candidates, {} filings failed", cik, out.size(), failedFilings);
+        log.info("[CIK {}] Split effective-date scan finished: {} unique candidates ({} cached, {} fetched, {} failed, {} deferred)",
+                cik, out.size(), cachedFilings, fetchedFilings, failedFilings, budgetSkipped);
         return new SplitDateScanResult(out, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm());
+    }
+
+    /**
+     * Fetches a filing's documents and reduces them to the persistable split extraction:
+     * the single best split-date candidate (or none).
+     */
+    private FilingExtractionStore.SplitExtraction extractSplitSectionFromFiling(
+            Long cik, FilingCandidate filing, Map<String, Integer> splitIntentCounts) {
+        String text = webService.fetchFilingDocument(cik, filing.accessionNumber(), filing.primaryDocument());
+        List<ExtractedRecordDate> extracted = new ArrayList<>(
+                extractSplitDateCandidates(text, "primary:" + filing.primaryDocument()));
+        extracted.addAll(extractFromExhibits(cik, filing.accessionNumber(), text, this::extractSplitDateCandidates));
+        if (extracted.isEmpty()) {
+            String fullSubmissionText = fetchFullSubmissionTextQuietly(cik, filing.accessionNumber());
+            if (fullSubmissionText != null) {
+                extracted.addAll(extractSplitDateCandidates(fullSubmissionText, "submission_txt"));
+            }
+        }
+        if (extracted.isEmpty()) {
+            return new FilingExtractionStore.SplitExtraction(null);
+        }
+        for (ExtractedRecordDate candidate : extracted) {
+            splitIntentCounts.merge(candidate.patternLabel(), 1, Integer::sum);
+        }
+        logSplitCandidateRanking(cik, filing, extracted);
+        ExtractedRecordDate best = extracted.stream()
+                .max(candidateSelectionComparator())
+                .orElse(null);
+        if (best == null) {
+            return new FilingExtractionStore.SplitExtraction(null);
+        }
+        log.info("[CIK {}] Split candidate selected for accession {}: date={}, score={}, intent={}, confidence={}, source={}, pattern={}",
+                cik, filing.accessionNumber(), best.date(), best.score(), best.intentRank(), best.confidenceLabel(), best.source(), best.patternLabel());
+        return new FilingExtractionStore.SplitExtraction(new FilingExtractionStore.DatedScore(best.date(), best.score()));
     }
 
     public LocalDate computeExDividendDate(LocalDate recordDate) {
@@ -306,6 +401,9 @@ public class CorporateActionFilingDateService {
         }
 
         LocalDate normalizedRecordDate = nextBusinessDay(recordDate);
+        if (normalizedRecordDate.isBefore(T_PLUS_TWO_CUTOFF)) {
+            return previousBusinessDay(previousBusinessDay(normalizedRecordDate));
+        }
         if (normalizedRecordDate.isBefore(T_PLUS_ONE_CUTOFF)) {
             return previousBusinessDay(normalizedRecordDate);
         }
@@ -443,7 +541,11 @@ public class CorporateActionFilingDateService {
         return FilingTextDates.toSearchableText(htmlOrText);
     }
 
-    private FilingSelection selectCandidateFilings(Long cik, boolean splitMode, int maxToScan) {
+    /**
+     * All form-relevant filings for the CIK, newest first. No cap here: persisted extractions
+     * make old accessions free to consume, and the per-run fetch budget is enforced by callers.
+     */
+    private FilingSelection selectCandidateFilings(Long cik, boolean splitMode) {
         List<EdgarFilingDiscoveryService.FilingMeta> discovered = Collections.emptyList();
         try {
             discovered = filingDiscoveryService.discoverFilings(cik);
@@ -474,9 +576,6 @@ public class CorporateActionFilingDateService {
                 .comparing(FilingCandidate::filingDate, Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(FilingCandidate::formScore, Comparator.reverseOrder())
                 .thenComparing(FilingCandidate::accessionNumber));
-        if (selected.size() > Math.max(maxToScan, 0)) {
-            selected = new ArrayList<>(selected.subList(0, Math.max(maxToScan, 0)));
-        }
         return new FilingSelection(selected, discoveredByForm, selectedByForm, rejectedByForm);
     }
 
@@ -899,7 +998,18 @@ public class CorporateActionFilingDateService {
             List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations,
             Map<String, Integer> discoveredByForm,
             Map<String, Integer> selectedByForm,
-            Map<String, Integer> rejectedByForm) {
+            Map<String, Integer> rejectedByForm,
+            int processedFilings,
+            int failedFilings) {
+
+        /**
+         * True when enough filing fetches failed that the candidate lists are likely incomplete.
+         * Downstream must not treat missing declarations as evidence of absence (no pruning, no
+         * synthetic inserts) or a transient SEC outage degrades well-anchored stored dates.
+         */
+        public boolean degraded() {
+            return failedFilings > 3 && failedFilings * 4 > processedFilings;
+        }
     }
 
     public record SplitDateScanResult(
