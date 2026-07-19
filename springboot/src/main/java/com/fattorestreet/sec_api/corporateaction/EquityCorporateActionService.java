@@ -103,7 +103,12 @@ public class EquityCorporateActionService {
         List<DividendEvent> detectedEvents = assignmentResult.events();
         List<DividendEvent> splitAdjustedEvents = equityDividendNormalizer.adjustDividendsForFutureSplits(detectedEvents, corporateActions);
 
-        UpsertStats upsertStats = equityDividendUpserter.upsertDividendEvents(ticker, splitAdjustedEvents);
+        boolean degradedScan = recordDateScan.degraded();
+        if (degradedScan) {
+            log.warn("[{}] Filing scan degraded ({} of {} filings failed); suppressing synthetic inserts and pruning",
+                    ticker, recordDateScan.failedFilings(), recordDateScan.processedFilings());
+        }
+        UpsertStats upsertStats = equityDividendUpserter.upsertDividendEvents(ticker, splitAdjustedEvents, degradedScan);
         if (upsertStats.changed() > 0) {
             log.info("[{}] Detected/Reconciled {} dividend entries (inserted={} updated={} pruned={})",
                     ticker, upsertStats.changed(), upsertStats.inserted(), upsertStats.updated(), upsertStats.pruned());
@@ -119,9 +124,12 @@ public class EquityCorporateActionService {
                 assignmentResult.directExAssignments(),
                 assignmentResult.dpAssignments(),
                 assignmentResult.syntheticAssignments(),
+                assignmentResult.promotedTupleEvents(),
                 upsertStats.changed(),
                 upsertStats.inserted(),
                 upsertStats.updated(),
+                recordDateScan.failedFilings(),
+                degradedScan,
                 recordDateScan.discoveredByForm(),
                 recordDateScan.selectedByForm(),
                 recordDateScan.rejectedByForm());
@@ -201,15 +209,18 @@ public class EquityCorporateActionService {
             int directExAssignments,
             int dpAssignments,
             int syntheticAssignments,
+            int promotedTupleEvents,
             int changed,
             int inserted,
             int updated,
+            int scanFailedFilings,
+            boolean scanDegraded,
             Map<String, Integer> recordDateFormsDiscovered,
             Map<String, Integer> recordDateFormsSelected,
             Map<String, Integer> recordDateFormsRejected) {
         private static DividendDetectionStats empty(int factsParsed) {
             return new DividendDetectionStats(
-                    factsParsed, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    factsParsed, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false,
                     Map.of(), Map.of(), Map.of());
         }
 
@@ -225,9 +236,12 @@ public class EquityCorporateActionService {
             out.put("directExAssignments", directExAssignments);
             out.put("dpAssignments", dpAssignments);
             out.put("syntheticAssignments", syntheticAssignments);
+            out.put("promotedTupleEvents", promotedTupleEvents);
             out.put("changed", changed);
             out.put("inserted", inserted);
             out.put("updated", updated);
+            out.put("scanFailedFilings", scanFailedFilings);
+            out.put("scanDegraded", scanDegraded);
             out.put("recordDateFormsDiscovered", recordDateFormsDiscovered);
             out.put("recordDateFormsSelected", recordDateFormsSelected);
             out.put("recordDateFormsRejected", recordDateFormsRejected);
@@ -240,7 +254,8 @@ public class EquityCorporateActionService {
             int tupleMatchedAssignments,
             int directExAssignments,
             int dpAssignments,
-            int syntheticAssignments) {
+            int syntheticAssignments,
+            int promotedTupleEvents) {
 
         /** Events whose ex-date is grounded in a filing (tuple, direct ex-text, or record-date DP). */
         public int recordBasedAssignments() {

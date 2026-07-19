@@ -92,7 +92,6 @@ public class EquitySplitDetector {
 
         entries.sort(Comparator.comparing(SharesEntry::date));
         removeDuplicateDates(entries);
-        List<CorporateActionFilingDateService.SplitDateCandidate> splitCandidates = corporateActionFilingDateService.fetchSplitEffectiveDates(cik);
         Set<String> usedSplitCandidateKeys = new HashSet<>();
         SplitPriceCorroborator.PriceSeries prices = splitPriceCorroborator.load(ticker);
         List<CorporateAction> existingSplits = new ArrayList<>();
@@ -101,29 +100,31 @@ public class EquitySplitDetector {
                 existingSplits.add(action);
             }
         }
+
+        List<SharesPair> ratioPairs = collectRatioJumpPairs(ticker, entries);
+        List<SplitPriceCorroborator.Corroboration> priceBreaks = splitPriceCorroborator.scanForSplitLikeBreaks(prices, null);
+        boolean hasUnexplainedBreak = priceBreaks.stream()
+                .anyMatch(breakCandidate -> !hasSplitNear(existingSplits, breakCandidate.breakDate()));
+        // The filing scan is the single largest HTTP block for a typical ticker and most tickers
+        // have never split: only fetch split-date candidates when there is XBRL or price evidence
+        // that needs dating or confirmation.
+        List<CorporateActionFilingDateService.SplitDateCandidate> splitCandidates =
+                (ratioPairs.isEmpty() && !hasUnexplainedBreak)
+                        ? List.of()
+                        : corporateActionFilingDateService.fetchSplitEffectiveDates(cik);
         int secDateMatches = 0;
         int fallbackDetectedDate = 0;
         int priceCorroborated = 0;
         int priceSnapped = 0;
         int priceRejected = 0;
-        log.info("[{}] Split detection inputs: {} shares rows, {} SEC split-date candidates, {} price rows",
-                ticker, entries.size(), splitCandidates.size(), prices.dates().size());
+        log.info("[{}] Split detection inputs: {} shares rows, {} ratio-jump pairs, {} price breaks, {} SEC split-date candidates, {} price rows",
+                ticker, entries.size(), ratioPairs.size(), priceBreaks.size(), splitCandidates.size(), prices.dates().size());
 
         int created = 0;
-        for (int i = 1; i < entries.size(); i++) {
-            SharesEntry prev = entries.get(i - 1);
-            SharesEntry curr = entries.get(i);
-            long gapDays = ChronoUnit.DAYS.between(prev.date(), curr.date());
-            if (gapDays > MAX_SHARES_ENTRY_GAP_DAYS) {
-                log.debug("[{}] Skipping shares pair {} -> {}: gap {} days exceeds maximum {}",
-                        ticker, prev.date(), curr.date(), gapDays, MAX_SHARES_ENTRY_GAP_DAYS);
-                continue;
-            }
-            double rawRatio = (double) curr.shares / prev.shares;
-            if (!isCommonSplitRatio(rawRatio)) {
-                continue;
-            }
-            double snappedRaw = nearestCommonSplitRatio(rawRatio);
+        for (SharesPair pair : ratioPairs) {
+            SharesEntry prev = pair.prev();
+            SharesEntry curr = pair.curr();
+            double snappedRaw = pair.snappedRaw();
             double splitRatio = 1.0 / snappedRaw;
             SplitDateResolution splitDateResolution = resolveSplitEffectiveDate(prev.date(), curr.date(), splitCandidates, usedSplitCandidateKeys);
             if (splitDateResolution.matchedCandidate()) {
@@ -189,12 +190,33 @@ public class EquitySplitDetector {
             }
         }
 
-        PriceOnlyScanResult priceOnly = detectPriceOnlySplits(ticker, prices, existingSplits, splitCandidates);
+        PriceOnlyScanResult priceOnly = detectPriceOnlySplits(ticker, priceBreaks, existingSplits, splitCandidates);
         created += priceOnly.created();
         return new EquityCorporateActionService.SplitDetectionStats(
                 entries.size(), splitCandidates.size(), created, secDateMatches, fallbackDetectedDate,
                 priceCorroborated, priceSnapped, priceRejected,
                 priceOnly.created(), priceOnly.unconfirmed());
+    }
+
+    /** XBRL share-count jump pairs that snap to a plausible split ratio. */
+    private List<SharesPair> collectRatioJumpPairs(String ticker, List<SharesEntry> entries) {
+        List<SharesPair> pairs = new ArrayList<>();
+        for (int i = 1; i < entries.size(); i++) {
+            SharesEntry prev = entries.get(i - 1);
+            SharesEntry curr = entries.get(i);
+            long gapDays = ChronoUnit.DAYS.between(prev.date(), curr.date());
+            if (gapDays > MAX_SHARES_ENTRY_GAP_DAYS) {
+                log.debug("[{}] Skipping shares pair {} -> {}: gap {} days exceeds maximum {}",
+                        ticker, prev.date(), curr.date(), gapDays, MAX_SHARES_ENTRY_GAP_DAYS);
+                continue;
+            }
+            double rawRatio = (double) curr.shares() / prev.shares();
+            if (!isCommonSplitRatio(rawRatio)) {
+                continue;
+            }
+            pairs.add(new SharesPair(prev, curr, nearestCommonSplitRatio(rawRatio)));
+        }
+        return pairs;
     }
 
     /**
@@ -275,12 +297,12 @@ public class EquitySplitDetector {
      */
     private PriceOnlyScanResult detectPriceOnlySplits(
             String ticker,
-            SplitPriceCorroborator.PriceSeries prices,
+            List<SplitPriceCorroborator.Corroboration> priceBreaks,
             List<CorporateAction> existingSplits,
             List<CorporateActionFilingDateService.SplitDateCandidate> splitCandidates) {
         int created = 0;
         int unconfirmed = 0;
-        for (SplitPriceCorroborator.Corroboration breakCandidate : splitPriceCorroborator.scanForSplitLikeBreaks(prices, null)) {
+        for (SplitPriceCorroborator.Corroboration breakCandidate : priceBreaks) {
             if (hasSplitNear(existingSplits, breakCandidate.breakDate())) {
                 continue;
             }
@@ -465,25 +487,21 @@ public class EquitySplitDetector {
             return false;
         }
         String normalized = form.trim().toUpperCase(java.util.Locale.US);
-        if (normalized.equals("10-K")
-                || normalized.equals("10-K/A")
-                || normalized.equals("10-Q")
-                || normalized.equals("10-Q/A")) {
-            return true;
-        }
-        if (normalized.equals("8-K")
-                || normalized.equals("8-K/A")
-                || normalized.equals("6-K")
-                || normalized.equals("20-F")
-                || normalized.equals("40-F")) {
-            return true;
-        }
-        return normalized.endsWith("/A");
+        String base = normalized.endsWith("/A")
+                ? normalized.substring(0, normalized.length() - 2)
+                : normalized;
+        return switch (base) {
+            case "10-K", "10-Q", "8-K", "6-K", "20-F", "40-F" -> true;
+            default -> false;
+        };
     }
 
     private record SplitDateResolution(LocalDate effectiveDate, boolean matchedCandidate) {
     }
 
     private record SharesEntry(LocalDate date, long shares) {
+    }
+
+    private record SharesPair(SharesEntry prev, SharesEntry curr, double snappedRaw) {
     }
 }

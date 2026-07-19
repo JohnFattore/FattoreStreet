@@ -13,8 +13,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Component
@@ -31,6 +33,12 @@ public class EquityExDateAssigner {
     private static final int MAX_TUPLE_RECORD_OFFSET_DAYS = 95;
     private static final double TUPLE_AMOUNT_ABS_TOLERANCE = 0.0005;
     private static final double TUPLE_AMOUNT_REL_TOLERANCE = 0.005;
+    /** Unmatched declarations promoted to provisional events must clear this tuple confidence. */
+    private static final int MIN_PROMOTION_CONFIDENCE = 85;
+    /** Promotion targets the 8-K-to-10-Q blind window only; older record dates are left alone. */
+    private static final int MAX_PROMOTION_RECORD_AGE_DAYS = 200;
+    /** Promoted amounts must sit within this band of the newest regular amount (misparse guard). */
+    private static final double MAX_PROMOTION_AMOUNT_RATIO = 3.0;
 
     private final CorporateActionFilingDateService corporateActionFilingDateService;
 
@@ -177,9 +185,75 @@ public class EquityExDateAssigner {
                 syntheticAssignments++;
             }
         }
+        int promotedTupleEvents = promoteUnmatchedDeclarations(mapped, regularEvents, tuples, usedTuples);
         mapped.sort(Comparator.comparing(EquityCorporateActionService.DividendEvent::effectiveDate).thenComparing(EquityCorporateActionService.DividendEvent::rawAmount));
         return new EquityCorporateActionService.AssignmentResult(
-                mapped, tupleMatchedAssignments, directExAssignments, dpAssignments, syntheticAssignments);
+                mapped, tupleMatchedAssignments, directExAssignments, dpAssignments, syntheticAssignments,
+                promotedTupleEvents);
+    }
+
+    /**
+     * Promotes recent, high-confidence declaration tuples that no XBRL event claimed into
+     * provisional dividend events. XBRL per-share facts only appear with the next 10-Q/10-K, so
+     * without this a declared dividend is invisible to price adjustment for up to a quarter and
+     * the adjusted series shifts retroactively when the fact lands. The provisional event carries
+     * tuple provenance, so the later XBRL-grounded re-detection matches and updates it in place.
+     */
+    private int promoteUnmatchedDeclarations(
+            List<EquityCorporateActionService.DividendEvent> mapped,
+            List<EquityCorporateActionService.DividendEvent> regularEvents,
+            List<DividendDeclarationTupleExtractor.DividendDeclaration> tuples,
+            Set<Integer> usedTuples) {
+        if (tuples.isEmpty() || regularEvents.isEmpty()) {
+            return 0;
+        }
+        LocalDate newestPeriodEnd = regularEvents.get(regularEvents.size() - 1).fiscalPeriodEnd();
+        double newestRegularAmount = regularEvents.get(regularEvents.size() - 1).rawAmount();
+        LocalDate oldestPromotableRecordDate = LocalDate.now().minusDays(MAX_PROMOTION_RECORD_AGE_DAYS);
+        Map<LocalDate, DividendDeclarationTupleExtractor.DividendDeclaration> bestByRecordDate = new HashMap<>();
+        for (int i = 0; i < tuples.size(); i++) {
+            if (usedTuples.contains(i)) {
+                continue;
+            }
+            DividendDeclarationTupleExtractor.DividendDeclaration tuple = tuples.get(i);
+            if (tuple.recordDate() == null
+                    || !tuple.recordDate().isAfter(newestPeriodEnd)
+                    || tuple.recordDate().isBefore(oldestPromotableRecordDate)
+                    || tuple.confidenceScore() < MIN_PROMOTION_CONFIDENCE) {
+                continue;
+            }
+            if (newestRegularAmount > 0
+                    && (tuple.amountPerShare() > newestRegularAmount * MAX_PROMOTION_AMOUNT_RATIO
+                    || tuple.amountPerShare() < newestRegularAmount / MAX_PROMOTION_AMOUNT_RATIO)) {
+                log.info("Skipping declaration promotion for record date {}: amount {} out of band vs latest regular {}",
+                        tuple.recordDate(), tuple.amountPerShare(), newestRegularAmount);
+                continue;
+            }
+            DividendDeclarationTupleExtractor.DividendDeclaration current = bestByRecordDate.get(tuple.recordDate());
+            if (current == null || tuple.confidenceScore() > current.confidenceScore()) {
+                bestByRecordDate.put(tuple.recordDate(), tuple);
+            }
+        }
+        int promoted = 0;
+        for (DividendDeclarationTupleExtractor.DividendDeclaration tuple : bestByRecordDate.values()) {
+            LocalDate exDate = tuple.exDate() != null
+                    ? tuple.exDate()
+                    : safeComputeExDividendDate(tuple.recordDate(), tuple.recordDate());
+            log.info("Promoting declaration tuple to provisional dividend: amount {}, record {}, ex {} (filing {})",
+                    tuple.amountPerShare(), tuple.recordDate(), exDate, tuple.accessionNumber());
+            mapped.add(new EquityCorporateActionService.DividendEvent(
+                    tuple.recordDate(),
+                    exDate,
+                    tuple.amountPerShare(),
+                    tuple.amountPerShare(),
+                    tuple.recordDate().getYear(),
+                    false,
+                    tuple.recordDate(),
+                    tuple.payableDate(),
+                    CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED));
+            promoted++;
+        }
+        return promoted;
     }
 
     private EquityCorporateActionService.DividendEvent eventFromTuple(
