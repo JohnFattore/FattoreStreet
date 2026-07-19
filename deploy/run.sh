@@ -56,14 +56,14 @@ SECRETS_ARN=arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:fattorestreet/e
 #   PW=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN" \
 #         --query SecretString --output text | jq -r .POSTGRES_PASSWORD)
 #   sudo docker run ... -e POSTGRES_PASSWORD="$PW" ... postgres:17
-# Host-local port only: apps connect over dockerNet; admin psql from the EC2
-# host (or a laptop via SSM port forwarding) uses 127.0.0.1. Also joined to
-# pgadminNet so the isolated pgadmin4 container can reach it.
+# Published on all interfaces: the nightly hist-load Fargate task connects at
+# the host's private IP (SG-restricted to the task's security group on 5432).
+# Also joined to pgadminNet so the isolated pgadmin4 container can reach it.
 sudo docker run -d \
   --name postgres \
   --network dockerNet \
   -v /mnt/ebs/postgres-data:/var/lib/postgresql/data \
-  -p 127.0.0.1:5432:5432 \
+  -p 0.0.0.0:5432:5432 \
   postgres:17
 sudo docker network connect pgadminNet postgres
 

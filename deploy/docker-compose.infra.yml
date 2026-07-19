@@ -24,10 +24,12 @@ services:
     container_name: postgres
     volumes:
       - /mnt/ebs/postgres-data:/var/lib/postgresql/data
-    # Host-local only: apps connect over dockerNet; admin psql from the EC2
-    # host (or a laptop via SSM port forwarding) uses 127.0.0.1
+    # Published on all interfaces: the nightly hist-load Fargate task connects
+    # over the VPC at the host's private IP (see springboot/deploy/terraform/),
+    # so loopback-only binding breaks it. Access control is the EC2 security
+    # group, which only admits the Fargate task's SG on 5432.
     ports:
-      - "127.0.0.1:5432:5432"
+      - "0.0.0.0:5432:5432"
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
     networks: [dockerNet, pgadminNet]
