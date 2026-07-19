@@ -175,6 +175,18 @@ variable "index_load_schedule_enabled" {
   default     = true
 }
 
+variable "notification_email" {
+  description = <<-EOT
+    Email address alerted (via an SNS topic + EventBridge rule) when a task in the cluster stops
+    with a non-zero exit code or fails to start. Both nightly loads exit 1 only on total failure,
+    so an alert means that night's run did no useful work. Empty string (the default) disables
+    the alerting resources entirely. The subscription must be confirmed once from the
+    confirmation email AWS sends after `terraform apply`.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention for the task."
   type        = number

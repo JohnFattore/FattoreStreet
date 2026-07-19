@@ -15,6 +15,11 @@ the one-shot loads on Fargate — run mode is selected purely by the `APP_RUN_MO
   rebuild and exits `1` — the rebuild deletes members by index code, so rebuilding after a
   mostly-failed refresh (SEC outage, empty new calendar year) would shrink the live indexes.
 
+  The offset is a fixed gap, **not a dependency**: if the hist load fails or overruns, the index
+  load still fires and computes metrics from the previous day's prices (the min-processed guard
+  only protects against a failed *refresh*, not stale prices). One day of staleness in cap ranks
+  is acceptable; the failure alert below is what tells you the hist load needs attention.
+
 Both tasks share the ECR repo/image, ECS cluster, IAM roles, and task security group; each has its
 own task definition, log group, and schedule.
 
@@ -67,7 +72,7 @@ Then build the **ARM64** image and push it to the ECR repo Terraform created:
 
 ```bash
 REPO=$(terraform output -raw ecr_repository_url)
-REGION=$(terraform output -raw ... 2>/dev/null || echo us-east-1)   # or your var.aws_region
+REGION=us-east-1   # your var.aws_region
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "${REPO%/*}"
 
 # Build for linux/arm64 to match runtime_platform = ARM64. Build context is springboot/.
@@ -130,16 +135,33 @@ The index load had no Celery/beat trigger to replace — it was manual-only via 
 (`POST /admin/indexes/refresh-stocks`, `POST /admin/indexes/rebuild`), which stay in place for
 manual runs.
 
+## Failure alerting
+
+Set `notification_email` in `terraform.tfvars` and an EventBridge rule + SNS topic email you
+whenever a task in the cluster stops with a non-zero exit code or fails to start. After the first
+`terraform apply`, **confirm the subscription** from the email AWS sends (until then, no alerts
+are delivered).
+
+Both runners exit `1` only on total failure — the load throwing, every attempted day failing, or
+the index refresh falling below the rebuild guard. Partial errors (some days, some tickers) exit
+`0` and self-heal on the next night's idempotent run, so an alert always means that night's run
+did no useful work. There are no automatic retries (`maximum_retry_attempts = 0`); on an alert,
+check the CloudWatch logs and, once fixed, either wait for the next scheduled run or re-run
+manually with the `aws ecs run-task` commands above.
+
+Leave `notification_email = ""` to skip creating the alerting resources entirely.
+
 ## Tuning knobs
 
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `task_memory` | `4096` | Lower to `2048` after profiling a real run. |
 | `hist_load_days` | `20` | Days walked back; already-loaded days are skipped (idempotent). |
-| `schedule_expression` / `schedule_timezone` | `cron(0 2 * * ? *)` / `America/New_York` | When the hist load runs. |
+| `schedule_expression` / `schedule_timezone` | `cron(30 6 * * ? *)` / `Etc/UTC` | When the hist load runs (tfvars example: `cron(0 2 * * ? *)` / `America/New_York`). |
 | `schedule_enabled` | `true` | Toggle the nightly hist-load trigger. |
 | `index_load_task_cpu` / `index_load_task_memory` | `512` / `2048` | The index load is SEC-rate-limit bound (mostly idle); profile the first real run. |
 | `index_load_scope` | `russell1000` | Metrics refresh scope (`russell1000` or `all`). |
 | `index_load_min_processed` | `800` | Rebuild guard threshold; below it the task keeps yesterday's members and exits `1`. |
-| `index_load_schedule_expression` | `cron(0 5 * * ? *)` (tfvars) | When the index load runs; shares `schedule_timezone`. Keep it well after the hist load. |
-| `index_load_schedule_enabled` | `true` | Toggle the nightly index-load trigger. 
+| `index_load_schedule_expression` | `cron(30 9 * * ? *)` | When the index load runs (tfvars example: `cron(0 5 * * ? *)`); shares `schedule_timezone`. Keep it well after the hist load. |
+| `index_load_schedule_enabled` | `true` | Toggle the nightly index-load trigger. |
+| `notification_email` | `""` | Email alerted when a task exits non-zero or fails to start; `""` disables alerting. | 
