@@ -123,6 +123,14 @@ jobs:
           path: springboot/target/site/jacoco/
           retention-days: 7
 
+      - name: Upload SpotBugs report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: springboot-spotbugs
+          path: springboot/target/spotbugsXml.xml
+          retention-days: 7
+
   secrets:
     name: Secret scan (detect-secrets)
     runs-on: ubuntu-latest
