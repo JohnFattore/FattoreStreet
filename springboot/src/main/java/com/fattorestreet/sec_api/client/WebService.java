@@ -28,6 +28,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @Service
 public class WebService {
     private static final Logger log = LoggerFactory.getLogger(WebService.class);
@@ -318,6 +320,13 @@ public class WebService {
         return response.getBody();
     }
 
+    @SuppressFBWarnings(
+            value = "BC_VACUOUS_INSTANCEOF",
+            justification = "SecRequestOperation declares no checked exceptions today, so the"
+                    + " catch can only ever hold a RuntimeException and SpotBugs reads the"
+                    + " instanceof as vacuous. It is kept deliberately: if the interface ever"
+                    + " gains a checked exception, this is what keeps the wrapping correct"
+                    + " instead of throwing a ClassCastException.")
     private <T> ResponseEntity<T> executeSecRequestWithRetry(
             String requestLabel,
             SecRequestOperation<T> operation) {

@@ -113,7 +113,6 @@ public class EdgarService {
                     "paymentsForRepurchaseOfCommonStock", false));
 
     private static final class AnnualData {
-        int fiscalYear;
         LocalDate periodStart;
         LocalDate periodEnd;
         Map<String, Number> fields = new HashMap<>();
@@ -306,7 +305,6 @@ public class EdgarService {
                         AnnualData data = annualMap.get(cik);
                         if (data == null) {
                             data = new AnnualData();
-                            data.fiscalYear = node.has("fy") ? node.get("fy").asInt() : year;
                             data.periodStart = start;
                             data.periodEnd = end;
                             annualMap.put(cik, data);

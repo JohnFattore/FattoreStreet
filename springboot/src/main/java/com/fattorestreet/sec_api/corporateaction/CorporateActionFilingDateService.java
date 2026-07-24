@@ -563,7 +563,8 @@ public class CorporateActionFilingDateService {
         try {
             discovered = filingDiscoveryService.discoverFilings(cik);
         } catch (Exception ignored) {
-            discovered = Collections.emptyList();
+            // discovery failure means no candidates for this CIK; the initialiser
+            // above already holds that, so the run continues to the next ticker
         }
         Map<String, Integer> discoveredByForm = new TreeMap<>();
         Map<String, Integer> selectedByForm = new TreeMap<>();

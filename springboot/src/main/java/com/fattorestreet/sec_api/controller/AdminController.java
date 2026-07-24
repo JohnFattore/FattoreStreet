@@ -287,11 +287,11 @@ public class AdminController {
             long startTime = System.currentTimeMillis();
             Map<String, Object> result;
             if (ticker != null && !ticker.isBlank()) {
-                Asset asset = assetRepository.findByListings_Ticker(ticker.toUpperCase());
+                Asset asset = assetRepository.findByListings_Ticker(ticker.toUpperCase(Locale.ROOT));
                 if (asset == null) {
                     return ResponseEntity.notFound().build();
                 }
-                result = filingSummaryService.summarizeTicker(ticker.toUpperCase(), asset);
+                result = filingSummaryService.summarizeTicker(ticker.toUpperCase(Locale.ROOT), asset);
             } else {
                 result = filingSummaryService.summarizeAll();
             }
