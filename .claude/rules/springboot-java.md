@@ -41,6 +41,14 @@ Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
 - Spotless never reflows code, so it will not touch line wrapping or brace placement in your diff
 - Never pass `-Dquality.skip=true` locally; it exists only for the Docker build stage
 
+## Linting
+
+- `./mvnw checkstyle:check` runs the curated ruleset in `springboot/config/checkstyle/checkstyle.xml`
+- No wildcard imports in `src/main` or `src/test`. Static wildcard imports (`import static org.mockito.Mockito.*`) are still allowed
+- Checkstyle owns semantics; Spotless owns whitespace, import order and line length. Never add whitespace, wrapping or `LineLength` modules to the Checkstyle config
+- Utility classes need a private constructor and `final`; the `@SpringBootApplication` class is exempt (Spring instantiates it) and is suppressed by name
+- Records are implicitly static, so write `public record X(...)`, not `public static record X(...)`
+
 ## SEC EDGAR Patterns
 
 - `EdgarService` is the core service; it maps SEC XBRL tags to normalized field names via `FIELD_TO_TAGS`

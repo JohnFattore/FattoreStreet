@@ -102,6 +102,9 @@ jobs:
       - name: Format check (Spotless)
         run: ./mvnw -B -ntp spotless:check
 
+      - name: Lint (Checkstyle)
+        run: ./mvnw -B -ntp checkstyle:check
+
       - name: Run tests
         run: ./mvnw -B -ntp test
 
