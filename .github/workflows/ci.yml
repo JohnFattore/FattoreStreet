@@ -39,6 +39,12 @@ jobs:
       - name: Format check (Prettier)
         run: npm run format:check
 
+      # index.html links the gitignored custom.css, so without this Vite only
+      # warns and still exits 0, emitting a bundle missing the theme stylesheet.
+      # Mirrors the sass step in nginx/Dockerfile.
+      - name: Compile Sass
+        run: npx sass src/styles/custom.scss src/styles/custom.css
+
       - name: Build (TypeScript + Vite)
         run: npm run build
 
