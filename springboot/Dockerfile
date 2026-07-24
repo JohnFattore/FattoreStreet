@@ -1,9 +1,15 @@
 # Stage 1: Build
-FROM maven:3.8-openjdk-18 AS build
+# maven:3.9.9 matches .mvn/wrapper/maven-wrapper.properties and the enforcer
+# requireMavenVersion floor; temurin-17 matches <java.version>. The previous
+# maven:3.8-openjdk-18 was EOL and ran a JDK the project never targets.
+FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
-RUN mvn clean package -DskipTests
+# -Dquality.skip=true: this stage copies only pom.xml + src, so config/, .git
+# and .mvn are absent and any gate resolving them would fail here. Spotless,
+# Checkstyle, SpotBugs and the enforcer run in CI (.github/workflows/ci.yml).
+RUN mvn -B clean package -DskipTests -Dquality.skip=true
 
 # Stage 2: Runtime
 FROM eclipse-temurin:19-jre-focal

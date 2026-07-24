@@ -29,6 +29,18 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
+
+		<!-- One switch that disables every format/static-analysis gate.
+		     The Docker build stage passes -Dquality.skip=true because it copies
+		     only pom.xml + src/ (no config/, no .git, no .mvn), so any gate that
+		     resolves a config file would fail there. Do not remove without also
+		     fixing springboot/Dockerfile. Never pass it locally. -->
+		<quality.skip>false</quality.skip>
+
+		<!-- Boot's parent pluginManagement covers only compiler/failsafe/jar/
+		     war/resources/shade, so every quality plugin needs an explicit
+		     version here. -->
+		<enforcer.version>3.6.2</enforcer.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -100,6 +112,37 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>${enforcer.version}</version>
+				<configuration>
+					<skip>${quality.skip}</skip>
+				</configuration>
+				<executions>
+					<execution>
+						<id>enforce-build-environment</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<!-- Matches .mvn/wrapper/maven-wrapper.properties and the
+								     maven:3.9.9 builder image in Dockerfile -->
+								<requireMavenVersion>
+									<version>[3.9.0,)</version>
+								</requireMavenVersion>
+								<requireJavaVersion>
+									<version>[17,)</version>
+								</requireJavaVersion>
+								<banDuplicatePomDependencyVersions />
+							</rules>
+							<fail>true</fail>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

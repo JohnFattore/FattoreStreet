@@ -1,0 +1,25 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Matches the 4-space convention across all 131 existing Java files and the
+# 120-column soft limit Spotless/Checkstyle are configured around.
+[*.java]
+indent_size = 4
+max_line_length = 120
+
+[*.{py,cfg}]
+indent_size = 4
+
+# springboot/pom.xml is tab-indented; this stops editors from fighting it.
+[*.xml]
+indent_style = tab
+
+[*.md]
+trim_trailing_whitespace = false
