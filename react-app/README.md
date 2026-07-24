@@ -96,8 +96,12 @@ Linting is not part of `npm run build`, and there are no local git hooks, so the
 run either on demand or in CI. All four checks (`lint`, `lint:styles`,
 `format:check`, `build`) must pass before merge.
 
-`src/styles/custom.css` is the compiled output of `custom.scss` and is excluded
-from both Prettier and Stylelint; edit the `.scss` source instead.
+`src/styles/custom.css` is the gitignored compiled output of `custom.scss` and is
+excluded from both Prettier and Stylelint; edit the `.scss` source instead. Run
+the Sass compile above before `npm run build` on a fresh clone: `index.html`
+links `custom.css` directly, and if it is missing Vite only warns and still
+exits 0, producing a bundle with no theme stylesheet. CI and `nginx/Dockerfile`
+both compile it first for this reason.
 
 ## Testing
 
