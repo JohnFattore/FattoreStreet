@@ -10,8 +10,7 @@ const initialState: AdminSuccessBarState = {
   error: "",
 };
 
-const normalizeTicker = (value: string): string =>
-  value.trim().toUpperCase();
+const normalizeTicker = (value: string): string => value.trim().toUpperCase();
 
 const adminSuccessBarSlice = createSlice({
   name: "adminSuccessBar",

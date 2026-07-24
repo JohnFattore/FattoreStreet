@@ -52,22 +52,22 @@ export default function App() {
         ) {
           originalRequest._retry = true;
           const refreshRequest = dispatch(
-            djangoApi.endpoints.refreshLogin.initiate(refresh)
+            djangoApi.endpoints.refreshLogin.initiate(refresh),
           );
           try {
             const result = await refreshRequest.unwrap();
-            originalRequest.headers["Authorization"] = `Bearer ${result.access}`;
+            originalRequest.headers["Authorization"] =
+              `Bearer ${result.access}`;
             return axios(originalRequest);
           } finally {
             refreshRequest.reset();
           }
-        }
-        else if (error.response?.status === 401 && isTokenError) {
+        } else if (error.response?.status === 401 && isTokenError) {
           dispatch(logout());
         }
 
         return Promise.reject(error);
-      }
+      },
     );
     return () => axios.interceptors.response.eject(interceptorId);
   }, [refresh, dispatch]);

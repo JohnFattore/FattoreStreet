@@ -1,4 +1,7 @@
-import { useGetAssetInfosQuery, useGetSecEdgarDataQuery } from "../functions/api";
+import {
+  useGetAssetInfosQuery,
+  useGetSecEdgarDataQuery,
+} from "../functions/api";
 import EquityInfo from "./EquityInfo";
 import ETFInfo from "./ETFInfo";
 import CompanyOverview from "./CompanyOverview";
@@ -11,7 +14,9 @@ export default function AssetInfo({ ticker }: { ticker: string }) {
   const { data: assetInfos } = useGetAssetInfosQuery([ticker]);
   const assetInfo = assetInfos?.[ticker];
   const isEquity = assetInfo?.type === "EQUITY";
-  const { data: secData } = useGetSecEdgarDataQuery(ticker, { skip: !isEquity });
+  const { data: secData } = useGetSecEdgarDataQuery(ticker, {
+    skip: !isEquity,
+  });
 
   if (!assetInfo) {
     return <Alert variant="danger">No data available for {ticker}</Alert>;

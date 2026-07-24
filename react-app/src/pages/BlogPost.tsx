@@ -28,7 +28,9 @@ export default function BlogPost() {
       )}
 
       {!!error && (
-        <Alert variant="danger">Failed to load post: {JSON.stringify(error)}</Alert>
+        <Alert variant="danger">
+          Failed to load post: {JSON.stringify(error)}
+        </Alert>
       )}
 
       {!isLoading && !error && data && (

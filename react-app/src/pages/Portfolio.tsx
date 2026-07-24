@@ -11,7 +11,7 @@ import { useGetAccountsQuery } from "../functions/api";
 export default function Portfolio() {
   const { access } = useSelector((state: RootState) => state.user);
   const { isLoading: accountsLoading } = useGetAccountsQuery(undefined, {
-    skip: !access
+    skip: !access,
   });
 
   if (!access) {

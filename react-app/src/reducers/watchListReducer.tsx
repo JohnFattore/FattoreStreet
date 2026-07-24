@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 interface WatchListState {
   loading: boolean;
@@ -10,39 +10,49 @@ interface WatchListState {
 const initialState: WatchListState = {
   loading: false,
   tickers: [],
-  error: '',
-  ticker: ""
+  error: "",
+  ticker: "",
 };
 
 const watchListSlice = createSlice({
-  name: 'watchList',
+  name: "watchList",
   initialState,
-  reducers: {    
+  reducers: {
     loadTickers: (state) => {
       if (localStorage.getItem("tickers") == null) {
-        const tickers: string[] = (["VTI", "SPY"]);
-        localStorage.setItem("tickers", (JSON.stringify(tickers)));
-    }
-      const tickers = JSON.parse(localStorage.getItem("tickers") as string) as string[]
-      state.tickers = tickers
+        const tickers: string[] = ["VTI", "SPY"];
+        localStorage.setItem("tickers", JSON.stringify(tickers));
+      }
+      const tickers = JSON.parse(
+        localStorage.getItem("tickers") as string,
+      ) as string[];
+      state.tickers = tickers;
     },
     addTicker: (state, action) => {
       const updatedTickers = [...state.tickers, action.payload]; // Create a new array with the new ticker added
       state.tickers = updatedTickers;
-      localStorage.setItem("tickers", (JSON.stringify(state.tickers)));
+      localStorage.setItem("tickers", JSON.stringify(state.tickers));
     },
     removeTicker: (state, action) => {
-      const updatedTickers = state.tickers.filter((ticker) => ticker !== action.payload);
+      const updatedTickers = state.tickers.filter(
+        (ticker) => ticker !== action.payload,
+      );
       state.tickers = updatedTickers;
-      localStorage.setItem("tickers", (JSON.stringify(state.tickers)));
+      localStorage.setItem("tickers", JSON.stringify(state.tickers));
     },
     errorTicker: (state, action) => {
-      state.error = action.payload
+      state.error = action.payload;
     },
     clearWatchlistError: (state) => {
-      state.error = ""
-    }
-},
+      state.error = "";
+    },
+  },
 });
-export const { loadTickers, addTicker, removeTicker, errorTicker, clearWatchlistError } = watchListSlice.actions;
+export const {
+  loadTickers,
+  addTicker,
+  removeTicker,
+  errorTicker,
+  clearWatchlistError,
+} = watchListSlice.actions;
 export default watchListSlice.reducer;

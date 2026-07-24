@@ -44,4 +44,3 @@ export {
   useGetIwbReferenceHoldingsQuery,
   useGetFredDataQuery,
 } from "./springbootApi";
-

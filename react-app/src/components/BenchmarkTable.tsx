@@ -1,16 +1,19 @@
 import { Table, Spinner, Alert } from "react-bootstrap";
-import { formatString, getApiErrorMessages } from "../functions/helperFunctions";
+import {
+  formatString,
+  getApiErrorMessages,
+} from "../functions/helperFunctions";
 import { useGetAssetInfosQuery } from "../functions/api";
 import { IEquityInfo, IETFInfo } from "../interfaces";
 
 const benchmarkNames: Record<string, string> = {
-  "VT": "Total Global Stock Market",
-  "VTI": "Total US Stock Market",
-  "VXUS": "Total Global Stock Market Excluding US",
-  "VTWO": "Russell 2000 / Small Cap US",
-  "VGK": "Broad Europe (FTSE Developed Europe)",
-  "BND": "Total US Bond Market",
-  "UUP": "Dollar vs Foreign Currency"
+  VT: "Total Global Stock Market",
+  VTI: "Total US Stock Market",
+  VXUS: "Total Global Stock Market Excluding US",
+  VTWO: "Russell 2000 / Small Cap US",
+  VGK: "Broad Europe (FTSE Developed Europe)",
+  BND: "Total US Bond Market",
+  UUP: "Dollar vs Foreign Currency",
 };
 
 function BenchmarkRow({ benchmark }: { benchmark: IEquityInfo | IETFInfo }) {
@@ -35,9 +38,7 @@ export default function BenchmarkTable() {
   const { data: benchmarks, error } = useGetAssetInfosQuery(benchmarkTickers);
 
   if (error)
-    return (
-      <Alert variant="danger">{getApiErrorMessages(error)}</Alert>
-    );
+    return <Alert variant="danger">{getApiErrorMessages(error)}</Alert>;
 
   if (!benchmarks) return <Spinner animation="border" />;
 

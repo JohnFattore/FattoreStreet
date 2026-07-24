@@ -9,12 +9,15 @@ describe("adminSuccessBarReducer", () => {
   it("adds uppercase ticker and prevents duplicates", () => {
     const withTicker = adminSuccessBarReducer(
       { tickers: [], error: "" },
-      addTicker("aapl")
+      addTicker("aapl"),
     );
     expect(withTicker.tickers).toEqual(["AAPL"]);
     expect(withTicker.error).toBe("");
 
-    const duplicateAttempt = adminSuccessBarReducer(withTicker, addTicker("AAPL"));
+    const duplicateAttempt = adminSuccessBarReducer(
+      withTicker,
+      addTicker("AAPL"),
+    );
     expect(duplicateAttempt.tickers).toEqual(["AAPL"]);
     expect(duplicateAttempt.error).toContain("already in the list");
   });
@@ -22,11 +25,14 @@ describe("adminSuccessBarReducer", () => {
   it("removes ticker and sets explicit validation errors", () => {
     const removed = adminSuccessBarReducer(
       { tickers: ["AAPL", "VOO"], error: "" },
-      removeTicker("voo")
+      removeTicker("voo"),
     );
     expect(removed.tickers).toEqual(["AAPL"]);
 
-    const withError = adminSuccessBarReducer(removed, setValidationError("Ticker is required."));
+    const withError = adminSuccessBarReducer(
+      removed,
+      setValidationError("Ticker is required."),
+    );
     expect(withError.error).toBe("Ticker is required.");
   });
 });

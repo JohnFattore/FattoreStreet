@@ -71,9 +71,7 @@ export function SortableTable<T extends object>({
         const bStr = typeof bValue === "string" ? bValue : String(bValue);
         const bNum = parseNumericString(bStr);
         if (aNum !== null && bNum !== null) {
-          return sortConfig.direction === "asc"
-            ? aNum - bNum
-            : bNum - aNum;
+          return sortConfig.direction === "asc" ? aNum - bNum : bNum - aNum;
         }
         return sortConfig.direction === "asc"
           ? aValue.localeCompare(bStr)
@@ -115,7 +113,8 @@ export function SortableTable<T extends object>({
                     {render
                       ? render(row)
                       : String(
-                          (row as Record<string, unknown>)[sortKey as string] ?? ""
+                          (row as Record<string, unknown>)[sortKey as string] ??
+                            "",
                         )}
                   </td>
                 ))}

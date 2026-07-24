@@ -8,7 +8,9 @@ export type Fattore1000IwbCompareRow = {
   diffPp: number | null;
 };
 
-export function buildIwbWeightMap(holdings: IIwbReferenceHolding[]): Map<string, number> {
+export function buildIwbWeightMap(
+  holdings: IIwbReferenceHolding[],
+): Map<string, number> {
   const m = new Map<string, number>();
   for (const h of holdings) {
     m.set(h.ticker, h.weightPercent);
@@ -35,7 +37,9 @@ export function buildFattore1000IwbCompareRows(
     .sort((a, b) => b.fattoreWeight - a.fattoreWeight);
 }
 
-export function summarizeFattore1000IwbOverlap(rows: Fattore1000IwbCompareRow[]): {
+export function summarizeFattore1000IwbOverlap(
+  rows: Fattore1000IwbCompareRow[],
+): {
   fattoreCount: number;
   matchedCount: number;
   overlapPercent: number | null;

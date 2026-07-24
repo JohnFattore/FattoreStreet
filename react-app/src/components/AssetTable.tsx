@@ -33,12 +33,10 @@ export default function AssetTable({ accountId }: Props) {
   } = useGetAssetsQuery(accountId);
   const assets = assetsRaw ?? [];
   const tickers = [...new Set(assets.map((a) => a.ticker))];
-  const {
-    data: assetInfosRaw,
-    isLoading: assetLoading,
-  } = useGetAssetInfosQuery(tickers, {
-    skip: tickers.length === 0 || !access,
-  });
+  const { data: assetInfosRaw, isLoading: assetLoading } =
+    useGetAssetInfosQuery(tickers, {
+      skip: tickers.length === 0 || !access,
+    });
   const assetInfos = assetInfosRaw ?? {};
   const isLoading = assetLoading || assetInfoLoading;
   useEffect(() => {
@@ -63,22 +61,24 @@ export default function AssetTable({ accountId }: Props) {
     assetsByTicker[asset.ticker].totalCost += asset.buyPrice;
   }
 
-  const data: AssetSummaryRow[] = Object.entries(assetsByTicker).map(([ticker, data]) => {
-    const info = assetInfos[ticker];
-    return {
-      ticker,
-      totalShares: data.totalShares,
-      averageBuyPrice: data.totalCost / data.totalShares,
-      totalCost: data.totalCost,
-      currentPrice: info ? info.currentPrice * data.totalShares : null,
-      percentChange: info
-        ? (info.currentPrice * data.totalShares - data.totalCost) /
-        data.totalCost
-        : null,
-      shortName: assetLoading ? "Loading..." : (info?.shortName ?? "N/A"),
-      hasError: !info && !assetLoading,
-    };
-  });
+  const data: AssetSummaryRow[] = Object.entries(assetsByTicker).map(
+    ([ticker, data]) => {
+      const info = assetInfos[ticker];
+      return {
+        ticker,
+        totalShares: data.totalShares,
+        averageBuyPrice: data.totalCost / data.totalShares,
+        totalCost: data.totalCost,
+        currentPrice: info ? info.currentPrice * data.totalShares : null,
+        percentChange: info
+          ? (info.currentPrice * data.totalShares - data.totalCost) /
+            data.totalCost
+          : null,
+        shortName: assetLoading ? "Loading..." : (info?.shortName ?? "N/A"),
+        hasError: !info && !assetLoading,
+      };
+    },
+  );
 
   const columns = [
     {
@@ -100,7 +100,8 @@ export default function AssetTable({ accountId }: Props) {
     {
       label: "Average Buy Price",
       sortKey: "averageBuyPrice",
-      render: (row: AssetSummaryRow) => formatString(row.averageBuyPrice, "money"),
+      render: (row: AssetSummaryRow) =>
+        formatString(row.averageBuyPrice, "money"),
     },
     {
       label: "Total Buy Price",
@@ -111,17 +112,21 @@ export default function AssetTable({ accountId }: Props) {
       label: "Current Price",
       sortKey: "currentPrice",
       render: (row: AssetSummaryRow) =>
-        assetLoading ? "Loading..." : (row.currentPrice !== null
-          ? formatString(row.currentPrice, "money")
-          : "N/A"),
+        assetLoading
+          ? "Loading..."
+          : row.currentPrice !== null
+            ? formatString(row.currentPrice, "money")
+            : "N/A",
     },
     {
       label: "Percent Change",
       sortKey: "percentChange",
       render: (row: AssetSummaryRow) =>
-        assetLoading ? "Loading..." : (row.percentChange !== null
-          ? formatString(row.percentChange, "percent")
-          : "N/A"),
+        assetLoading
+          ? "Loading..."
+          : row.percentChange !== null
+            ? formatString(row.percentChange, "percent")
+            : "N/A",
     },
     {
       label: "View Asset",

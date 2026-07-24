@@ -26,9 +26,7 @@ export default function LogoutButton() {
         <Modal.Header closeButton>
           <Modal.Title>Confirm Logout</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to log out?
-        </Modal.Body>
+        <Modal.Body>Are you sure you want to log out?</Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowConfirm(false)}>
             Cancel

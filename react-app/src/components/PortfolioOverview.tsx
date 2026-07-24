@@ -62,15 +62,15 @@ export default function PortfolioOverview() {
           <Card.Body>
             <h6>{`Portfolio Total: ${formatString(
               portfolioCurrentTotal,
-              "money"
+              "money",
             )}`}</h6>
             <h6>{`Portfolio Change: ${formatString(
               (portfolioCurrentTotal - portfolioBuyTotal) / portfolioBuyTotal,
-              "percent"
+              "percent",
             )}`}</h6>
             <h6>{`Market Change: ${formatString(
               (marketCurrentTotal - marketBuyTotal) / marketBuyTotal,
-              "percent"
+              "percent",
             )}`}</h6>
           </Card.Body>
         </Card>

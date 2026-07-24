@@ -36,15 +36,17 @@ export default function AssetTickerSoldTable({ ticker }: { ticker: string }) {
   const allAssets = rawAllAssets ?? [];
   const assets = allAssets?.filter((a) => a.ticker === ticker);
 
-  const { data: accountsRaw, isLoading: accountsLoading, error: accountsError } = useGetAccountsQuery(undefined, {
+  const {
+    data: accountsRaw,
+    isLoading: accountsLoading,
+    error: accountsError,
+  } = useGetAccountsQuery(undefined, {
     skip: !access,
   });
   const accounts = accountsRaw ?? [];
 
-  const {
-    data: rawAssetInfos,
-    isLoading: assetInfoLoading,
-  } = useGetAssetInfosQuery([ticker]);
+  const { data: rawAssetInfos, isLoading: assetInfoLoading } =
+    useGetAssetInfosQuery([ticker]);
   const assetInfos = rawAssetInfos ?? {};
 
   const isLoading = assetLoading || assetInfoLoading || accountsLoading;
@@ -72,7 +74,7 @@ export default function AssetTickerSoldTable({ ticker }: { ticker: string }) {
   const info = assetInfos[ticker];
   const data: AssetTickerSoldRow[] = assetsSold.map((asset) => {
     if (!asset.sellPrice) {
-      throw Error(`ticker ${asset.ticker} as no sell price`)
+      throw Error(`ticker ${asset.ticker} as no sell price`);
     }
     const account = accounts.find((a) => a.id === asset.account);
     return {

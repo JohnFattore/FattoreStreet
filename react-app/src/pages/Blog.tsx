@@ -10,7 +10,9 @@ export default function Blog() {
       <h2>Blog</h2>
 
       {!!error && (
-        <Alert variant="danger">Failed to load blog posts: {JSON.stringify(error)}</Alert>
+        <Alert variant="danger">
+          Failed to load blog posts: {JSON.stringify(error)}
+        </Alert>
       )}
 
       {isLoading && (
@@ -43,4 +45,3 @@ export default function Blog() {
     </div>
   );
 }
-

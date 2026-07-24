@@ -47,9 +47,10 @@ export function Fattore1000Russell1000CompareTable({
     <div className="mt-4">
       <h5 className="mb-2">Fattore 1000 vs Russell 1000 (IWB)</h5>
       <p className="text-muted small mb-3">
-        Side-by-side weights: Fattore 1000 uses cap weights from this app’s metrics; the IWB column is
-        the fund-reported weight (% of NAV) from the bundled iShares IWB holdings file (Russell 1000 ETF
-        proxy). Dates and methodologies differ, so weights will not match exactly.
+        Side-by-side weights: Fattore 1000 uses cap weights from this app’s
+        metrics; the IWB column is the fund-reported weight (% of NAV) from the
+        bundled iShares IWB holdings file (Russell 1000 ETF proxy). Dates and
+        methodologies differ, so weights will not match exactly.
       </p>
 
       {!isLoading && members.length === 0 && (
@@ -61,14 +62,16 @@ export function Fattore1000Russell1000CompareTable({
       {members.length > 0 && summary.overlapPercent !== null && (
         <Alert variant="light" className="border py-2 mb-3">
           <div>
-            <strong>Symbol overlap:</strong>{" "}
-            {summary.matchedCount} of {summary.fattoreCount} Fattore 1000 constituents (
-            {summary.overlapPercent.toFixed(1)}%) also appear in the IWB holdings file.
+            <strong>Symbol overlap:</strong> {summary.matchedCount} of{" "}
+            {summary.fattoreCount} Fattore 1000 constituents (
+            {summary.overlapPercent.toFixed(1)}%) also appear in the IWB
+            holdings file.
           </div>
           {summary.meanAbsDiffPp !== null && (
             <div className="mt-1">
-              <strong>Mean absolute weight difference</strong> (matched names only):{" "}
-              {summary.meanAbsDiffPp.toFixed(4)} percentage points (|Fattore − IWB| averaged).
+              <strong>Mean absolute weight difference</strong> (matched names
+              only): {summary.meanAbsDiffPp.toFixed(4)} percentage points
+              (|Fattore − IWB| averaged).
             </div>
           )}
         </Alert>
@@ -97,7 +100,9 @@ export function Fattore1000Russell1000CompareTable({
             label: "Δ (Fattore − IWB)",
             sortKey: "diffPp",
             render: (r) =>
-              r.diffPp === null ? "—" : `${r.diffPp >= 0 ? "+" : ""}${r.diffPp.toFixed(4)} pp`,
+              r.diffPp === null
+                ? "—"
+                : `${r.diffPp >= 0 ? "+" : ""}${r.diffPp.toFixed(4)} pp`,
           },
         ]}
       />

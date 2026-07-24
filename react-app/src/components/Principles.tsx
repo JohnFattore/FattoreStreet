@@ -24,9 +24,13 @@ export default function Principles() {
                   <tbody>
                     {principle.table.data.map((row, i) => (
                       <tr key={i}>
-                        {Object.keys(principle.table.data[0]).map((header, j) => (
-                          <td key={j}>{(row as Record<string, string>)[header]}</td>
-                        ))}
+                        {Object.keys(principle.table.data[0]).map(
+                          (header, j) => (
+                            <td key={j}>
+                              {(row as Record<string, string>)[header]}
+                            </td>
+                          ),
+                        )}
                       </tr>
                     ))}
                   </tbody>

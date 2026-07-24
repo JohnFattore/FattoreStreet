@@ -111,12 +111,14 @@ export default function WatchListTable({
     {
       label: "Percent Change Weekly",
       sortKey: "percentChangeWeekly",
-      render: (row: PerfRow) => formatString(row.percentChangeWeekly, "percent"),
+      render: (row: PerfRow) =>
+        formatString(row.percentChangeWeekly, "percent"),
     },
     {
       label: "Percent Change Monthly",
       sortKey: "percentChangeMonthly",
-      render: (row: PerfRow) => formatString(row.percentChangeMonthly, "percent"),
+      render: (row: PerfRow) =>
+        formatString(row.percentChangeMonthly, "percent"),
     },
     {
       label: "Percent Change YTD",
@@ -126,17 +128,20 @@ export default function WatchListTable({
     {
       label: "Percent Change 1 Year",
       sortKey: "percentChangeYearly",
-      render: (row: PerfRow) => formatString(row.percentChangeYearly, "percent"),
+      render: (row: PerfRow) =>
+        formatString(row.percentChangeYearly, "percent"),
     },
     {
       label: "Percent Change 3 Years",
       sortKey: "percentChange3Years",
-      render: (row: PerfRow) => formatString(row.percentChange3Years, "percent"),
+      render: (row: PerfRow) =>
+        formatString(row.percentChange3Years, "percent"),
     },
     {
       label: "Percent Change 5 Years",
       sortKey: "percentChange5Years",
-      render: (row: PerfRow) => formatString(row.percentChange5Years, "percent"),
+      render: (row: PerfRow) =>
+        formatString(row.percentChange5Years, "percent"),
     },
     ...performanceActionColumns,
   ];

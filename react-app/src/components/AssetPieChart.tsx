@@ -86,7 +86,7 @@ export default function AssetPieChart() {
                   label={(entry) =>
                     `${entry.name}: ${formatString(
                       (entry.value ?? 0) / 100,
-                      "percent"
+                      "percent",
                     )}`
                   }
                 >
