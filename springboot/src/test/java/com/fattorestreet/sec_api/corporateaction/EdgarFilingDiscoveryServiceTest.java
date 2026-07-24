@@ -1,16 +1,18 @@
 package com.fattorestreet.sec_api.corporateaction;
 
-import com.fattorestreet.sec_api.client.WebService;
-import com.fattorestreet.sec_api.corporateaction.EdgarFilingDiscoveryService.FilingMeta;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tools.jackson.databind.ObjectMapper;
 
-import java.time.LocalDate;
-import java.util.List;
+import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.corporateaction.EdgarFilingDiscoveryService.FilingMeta;
+
+import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

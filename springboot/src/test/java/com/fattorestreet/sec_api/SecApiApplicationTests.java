@@ -12,19 +12,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles("test")
 class SecApiApplicationTests {
 
-	@Autowired
-	private Environment environment;
+    @Autowired
+    private Environment environment;
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
-	@Test
-	void testSecretKeyWinsOverAnyDotEnvImport() {
-		// application.properties optionally imports springboot/.env; the surefire
-		// workingDirectory plus test-profile pinning must keep real secrets out.
-		assertEquals("test-jwt-signing-secret-32chars-min!", environment.getProperty("SECRET_KEY"));
-		assertEquals("test-jwt-signing-secret-32chars-min!",
-				environment.getProperty("app.django-jwt-secret"));
-	}
+    @Test
+    void testSecretKeyWinsOverAnyDotEnvImport() {
+        // application.properties optionally imports springboot/.env; the surefire
+        // workingDirectory plus test-profile pinning must keep real secrets out.
+        assertEquals("test-jwt-signing-secret-32chars-min!", environment.getProperty("SECRET_KEY"));
+        assertEquals("test-jwt-signing-secret-32chars-min!",
+                environment.getProperty("app.django-jwt-secret"));
+    }
 }

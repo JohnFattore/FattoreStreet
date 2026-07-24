@@ -1,15 +1,15 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.model.DailyPrice;
-import com.fattorestreet.sec_api.repository.DailyPriceRepository;
-
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.stereotype.Component;
+
+import com.fattorestreet.sec_api.model.DailyPrice;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 
 /**
  * Corroborates equity splits against the raw (unadjusted) IEX close series in daily_prices.

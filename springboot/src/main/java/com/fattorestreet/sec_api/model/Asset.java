@@ -1,7 +1,8 @@
 package com.fattorestreet.sec_api.model;
 
-import jakarta.persistence.*;
 import java.util.*;
+
+import jakarta.persistence.*;
 
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;

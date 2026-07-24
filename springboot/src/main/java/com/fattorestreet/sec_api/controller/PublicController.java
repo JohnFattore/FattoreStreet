@@ -1,26 +1,18 @@
 package com.fattorestreet.sec_api.controller;
 
-import com.fattorestreet.sec_api.model.Asset;
-import com.fattorestreet.sec_api.model.CorporateAction;
-import com.fattorestreet.sec_api.model.DailyPrice;
-import com.fattorestreet.sec_api.model.FilingSummary;
-import com.fattorestreet.sec_api.model.MarketIndex;
-import com.fattorestreet.sec_api.model.Quarter;
-import com.fattorestreet.sec_api.repository.AssetRepository;
-import com.fattorestreet.sec_api.repository.CorporateActionRepository;
-import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
-import com.fattorestreet.sec_api.repository.MarketIndexRepository;
-import com.fattorestreet.sec_api.repository.QuarterRepository;
-import com.fattorestreet.sec_api.economic.FredService;
-import com.fattorestreet.sec_api.economic.FredService.FredObservation;
-import com.fattorestreet.sec_api.fundamentals.FinancialService;
-import com.fattorestreet.sec_api.index.IndexMemberApiService;
-import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
-import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,13 +21,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import com.fattorestreet.sec_api.economic.FredService;
+import com.fattorestreet.sec_api.economic.FredService.FredObservation;
+import com.fattorestreet.sec_api.fundamentals.FinancialService;
+import com.fattorestreet.sec_api.index.IndexMemberApiService;
+import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
+import com.fattorestreet.sec_api.model.Asset;
+import com.fattorestreet.sec_api.model.CorporateAction;
+import com.fattorestreet.sec_api.model.DailyPrice;
+import com.fattorestreet.sec_api.model.FilingSummary;
+import com.fattorestreet.sec_api.model.Quarter;
+import com.fattorestreet.sec_api.repository.AssetRepository;
+import com.fattorestreet.sec_api.repository.CorporateActionRepository;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
+import com.fattorestreet.sec_api.repository.MarketIndexRepository;
+import com.fattorestreet.sec_api.repository.QuarterRepository;
 
 @Validated
 @RestController

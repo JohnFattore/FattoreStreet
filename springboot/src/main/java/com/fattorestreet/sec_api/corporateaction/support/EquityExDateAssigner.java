@@ -1,13 +1,5 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
-import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
-import com.fattorestreet.sec_api.model.CorporateAction;
-import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -18,6 +10,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
+import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
+import com.fattorestreet.sec_api.model.CorporateAction;
+import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
 
 @Component
 public class EquityExDateAssigner {

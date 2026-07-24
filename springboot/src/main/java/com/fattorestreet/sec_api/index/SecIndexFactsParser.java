@@ -1,11 +1,11 @@
 package com.fattorestreet.sec_api.index;
 
-import tools.jackson.databind.JsonNode;
-
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
+import tools.jackson.databind.JsonNode;
 
 /**
  * Extracts index-relevant figures from SEC companyfacts JSON (IEX-free; SEC EDGAR API).

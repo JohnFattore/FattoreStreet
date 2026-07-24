@@ -1,8 +1,8 @@
 package com.fattorestreet.sec_api.model;
 
-import jakarta.persistence.*;
-
 import java.math.BigDecimal;
+
+import jakarta.persistence.*;
 
 import org.hibernate.envers.Audited;
 

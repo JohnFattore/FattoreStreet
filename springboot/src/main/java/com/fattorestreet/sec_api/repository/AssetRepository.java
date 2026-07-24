@@ -1,11 +1,13 @@
 package com.fattorestreet.sec_api.repository;
 
 import java.util.*;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import com.fattorestreet.sec_api.model.Asset;
-import java.util.Optional;
 
 public interface AssetRepository extends JpaRepository<Asset, Long> {
     Optional<Asset> findByCik(Long cik);

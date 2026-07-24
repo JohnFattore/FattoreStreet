@@ -1,14 +1,11 @@
 package com.fattorestreet.sec_api.index;
 
-import tools.jackson.databind.ObjectMapper;
-import com.fattorestreet.sec_api.client.WebService;
-import com.fattorestreet.sec_api.model.Asset;
-import com.fattorestreet.sec_api.model.DailyPrice;
-import com.fattorestreet.sec_api.model.Listing;
-import com.fattorestreet.sec_api.model.ListingIndexMetrics;
-import com.fattorestreet.sec_api.repository.DailyPriceRepository;
-import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
-import com.fattorestreet.sec_api.repository.ListingRepository;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,11 +14,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.model.Asset;
+import com.fattorestreet.sec_api.model.DailyPrice;
+import com.fattorestreet.sec_api.model.Listing;
+import com.fattorestreet.sec_api.model.ListingIndexMetrics;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
+import com.fattorestreet.sec_api.repository.ListingRepository;
+
+import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

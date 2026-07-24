@@ -1,16 +1,5 @@
 package com.fattorestreet.sec_api.corporateaction;
 
-import com.fattorestreet.sec_api.model.CorporateAction;
-import com.fattorestreet.sec_api.model.DailyPrice;
-import com.fattorestreet.sec_api.repository.CorporateActionRepository;
-import com.fattorestreet.sec_api.repository.DailyPriceRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -25,6 +14,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.fattorestreet.sec_api.model.CorporateAction;
+import com.fattorestreet.sec_api.model.DailyPrice;
+import com.fattorestreet.sec_api.repository.CorporateActionRepository;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Compares our stored {@code adjustedClose} series against the yfinance adjusted-close

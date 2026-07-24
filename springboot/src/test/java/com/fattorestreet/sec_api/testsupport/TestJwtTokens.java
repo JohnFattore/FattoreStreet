@@ -1,5 +1,9 @@
 package com.fattorestreet.sec_api.testsupport;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.UUID;
+
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -7,10 +11,6 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.UUID;
 
 /** HS256 JWTs for tests; must match {@code SECRET_KEY} / {@code app.django-jwt-secret} in test properties. */
 public final class TestJwtTokens {

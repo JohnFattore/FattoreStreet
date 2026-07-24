@@ -1,17 +1,19 @@
 package com.fattorestreet.sec_api.listing;
 
-import com.fattorestreet.sec_api.client.WebService;
-import com.fattorestreet.sec_api.model.Listing;
-import com.fattorestreet.sec_api.repository.ListingRepository;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.model.Listing;
+import com.fattorestreet.sec_api.repository.ListingRepository;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class EtfIdentityService {

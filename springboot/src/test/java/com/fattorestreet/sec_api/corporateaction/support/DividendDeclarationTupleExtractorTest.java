@@ -1,9 +1,9 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
 import java.util.List;
+
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -1,10 +1,12 @@
 package com.fattorestreet.sec_api.repository;
 
 import java.util.*;
-import org.springframework.data.jpa.repository.JpaRepository;
-import com.fattorestreet.sec_api.model.Listing;
-import com.fattorestreet.sec_api.model.Asset;
 import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.fattorestreet.sec_api.model.Asset;
+import com.fattorestreet.sec_api.model.Listing;
 
 public interface ListingRepository extends JpaRepository<Listing, Long> {
     // Optional: custom queries here

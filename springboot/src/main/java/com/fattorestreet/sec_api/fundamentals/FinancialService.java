@@ -1,9 +1,10 @@
 package com.fattorestreet.sec_api.fundamentals;
 
-import com.fattorestreet.sec_api.model.Quarter;
+import java.util.*;
+
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import com.fattorestreet.sec_api.model.Quarter;
 
 @Service
 public class FinancialService {

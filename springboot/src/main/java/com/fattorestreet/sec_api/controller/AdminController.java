@@ -1,19 +1,13 @@
 package com.fattorestreet.sec_api.controller;
 
-import com.fattorestreet.sec_api.model.Asset;
-import com.fattorestreet.sec_api.model.Listing;
-import com.fattorestreet.sec_api.filing.FilingSummaryService;
-import com.fattorestreet.sec_api.fundamentals.EdgarService;
-import com.fattorestreet.sec_api.listing.AssetService;
-import com.fattorestreet.sec_api.listing.EtfIdentityService;
-import com.fattorestreet.sec_api.listing.ListingService;
-import com.fattorestreet.sec_api.marketdata.IexHistService;
-import com.fattorestreet.sec_api.corporateaction.AdjustedPriceValidationService;
-import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
-import com.fattorestreet.sec_api.client.WebService;
-import com.fattorestreet.sec_api.index.FattoreIndexCodes;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,13 +18,21 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.corporateaction.AdjustedPriceValidationService;
+import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
+import com.fattorestreet.sec_api.filing.FilingSummaryService;
+import com.fattorestreet.sec_api.fundamentals.EdgarService;
+import com.fattorestreet.sec_api.index.FattoreIndexCodes;
+import com.fattorestreet.sec_api.listing.AssetService;
+import com.fattorestreet.sec_api.listing.EtfIdentityService;
+import com.fattorestreet.sec_api.listing.ListingService;
+import com.fattorestreet.sec_api.marketdata.IexHistService;
+import com.fattorestreet.sec_api.model.Asset;
+import com.fattorestreet.sec_api.model.Listing;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @Validated
 @RestController

@@ -1,11 +1,12 @@
 package com.fattorestreet.sec_api.fundamentals;
 
-import com.fattorestreet.sec_api.model.Quarter;
+import java.time.LocalDate;
+import java.util.*;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
-import java.util.*;
+import com.fattorestreet.sec_api.model.Quarter;
 
 import static org.junit.jupiter.api.Assertions.*;
 

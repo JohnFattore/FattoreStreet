@@ -1,12 +1,13 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
+import java.time.LocalDate;
+import java.util.Optional;
+
+import org.springframework.stereotype.Component;
+
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
-import org.springframework.stereotype.Component;
-
-import java.time.LocalDate;
-import java.util.Optional;
 
 @Component
 public class EtfActionPersister {

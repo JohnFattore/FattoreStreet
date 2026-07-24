@@ -1,8 +1,8 @@
 package com.fattorestreet.sec_api.repository;
 
-import com.fattorestreet.sec_api.model.CorporateAction;
-import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
-import com.fattorestreet.sec_api.model.CorporateAction.SourceType;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +10,9 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDate;
-import java.util.List;
+import com.fattorestreet.sec_api.model.CorporateAction;
+import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
+import com.fattorestreet.sec_api.model.CorporateAction.SourceType;
 
 import static org.junit.jupiter.api.Assertions.*;
 

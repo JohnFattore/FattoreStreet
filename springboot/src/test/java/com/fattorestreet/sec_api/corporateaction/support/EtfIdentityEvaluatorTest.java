@@ -1,7 +1,8 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.model.Listing;
 import org.junit.jupiter.api.Test;
+
+import com.fattorestreet.sec_api.model.Listing;
 
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -1,9 +1,9 @@
 package com.fattorestreet.sec_api.fundamentals;
 
-import com.fattorestreet.sec_api.client.WebService;
-import com.fattorestreet.sec_api.model.Asset;
-import com.fattorestreet.sec_api.model.Quarter;
-import com.fattorestreet.sec_api.repository.AssetRepository;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -11,9 +11,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.List;
+import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.model.Asset;
+import com.fattorestreet.sec_api.model.Quarter;
+import com.fattorestreet.sec_api.repository.AssetRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;

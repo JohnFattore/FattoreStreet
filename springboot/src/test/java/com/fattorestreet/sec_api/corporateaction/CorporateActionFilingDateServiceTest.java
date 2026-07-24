@@ -1,10 +1,11 @@
 package com.fattorestreet.sec_api.corporateaction;
 
-import com.fattorestreet.sec_api.client.WebService;
-import com.fattorestreet.sec_api.corporateaction.support.FilingExtractionStore;
-import com.fattorestreet.sec_api.model.FilingExtraction;
-import com.fattorestreet.sec_api.repository.FilingExtractionRepository;
-import tools.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,19 +13,20 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.corporateaction.support.FilingExtractionStore;
+import com.fattorestreet.sec_api.model.FilingExtraction;
+import com.fattorestreet.sec_api.repository.FilingExtractionRepository;
+
+import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CorporateActionFilingDateServiceTest {
@@ -506,4 +508,3 @@ class CorporateActionFilingDateServiceTest {
         assertEquals(LocalDate.of(2021, 5, 10), scan.exDividendDirectCandidates().get(0).exDividendDate());
     }
 }
-

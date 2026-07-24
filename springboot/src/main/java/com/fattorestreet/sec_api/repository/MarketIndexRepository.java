@@ -1,9 +1,10 @@
 package com.fattorestreet.sec_api.repository;
 
-import com.fattorestreet.sec_api.model.MarketIndex;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
+import com.fattorestreet.sec_api.model.MarketIndex;
 
 public interface MarketIndexRepository extends JpaRepository<MarketIndex, Long> {
 

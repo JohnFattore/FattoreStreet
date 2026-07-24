@@ -1,10 +1,11 @@
 package com.fattorestreet.sec_api.controller;
 
-import com.fattorestreet.sec_api.index.IwbHoldingsTickerSet;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.fattorestreet.sec_api.index.IwbHoldingsTickerSet;
 
 /**
  * Serves bundled iShares IWB (Russell 1000 ETF) reference weights for benchmark UI.

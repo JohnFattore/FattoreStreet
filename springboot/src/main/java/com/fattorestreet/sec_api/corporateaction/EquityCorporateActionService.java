@@ -1,14 +1,5 @@
 package com.fattorestreet.sec_api.corporateaction;
 
-import com.fattorestreet.sec_api.client.WebService;
-import com.fattorestreet.sec_api.corporateaction.support.DividendDeclarationTupleExtractor;
-import com.fattorestreet.sec_api.corporateaction.support.EquityDividendFactParser;
-import com.fattorestreet.sec_api.corporateaction.support.EquityDividendNormalizer;
-import com.fattorestreet.sec_api.corporateaction.support.EquityDividendUpserter;
-import com.fattorestreet.sec_api.corporateaction.support.EquityExDateAssigner;
-import com.fattorestreet.sec_api.corporateaction.support.EquitySplitDetector;
-import com.fattorestreet.sec_api.corporateaction.support.SplitPriceCorroborator;
-import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,8 +9,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.corporateaction.support.DividendDeclarationTupleExtractor;
+import com.fattorestreet.sec_api.corporateaction.support.EquityDividendFactParser;
+import com.fattorestreet.sec_api.corporateaction.support.EquityDividendNormalizer;
+import com.fattorestreet.sec_api.corporateaction.support.EquityDividendUpserter;
+import com.fattorestreet.sec_api.corporateaction.support.EquityExDateAssigner;
+import com.fattorestreet.sec_api.corporateaction.support.EquitySplitDetector;
+import com.fattorestreet.sec_api.corporateaction.support.SplitPriceCorroborator;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 

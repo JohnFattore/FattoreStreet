@@ -1,6 +1,7 @@
 package com.fattorestreet.sec_api.model;
 
 import java.time.LocalDate;
+
 import jakarta.persistence.*;
 
 import org.hibernate.envers.Audited;

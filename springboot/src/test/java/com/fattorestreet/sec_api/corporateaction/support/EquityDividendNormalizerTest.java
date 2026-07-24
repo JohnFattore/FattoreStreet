@@ -1,12 +1,13 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
+import java.time.LocalDate;
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+
 import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
-import org.junit.jupiter.api.Test;
-
-import java.time.LocalDate;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 

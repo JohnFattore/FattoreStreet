@@ -1,10 +1,5 @@
 package com.fattorestreet.sec_api.util;
 
-import com.fattorestreet.sec_api.testsupport.PcapTestData;
-import com.fattorestreet.sec_api.util.PcapParser.TradeReport;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -12,6 +7,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import com.fattorestreet.sec_api.testsupport.PcapTestData;
+import com.fattorestreet.sec_api.util.PcapParser.TradeReport;
 
 import static org.junit.jupiter.api.Assertions.*;
 
