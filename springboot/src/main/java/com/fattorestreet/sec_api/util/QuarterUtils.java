@@ -1,9 +1,15 @@
 package com.fattorestreet.sec_api.util;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-public class QuarterUtils {
+public final class QuarterUtils {
+
+    private QuarterUtils() {
+        // static utility holder, not instantiable
+    }
+
     public static List<LocalDate> getLast3Quarters(LocalDate period) {
         List<LocalDate> last3Quarters = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {

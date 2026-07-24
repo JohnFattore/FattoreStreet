@@ -136,7 +136,7 @@ public class EquityCorporateActionService {
                 recordDateScan.rejectedByForm());
     }
 
-    public static record EquityDetectionReport(
+    public record EquityDetectionReport(
             String ticker,
             Long cik,
             SplitDetectionStats split,
@@ -168,7 +168,7 @@ public class EquityCorporateActionService {
         }
     }
 
-    public static record SplitDetectionStats(
+    public record SplitDetectionStats(
             int sharesFactsParsed,
             int splitDateCandidates,
             int created,
@@ -199,7 +199,7 @@ public class EquityCorporateActionService {
         }
     }
 
-    public static record DividendDetectionStats(
+    public record DividendDetectionStats(
             int factsParsed,
             int normalizedEvents,
             int recordDateCandidates,
@@ -250,7 +250,7 @@ public class EquityCorporateActionService {
         }
     }
 
-    public static record AssignmentResult(
+    public record AssignmentResult(
             List<DividendEvent> events,
             int tupleMatchedAssignments,
             int directExAssignments,
@@ -269,10 +269,10 @@ public class EquityCorporateActionService {
         }
     }
 
-    public static record UpsertStats(int changed, int inserted, int updated, int pruned) {
+    public record UpsertStats(int changed, int inserted, int updated, int pruned) {
     }
 
-    public static record DividendFact(
+    public record DividendFact(
             LocalDate startDate,
             LocalDate endDate,
             double value,
@@ -287,7 +287,7 @@ public class EquityCorporateActionService {
      * @param payDate         payable date when stated in a matched declaration tuple
      * @param exDateSource    how the ex-date was assigned; see CorporateAction.EX_DATE_SOURCE_* constants
      */
-    public static record DividendEvent(
+    public record DividendEvent(
             LocalDate fiscalPeriodEnd,
             LocalDate exDividendDate,
             double rawAmount,

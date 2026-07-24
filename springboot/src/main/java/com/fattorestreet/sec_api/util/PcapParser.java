@@ -1,6 +1,12 @@
 package com.fattorestreet.sec_api.util;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -16,7 +22,11 @@ import java.util.zip.GZIPInputStream;
  * Optimized for throughput: reuses byte buffers, interns symbol strings,
  * and uses large I/O buffers to minimize syscalls and GC pressure.
  */
-public class PcapParser {
+public final class PcapParser {
+
+    private PcapParser() {
+        // static utility holder, not instantiable
+    }
 
     private static final int PCAP_MAGIC_LE = 0xA1B2C3D4;
     private static final int PCAPNG_SHB_MAGIC = 0x0A0D0D0A;
