@@ -68,7 +68,7 @@ class UserDeactivationPolicyTests(BaseAPITestCase):
 
         response = self.client.post(
             reverse("token_obtain_pair"),
-            {"username": "testuser", "password": "testpassword"},
+            {"username": "testuser", "password": "testpassword"},  # pragma: allowlist secret
             format="json",
         )
 
