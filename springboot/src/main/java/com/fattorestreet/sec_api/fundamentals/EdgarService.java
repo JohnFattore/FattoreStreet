@@ -1,7 +1,12 @@
 package com.fattorestreet.sec_api.fundamentals;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -107,7 +112,7 @@ public class EdgarService {
             new FrameConcept("us-gaap", List.of("PaymentsForRepurchaseOfCommonStock"), "USD",
                     "paymentsForRepurchaseOfCommonStock", false));
 
-    private static class AnnualData {
+    private static final class AnnualData {
         int fiscalYear;
         LocalDate periodStart;
         LocalDate periodEnd;
@@ -474,6 +479,9 @@ public class EdgarService {
                 break;
             case "paymentsForRepurchaseOfCommonStock":
                 q.setPaymentsForRepurchaseOfCommonStock(num.longValue());
+                break;
+            default:
+                // field is not one this method maps onto Quarter; ignore it
                 break;
         }
     }

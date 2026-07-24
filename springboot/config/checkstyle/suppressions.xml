@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+    <!-- Build output is never source we control. -->
+    <suppress files="[\\/]target[\\/]" checks="." />
+
+    <!-- Test classes commonly hold static fixtures without being utility
+         classes; HideUtilityClassConstructor misreads those. -->
+    <suppress files="[\\/]src[\\/]test[\\/]java[\\/]" checks="HideUtilityClassConstructor" />
+
+    <!-- The @SpringBootApplication class holds only main(), so Checkstyle reads
+         it as a utility class. Spring instantiates it as a configuration bean,
+         so giving it a private constructor would break startup. -->
+    <suppress files="SecApiApplication\.java" checks="HideUtilityClassConstructor" />
+</suppressions>

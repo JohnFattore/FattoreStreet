@@ -1,6 +1,6 @@
 package com.fattorestreet.sec_api.marketdata;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -12,7 +12,11 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.MonthDay;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -261,7 +265,7 @@ public class IexHistService {
 
     private record DayTask(LocalDate date, String link, long sizeMb) {}
 
-    private static class OhlcvAccumulator {
+    private static final class OhlcvAccumulator {
         long openTimestamp = Long.MAX_VALUE;
         double openPrice;
         double highPrice = Double.MIN_VALUE;

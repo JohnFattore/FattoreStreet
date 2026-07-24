@@ -42,6 +42,8 @@
 		     version here. -->
 		<enforcer.version>3.6.2</enforcer.version>
 		<spotless.version>2.46.1</spotless.version>
+		<checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
+		<checkstyle.version>10.26.1</checkstyle.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -180,6 +182,43 @@
 				<executions>
 					<execution>
 						<id>spotless-check</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>${checkstyle.plugin.version}</version>
+				<dependencies>
+					<!-- override the older Checkstyle the plugin bundles -->
+					<dependency>
+						<groupId>com.puppycrawl.tools</groupId>
+						<artifactId>checkstyle</artifactId>
+						<version>${checkstyle.version}</version>
+					</dependency>
+				</dependencies>
+				<!-- Plugin-level, not execution-level: CI runs `checkstyle:check` as a
+				     standalone goal, which does not inherit execution config. -->
+				<configuration>
+					<skip>${quality.skip}</skip>
+					<configLocation>config/checkstyle/checkstyle.xml</configLocation>
+					<!-- maven-checkstyle-plugin does not populate ${config_loc} itself;
+					     the SuppressionFilter in checkstyle.xml needs it to locate
+					     suppressions.xml. -->
+					<propertyExpansion>config_loc=${project.basedir}/config/checkstyle</propertyExpansion>
+					<includeTestSourceDirectory>true</includeTestSourceDirectory>
+					<consoleOutput>true</consoleOutput>
+					<failsOnError>true</failsOnError>
+					<violationSeverity>error</violationSeverity>
+					<linkXRef>false</linkXRef>
+				</configuration>
+				<executions>
+					<execution>
+						<id>checkstyle-check</id>
 						<phase>validate</phase>
 						<goals>
 							<goal>check</goal>

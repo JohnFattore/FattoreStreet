@@ -324,13 +324,19 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 ```bash
 ./mvnw spotless:apply    # auto-fix formatting (imports, whitespace, indentation)
 ./mvnw spotless:check    # what CI checks
+./mvnw checkstyle:check  # lint rules
 ```
 
 | Gate | Phase | Config |
 |---|---|---|
 | Maven enforcer (Maven 3.9+, Java 17+) | `validate` | `pom.xml` |
 | Spotless | `validate` | `pom.xml` (inline) |
+| Checkstyle | `validate` | `config/checkstyle/checkstyle.xml` |
 | JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco:check`) |
+
+Checkstyle owns semantics; Spotless owns whitespace, import order and line length. Never add whitespace, wrapping or `LineLength` modules to `checkstyle.xml`: two owners of the same concern produce a build that cannot be made green. The ruleset is curated rather than inherited from `sun_checks.xml` or `google_checks.xml`, and its header comment records what was excluded and why.
+
+Wildcard imports are banned in both `src/main` and `src/test`. Static wildcard imports (`import static org.mockito.Mockito.*`) remain allowed, which is what keeps the existing test style legal.
 
 Formatting is 4-space indent with a 120-column soft limit (see `/.editorconfig`). Spotless normalizes imports, indentation and trailing whitespace but **never reflows code**: brace placement and line wrapping stay as written, so `spotless:apply` will not churn unrelated lines in your diff.
 

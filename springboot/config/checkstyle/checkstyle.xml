@@ -1,0 +1,151 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  Curated ruleset for sec-api. Deliberately NOT derived from sun_checks.xml
+  (demands Javadoc on everything) or google_checks.xml (hardcodes 2-space
+  indent, contradicting this codebase and /.editorconfig).
+
+  OWNERSHIP SPLIT, read before adding a module:
+    Checkstyle owns SEMANTICS.
+    Spotless owns WHITESPACE, IMPORT ORDER and LINE LENGTH.
+  Never add whitespace, wrapping or LineLength modules here. They would fight
+  `spotless:apply` and produce a build that cannot be made green.
+
+  Deliberately excluded, with reasons:
+    MagicNumber       - a finance codebase is full of 252 trading days, 0.0001
+                        tolerances and window sizes; hoisting each to a
+                        constant makes the code worse, not better.
+    LineLength        - Spotless owns line length. Two owners = unfixable
+                        build. (Longest line here is 236 chars.)
+    IllegalCatch      - the ~51 broad `catch (Exception)` sites are a
+                        deliberate "log and continue to the next ticker"
+                        policy in multi-hour ingests. Don't fight it twice.
+    Javadoc*          - no Javadoc culture in this tree; would fire thousands
+                        of times and mandate ceremony nobody reads.
+    FinalParameters,
+    DesignForExtension,
+    VisibilityModifier - sun_checks dogma; the last one fights JPA entities.
+    CyclomaticComplexity,
+    NPathComplexity   - would fail immediately on the XBRL mapping and
+                        corporate-action detectors. Fine as a report, terrible
+                        as a gate.
+
+  DEFERRED, not rejected - both found real things, but fixing them is a code
+  change that deserves its own reviewable PR rather than riding along with the
+  commit that turns Checkstyle on:
+    NeedBraces        - 75 sites, all `if (cond)\n    stmt;` wrapped one-liners
+                        and if/else-if chains. Adding braces is semantically
+                        inert but rewrites 75 control-flow sites, and some are
+                        else-if chains where a careless edit changes meaning.
+                        Turn this on in the PR that adds the braces.
+    EqualsAvoidNull   - 16 sites of `x.equalsIgnoreCase("LITERAL")`. The fix
+                        (flipping to "LITERAL".equalsIgnoreCase(x)) is a real
+                        NPE-hardening improvement, but it converts an NPE into
+                        `false`, which IS a behaviour change. Each site needs
+                        judgement about whether null should be an error there.
+-->
+<module name="Checker">
+    <property name="severity" value="error" />
+    <property name="charset" value="UTF-8" />
+    <property name="fileExtensions" value="java" />
+
+    <module name="SuppressionFilter">
+        <property name="file" value="${config_loc}/suppressions.xml" />
+        <property name="optional" value="false" />
+    </module>
+
+    <!-- Backstop for the two files that used tabs; Spotless normally handles it. -->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true" />
+    </module>
+
+    <module name="TreeWalker">
+
+        <!-- Allows //CHECKSTYLE:OFF ... //CHECKSTYLE:ON escape hatches -->
+        <module name="SuppressionCommentFilter" />
+
+        <!-- ===== Imports =====
+             allowStaticMemberImports=true is load-bearing: it legalises the
+             `import static org.junit.jupiter.api.Assertions.*` and
+             `org.mockito.Mockito.*` wildcards that 56 test files rely on,
+             while still banning type wildcards like java.util.*. -->
+        <module name="AvoidStarImport">
+            <property name="allowStaticMemberImports" value="true" />
+        </module>
+        <module name="RedundantImport" />
+        <module name="UnusedImports">
+            <property name="processJavadoc" value="true" />
+        </module>
+        <module name="IllegalImport">
+            <property name="illegalPkgs" value="sun, com.sun, jdk.internal, junit.framework" />
+            <!-- JUnit 4 leaking into a JUnit 5 suite is a real, quiet hazard -->
+            <property name="illegalClasses" value="org.junit.Assert, org.junit.Test" />
+        </module>
+
+        <!-- ===== Correctness ===== -->
+        <module name="EqualsHashCode" />
+        <module name="CovariantEquals" />
+        <module name="StringLiteralEquality" />
+        <module name="FallThrough" />
+        <module name="MissingSwitchDefault" />
+        <module name="DefaultComesLast" />
+        <module name="SimplifyBooleanExpression" />
+        <module name="SimplifyBooleanReturn" />
+        <module name="EmptyStatement" />
+        <module name="NoFinalizer" />
+        <module name="NoClone" />
+        <module name="UnusedLocalVariable" />
+        <module name="MissingOverride" />
+        <module name="EmptyCatchBlock">
+            <!-- an empty catch is only OK if the variable says so, or the
+                 block carries an explanatory comment -->
+            <property name="exceptionVariableName" value="expected|ignored" />
+        </module>
+
+        <!-- ===== Readability / structure ===== -->
+        <module name="OneStatementPerLine" />
+        <module name="MultipleVariableDeclarations" />
+        <module name="ArrayTypeStyle" />
+        <module name="UpperEll" />
+        <module name="ModifierOrder" />
+        <module name="RedundantModifier" />
+        <module name="FinalClass" />
+        <module name="HideUtilityClassConstructor" />
+        <module name="InterfaceIsType" />
+        <module name="OuterTypeFilename" />
+        <module name="PackageDeclaration" />
+
+        <!-- ===== Naming ===== -->
+        <module name="PackageName">
+            <!-- the package is sec_api; the default pattern forbids underscores -->
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9_]*)*$" />
+        </module>
+        <module name="TypeName" />
+        <module name="MethodName">
+            <!-- Underscore-separated segments are required, not sloppy, in both
+                 places they appear here:
+                   - Spring Data derived queries, where `_` disambiguates nested
+                     property traversal (findByMarketIndex_CodeAndListing_Ticker)
+                   - the method_scenario_expectation test convention used by all
+                     342 test methods in this tree -->
+            <property name="format" value="^[a-z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*$" />
+        </module>
+        <module name="MemberName" />
+        <module name="ParameterName" />
+        <module name="LocalVariableName" />
+        <module name="LocalFinalVariableName" />
+        <module name="ConstantName">
+            <!-- Permits lowerCamelCase alongside SCREAMING_SNAKE_CASE. Required
+                 by the SLF4J convention this repo mandates in
+                 .claude/rules/springboot-java.md:
+                   private static final Logger log = LoggerFactory.getLogger(X.class);
+                 Renaming 21 loggers to satisfy the default pattern would break a
+                 documented convention to satisfy a lint rule. -->
+            <property name="format" value="^([a-z][a-zA-Z0-9]*|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*)$" />
+        </module>
+
+    </module>
+</module>
