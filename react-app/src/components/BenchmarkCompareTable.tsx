@@ -1,7 +1,12 @@
 import { Button } from "react-bootstrap";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
-import { useGetAssetsQuery, useGetAssetInfosQuery, useGetQuoteQuery, useGetAccountsQuery } from "../functions/api";
+import {
+  useGetAssetsQuery,
+  useGetAssetInfosQuery,
+  useGetQuoteQuery,
+  useGetAccountsQuery,
+} from "../functions/api";
 import { formatString } from "../functions/helperFunctions";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -32,7 +37,11 @@ export default function BenchmarkCompareTable() {
   } = useGetAssetsQuery();
   const assets = assetsRaw ?? [];
 
-  const { data: accountsRaw, isLoading: accountsLoading, error: accountsError } = useGetAccountsQuery(undefined, {
+  const {
+    data: accountsRaw,
+    isLoading: accountsLoading,
+    error: accountsError,
+  } = useGetAccountsQuery(undefined, {
     skip: !access,
   });
   const accounts = accountsRaw ?? [];
@@ -47,7 +56,7 @@ export default function BenchmarkCompareTable() {
   });
   const assetInfos = assetInfosRaw ?? {};
 
-  const { data: quote } = useGetQuoteQuery("SPY")
+  const { data: quote } = useGetQuoteQuery("SPY");
   useEffect(() => {
     if (access) refetch();
   }, [access, refetch]);
@@ -64,11 +73,18 @@ export default function BenchmarkCompareTable() {
       buyDate: asset.buyDate,
       buyPrice: asset.buyPrice,
       sellDate: asset.sellDate ? asset.sellDate : "Not Sold",
-      sellCurrentPrice: asset.sellPrice ? asset.sellPrice : (info?.currentPrice ?? 0) * asset.shares,
+      sellCurrentPrice: asset.sellPrice
+        ? asset.sellPrice
+        : (info?.currentPrice ?? 0) * asset.shares,
       change: asset.sellPrice
         ? (asset.sellPrice - asset.buyPrice) / asset.buyPrice
-        : (((info?.currentPrice ?? 0) * asset.shares) - asset.buyPrice) / asset.buyPrice,
-      snp500Change: asset.snp500PriceSell ? (asset.snp500PriceSell - asset.snp500PriceBuy) / asset.snp500PriceBuy : quote?.price ? (quote.price - asset.snp500PriceBuy) / asset.snp500PriceBuy : null,
+        : ((info?.currentPrice ?? 0) * asset.shares - asset.buyPrice) /
+          asset.buyPrice,
+      snp500Change: asset.snp500PriceSell
+        ? (asset.snp500PriceSell - asset.snp500PriceBuy) / asset.snp500PriceBuy
+        : quote?.price
+          ? (quote.price - asset.snp500PriceBuy) / asset.snp500PriceBuy
+          : null,
       shortName: info?.shortName ?? "Error Loading Info",
       hasError: !info,
     };
@@ -108,27 +124,26 @@ export default function BenchmarkCompareTable() {
     {
       label: "Sell/Current Price",
       sortKey: "sellCurrentPrice",
-      render: (row: BenchmarkCompareRow) => formatString(row.sellCurrentPrice, "money"),
-
+      render: (row: BenchmarkCompareRow) =>
+        formatString(row.sellCurrentPrice, "money"),
     },
     {
       label: "Sell Date",
       sortKey: "sellDate",
       render: (row: BenchmarkCompareRow) => formatString(row.sellDate, "date"),
-
     },
     {
       label: "Change",
       sortKey: "change",
       render: (row: BenchmarkCompareRow) => formatString(row.change, "percent"),
-
     },
     {
       label: "S&P 500 Change",
       sortKey: "snp500Change",
       render: (row: BenchmarkCompareRow) =>
-        row.snp500Change !== null ? formatString(row.snp500Change, "percent") : "N/A",
-
+        row.snp500Change !== null
+          ? formatString(row.snp500Change, "percent")
+          : "N/A",
     },
     {
       label: "View Asset",
@@ -145,7 +160,13 @@ export default function BenchmarkCompareTable() {
   return (
     <>
       <h3>Assets vs S&P 500</h3>
-      <SortableTable data={data} columns={columns} initialSortKey="ticker" isLoading={assetLoading || assetInfoLoading || accountsLoading} errors={[assetError, assetInfoError, accountsError]} />
+      <SortableTable
+        data={data}
+        columns={columns}
+        initialSortKey="ticker"
+        isLoading={assetLoading || assetInfoLoading || accountsLoading}
+        errors={[assetError, assetInfoError, accountsError]}
+      />
     </>
   );
 }

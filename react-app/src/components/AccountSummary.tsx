@@ -67,19 +67,23 @@ export default function AccountSummary({ accountId }: Props) {
               <Row>
                 <Col md={4}>
                   <div>Total Cost Basis</div>
-                  <div>
-                    {formatString(totalCostBasis, "money")}
-                  </div>
+                  <div>{formatString(totalCostBasis, "money")}</div>
                 </Col>
                 <Col md={4}>
                   <div>Total Current Value</div>
-                  <div>
-                    {formatString(totalCurrentValue, "money")}
-                  </div>
+                  <div>{formatString(totalCurrentValue, "money")}</div>
                 </Col>
                 <Col md={4}>
                   <div>Total Percent Change</div>
-                  <div className={totalPercentChange > 0 ? "text-success" : totalPercentChange < 0 ? "text-danger" : ""}>
+                  <div
+                    className={
+                      totalPercentChange > 0
+                        ? "text-success"
+                        : totalPercentChange < 0
+                          ? "text-danger"
+                          : ""
+                    }
+                  >
                     {formatString(totalPercentChange, "percent")}
                   </div>
                 </Col>

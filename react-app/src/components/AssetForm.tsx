@@ -6,8 +6,15 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import LoginForm from "./LoginForm";
-import { usePostNewAssetMutation, useGetAccountsQuery, useLazyGetAssetInfosQuery } from "../functions/api";
-import { getApiErrorMessages, formatString } from "../functions/helperFunctions";
+import {
+  usePostNewAssetMutation,
+  useGetAccountsQuery,
+  useLazyGetAssetInfosQuery,
+} from "../functions/api";
+import {
+  getApiErrorMessages,
+  formatString,
+} from "../functions/helperFunctions";
 import LoadingButton from "./LoadingButton";
 import { useEffect, useState } from "react";
 import { IAsset } from "../interfaces";
@@ -24,7 +31,10 @@ interface AssetFormProps {
   defaultTicker?: string;
 }
 
-export default function AssetForm({ defaultAccountId, defaultTicker }: AssetFormProps) {
+export default function AssetForm({
+  defaultAccountId,
+  defaultTicker,
+}: AssetFormProps) {
   const [postNewAsset, { error, isLoading }] = usePostNewAssetMutation();
   const { access } = useSelector((state: RootState) => state.user);
   const { data: accounts } = useGetAccountsQuery(undefined, { skip: !access });
@@ -44,7 +54,12 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
     ticker: yup.string().required().uppercase(),
     shares: yup.number().required().positive(),
     buyDate: yup.string().required(),
-    accountId: yup.number().required("Account is required").transform((value, originalValue) => originalValue === "" ? undefined : value),
+    accountId: yup
+      .number()
+      .required("Account is required")
+      .transform((value, originalValue) =>
+        originalValue === "" ? undefined : value,
+      ),
   });
   const {
     register,
@@ -56,8 +71,8 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
     resolver: yupResolver(schema),
     defaultValues: {
       accountId: defaultAccountId,
-      ticker: defaultTicker
-    }
+      ticker: defaultTicker,
+    },
   });
 
   // Update form values if defaults change
@@ -111,7 +126,11 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
         Add Asset
       </Button>
 
-      <Modal show={show} onHide={handleClose} dialogClassName="asset-form-modal">
+      <Modal
+        show={show}
+        onHide={handleClose}
+        dialogClassName="asset-form-modal"
+      >
         <Modal.Header closeButton>
           <Modal.Title>Add Asset</Modal.Title>
         </Modal.Header>
@@ -192,7 +211,10 @@ export default function AssetForm({ defaultAccountId, defaultTicker }: AssetForm
               <Button variant="secondary" onClick={handleClose}>
                 Close
               </Button>
-              <LoadingButton label={"Add to Portfolio"} loading={isLoading || isProcessing} />
+              <LoadingButton
+                label={"Add to Portfolio"}
+                loading={isLoading || isProcessing}
+              />
             </div>
           </Form>
         </Modal.Body>

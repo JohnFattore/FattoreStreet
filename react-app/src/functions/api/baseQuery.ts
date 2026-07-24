@@ -25,18 +25,25 @@ export function axiosBaseQuery({
 }): BaseQueryFn<AxiosBaseQueryArgs> {
   const normalizedDefaultBaseUrl = normalizeBaseUrl(defaultBaseUrl);
 
-  return async ({ url, method, data, params, baseUrl, withAuth = true, timeout }, api) => {
+  return async (
+    { url, method, data, params, baseUrl, withAuth = true, timeout },
+    api,
+  ) => {
     try {
       const state = api.getState() as RootState;
       const access = state.user.access;
-      const resolvedBaseUrl = normalizeBaseUrl(baseUrl) || normalizedDefaultBaseUrl;
+      const resolvedBaseUrl =
+        normalizeBaseUrl(baseUrl) || normalizedDefaultBaseUrl;
 
       const result = await axios({
         url: resolvedBaseUrl + url,
         method,
         data,
         params,
-        headers: withAuth && access ? { Authorization: `Bearer ${access}` } : undefined,
+        headers:
+          withAuth && access
+            ? { Authorization: `Bearer ${access}` }
+            : undefined,
         ...(timeout !== undefined && { timeout }),
       });
 
@@ -52,4 +59,3 @@ export function axiosBaseQuery({
     }
   };
 }
-

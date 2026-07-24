@@ -83,13 +83,17 @@ export default function EconomicIndicators() {
       maximumFractionDigits: 2,
     }).format(value);
 
-  const getLatestReading = (seriesId: string, includeLabel = false, customLabel?: string) => {
+  const getLatestReading = (
+    seriesId: string,
+    includeLabel = false,
+    customLabel?: string,
+  ) => {
     if (!data) return undefined;
     const observations = data[seriesId];
     if (!observations || observations.length === 0) return undefined;
 
     const latestPoint = observations.reduce((latest, current) =>
-      current.date > latest.date ? current : latest
+      current.date > latest.date ? current : latest,
     );
 
     const reading = `${formatLatestValue(latestPoint.value)} (${formatLatestDate(latestPoint.date)})`;
@@ -98,7 +102,9 @@ export default function EconomicIndicators() {
     return `${label}: ${reading}`;
   };
 
-  const getLatestReadingGroup = (items: { seriesId: string; label?: string }[]) =>
+  const getLatestReadingGroup = (
+    items: { seriesId: string; label?: string }[],
+  ) =>
     items
       .map((item) => getLatestReading(item.seriesId, true, item.label))
       .filter(Boolean)
@@ -129,7 +135,7 @@ export default function EconomicIndicators() {
     if (!data?.["CPIAUCSL"] || !data?.["PCEPILFE"]) return null;
     const map = new Map<string, Record<string, string | number>>();
     for (const pt of data["CPIAUCSL"]) {
-      map.set(pt.date, { date: pt.date, "CPI": pt.value });
+      map.set(pt.date, { date: pt.date, CPI: pt.value });
     }
     for (const pt of data["PCEPILFE"]) {
       const existing = map.get(pt.date) ?? { date: pt.date };
@@ -154,15 +160,18 @@ export default function EconomicIndicators() {
     return [...map.values()].sort((a, b) => (a.date > b.date ? 1 : -1));
   }, [data]);
 
-
   if (isLoading) {
-    return <LoadingModal show={true} message="Fetching Economic Indicators..." />;
+    return (
+      <LoadingModal show={true} message="Fetching Economic Indicators..." />
+    );
   }
 
   if (error || !data) {
     return (
       <Container>
-        <Alert variant="danger">{error ? getApiErrorMessages(error) : "No data available."}</Alert>
+        <Alert variant="danger">
+          {error ? getApiErrorMessages(error) : "No data available."}
+        </Alert>
       </Container>
     );
   }
@@ -172,7 +181,8 @@ export default function EconomicIndicators() {
       <div>
         <h1>Economic Indicators</h1>
         <p>
-          Monitoring key macroeconomic metrics to understand market conditions and trends.
+          Monitoring key macroeconomic metrics to understand market conditions
+          and trends.
         </p>
       </div>
 

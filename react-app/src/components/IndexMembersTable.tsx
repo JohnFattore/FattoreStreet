@@ -88,4 +88,3 @@ export function IndexMembersTable({ members, isLoading, errors }: Props) {
     />
   );
 }
-

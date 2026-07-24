@@ -12,8 +12,13 @@ interface Props {
   handleCloseDelete: () => void;
 }
 
-export default function AssetDeleteSellModal({asset, showSell, showDelete, handleCloseSell, handleCloseDelete}: Props) {
-
+export default function AssetDeleteSellModal({
+  asset,
+  showSell,
+  showDelete,
+  handleCloseSell,
+  handleCloseDelete,
+}: Props) {
   const [deleteAsset, { error, isLoading }] = useDeleteAssetMutation();
 
   return (

@@ -1,31 +1,31 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 interface locationSlice {
   loading: boolean;
-  state: string,
-  city: string,
+  state: string;
+  city: string;
   error: string;
 }
 
 const initialState: locationSlice = {
   loading: false,
-  state: 'TN',
-  city: 'Nashville',
-  error: '', 
+  state: "TN",
+  city: "Nashville",
+  error: "",
 };
 
 const locationSlice = createSlice({
-  name: 'location',
+  name: "location",
   initialState,
   reducers: {
     setLocation: (state, action) => {
       state.state = action.payload.state;
       state.city = action.payload.city;
-      state.error = '';
+      state.error = "";
       state.loading = false;
     },
   },
 });
 
 export const { setLocation } = locationSlice.actions;
-export default locationSlice.reducer; 
+export default locationSlice.reducer;

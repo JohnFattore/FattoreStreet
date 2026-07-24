@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { Alert, Card, Col, Row, Spinner, Table } from "react-bootstrap";
-import { useGetAssetDividendsQuery, useGetIexDividendsQuery } from "../functions/api";
+import {
+  useGetAssetDividendsQuery,
+  useGetIexDividendsQuery,
+} from "../functions/api";
 import { IDividendRow } from "../interfaces";
 
 interface ComparisonRow {
@@ -28,7 +31,10 @@ const formatCurrency = (value: number | null): string => {
 const toEpochDay = (date: string): number =>
   Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 86_400_000);
 
-const buildRows = (myDividends: IDividendRow[], yfDividends: IDividendRow[]): ComparisonRow[] => {
+const buildRows = (
+  myDividends: IDividendRow[],
+  yfDividends: IDividendRow[],
+): ComparisonRow[] => {
   const usedYfIndexes = new Set<number>();
   const rows: ComparisonRow[] = [];
 
@@ -90,15 +96,28 @@ const buildRows = (myDividends: IDividendRow[], yfDividends: IDividendRow[]): Co
     }
   }
 
-  rows.sort((a, b) => (b.myDate ?? b.yfDate ?? "").localeCompare(a.myDate ?? a.yfDate ?? ""));
+  rows.sort((a, b) =>
+    (b.myDate ?? b.yfDate ?? "").localeCompare(a.myDate ?? a.yfDate ?? ""),
+  );
   return rows;
 };
 
 export default function DividendComparison({ ticker }: { ticker: string }) {
-  const { data: myData, isLoading: myLoading, error: myError } = useGetIexDividendsQuery(ticker);
-  const { data: yfData, isLoading: yfLoading, error: yfError } = useGetAssetDividendsQuery(ticker);
+  const {
+    data: myData,
+    isLoading: myLoading,
+    error: myError,
+  } = useGetIexDividendsQuery(ticker);
+  const {
+    data: yfData,
+    isLoading: yfLoading,
+    error: yfError,
+  } = useGetAssetDividendsQuery(ticker);
 
-  const rows = useMemo(() => buildRows(myData?.dividends ?? [], yfData ?? []), [myData, yfData]);
+  const rows = useMemo(
+    () => buildRows(myData?.dividends ?? [], yfData ?? []),
+    [myData, yfData],
+  );
   const totals = useMemo(() => {
     let internalTotal = 0;
     let yfTotal = 0;
@@ -124,7 +143,9 @@ export default function DividendComparison({ ticker }: { ticker: string }) {
                 <Spinner animation="border" />
               </div>
             ) : hasError ? (
-              <Alert variant="danger">Error loading dividend comparison data.</Alert>
+              <Alert variant="danger">
+                Error loading dividend comparison data.
+              </Alert>
             ) : (
               <Table hover size="sm" responsive>
                 <thead>
@@ -143,7 +164,11 @@ export default function DividendComparison({ ticker }: { ticker: string }) {
                       <td>---</td>
                       <td>{formatCurrency(totals.yfTotal)}</td>
                       <td>---</td>
-                      <td className={Math.abs(totals.diff) > 0.01 ? "text-danger" : ""}>
+                      <td
+                        className={
+                          Math.abs(totals.diff) > 0.01 ? "text-danger" : ""
+                        }
+                      >
                         {formatCurrency(totals.diff)}
                       </td>
                     </tr>
@@ -154,13 +179,18 @@ export default function DividendComparison({ ticker }: { ticker: string }) {
                     const isMismatch =
                       row.diff != null && Math.abs(row.diff) > 0.01;
                     return (
-                      <tr key={`${row.myDate ?? "none"}-${row.yfDate ?? "none"}-${idx}`} className={isMismatch ? "table-warning" : ""}>
+                      <tr
+                        key={`${row.myDate ?? "none"}-${row.yfDate ?? "none"}-${idx}`}
+                        className={isMismatch ? "table-warning" : ""}
+                      >
                         <td>{row.myDate ?? "---"}</td>
                         <td>{formatCurrency(row.myDividend)}</td>
                         <td>{row.yfDate ?? "---"}</td>
                         <td>{formatCurrency(row.yfDividend)}</td>
                         <td>{row.dateGapDays ?? "---"}</td>
-                        <td className={isMismatch ? "text-danger fw-bold" : ""}>{formatCurrency(row.diff)}</td>
+                        <td className={isMismatch ? "text-danger fw-bold" : ""}>
+                          {formatCurrency(row.diff)}
+                        </td>
                       </tr>
                     );
                   })}

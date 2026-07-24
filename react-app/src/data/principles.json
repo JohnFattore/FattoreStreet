@@ -8,10 +8,34 @@
       "content": "Fidelity, Schwab, and Vanguard are three of the top choices for brokerage accounts. Below are the passively managed mutual funds for each brokerage that together make up the entire global stock market.",
       "table": {
         "data": [
-          { "Brokerage Company": "Fidelity", "Money Market Fund": "SPAXX", "US Fund": "FSKAX", "International Fund": "FTIHX", "Bond Fund": "FTBFX" },
-          { "Brokerage Company": "Charles Schwab","Money Market Fund": "SNVXX","US Fund": "SWTSX","International Fund": "SWISX", "Bond Fund": "SWAGX" },
-          { "Brokerage Company": "Vanguard", "Money Market Fund": "VMFXX", "US Fund": "VTSAX", "International Fund": "VTIAX", "Bond Fund": "VBTLX" },
-          { "Brokerage Company": "Vanguard ETFs", "Money Market Fund": "N/A", "US Fund": "VTI", "International Fund": "VXUS", "Bond Fund": "BND" }
+          {
+            "Brokerage Company": "Fidelity",
+            "Money Market Fund": "SPAXX",
+            "US Fund": "FSKAX",
+            "International Fund": "FTIHX",
+            "Bond Fund": "FTBFX"
+          },
+          {
+            "Brokerage Company": "Charles Schwab",
+            "Money Market Fund": "SNVXX",
+            "US Fund": "SWTSX",
+            "International Fund": "SWISX",
+            "Bond Fund": "SWAGX"
+          },
+          {
+            "Brokerage Company": "Vanguard",
+            "Money Market Fund": "VMFXX",
+            "US Fund": "VTSAX",
+            "International Fund": "VTIAX",
+            "Bond Fund": "VBTLX"
+          },
+          {
+            "Brokerage Company": "Vanguard ETFs",
+            "Money Market Fund": "N/A",
+            "US Fund": "VTI",
+            "International Fund": "VXUS",
+            "Bond Fund": "BND"
+          }
         ]
       }
     },

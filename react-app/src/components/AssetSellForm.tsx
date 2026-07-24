@@ -19,7 +19,11 @@ const sellDateSchema = yup.object().shape({
   sellDate: yup.string().required(),
 });
 
-export default function AssetSellForm({ asset }: { asset: IAsset | undefined }) {
+export default function AssetSellForm({
+  asset,
+}: {
+  asset: IAsset | undefined;
+}) {
   const [patchAsset, { error, isLoading }] = usePatchAssetMutation();
   const { access } = useSelector((state: RootState) => state.user);
 

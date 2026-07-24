@@ -1,28 +1,28 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { djangoApi } from '../functions/api/djangoApi';
+import { createSlice } from "@reduxjs/toolkit";
+import { djangoApi } from "../functions/api/djangoApi";
 
 interface UserSlice {
-  username: string,
-  access: string,
-  refresh: string,
-  darkMode: boolean
+  username: string;
+  access: string;
+  refresh: string;
+  darkMode: boolean;
 }
 
 const initialState: UserSlice = {
-  username: '',
-  access: '',
-  refresh: '',
+  username: "",
+  access: "",
+  refresh: "",
   darkMode: false,
 };
 
 const userSlice = createSlice({
-  name: 'user',
+  name: "user",
   initialState,
   reducers: {
     logout: (state) => {
-      state.username = '';
-      state.access = '';
-      state.refresh = '';
+      state.username = "";
+      state.access = "";
+      state.refresh = "";
     },
     setUserDarkMode: (state, action) => {
       state.darkMode = action.payload;
@@ -36,16 +36,19 @@ const userSlice = createSlice({
         state.refresh = action.payload.refresh;
       })
       .addMatcher(djangoApi.endpoints.login.matchRejected, (state) => {
-        state.refresh = '';
+        state.refresh = "";
       })
-      .addMatcher(djangoApi.endpoints.refreshLogin.matchFulfilled, (state, action) => {
-        state.access = action.payload.access;
-      })
+      .addMatcher(
+        djangoApi.endpoints.refreshLogin.matchFulfilled,
+        (state, action) => {
+          state.access = action.payload.access;
+        },
+      )
       .addMatcher(djangoApi.endpoints.refreshLogin.matchRejected, (state) => {
-        state.access = '';
-        state.refresh = '';
+        state.access = "";
+        state.refresh = "";
       });
-  }
+  },
 });
 
 export const { logout, setUserDarkMode } = userSlice.actions;

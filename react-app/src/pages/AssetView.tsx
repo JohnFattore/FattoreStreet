@@ -6,7 +6,10 @@ import AssetTickerTable from "../components/AssetTickerTable";
 import TickerHeader from "../components/TickerHeader";
 import AssetTickerSoldTable from "../components/AssetTickerSoldTable";
 import AssetForm from "../components/AssetForm";
-import { useGetAssetInfosQuery, useGetAssetPricesQuery } from "../functions/api";
+import {
+  useGetAssetInfosQuery,
+  useGetAssetPricesQuery,
+} from "../functions/api";
 import { getApiErrorMessages } from "../functions/helperFunctions";
 import GenericLineChart from "../components/GenericLineChart";
 import LoadingModal from "../components/LoadingModal";
@@ -26,12 +29,7 @@ export default function AssetView() {
     return <Alert variant="danger">Error</Alert>;
   }
   if (isLoading)
-    return (
-      <LoadingModal
-        show={true}
-        message={`Loading ${ticker} Data...`}
-      />
-    );
+    return <LoadingModal show={true} message={`Loading ${ticker} Data...`} />;
   if (error)
     return (
       <>
@@ -51,8 +49,18 @@ export default function AssetView() {
         description="Historical price performance for this asset over the selected period."
       />
       <AssetForm defaultTicker={ticker} />
-      <Button variant="primary" onClick={() => navigate(`/sec-edgar/${ticker}`)}>SEC EDGAR Data</Button>{" "}
-      <Button variant="outline-primary" onClick={() => navigate(`/iex-prices/${ticker}`)}>IEX Price History</Button>
+      <Button
+        variant="primary"
+        onClick={() => navigate(`/sec-edgar/${ticker}`)}
+      >
+        SEC EDGAR Data
+      </Button>{" "}
+      <Button
+        variant="outline-primary"
+        onClick={() => navigate(`/iex-prices/${ticker}`)}
+      >
+        IEX Price History
+      </Button>
       <Button onClick={() => navigate("/portfolio")}>Back to Portfolio</Button>
       <Button onClick={() => navigate("/watchlist")}>Back to WatchList</Button>
     </>

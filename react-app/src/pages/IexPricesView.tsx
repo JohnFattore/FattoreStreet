@@ -20,7 +20,12 @@ export default function IexPricesView() {
   }
 
   if (isLoading) {
-    return <LoadingModal show={true} message={`Loading IEX prices for ${ticker}...`} />;
+    return (
+      <LoadingModal
+        show={true}
+        message={`Loading IEX prices for ${ticker}...`}
+      />
+    );
   }
 
   if (error) {
@@ -41,7 +46,8 @@ export default function IexPricesView() {
     <Container className="mt-3">
       <h3>{ticker} — IEX Daily Prices</h3>
       <p className="text-muted">
-        {prices.length} trading day{prices.length !== 1 ? "s" : ""} of adjusted OHLCV data from IEX exchange prices.
+        {prices.length} trading day{prices.length !== 1 ? "s" : ""} of adjusted
+        OHLCV data from IEX exchange prices.
       </p>
       <PriceComparison ticker={ticker} />
       <DividendComparison ticker={ticker} />

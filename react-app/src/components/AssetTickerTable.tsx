@@ -1,6 +1,10 @@
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
-import { useGetAssetsQuery, useGetAssetInfosQuery, useGetAccountsQuery } from "../functions/api";
+import {
+  useGetAssetsQuery,
+  useGetAssetInfosQuery,
+  useGetAccountsQuery,
+} from "../functions/api";
 import { formatString } from "../functions/helperFunctions";
 import { useState } from "react";
 import { SortableTable } from "./SortableTable";
@@ -29,15 +33,17 @@ export default function AssetTickerTable({ ticker }: { ticker: string }) {
   const allAssets = rawAllAssets ?? [];
   const assets = allAssets?.filter((a) => a.ticker === ticker);
 
-  const { data: accountsRaw, isLoading: accountsLoading, error: accountsError } = useGetAccountsQuery(undefined, {
+  const {
+    data: accountsRaw,
+    isLoading: accountsLoading,
+    error: accountsError,
+  } = useGetAccountsQuery(undefined, {
     skip: !access,
   });
   const accounts = accountsRaw ?? [];
 
-  const {
-    data: rawAssetInfos,
-    isLoading: assetInfoLoading,
-  } = useGetAssetInfosQuery([ticker]);
+  const { data: rawAssetInfos, isLoading: assetInfoLoading } =
+    useGetAssetInfosQuery([ticker]);
   const assetInfos = rawAssetInfos ?? {};
 
   const isLoading = assetLoading || assetInfoLoading || accountsLoading;
@@ -107,17 +113,21 @@ export default function AssetTickerTable({ ticker }: { ticker: string }) {
       label: "Current Price",
       sortKey: "currentPrice",
       render: (row: AssetTickerRow) =>
-        assetInfoLoading ? "Loading..." : (row.currentPrice !== null
-          ? formatString(row.currentPrice, "money")
-          : "N/A"),
+        assetInfoLoading
+          ? "Loading..."
+          : row.currentPrice !== null
+            ? formatString(row.currentPrice, "money")
+            : "N/A",
     },
     {
       label: "Percent Change",
       sortKey: "percentChange",
       render: (row: AssetTickerRow) =>
-        assetInfoLoading ? "Loading..." : (row.percentChange !== null
-          ? formatString(row.percentChange, "percent")
-          : "N/A"),
+        assetInfoLoading
+          ? "Loading..."
+          : row.percentChange !== null
+            ? formatString(row.percentChange, "percent")
+            : "N/A",
     },
     {
       label: "Sell Asset",

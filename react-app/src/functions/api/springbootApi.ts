@@ -15,7 +15,9 @@ import { axiosBaseQuery } from "./baseQuery";
 
 export const springbootApi = createApi({
   reducerPath: "springbootApi",
-  baseQuery: axiosBaseQuery({ defaultBaseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL }),
+  baseQuery: axiosBaseQuery({
+    defaultBaseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+  }),
   endpoints: (builder) => ({
     getSecEdgarData: builder.query<ISECData, string>({
       query: (ticker) => ({
@@ -68,8 +70,10 @@ export const springbootApi = createApi({
         url: `filing-summaries?ticker=${ticker}`,
         method: "GET",
       }),
-      transformResponse: (response: { ticker: string; summaries: IFilingSummary[] }) =>
-        response.summaries,
+      transformResponse: (response: {
+        ticker: string;
+        summaries: IFilingSummary[];
+      }) => response.summaries,
     }),
     getIndexes: builder.query<IMarketIndex[], void>({
       query: () => ({
@@ -90,7 +94,10 @@ export const springbootApi = createApi({
         method: "GET",
       }),
     }),
-    getFredData: builder.query<Record<string, IFredObservation[]>, { seriesId: string; computeYoy?: boolean }[]>({
+    getFredData: builder.query<
+      Record<string, IFredObservation[]>,
+      { seriesId: string; computeYoy?: boolean }[]
+    >({
       query: (seriesList) => ({
         url: "fred-data",
         method: "POST",
@@ -109,17 +116,30 @@ export const springbootApi = createApi({
           params,
           timeout: 0,
         });
-        if (result.error && (result.error as { status?: number }).status === 404) {
+        if (
+          result.error &&
+          (result.error as { status?: number }).status === 404
+        ) {
           const fallback = await fetchWithBQ({
             url: "admin/load",
             method: "GET",
             timeout: 0,
           });
           if (fallback.error) return { error: fallback.error };
-          return { data: typeof fallback.data === "string" ? fallback.data : JSON.stringify(fallback.data) };
+          return {
+            data:
+              typeof fallback.data === "string"
+                ? fallback.data
+                : JSON.stringify(fallback.data),
+          };
         }
         if (result.error) return { error: result.error };
-        return { data: typeof result.data === "string" ? result.data : JSON.stringify(result.data) };
+        return {
+          data:
+            typeof result.data === "string"
+              ? result.data
+              : JSON.stringify(result.data),
+        };
       },
     }),
     adminSyncFrames: builder.mutation<string, void>({
@@ -140,13 +160,16 @@ export const springbootApi = createApi({
       transformResponse: (response: unknown) =>
         typeof response === "string" ? response : JSON.stringify(response),
     }),
-    adminAdjustPrices: builder.mutation<string, {
-      ticker?: string;
-      force?: boolean;
-      etfOnly?: boolean;
-      equityOnly?: boolean;
-      minConfidence?: number;
-    }>({
+    adminAdjustPrices: builder.mutation<
+      string,
+      {
+        ticker?: string;
+        force?: boolean;
+        etfOnly?: boolean;
+        equityOnly?: boolean;
+        minConfidence?: number;
+      }
+    >({
       query: (arg) => {
         const params: Record<string, string> = {};
         if (arg.ticker) params.ticker = arg.ticker;
@@ -156,7 +179,12 @@ export const springbootApi = createApi({
         if (arg.minConfidence !== undefined && arg.minConfidence >= 0) {
           params.minConfidence = String(arg.minConfidence);
         }
-        return { url: "admin/adjust-prices", method: "GET", params, timeout: 0 };
+        return {
+          url: "admin/adjust-prices",
+          method: "GET",
+          params,
+          timeout: 0,
+        };
       },
       transformResponse: (response: unknown) =>
         typeof response === "string" ? response : JSON.stringify(response),
@@ -165,12 +193,20 @@ export const springbootApi = createApi({
       query: ({ ticker }) => {
         const params: Record<string, string> = {};
         if (ticker) params.ticker = ticker;
-        return { url: "admin/summarize-filings", method: "GET", params, timeout: 0 };
+        return {
+          url: "admin/summarize-filings",
+          method: "GET",
+          params,
+          timeout: 0,
+        };
       },
       transformResponse: (response: unknown) =>
         typeof response === "string" ? response : JSON.stringify(response),
     }),
-    adminRefreshIndexMetrics: builder.mutation<string, { scope?: string; ticker?: string }>({
+    adminRefreshIndexMetrics: builder.mutation<
+      string,
+      { scope?: string; ticker?: string }
+    >({
       query: ({ scope, ticker }) => {
         const params: Record<string, string> = {};
         if (ticker) {
@@ -178,17 +214,30 @@ export const springbootApi = createApi({
         } else if (scope && scope !== "russell1000") {
           params.scope = scope;
         }
-        return { url: "admin/indexes/refresh-stocks", method: "POST", params, timeout: 0 };
+        return {
+          url: "admin/indexes/refresh-stocks",
+          method: "POST",
+          params,
+          timeout: 0,
+        };
       },
       transformResponse: (response: unknown) =>
         typeof response === "string" ? response : JSON.stringify(response),
     }),
-    adminRebuildIndexes: builder.mutation<string, { code?: string; refreshMetrics?: boolean }>({
+    adminRebuildIndexes: builder.mutation<
+      string,
+      { code?: string; refreshMetrics?: boolean }
+    >({
       query: ({ code, refreshMetrics }) => {
         const params: Record<string, string> = {};
         if (refreshMetrics) params.refreshMetrics = "true";
         if (code) params.code = code;
-        return { url: "admin/indexes/rebuild", method: "POST", params, timeout: 0 };
+        return {
+          url: "admin/indexes/rebuild",
+          method: "POST",
+          params,
+          timeout: 0,
+        };
       },
       transformResponse: (response: unknown) =>
         typeof response === "string" ? response : JSON.stringify(response),
@@ -216,4 +265,3 @@ export const {
   useAdminRefreshIndexMetricsMutation,
   useAdminRebuildIndexesMutation,
 } = springbootApi;
-

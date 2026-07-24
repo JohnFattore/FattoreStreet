@@ -12,7 +12,11 @@ interface ITicketFormInput {
 }
 
 const schema = yup.object({
-  title: yup.string().trim().required("Title is required").max(255, "Title must be 255 characters or less"),
+  title: yup
+    .string()
+    .trim()
+    .required("Title is required")
+    .max(255, "Title must be 255 characters or less"),
   description: yup.string().trim().required("Description is required"),
 });
 
@@ -45,7 +49,9 @@ export default function TicketForm() {
       {isSubmitSuccessful && !error ? (
         <Alert variant="success">Thanks, your ticket was submitted.</Alert>
       ) : null}
-      {error ? <Alert variant="danger">{getApiErrorMessages(error).join(" ")}</Alert> : null}
+      {error ? (
+        <Alert variant="danger">{getApiErrorMessages(error).join(" ")}</Alert>
+      ) : null}
       <Form onSubmit={handleSubmit(onSubmit)}>
         <Form.Group className="mb-3" controlId="ticketTitle">
           <Form.Label>Title</Form.Label>

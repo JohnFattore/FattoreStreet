@@ -34,7 +34,10 @@ const formatRatio = (value: number | null): string => {
   return value.toFixed(6);
 };
 
-const buildRows = (mySplits: ISplitRow[], yfSplits: ISplitRow[]): ComparisonRow[] => {
+const buildRows = (
+  mySplits: ISplitRow[],
+  yfSplits: ISplitRow[],
+): ComparisonRow[] => {
   const usedYfIndexes = new Set<number>();
   const rows: ComparisonRow[] = [];
 
@@ -98,15 +101,28 @@ const buildRows = (mySplits: ISplitRow[], yfSplits: ISplitRow[]): ComparisonRow[
     }
   }
 
-  rows.sort((a, b) => (b.myDate ?? b.yfDate ?? "").localeCompare(a.myDate ?? a.yfDate ?? ""));
+  rows.sort((a, b) =>
+    (b.myDate ?? b.yfDate ?? "").localeCompare(a.myDate ?? a.yfDate ?? ""),
+  );
   return rows;
 };
 
 export default function SplitComparison({ ticker }: { ticker: string }) {
-  const { data: myData, isLoading: myLoading, error: myError } = useGetIexSplitsQuery(ticker);
-  const { data: yfData, isLoading: yfLoading, error: yfError } = useGetAssetSplitsQuery(ticker);
+  const {
+    data: myData,
+    isLoading: myLoading,
+    error: myError,
+  } = useGetIexSplitsQuery(ticker);
+  const {
+    data: yfData,
+    isLoading: yfLoading,
+    error: yfError,
+  } = useGetAssetSplitsQuery(ticker);
 
-  const rows = useMemo(() => buildRows(myData?.splits ?? [], yfData ?? []), [myData, yfData]);
+  const rows = useMemo(
+    () => buildRows(myData?.splits ?? [], yfData ?? []),
+    [myData, yfData],
+  );
   const isLoading = myLoading || yfLoading;
   const hasError = myError || yfError;
 
@@ -123,7 +139,9 @@ export default function SplitComparison({ ticker }: { ticker: string }) {
                 <Spinner animation="border" />
               </div>
             ) : hasError ? (
-              <Alert variant="danger">Error loading split comparison data.</Alert>
+              <Alert variant="danger">
+                Error loading split comparison data.
+              </Alert>
             ) : (
               <Table hover size="sm" responsive>
                 <thead>
@@ -138,7 +156,8 @@ export default function SplitComparison({ ticker }: { ticker: string }) {
                 </thead>
                 <tbody>
                   {rows.map((row, idx) => {
-                    const isMismatch = row.diff != null && Math.abs(row.diff) > 0.0001;
+                    const isMismatch =
+                      row.diff != null && Math.abs(row.diff) > 0.0001;
                     return (
                       <tr
                         key={`${row.myDate ?? "none"}-${row.yfDate ?? "none"}-${idx}`}

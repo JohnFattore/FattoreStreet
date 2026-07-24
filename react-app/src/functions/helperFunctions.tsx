@@ -1,13 +1,13 @@
 const friendlyFieldName = (field: string) => {
   if (field === "non_field_errors" || field === "detail") return "Error";
   return field
-    .replace(/_/g, " ")         // snake_case to spaced words
-    .replace(/\b\w/g, c => c.toUpperCase()); // capitalize each word
+    .replace(/_/g, " ") // snake_case to spaced words
+    .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
 };
 
 /** Extract error messages from an RTK Query error (which has a `.data` property). */
 export function getApiErrorMessages(error: unknown): string[] {
-  if (error && typeof error === 'object' && 'data' in error) {
+  if (error && typeof error === "object" && "data" in error) {
     return getErrorMessages((error as { data: unknown }).data);
   }
   return getErrorMessages(error);
@@ -33,10 +33,9 @@ export function getErrorMessages(errorData: unknown): string[] {
   return ["An unexpected error occurred."];
 }
 
-
 export function formatString(
   value: string | number | undefined,
-  type: string
+  type: string,
 ): string {
   if (typeof value === "undefined") {
     return "undefined";

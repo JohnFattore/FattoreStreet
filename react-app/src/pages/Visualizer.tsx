@@ -11,7 +11,10 @@ export default function Visualizer() {
   const { access } = useSelector((state: RootState) => state.user);
 
   // Fetch initial assets
-  const { data: assetsRaw, isLoading: assetsLoading } = useGetAssetsQuery(undefined, { skip: !access });
+  const { data: assetsRaw, isLoading: assetsLoading } = useGetAssetsQuery(
+    undefined,
+    { skip: !access },
+  );
   const assets = assetsRaw ?? [];
 
   // Derived tickers to trigger asset-info fetch

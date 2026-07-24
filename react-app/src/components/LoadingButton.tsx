@@ -1,5 +1,11 @@
 import { Button, Spinner } from "react-bootstrap";
-export default function LoadingButton({label, loading}: {label: string; loading: boolean}) {
+export default function LoadingButton({
+  label,
+  loading,
+}: {
+  label: string;
+  loading: boolean;
+}) {
   return (
     <Button type="submit" disabled={loading}>
       {loading ? (

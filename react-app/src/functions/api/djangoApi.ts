@@ -154,8 +154,17 @@ const toRestaurant = (row: IRawRestaurantRow): IRestaurant => ({
 
 export const djangoApi = createApi({
   reducerPath: "djangoApi",
-  baseQuery: axiosBaseQuery({ defaultBaseUrl: import.meta.env.VITE_APP_DJANGO_URL }),
-  tagTypes: ["Assets", "Accounts", "Restaurants", "RestaurantRecommendations", "Reviews", "Chatbot"],
+  baseQuery: axiosBaseQuery({
+    defaultBaseUrl: import.meta.env.VITE_APP_DJANGO_URL,
+  }),
+  tagTypes: [
+    "Assets",
+    "Accounts",
+    "Restaurants",
+    "RestaurantRecommendations",
+    "Reviews",
+    "Chatbot",
+  ],
   endpoints: (builder) => ({
     login: builder.mutation<
       { username: string; access: string; refresh: string },
@@ -170,7 +179,7 @@ export const djangoApi = createApi({
       transformResponse: (
         response: { access: string; refresh: string },
         _meta,
-        arg
+        arg,
       ) => ({
         username: arg.username,
         access: response.access,
@@ -196,7 +205,10 @@ export const djangoApi = createApi({
         withAuth: false,
       }),
     }),
-    getRestaurants: builder.query<IRestaurant[], { state: string; city: string }>({
+    getRestaurants: builder.query<
+      IRestaurant[],
+      { state: string; city: string }
+    >({
       query: ({ state, city }) => ({
         url: "restaurants/api/restaurant-list-create/",
         method: "GET",
@@ -234,7 +246,10 @@ export const djangoApi = createApi({
         })),
       providesTags: [{ type: "Reviews", id: "LIST" }],
     }),
-    postReview: builder.mutation<void, { restaurant: number; rating: number; comment: string }>({
+    postReview: builder.mutation<
+      void,
+      { restaurant: number; rating: number; comment: string }
+    >({
       query: (review) => ({
         url: "restaurants/api/review-create/",
         method: "POST",
@@ -257,8 +272,16 @@ export const djangoApi = createApi({
       }),
       transformResponse: (response: IRawChatInteraction[]): IChatMessage[] =>
         response.flatMap((interaction) => [
-          { role: "user", text: interaction.input_text, timestamp: interaction.timestamp },
-          { role: "model", text: interaction.output_text, timestamp: interaction.timestamp },
+          {
+            role: "user",
+            text: interaction.input_text,
+            timestamp: interaction.timestamp,
+          },
+          {
+            role: "model",
+            text: interaction.output_text,
+            timestamp: interaction.timestamp,
+          },
         ]),
       providesTags: ["Chatbot"],
     }),
@@ -277,14 +300,14 @@ export const djangoApi = createApi({
         const patchResult = dispatch(
           djangoApi.util.updateQueryData("getChatbot", undefined, (draft) => {
             draft.push({ role: "user", text: message });
-          })
+          }),
         );
         try {
           const { data } = await queryFulfilled;
           dispatch(
             djangoApi.util.updateQueryData("getChatbot", undefined, (draft) => {
               draft.push(data);
-            })
+            }),
           );
         } catch {
           patchResult.undo();
@@ -313,21 +336,30 @@ export const djangoApi = createApi({
       },
       providesTags: [{ type: "Assets", id: "LIST" }],
     }),
-    getAccounts: builder.query<{ id: number; name: string; account_type: string }[], void>({
+    getAccounts: builder.query<
+      { id: number; name: string; account_type: string }[],
+      void
+    >({
       query: () => ({
         url: "portfolio/api/accounts/",
         method: "GET",
       }),
       providesTags: [{ type: "Accounts", id: "LIST" }],
     }),
-    getAccount: builder.query<{ id: number; name: string; account_type: string }, number>({
+    getAccount: builder.query<
+      { id: number; name: string; account_type: string },
+      number
+    >({
       query: (id) => ({
         url: `portfolio/api/accounts/${id}/`,
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Accounts", id }],
     }),
-    postNewAsset: builder.mutation<IAsset, { ticker: string; shares: number; buy_date: string; account_id?: number }>({
+    postNewAsset: builder.mutation<
+      IAsset,
+      { ticker: string; shares: number; buy_date: string; account_id?: number }
+    >({
       query: (newAsset) => ({
         url: "portfolio/api/assets/",
         method: "POST",
@@ -335,7 +367,10 @@ export const djangoApi = createApi({
       }),
       invalidatesTags: [{ type: "Assets", id: "LIST" }],
     }),
-    createAccount: builder.mutation<{ id: number; name: string; account_type: string }, { name: string; account_type: string }>({
+    createAccount: builder.mutation<
+      { id: number; name: string; account_type: string },
+      { name: string; account_type: string }
+    >({
       query: (newAccount) => ({
         url: "portfolio/api/accounts/",
         method: "POST",
@@ -352,7 +387,13 @@ export const djangoApi = createApi({
     }),
     getBlogPosts: builder.query<
       IPaginatedResponse<IRawBlogPostListItem>,
-      { search?: string; category?: string; tag?: string; page?: number; page_size?: number } | void
+      {
+        search?: string;
+        category?: string;
+        tag?: string;
+        page?: number;
+        page_size?: number;
+      } | void
     >({
       query: (params) => ({
         url: "blog/api/posts/",
@@ -375,7 +416,10 @@ export const djangoApi = createApi({
       }),
       invalidatesTags: [{ type: "Assets", id: "LIST" }],
     }),
-    patchAsset: builder.mutation<IAsset, { id: number; [key: string]: unknown }>({
+    patchAsset: builder.mutation<
+      IAsset,
+      { id: number; [key: string]: unknown }
+    >({
       query: ({ id, ...patch }) => ({
         url: `portfolio/api/assets/${id}/`,
         method: "PATCH",
@@ -383,7 +427,10 @@ export const djangoApi = createApi({
       }),
       invalidatesTags: [{ type: "Assets", id: "LIST" }],
     }),
-    getAssetInfos: builder.query<Record<string, IEquityInfo | IETFInfo>, string[]>({
+    getAssetInfos: builder.query<
+      Record<string, IEquityInfo | IETFInfo>,
+      string[]
+    >({
       query: (tickers) => ({
         url: "portfolio/api/asset-info/",
         method: "GET",
@@ -391,9 +438,11 @@ export const djangoApi = createApi({
         withAuth: false,
       }),
       transformResponse: (
-        response: IRawAssetInfoItem[] | { data: IRawAssetInfoItem[] }
+        response: IRawAssetInfoItem[] | { data: IRawAssetInfoItem[] },
       ): Record<string, IEquityInfo | IETFInfo> => {
-        const items: IRawAssetInfoItem[] = Array.isArray(response) ? response : response.data;
+        const items: IRawAssetInfoItem[] = Array.isArray(response)
+          ? response
+          : response.data;
         const result: Record<string, IEquityInfo | IETFInfo> = {};
         items.forEach((item) => {
           if (item.type === "EQUITY") {
@@ -441,7 +490,9 @@ export const djangoApi = createApi({
               dividendYield: item.dividend_yield,
             };
           } else {
-            throw new Error(`Unknown type '${item.type}' in asset-info response`);
+            throw new Error(
+              `Unknown type '${item.type}' in asset-info response`,
+            );
           }
         });
         return result;
@@ -519,4 +570,3 @@ export const {
   useGetChatbotQuery,
   usePostChatbotMutation,
 } = djangoApi;
-

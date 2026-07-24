@@ -26,7 +26,15 @@ const formatValue = (value: number) =>
  * Single-line usage:  <GenericLineChart data={[...]} label="Title" strokeColor="#007bff" />
  * Multi-line overlay: <GenericLineChart data={mergedData} label="Title" lines={[{ dataKey: "a", color: "#007bff", name: "A" }, ...]} />
  */
-export default function GenericLineChart({ data, label, description, latestReading, strokeColor = "#8884d8", height = 300, lines }: {
+export default function GenericLineChart({
+  data,
+  label,
+  description,
+  latestReading,
+  strokeColor = "#8884d8",
+  height = 300,
+  lines,
+}: {
   data: object[] | null | undefined;
   label: string;
   description: string;
@@ -48,7 +56,9 @@ export default function GenericLineChart({ data, label, description, latestReadi
           return v != null ? `${l.name}: ${formatValue(Number(v))}` : null;
         })
         .filter(Boolean);
-      return parts.length > 0 ? `${parts.join(" · ")} (${formatDate(date)})` : null;
+      return parts.length > 0
+        ? `${parts.join(" · ")} (${formatDate(date)})`
+        : null;
     }
 
     const v = last.value;
@@ -68,31 +78,36 @@ export default function GenericLineChart({ data, label, description, latestReadi
   return (
     <Card>
       <Card.Body>
-        <Card.Title>
-          {label}
-        </Card.Title>
+        <Card.Title>{label}</Card.Title>
         <div style={{ width: "100%", height }}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+            <LineChart
+              data={data}
+              margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#f0f0f0"
+              />
               <XAxis
                 dataKey="date"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#999', fontSize: 12 }}
+                tick={{ fill: "#999", fontSize: 12 }}
                 minTickGap={30}
               />
               <YAxis
                 domain={["auto", "auto"]}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#999', fontSize: 12 }}
+                tick={{ fill: "#999", fontSize: 12 }}
               />
               <Tooltip
                 contentStyle={{
-                  borderRadius: '10px',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  borderRadius: "10px",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                 }}
               />
               {lines ? (
@@ -126,7 +141,7 @@ export default function GenericLineChart({ data, label, description, latestReadi
         </div>
         {description && (
           <div>
-            <p style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
+            <p style={{ fontSize: "0.9rem", lineHeight: "1.6" }}>
               {description}
             </p>
           </div>
