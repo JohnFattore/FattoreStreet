@@ -33,6 +33,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Lint styles (Stylelint)
+        run: npm run lint:styles
+
+      - name: Format check (Prettier)
+        run: npm run format:check
+
       - name: Build (TypeScript + Vite)
         run: npm run build
 

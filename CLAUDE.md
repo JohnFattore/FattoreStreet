@@ -21,6 +21,8 @@ npm run dev          # Dev server (port 5173)
 npm run staging      # Staging mode
 npm run build        # TypeScript check + Vite build
 npm run lint         # ESLint (max-warnings=0, strict)
+npm run lint:styles  # Stylelint (css/scss, standard-scss config)
+npm run format:check # Prettier check (CI); npm run format rewrites in place
 npx vitest --run     # Run tests once
 npm run test         # Watch mode with UI + coverage
 npx vitest run --reporter=verbose  # Verbose test output
@@ -49,7 +51,7 @@ mvn clean test                                   # Clean + test
 ```
 
 ### CI
-GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`: React lint + build + tests, Django tests, Spring Boot tests, and a detect-secrets scan (`pre-commit run detect-secrets --all-files`, config in `.pre-commit-config.yaml`). All four must pass before merge. `docker-build.yml` builds the nginx/django/springboot images (build-only on PRs; pushes to `main` publish to GHCR tagged `latest` + commit SHA).
+GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`: React lint (ESLint) + style lint (Stylelint) + format check (Prettier) + build + tests, Django tests, Spring Boot tests, and a detect-secrets scan (`pre-commit run detect-secrets --all-files`, config in `.pre-commit-config.yaml`). All four must pass before merge. `docker-build.yml` builds the nginx/django/springboot images (build-only on PRs; pushes to `main` publish to GHCR tagged `latest` + commit SHA).
 
 ## Architecture
 
