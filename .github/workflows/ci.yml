@@ -81,7 +81,7 @@ jobs:
         run: uv run python manage.py test
 
   springboot:
-    name: Spring Boot (lint, test)
+    name: Spring Boot (lint, test, verify)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -105,8 +105,23 @@ jobs:
       - name: Lint (Checkstyle)
         run: ./mvnw -B -ntp checkstyle:check
 
-      - name: Run tests
-        run: ./mvnw -B -ntp test
+      # verify, not test: `jacoco:check` binds to verify, so the coverage floor
+      # in pom.xml was never actually enforced by CI before this. verify also
+      # runs spring-boot:repackage, so packaging failures surface here instead
+      # of only in docker-build.yml.
+      - name: Build, test & verify
+        run: ./mvnw -B -ntp verify
+
+      # always(): the job stops at the first failed step, so without this a
+      # coverage failure would report the threshold but not the report showing
+      # which package dropped.
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: springboot-jacoco
+          path: springboot/target/site/jacoco/
+          retention-days: 7
 
   secrets:
     name: Secret scan (detect-secrets)
