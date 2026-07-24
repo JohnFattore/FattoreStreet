@@ -33,6 +33,14 @@ Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
 - Use `Map.ofEntries()` and `List.of()` for immutable collections
 - camelCase for fields and methods; service classes handle the business logic, controllers stay thin
 
+## Formatting
+
+- 4-space indent, spaces only, 120-column soft limit (`/.editorconfig`)
+- Run `./mvnw spotless:apply` before committing; CI runs `spotless:check` and fails on drift
+- Import order: `java`, `javax`, `jakarta`, `org`, `com`, other, then statics. Spotless enforces this, so don't hand-sort
+- Spotless never reflows code, so it will not touch line wrapping or brace placement in your diff
+- Never pass `-Dquality.skip=true` locally; it exists only for the Docker build stage
+
 ## SEC EDGAR Patterns
 
 - `EdgarService` is the core service; it maps SEC XBRL tags to normalized field names via `FIELD_TO_TAGS`
