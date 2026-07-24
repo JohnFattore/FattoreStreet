@@ -5,3 +5,6 @@
 #
 # Only add commits that are PURELY mechanical reformatting with no logic
 # change. One full 40-character SHA per line.
+
+# apply spotless:apply across springboot (imports, tabs->spaces, trailing WS)
+cd741cb11b76be11789a7f3d559c755d89d14291
