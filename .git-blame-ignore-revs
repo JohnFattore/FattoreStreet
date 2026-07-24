@@ -1,0 +1,7 @@
+# Bulk-reformat commits whose authorship is noise in `git blame`.
+#
+# GitHub honours this file automatically. To use it locally:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Only add commits that are PURELY mechanical reformatting with no logic
+# change. One full 40-character SHA per line.

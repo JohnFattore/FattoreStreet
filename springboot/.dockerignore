@@ -1,0 +1,16 @@
+# The springboot image builds with `context: springboot` (docker-build.yml), so
+# the repo-root .dockerignore does not apply here -- this file is the filter for
+# that context, same as django/.dockerignore is for django's.
+#
+# The build stage only needs pom.xml and src/. Everything below is either build
+# output, secrets, or quality-gate config that the stage deliberately skips via
+# -Dquality.skip=true.
+target/
+.git/
+.gitignore
+.mvn/wrapper/maven-wrapper.jar
+config/
+deploy/
+*.md
+.env
+.env.*
