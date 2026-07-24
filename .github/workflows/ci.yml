@@ -81,7 +81,7 @@ jobs:
         run: uv run python manage.py test
 
   springboot:
-    name: Spring Boot tests
+    name: Spring Boot (lint, test)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -96,8 +96,14 @@ jobs:
           java-version: "17"
           cache: maven
 
+      # Fast gate first: fails in seconds, before the 564-test suite. Runs as a
+      # standalone goal (not just via the validate binding) so a formatting
+      # failure is its own red step rather than buried in the test job's log.
+      - name: Format check (Spotless)
+        run: ./mvnw -B -ntp spotless:check
+
       - name: Run tests
-        run: mvn -B test
+        run: ./mvnw -B -ntp test
 
   secrets:
     name: Secret scan (detect-secrets)

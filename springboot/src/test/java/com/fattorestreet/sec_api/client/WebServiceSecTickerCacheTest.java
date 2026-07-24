@@ -48,4 +48,3 @@ class WebServiceSecTickerCacheTest {
                 .exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
     }
 }
-

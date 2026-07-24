@@ -1,13 +1,13 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.model.Listing;
-import com.fattorestreet.sec_api.util.SecTextUtils;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
+
+import org.springframework.stereotype.Component;
+
+import com.fattorestreet.sec_api.model.Listing;
+import com.fattorestreet.sec_api.util.SecTextUtils;
 
 @Component
 public class EtfIdentityEvaluator {

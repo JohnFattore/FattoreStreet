@@ -1,5 +1,13 @@
 package com.fattorestreet.sec_api.index;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+import org.springframework.transaction.annotation.Transactional;
+
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.IndexMember;
 import com.fattorestreet.sec_api.model.Listing;
@@ -8,13 +16,6 @@ import com.fattorestreet.sec_api.model.MarketIndex;
 import com.fattorestreet.sec_api.repository.IndexMemberRepository;
 import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
 import com.fattorestreet.sec_api.repository.MarketIndexRepository;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * Rebuilds a Russell-style cap-ranked index: top listings by

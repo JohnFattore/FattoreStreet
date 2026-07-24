@@ -1,7 +1,9 @@
 package com.fattorestreet.sec_api.repository;
 
 import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.FilingSummary;
 

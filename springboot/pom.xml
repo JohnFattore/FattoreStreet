@@ -41,6 +41,7 @@
 		     war/resources/shade, so every quality plugin needs an explicit
 		     version here. -->
 		<enforcer.version>3.6.2</enforcer.version>
+		<spotless.version>2.46.1</spotless.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -141,6 +142,48 @@
 							</rules>
 							<fail>true</fail>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>${spotless.version}</version>
+				<!-- Config lives at plugin level, not inside <execution>, because CI
+				     invokes `spotless:check` as a standalone goal and standalone goal
+				     invocations do not inherit execution-scoped <configuration>. -->
+				<configuration>
+					<skip>${quality.skip}</skip>
+					<java>
+						<includes>
+							<include>src/main/java/**/*.java</include>
+							<include>src/test/java/**/*.java</include>
+						</includes>
+						<!-- Deliberately NO googleJavaFormat/palantirJavaFormat: this step
+						     set never reflows code, so brace placement and line wrapping
+						     stay exactly as written. Adopting a real formatter is a
+						     separate, whole-tree decision. -->
+						<toggleOffOn />
+						<removeUnusedImports />
+						<importOrder>
+							<!-- trailing empty group = everything else; \# = statics last -->
+							<order>java,javax,jakarta,org,com,,\#</order>
+						</importOrder>
+						<trimTrailingWhitespace />
+						<endWithNewline />
+						<indent>
+							<spaces>true</spaces>
+							<spacesPerTab>4</spacesPerTab>
+						</indent>
+					</java>
+				</configuration>
+				<executions>
+					<execution>
+						<id>spotless-check</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

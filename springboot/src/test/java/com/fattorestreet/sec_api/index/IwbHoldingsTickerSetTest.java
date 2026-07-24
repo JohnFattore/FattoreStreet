@@ -1,10 +1,10 @@
 package com.fattorestreet.sec_api.index;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.core.io.DefaultResourceLoader;
-
 import java.io.IOException;
 import java.util.Set;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.core.io.DefaultResourceLoader;
 
 import static org.junit.jupiter.api.Assertions.*;
 

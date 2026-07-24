@@ -1,6 +1,7 @@
 package com.fattorestreet.sec_api.listing;
 
 import org.springframework.stereotype.Service;
+
 import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.ListingRepository;
 

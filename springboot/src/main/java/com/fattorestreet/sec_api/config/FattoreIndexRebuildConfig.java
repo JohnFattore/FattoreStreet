@@ -1,13 +1,14 @@
 package com.fattorestreet.sec_api.config;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
 import com.fattorestreet.sec_api.index.FattoreIndexCodes;
 import com.fattorestreet.sec_api.index.FattoreIndexRebuildService;
 import com.fattorestreet.sec_api.repository.IndexMemberRepository;
 import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
 import com.fattorestreet.sec_api.repository.MarketIndexRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class FattoreIndexRebuildConfig {

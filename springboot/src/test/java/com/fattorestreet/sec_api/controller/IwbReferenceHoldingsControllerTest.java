@@ -1,8 +1,8 @@
 package com.fattorestreet.sec_api.controller;
 
-import com.fattorestreet.sec_api.config.SecurityConfig;
-import com.fattorestreet.sec_api.index.IwbHoldingsCsv;
-import com.fattorestreet.sec_api.index.IwbHoldingsTickerSet;
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -11,8 +11,9 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.util.List;
+import com.fattorestreet.sec_api.config.SecurityConfig;
+import com.fattorestreet.sec_api.index.IwbHoldingsCsv;
+import com.fattorestreet.sec_api.index.IwbHoldingsTickerSet;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;

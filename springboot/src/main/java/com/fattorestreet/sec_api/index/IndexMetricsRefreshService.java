@@ -1,8 +1,19 @@
 package com.fattorestreet.sec_api.index;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
 import com.fattorestreet.sec_api.client.WebService;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.DailyPrice;
 import com.fattorestreet.sec_api.model.Listing;
@@ -10,18 +21,9 @@ import com.fattorestreet.sec_api.model.ListingIndexMetrics;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
 import com.fattorestreet.sec_api.repository.ListingRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Refreshes {@link ListingIndexMetrics} from IEX-derived {@link DailyPrice} rows and SEC companyfacts.

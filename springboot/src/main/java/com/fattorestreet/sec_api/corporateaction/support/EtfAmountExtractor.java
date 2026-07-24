@@ -1,13 +1,14 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.util.SecNumberUtils;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.springframework.stereotype.Component;
+
+import com.fattorestreet.sec_api.util.SecNumberUtils;
 
 @Component
 public class EtfAmountExtractor {

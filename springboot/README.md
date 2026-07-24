@@ -319,6 +319,25 @@ mvn test
 
 Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` import in `application.properties` never leaks real secrets into test contexts. JaCoCo runs with the suite: the HTML report lands in `target/site/jacoco/index.html`, and `mvn verify` enforces a minimum line-coverage floor (`jacoco:check`). Repository tests use `@DataJpaTest` against the in-memory H2 database (Boot 4 artifact `spring-boot-data-jpa-test`).
 
+### Code Quality
+
+```bash
+./mvnw spotless:apply    # auto-fix formatting (imports, whitespace, indentation)
+./mvnw spotless:check    # what CI checks
+```
+
+| Gate | Phase | Config |
+|---|---|---|
+| Maven enforcer (Maven 3.9+, Java 17+) | `validate` | `pom.xml` |
+| Spotless | `validate` | `pom.xml` (inline) |
+| JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco:check`) |
+
+Formatting is 4-space indent with a 120-column soft limit (see `/.editorconfig`). Spotless normalizes imports, indentation and trailing whitespace but **never reflows code**: brace placement and line wrapping stay as written, so `spotless:apply` will not churn unrelated lines in your diff.
+
+Import order is `java`, `javax`, `jakarta`, `org`, `com`, everything else, then static imports.
+
+Every gate shares one kill switch, `-Dquality.skip=true`. It exists solely so `Dockerfile` can build the jar without the repo's config files in its build context. Don't use it locally.
+
 ## Documentation
 
 - [API Reference](../docs/API_REFERENCE.md) (covers all endpoints for Django and Spring Boot)

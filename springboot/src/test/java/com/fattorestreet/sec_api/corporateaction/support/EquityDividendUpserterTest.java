@@ -1,17 +1,18 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
-import com.fattorestreet.sec_api.model.CorporateAction;
-import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
-import com.fattorestreet.sec_api.repository.CorporateActionRepository;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
-import java.util.List;
+import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
+import com.fattorestreet.sec_api.model.CorporateAction;
+import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
+import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;

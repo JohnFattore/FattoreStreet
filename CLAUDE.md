@@ -51,7 +51,7 @@ mvn clean test                                   # Clean + test
 ```
 
 ### CI
-GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`: React lint (ESLint) + style lint (Stylelint) + format check (Prettier) + Sass compile + build + tests, Django tests, Spring Boot tests, and a detect-secrets scan (`pre-commit run detect-secrets --all-files`, config in `.pre-commit-config.yaml`). All four must pass before merge. `docker-build.yml` builds the nginx/django/springboot images (build-only on PRs; pushes to `main` publish to GHCR tagged `latest` + commit SHA). `claude-pr-review.yml` is event-driven: it opens a `Claude Review Verdict` check run as pending on PR events, then completes it when the Claude Code review routine posts its verdict comment. Require that context (not the job names) if you turn on branch protection.
+GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`: React lint (ESLint) + style lint (Stylelint) + format check (Prettier) + Sass compile + build + tests, Django tests, Spring Boot format check (Spotless) + tests, and a detect-secrets scan (`pre-commit run detect-secrets --all-files`, config in `.pre-commit-config.yaml`). All four must pass before merge. `docker-build.yml` builds the nginx/django/springboot images (build-only on PRs; pushes to `main` publish to GHCR tagged `latest` + commit SHA).
 
 ## Architecture
 

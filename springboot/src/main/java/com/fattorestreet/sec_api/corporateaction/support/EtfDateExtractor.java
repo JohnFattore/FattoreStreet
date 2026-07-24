@@ -1,19 +1,19 @@
 package com.fattorestreet.sec_api.corporateaction.support;
 
-import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
-import com.fattorestreet.sec_api.util.SecDateParsingUtils;
-import com.fattorestreet.sec_api.util.SecTextUtils;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.springframework.stereotype.Component;
+
+import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
+import com.fattorestreet.sec_api.util.SecDateParsingUtils;
+import com.fattorestreet.sec_api.util.SecTextUtils;
 
 @Component
 public class EtfDateExtractor {

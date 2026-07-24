@@ -1,7 +1,22 @@
 package com.fattorestreet.sec_api.controller;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.*;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.fattorestreet.sec_api.config.SecurityConfig;
 import com.fattorestreet.sec_api.economic.FredService;
 import com.fattorestreet.sec_api.economic.FredService.FredObservation;
+import com.fattorestreet.sec_api.fundamentals.FinancialService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.StockRow;
@@ -14,24 +29,10 @@ import com.fattorestreet.sec_api.model.MarketIndex;
 import com.fattorestreet.sec_api.model.Quarter;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
+import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
 import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 import com.fattorestreet.sec_api.repository.QuarterRepository;
-import com.fattorestreet.sec_api.fundamentals.FinancialService;
-import com.fattorestreet.sec_api.repository.DailyPriceRepository;
-import org.junit.jupiter.api.Test;
-import com.fattorestreet.sec_api.config.SecurityConfig;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;

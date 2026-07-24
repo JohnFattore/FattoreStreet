@@ -1,18 +1,15 @@
 package com.fattorestreet.sec_api.filing;
 
-import com.fattorestreet.sec_api.model.Asset;
-import com.fattorestreet.sec_api.model.FilingSummary;
-import com.fattorestreet.sec_api.model.Listing;
-import com.fattorestreet.sec_api.repository.AssetRepository;
-import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
+import java.util.Collections;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
-import java.util.List;
+import com.fattorestreet.sec_api.repository.AssetRepository;
+import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;

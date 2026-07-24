@@ -1,7 +1,8 @@
 package com.fattorestreet.sec_api.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.*;
 
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
@@ -46,7 +47,7 @@ public class Listing {
 
     @ManyToOne
     @JoinColumn(name = "asset_id")
-    private Asset asset;    
+    private Asset asset;
 
     // --- getters and setters ---
     public Long getId() { return id; }

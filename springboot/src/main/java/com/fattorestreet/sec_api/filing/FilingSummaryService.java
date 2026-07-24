@@ -14,9 +14,9 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.FilingSummary;
-import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
