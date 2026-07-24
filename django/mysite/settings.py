@@ -91,7 +91,7 @@ elif (env("DATABASE") == 'postgresLocal'):
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'postgres',
             'USER': 'postgres',
-            'PASSWORD': 'postgres',
+            'PASSWORD': 'postgres',  # pragma: allowlist secret
             'HOST': 'localhost',
             'PORT': '5432',  # Default PostgreSQL port
         }

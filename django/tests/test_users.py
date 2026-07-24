@@ -19,19 +19,19 @@ class UserTests(BaseAPITestCase):
         self.view = UserCreateView.as_view()
 
     def test_create_user(self):
-        data = {'username': 'UnitTest', 'password': 'password', 'email': 'test@test.com'}
+        data = {'username': 'UnitTest', 'password': 'password', 'email': 'test@test.com'}  # pragma: allowlist secret
         request = self.factory.post(self.url, data, format='json')
         response = self.view(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_user_client(self):
-        data = {'username': 'UnitTest', 'password': 'password', 'email': 'test@test.com'}
+        data = {'username': 'UnitTest', 'password': 'password', 'email': 'test@test.com'}  # pragma: allowlist secret
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_duplicate_username(self):
         """BaseAPITestCase already creates 'testuser'; duplicating should fail."""
-        data = {'username': 'testuser', 'password': 'password', 'email': 'dup@test.com'}
+        data = {'username': 'testuser', 'password': 'password', 'email': 'dup@test.com'}  # pragma: allowlist secret
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -41,11 +41,11 @@ class UserTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_register_login_integration(self):
-        register_data = {'username': 'IntegrationTestUser', 'password': 'password', 'email': 'test@test.com'}
+        register_data = {'username': 'IntegrationTestUser', 'password': 'password', 'email': 'test@test.com'}  # pragma: allowlist secret
         response = self.client.post(reverse('users'), register_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        login_data = {'username': 'IntegrationTestUser', 'password': 'password'}
+        login_data = {'username': 'IntegrationTestUser', 'password': 'password'}  # pragma: allowlist secret
         response = self.client.post(reverse('token_obtain_pair'), login_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('access', response.data)
@@ -80,7 +80,7 @@ class UserAdminTests(BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.model_admin = DeactivationFirstUserAdmin(User, AdminSite())
-        self.superuser = User.objects.create_superuser(username="admin", password="adminpassword")
+        self.superuser = User.objects.create_superuser(username="admin", password="adminpassword")  # pragma: allowlist secret
         self.request = self.factory.get("/admin/auth/user/")
         self.request.user = self.superuser
 
