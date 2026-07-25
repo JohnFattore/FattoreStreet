@@ -13,6 +13,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * One-shot entrypoint for running the index load (metrics refresh + cap-ranked rebuilds) and then
  * exiting.
@@ -69,6 +71,12 @@ public class IndexLoadRunner implements ApplicationRunner {
     }
 
     @Override
+    @SuppressFBWarnings(
+            value = "DM_EXIT",
+            justification = "One-shot Fargate task: exiting the JVM with the load's status code is"
+                    + " how the task reports success or failure to EventBridge. SpringApplication.exit"
+                    + " runs shutdown hooks first, so this is the documented Spring Boot pattern for"
+                    + " a task that must propagate an exit code.")
     public void run(ApplicationArguments args) {
         int exitCode = runLoad();
         // Terminate the JVM so the ephemeral task stops. SpringApplication.exit runs shutdown hooks.

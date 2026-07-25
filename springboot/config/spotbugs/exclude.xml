@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs / FindSecBugs exclusions for sec-api.
+
+  Analysis runs at effort=Max, threshold=Low, so the raw finding count is high
+  (268 on the first run). Each block below silences a CATEGORY that is either
+  structurally intentional in this codebase or has an unfavourable fix/benefit
+  ratio. Genuine findings were fixed in code, not listed here.
+
+  Rules for editing this file:
+    - Silence a category here only with a written justification.
+    - Silence a single intentional site with @SuppressFBWarnings in the code,
+      not here.
+    - Never add a bare <Bug pattern="..."/> with no <Package>/<Class> scope
+      unless it genuinely applies everywhere.
+-->
+<FindBugsFilter
+    xmlns="https://github.com/spotbugs/filter/3.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/master/spotbugs/etc/findbugsfilter.xsd">
+
+    <!-- 1. Mutable-object exposure in JPA entities (30 EI_EXPOSE_REP +
+         48 EI_EXPOSE_REP2 across entities and records).
+         Hibernate REQUIRES live references to relationship collections;
+         defensive copying breaks dirty checking and lazy loading. For the
+         records, every one is constructed from List.of()/Map.ofEntries()/
+         stream().toList() and never mutated, and the canonical constructor
+         cannot copy without hand-writing a compact constructor for each.
+         This is how JPA and records work, not a defect. -->
+    <Match>
+        <Or>
+            <Bug pattern="EI_EXPOSE_REP" />
+            <Bug pattern="EI_EXPOSE_REP2" />
+            <Bug pattern="EI_EXPOSE_STATIC_REP2" />
+            <Bug pattern="MS_EXPOSE_REP" />
+        </Or>
+    </Match>
+
+    <!-- 2. FindSecBugs CRLF_INJECTION_LOGS (81 sites).
+         All are SLF4J parameterised logging of SEC-sourced identifiers
+         (tickers, CIKs, accession numbers) into CloudWatch, which is
+         structured storage rather than a text file a human greps. Sanitising
+         81 call sites is not a good trade for the risk.
+         REVISIT if user-supplied strings ever reach the logger. -->
+    <Match>
+        <Bug pattern="CRLF_INJECTION_LOGS" />
+    </Match>
+
+    <!-- 3. FindSecBugs SPRING_ENDPOINT (22 sites).
+         Fires on every @RequestMapping method. It is an inventory aid telling
+         you where your endpoints are, not a finding: having controllers is the
+         point of the service. Authorisation is enforced in SecurityConfig. -->
+    <Match>
+        <Bug pattern="SPRING_ENDPOINT" />
+    </Match>
+
+    <!-- 4. IMPROPER_UNICODE (20 sites).
+         Case-insensitive comparison of SEC tickers, CIKs, XBRL tags and form
+         types, all ASCII by construction. The Turkish-I class of bug needs
+         non-ASCII input, which cannot reach these paths.
+         REVISIT if any of these comparisons start handling user-entered text. -->
+    <Match>
+        <Bug pattern="IMPROPER_UNICODE" />
+    </Match>
+
+    <!-- 5. REC_CATCH_EXCEPTION (14 sites).
+         Every one is in a per-ticker or per-filing loop where the deliberate
+         policy is "log and continue to the next ticker" rather than aborting a
+         multi-hour ingest partway through. Narrowing these would change
+         runtime behaviour for the worse. -->
+    <Match>
+        <Bug pattern="REC_CATCH_EXCEPTION" />
+    </Match>
+
+    <!-- 6. THROWS_METHOD_THROWS_* (11 sites).
+         FindSecBugs style rules objecting to `throws Exception` and to
+         throwing RuntimeException. Both are deliberate here: the SEC client
+         wraps transport failures in RuntimeException so callers in the ingest
+         loops can treat any failure uniformly. Low signal, high churn. -->
+    <Match>
+        <Or>
+            <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION" />
+            <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_THROWABLE" />
+            <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION" />
+        </Or>
+    </Match>
+
+    <!-- 7. UPM_UNCALLED_PRIVATE_METHOD, scoped to two classes.
+         REVISIT - THIS IS UNRESOLVED, NOT INTENTIONAL. SpotBugs found five
+         genuinely dead private methods:
+           EtfCorporateActionService.evaluateIdentity
+           EtfCorporateActionService.extractDividendAmount
+           EtfCorporateActionService.extractEtfDateSignals
+           EtfCorporateActionService.loadFilingMeta
+           EquityDividendNormalizer.isLater
+         Roughly 150 lines. They are excluded rather than deleted because this
+         is live territory for the ETF/equity dividend accuracy work, and
+         whether they are abandoned or staged for an in-flight change is a
+         call for whoever owns that work, not for the commit that turns
+         SpotBugs on. Delete them (and this block) once that is settled.
+         Scoped to these two classes so new dead code elsewhere still fails. -->
+    <Match>
+        <Or>
+            <Class name="com.fattorestreet.sec_api.corporateaction.EtfCorporateActionService" />
+            <Class name="com.fattorestreet.sec_api.corporateaction.support.EquityDividendNormalizer" />
+        </Or>
+        <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD" />
+    </Match>
+
+    <!-- 8. REDOS, scoped to the corporate-action date extractors (20 sites).
+         REVISIT - THIS IS A REAL RISK, ACCEPTED FOR NOW, NOT A FALSE POSITIVE.
+         FindSecBugs flags the SEC filing date-extraction regexes for
+         catastrophic backtracking: they combine lazy bounded quantifiers
+         (.{0,900}?) with large month-name alternations. A pathological filing
+         could stall the nightly ingest.
+
+         Excluded rather than fixed because rewriting 20 interlocking regexes
+         is exactly the kind of change that silently degrades dividend and
+         split extraction accuracy, and this repo has dedicated accuracy-pass
+         workflows for that. It belongs in that work, not in the commit that
+         turns SpotBugs on.
+
+         Mitigating for now: input is SEC EDGAR filings, not user-supplied
+         text, and the ingest is a batch job rather than a request path.
+         If these regexes ever run against user input, fix before shipping.
+         The durable fix is a match timeout or possessive quantifiers. -->
+    <Match>
+        <Package name="~com\.fattorestreet\.sec_api\.corporateaction(\..*)?" />
+        <Bug pattern="REDOS" />
+    </Match>
+
+    <!-- 9. DE_MIGHT_IGNORE (5 sites).
+         Empty catch blocks in per-message and per-filing loops where skipping
+         the malformed item is the whole point. SpotBugs reads bytecode, so a
+         comment cannot satisfy it and the only "fix" would be logging inside
+         hot loops: PcapParser.extractTrades runs per IEX message and has no
+         logger by design, since it is tuned for throughput. Logging there
+         would cost more than the finding is worth. -->
+    <Match>
+        <Or>
+            <Class name="com.fattorestreet.sec_api.util.PcapParser" />
+            <Class name="com.fattorestreet.sec_api.fundamentals.EdgarService" />
+            <Class name="com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService" />
+        </Or>
+        <Bug pattern="DE_MIGHT_IGNORE" />
+    </Match>
+
+    <!-- 10. Minor style findings with no correctness content:
+         SIC_INNER_SHOULD_BE_STATIC_ANON - anonymous ParameterizedTypeReference
+           subclasses, which MUST be anonymous to carry the generic type token.
+         NM_CONFUSING - countryHQ() vs countryHq() on two unrelated records in
+           different packages that are never used together.
+         CT_CONSTRUCTOR_THROW - IwbHoldingsTickerSet validates its resource in
+           the constructor, which is correct fail-fast behaviour for a bean. -->
+    <Match>
+        <Or>
+            <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON" />
+            <Bug pattern="NM_CONFUSING" />
+            <Bug pattern="CT_CONSTRUCTOR_THROW" />
+        </Or>
+    </Match>
+
+</FindBugsFilter>

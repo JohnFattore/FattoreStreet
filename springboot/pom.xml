@@ -51,8 +51,17 @@
 		     pass. Overridable on the command line so the gate itself can be
 		     tested (-Djacoco.line.minimum=0.95 should fail). -->
 		<jacoco.line.minimum>0.76</jacoco.line.minimum>
+		<spotbugs.annotations.version>4.9.6</spotbugs.annotations.version>
 	</properties>
 	<dependencies>
+		<!-- @SuppressFBWarnings only; provided+optional so it never ships in the jar -->
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<version>${spotbugs.annotations.version}</version>
+			<scope>provided</scope>
+			<optional>true</optional>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -288,10 +297,20 @@
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
 				<version>4.10.3.0</version>
+				<!-- Plugin-level so `spotbugs:check` works as a standalone goal too. -->
 				<configuration>
+					<skip>${quality.skip}</skip>
 					<effort>Max</effort>
+					<!-- Kept at Low deliberately. Raising to Medium would silence
+					     FindSecBugs patterns that report at Low while NOT silencing
+					     EI_EXPOSE_REP, which is already Medium, so the threshold is
+					     the wrong instrument. The exclude filter is the right one. -->
 					<threshold>Low</threshold>
 					<xmlOutput>true</xmlOutput>
+					<htmlOutput>true</htmlOutput>
+					<includeTests>false</includeTests>
+					<failOnError>true</failOnError>
+					<excludeFilterFile>config/spotbugs/exclude.xml</excludeFilterFile>
 					<plugins>
 						<plugin>
 							<groupId>com.h3xstream.findsecbugs</groupId>
@@ -300,6 +319,15 @@
 						</plugin>
 					</plugins>
 				</configuration>
+				<executions>
+					<execution>
+						<id>spotbugs-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

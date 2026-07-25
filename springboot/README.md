@@ -333,7 +333,10 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 | Maven enforcer (Maven 3.9+, Java 17+) | `validate` | `pom.xml` |
 | Spotless | `validate` | `pom.xml` (inline) |
 | Checkstyle | `validate` | `config/checkstyle/checkstyle.xml` |
+| SpotBugs + FindSecBugs | `verify` | `config/spotbugs/exclude.xml` |
 | JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco.line.minimum`) |
+
+To silence a SpotBugs finding, silence a whole **category** in `config/spotbugs/exclude.xml` with a written rationale, or a single intentional **site** with `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is not optional; reviewers should reject entries without one. Two blocks in that file are marked `REVISIT` because they are accepted risk rather than false positives.
 
 CI runs `mvn verify`, so the coverage floor is enforced on every PR. The floor lives in the `jacoco.line.minimum` property; raise it deliberately as coverage improves and never lower it to make a build pass. It is overridable on the command line (`-Djacoco.line.minimum=0.95`) purely so the gate itself can be tested.
 

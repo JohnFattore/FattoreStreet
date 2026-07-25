@@ -48,6 +48,10 @@ Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
 - Checkstyle owns semantics; Spotless owns whitespace, import order and line length. Never add whitespace, wrapping or `LineLength` modules to the Checkstyle config
 - Utility classes need a private constructor and `final`; the `@SpringBootApplication` class is exempt (Spring instantiates it) and is suppressed by name
 - Records are implicitly static, so write `public record X(...)`, not `public static record X(...)`
+- SpotBugs + FindSecBugs gate `mvn verify`. To silence a finding:
+  - a whole category: `springboot/config/spotbugs/exclude.xml`, with a written rationale in the XML comment
+  - one intentional site: `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is mandatory
+- Prefer `InputStream.skipNBytes` over `skipBytes`; the latter can skip fewer bytes than asked and returns the count, which silently desynchronises binary parsing
 
 ## SEC EDGAR Patterns
 

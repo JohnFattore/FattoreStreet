@@ -242,7 +242,11 @@ public class EquitySplitDetector {
         if (existing != null) {
             double existingConfidence = existing.getConfidenceScore() != null ? existing.getConfidenceScore() : -1;
             boolean dateChanged = !effectiveDate.equals(existing.getEffectiveDate());
-            if (confidence < existingConfidence || (!dateChanged && confidence == existingConfidence)) {
+            // Double.compare, not ==: exact same semantics for these stored
+            // confidence scores, but well-defined for NaN and not a float
+            // equality test SpotBugs has to guess the intent of.
+            if (confidence < existingConfidence
+                    || (!dateChanged && Double.compare(confidence, existingConfidence) == 0)) {
                 return false;
             }
             if (dateChanged) {

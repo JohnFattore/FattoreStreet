@@ -54,7 +54,10 @@ public final class PcapParser {
         Map<Long, String> symbolCache = new HashMap<>(16384);
 
         if (magic == PCAP_MAGIC_LE || magic == Integer.reverseBytes(PCAP_MAGIC_LE)) {
-            in.skipBytes(20);
+            // skipNBytes, not skipBytes: skipBytes may skip fewer bytes than asked
+            // and returns the count, so ignoring it silently desynchronises every
+            // subsequent read. skipNBytes loops and throws EOFException instead.
+            in.skipNBytes(20);
             return parsePcapPackets(in, consumer, symbolCache);
         } else if (magic == PCAPNG_SHB_MAGIC) {
             return parsePcapngBlocks(in, consumer, symbolCache);
@@ -103,7 +106,7 @@ public final class PcapParser {
         in.readFully(lenBytes);
         int shbLen = ByteBuffer.wrap(lenBytes).order(ByteOrder.LITTLE_ENDIAN).getInt();
         int remaining = shbLen - 8;
-        if (remaining > 0) in.skipBytes(remaining);
+        if (remaining > 0) in.skipNBytes(remaining);
 
         byte[] blockHeader = new byte[8];
         byte[] blockData = new byte[65536];
@@ -136,7 +139,13 @@ public final class PcapParser {
                     }
                 }
             } else {
-                in.skipBytes(remaining);
+                try {
+                    in.skipNBytes(remaining);
+                } catch (EOFException e) {
+                    // truncated trailing block; matches the readFully EOF handling
+                    // above, which ends parsing rather than failing the file
+                    break;
+                }
             }
         }
         return tradeCount;
