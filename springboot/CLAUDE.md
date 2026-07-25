@@ -6,7 +6,7 @@ Conventions are covered by the path-scoped rule `.claude/rules/springboot-java.m
 
 ## Quality Gates
 
-Run `./mvnw spotless:apply` to fix formatting before committing; CI runs `spotless:check`, `checkstyle:check` and `mvn verify` (JaCoCo coverage floor + SpotBugs/FindSecBugs + PMD). See "Code Quality" in `README.md`. Never pass `-Dquality.skip=true` locally, it exists only for the Docker build stage.
+Run `./mvnw spotless:apply` to fix formatting before committing; CI runs `spotless:check`, `checkstyle:check` and `mvn verify` (JaCoCo coverage floor + SpotBugs/FindSecBugs + PMD + Error Prone). See "Code Quality" in `README.md`. Never pass `-Dquality.skip=true` locally, it exists only for the Docker build stage.
 
 ## Writing Tests
 
