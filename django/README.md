@@ -49,6 +49,7 @@ The IEX HIST daily price ingest is scheduled outside Django: an EventBridge Sche
 | `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
 | `REDIS_URL` | (required when `DEBUG=False`) | Redis connection URL for the cache backend (e.g. `redis://localhost:6379`) |
 | `DJANGO_FORCE_SCRIPT_NAME` | (empty) | Public URL prefix where nginx serves Django (e.g. `/django`). Set in production so admin login redirects and `{% url %}` resolve under `/django/...`. Omit or leave empty for local `runserver` at `/admin/`. |
+| `BLOG_POSTS_DIR` | `../docs/blog-posts` | Directory `sync_blog_posts` reads Markdown posts from. The Docker build context is `django/` alone, so containers must set this (or pass `--path`) to reach a mounted checkout. |
 
 ## Getting Started
 
@@ -84,6 +85,39 @@ uv run python manage.py runserver
 ```bash
 uv run python manage.py test
 ```
+
+### Publish Blog Posts
+
+Blog post copy lives as Markdown in `docs/blog-posts/`; the database is a rendering target. `sync_blog_posts` imports those files into `blog.Post` rows, matching on slug so re-running updates a post in place instead of duplicating it.
+
+```bash
+uv run python manage.py sync_blog_posts --dry-run   # report what would change
+uv run python manage.py sync_blog_posts             # import as drafts
+uv run python manage.py sync_blog_posts --publish   # publish newly created posts
+uv run python manage.py sync_blog_posts --path /some/dir
+```
+
+Posts are created **unpublished** unless the file sets `published_at` or you pass `--publish`, so an imported post stays invisible to `/blog/api/posts/` until you publish it in the admin. Re-importing never clears an existing `published_at`.
+
+Front matter is optional; without it the title comes from the first `#` heading, the slug from the filename, and the excerpt from the first paragraph. Supported keys:
+
+```markdown
+---
+title: How RTK Query Refreshes JWTs
+slug: rtk-query-401-refresh
+excerpt: One-sentence summary shown in the post list.
+categories: [Engineering, React]
+tags: [rtk-query, jwt]
+published_at: 2026-07-25
+cover_image_url: https://example.com/cover.png
+---
+
+# How RTK Query Refreshes JWTs
+
+Body starts here.
+```
+
+Any other key is an error, and unknown categories or tags are created on demand. Because the slug decides create-vs-update, run `--dry-run` first against a database that already has posts — the output prints `<file> -> <slug>` for each file.
 
 ### Managing Dependencies
 

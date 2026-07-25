@@ -158,6 +158,13 @@ STATIC_ROOT = os.path.join(BASE_DIR, "../nginx/static")
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Source directory for `manage.py sync_blog_posts`. Defaults to the repo's
+# docs/blog-posts/, which only exists in a checkout -- the Docker build context
+# is django/ alone, so containers must set BLOG_POSTS_DIR or pass --path.
+BLOG_POSTS_DIR = env(
+    "BLOG_POSTS_DIR", default=str(BASE_DIR.parent / "docs" / "blog-posts")
+)
+
 # allow NGINX server
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',

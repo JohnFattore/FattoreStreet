@@ -38,6 +38,7 @@ uv run python manage.py makemigrations           # Generate migrations
 uv run python manage.py test                     # All tests
 uv run python manage.py test tests.test_users    # Specific file
 uv run python manage.py test tests.test_users.TestUserAPI.test_login  # Specific test
+uv run python manage.py sync_blog_posts --dry-run # Import docs/blog-posts/*.md into blog.Post
 uv add <package>                                 # Add dependency (pyproject.toml + uv.lock)
 ```
 
@@ -79,7 +80,7 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 - `chatbot/` — Boglehead AI advisor (Google Gemini)
 - `restaurants/` — Restaurant reviews/recommendations
 - `changeflow/` — Changelog + feedback tickets
-- `blog/` — Blog posts with categories and tags
+- `blog/` — Blog posts with categories and tags; Markdown in `docs/blog-posts/` is the source of truth, imported into `Post` rows by `manage.py sync_blog_posts` (drafts unless `--publish` or front matter `published_at`)
 - `entertainment/` — Media recommendations (books, movies, shows, music, podcasts, games, websites)
 
 **Scheduled jobs**: the IEX HIST daily price ingest runs as a Fargate one-shot task on an EventBridge Scheduler cron (see `springboot/deploy/terraform/`), not inside Django; after a successful load the same task runs corporate-action price adjustment (`PriceAdjustmentService.adjustAllTickers`), which re-detects SEC actions for the stalest ~1/7 of tickers per night (rolling weekly refresh via `listings.last_sec_detection_at`) plus any ticker with a >25% overnight move. External-data helpers (`portfolio/helper.py`) cache lazily in Redis on first request.
@@ -146,6 +147,7 @@ Additional conventions:
 - `FINNHUB_API_KEY` — portfolio quotes
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 - `DJANGO_FORCE_SCRIPT_NAME` — set to `/django` when served behind the nginx prefix
+- `BLOG_POSTS_DIR` — Markdown source directory for `manage.py sync_blog_posts` (defaults to `docs/blog-posts/`)
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)
 - `DB_URL`, `DB_USERNAME`, `POSTGRES_PASSWORD` — PostgreSQL connection (`POSTGRES_PASSWORD` is the shared DB-password key used by Django and the postgres image too)
