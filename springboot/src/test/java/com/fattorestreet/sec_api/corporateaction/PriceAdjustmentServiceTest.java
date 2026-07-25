@@ -22,6 +22,7 @@ import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.repository.ListingRepository;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -44,7 +45,7 @@ class PriceAdjustmentServiceTest {
         Listing l = new Listing();
         l.setTicker(ticker);
         l.setTitle(ticker);
-        l.setLastSecDetectionAt(LocalDateTime.now());
+        l.setLastSecDetectionAt(LocalDateTime.now(MarketTime.STORAGE));
         return l;
     }
 
@@ -439,7 +440,7 @@ class PriceAdjustmentServiceTest {
     @Test
     void adjustAllTickers_skipsSecFetchWhenActionsExistAndDetectionFresh() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
-        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now());
+        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now(MarketTime.STORAGE));
 
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
         when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
@@ -481,7 +482,7 @@ class PriceAdjustmentServiceTest {
     void adjustAllTickers_staleDetectionIsRescheduledAndStamped() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
         Listing listing = aapl.getListings().get(0);
-        listing.setLastSecDetectionAt(LocalDateTime.now().minusDays(
+        listing.setLastSecDetectionAt(LocalDateTime.now(MarketTime.STORAGE).minusDays(
                 PriceAdjustmentService.SEC_REDETECTION_INTERVAL_DAYS + 1));
 
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(Collections.emptyList());
@@ -501,7 +502,7 @@ class PriceAdjustmentServiceTest {
         verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
         verify(listingRepository).save(listing);
         assertNotNull(listing.getLastSecDetectionAt());
-        assertTrue(listing.getLastSecDetectionAt().isAfter(LocalDateTime.now().minusMinutes(1)));
+        assertTrue(listing.getLastSecDetectionAt().isAfter(LocalDateTime.now(MarketTime.STORAGE).minusMinutes(1)));
     }
 
     @Test
@@ -535,7 +536,7 @@ class PriceAdjustmentServiceTest {
         // Fresh stamp and existing actions would normally skip the SEC fetch, but the
         // -75% overnight move (split signature) forces same-run re-detection.
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
-        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now());
+        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now(MarketTime.STORAGE));
 
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
         when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
@@ -564,7 +565,7 @@ class PriceAdjustmentServiceTest {
     @Test
     void adjustAllTickers_normalMoveDoesNotTriggerRedetection() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
-        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now());
+        aapl.getListings().get(0).setLastSecDetectionAt(LocalDateTime.now(MarketTime.STORAGE));
 
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
         when(corporateActionRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));

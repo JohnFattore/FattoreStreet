@@ -85,27 +85,18 @@
         </Or>
     </Match>
 
-    <!-- 7. UPM_UNCALLED_PRIVATE_METHOD, scoped to two classes.
-         REVISIT - THIS IS UNRESOLVED, NOT INTENTIONAL. SpotBugs found five
-         genuinely dead private methods:
-           EtfCorporateActionService.evaluateIdentity
-           EtfCorporateActionService.extractDividendAmount
-           EtfCorporateActionService.extractEtfDateSignals
-           EtfCorporateActionService.loadFilingMeta
-           EquityDividendNormalizer.isLater
-         Roughly 150 lines. They are excluded rather than deleted because this
-         is live territory for the ETF/equity dividend accuracy work, and
-         whether they are abandoned or staged for an in-flight change is a
-         call for whoever owns that work, not for the commit that turns
-         SpotBugs on. Delete them (and this block) once that is settled.
-         Scoped to these two classes so new dead code elsewhere still fails. -->
-    <Match>
-        <Or>
-            <Class name="com.fattorestreet.sec_api.corporateaction.EtfCorporateActionService" />
-            <Class name="com.fattorestreet.sec_api.corporateaction.support.EquityDividendNormalizer" />
-        </Or>
-        <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD" />
-    </Match>
+    <!-- 7. RESOLVED - block removed. The five dead private methods that were
+         excluded here (EtfCorporateActionService.evaluateIdentity /
+         extractDividendAmount / extractEtfDateSignals / loadFilingMeta and
+         EquityDividendNormalizer.isLater) have been deleted. Removing them
+         cascaded: the inline ETF date/amount extraction pipeline they fed was
+         entirely dead too, having been superseded by corporateaction/support/
+         (EtfDateExtractor, EtfAmountExtractor, EtfIdentityEvaluator,
+         EtfActionPersister), for 670 lines total.
+         Dead code is now gated at compile time by Error Prone
+         UnusedMethod/UnusedVariable/UnusedNestedClass at ERROR tier, which
+         also catches unused constructor-injected fields that neither SpotBugs
+         nor PMD can see. Do not re-add an exclusion here for dead code. -->
 
     <!-- 8. REDOS, scoped to the corporate-action date extractors (20 sites).
          REVISIT - THIS IS A REAL RISK, ACCEPTED FOR NOW, NOT A FALSE POSITIVE.

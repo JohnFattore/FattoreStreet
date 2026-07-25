@@ -54,6 +54,36 @@
 		<spotbugs.annotations.version>4.9.6</spotbugs.annotations.version>
 		<pmd.plugin.version>3.27.0</pmd.plugin.version>
 		<errorprone.version>2.36.0</errorprone.version>
+		<!-- Error Prone check severities.
+
+		     Default tiers: ERROR-tier checks fail the build, WARNING-tier ones are
+		     advisory. The tree is clean at ERROR tier, so the gate stays green.
+
+		     The :OFF entries silence pure-style checks that would drown the warnings
+		     worth reading. Do not add one without saying why it does not apply.
+
+		     The :ERROR entries promote WARNING-tier checks this repo treats as build
+		     failures. Each was driven to zero before promotion:
+		       UnusedMethod/UnusedVariable/UnusedNestedClass - dead code. UnusedVariable
+		         is the only analyser here that catches an unused constructor-injected
+		         field: PMD counts `this.x = x;` as a use and SpotBugs does not do fields
+		         at all, so without it dead Spring dependencies accumulate unseen.
+		       JavaTimeDefaultTimeZone - a zone-less LocalDate.now()/Year.now() reads the
+		         host default zone, so "today" differs between a laptop, CI and Fargate.
+		         That silently shifts trading-day and filing-window boundaries. Pass a
+		         MarketTime constant (see util/MarketTime.java) instead. -->
+		<errorprone.checks.common>-Xplugin:ErrorProne \
+		    -Xep:MissingSummary:OFF \
+		    -Xep:NonApiType:OFF \
+		    -Xep:InlineFormatString:OFF \
+		    -Xep:MixedMutabilityReturnType:OFF \
+		    -Xep:ArrayRecordComponent:OFF \
+		    -Xep:JavaTimeDefaultTimeZone:ERROR</errorprone.checks.common>
+		<errorprone.checks.main>${errorprone.checks.common} \
+		    -Xep:UnusedMethod:ERROR \
+		    -Xep:UnusedVariable:ERROR \
+		    -Xep:UnusedNestedClass:ERROR</errorprone.checks.main>
+		<errorprone.checks.test>${errorprone.checks.common}</errorprone.checks.test>
 	</properties>
 	<dependencies>
 		<!-- @SuppressFBWarnings only; provided+optional so it never ships in the jar -->
@@ -382,18 +412,9 @@
 							<compilerArgs>
 								<arg>-XDcompilePolicy=simple</arg>
 								<arg>--should-stop=ifError=FLOW</arg>
-								<!-- Default severities: ERROR-tier checks fail the build,
-								     WARNING-tier ones are advisory. The tree is clean at
-								     ERROR tier today, so this gate starts green.
-								     The :OFF list below silences pure-style checks that
-								     would drown the warnings worth reading. Do not add a
-								     check here without saying why it does not apply. -->
-								<arg>-Xplugin:ErrorProne \
-								    -Xep:MissingSummary:OFF \
-								    -Xep:NonApiType:OFF \
-								    -Xep:InlineFormatString:OFF \
-								    -Xep:MixedMutabilityReturnType:OFF \
-								    -Xep:ArrayRecordComponent:OFF</arg>
+								<!-- Applies to main sources. See the errorprone.checks.* properties
+								     for what is turned off, what is promoted, and why. -->
+								<arg>${errorprone.checks.main}</arg>
 							</compilerArgs>
 							<annotationProcessorPaths>
 								<path>
@@ -403,6 +424,30 @@
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
+						<executions>
+							<!-- Test sources get the same checks EXCEPT the dead-code trio, which
+							     is left advisory there. Mockito's @InjectMocks is fed by @Mock
+							     fields that are never read when a test neither stubs nor verifies
+							     them: load-bearing (dropping one injects null) but indistinguishable
+							     from dead code to Error Prone, which cannot see field injection.
+							     Promoting UnusedVariable on tests would fail the build for a
+							     correct and common test idiom. JavaTimeDefaultTimeZone stays at
+							     ERROR here, since a zone-less now() makes a test depend on the
+							     machine's clock zone just as much as production code does. -->
+							<execution>
+								<id>default-testCompile</id>
+								<goals>
+									<goal>testCompile</goal>
+								</goals>
+								<configuration>
+									<compilerArgs>
+										<arg>-XDcompilePolicy=simple</arg>
+										<arg>--should-stop=ifError=FLOW</arg>
+										<arg>${errorprone.checks.test}</arg>
+									</compilerArgs>
+								</configuration>
+							</execution>
+						</executions>
 					</plugin>
 				</plugins>
 			</build>

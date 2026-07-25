@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.fattorestreet.sec_api.model.DailyPrice;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.testsupport.PcapTestData;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -53,7 +54,7 @@ class IexHistServiceTest {
 
     /** Most recent date before today that the service considers a trading day. */
     private static LocalDate latestTradingDay() {
-        LocalDate date = LocalDate.now().minusDays(1);
+        LocalDate date = LocalDate.now(MarketTime.MARKET).minusDays(1);
         while (!isTradingDay(date)) {
             date = date.minusDays(1);
         }

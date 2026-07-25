@@ -12,6 +12,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fattorestreet.sec_api.util.MarketTime;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,7 +35,7 @@ class IndexLoadRunnerTest {
 
     private IndexLoadRunner runner;
 
-    private final int currentYear = Year.now().getValue();
+    private final int currentYear = Year.now(MarketTime.MARKET).getValue();
 
     @BeforeEach
     void setUp() {

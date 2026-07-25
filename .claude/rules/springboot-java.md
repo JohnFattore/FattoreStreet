@@ -53,8 +53,13 @@ Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
   - one intentional site: `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is mandatory
 - Prefer `InputStream.skipNBytes` over `skipBytes`; the latter can skip fewer bytes than asked and returns the count, which silently desynchronises binary parsing
 - PMD also gates `mvn verify`, with a deliberately small ruleset in `springboot/config/pmd/ruleset.xml`. It references individual rules, never whole categories, so it only reports what Spotless, Checkstyle and SpotBugs do not. Keep it that way when adding rules
-- Error Prone runs at `compile` via the `errorprone` profile. Its ERROR-tier checks fail the build; WARNING-tier ones are advisory
-- Pass an explicit `ZoneId` to `LocalDate.now()`, `LocalDateTime.now()` and `Year.now()`. Without one they silently use the server's default zone, which decides what "today" means for trading-day and filing-window logic. Error Prone reports these as `JavaTimeDefaultTimeZone`
+- Error Prone runs at `compile` via the `errorprone` profile. Its ERROR-tier checks fail the build; WARNING-tier ones are advisory. Severities are set in the `errorprone.checks.*` properties in `pom.xml`, not inline in the plugin config
+- Dead code fails the build: `UnusedMethod`, `UnusedVariable` and `UnusedNestedClass` are promoted to ERROR on `src/main`. `UnusedVariable` is the only gate that sees an unused constructor-injected field (PMD counts `this.x = x;` as a use, SpotBugs skips fields), so do not leave an injected dependency wired up "for later". Delete it and re-add when needed
+- The dead-code trio stays advisory on `src/test`, because a `@Mock` field feeding `@InjectMocks` is never read yet is load-bearing — dropping it injects `null`. Do not "fix" such a field by deleting it
+- Never pass `LocalDate.now()`, `LocalDateTime.now()` or `Year.now()` without a zone; `JavaTimeDefaultTimeZone` is ERROR-tier on both main and test sources. Use a `MarketTime` constant (`com.fattorestreet.sec_api.util.MarketTime`) rather than an inline `ZoneId.of(...)`:
+  - `MarketTime.MARKET` (`America/New_York`) for anything that answers "what trading day / filing year is it" — IEX trading-date windows, SEC filing staleness, index metric years
+  - `MarketTime.STORAGE` (UTC) for audit timestamps only ever compared to other stored timestamps (created-at, extracted-at, last-detected-at)
+  - A test must use the same constant as the production code it asserts against, or it turns zone-dependent at day boundaries
 
 ## SEC EDGAR Patterns
 

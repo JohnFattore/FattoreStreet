@@ -13,6 +13,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 
+import com.fattorestreet.sec_api.util.MarketTime;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -90,7 +92,7 @@ public class IndexLoadRunner implements ApplicationRunner {
      */
     int runLoad() {
         long startTime = System.currentTimeMillis();
-        int resolvedYear = year > 0 ? year : Year.now().getValue();
+        int resolvedYear = year > 0 ? year : Year.now(MarketTime.MARKET).getValue();
         boolean singleTicker = ticker != null && !ticker.isBlank();
         log.info("Starting one-shot index load (year={}, scope={}, skipRefresh={}, ticker={}, minProcessed={})",
                 resolvedYear, scope, skipRefresh, singleTicker ? ticker : "-", minProcessed);

@@ -30,6 +30,7 @@ import com.fattorestreet.sec_api.listing.ListingService;
 import com.fattorestreet.sec_api.marketdata.IexHistService;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.Listing;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -326,7 +327,7 @@ public class AdminController {
             @RequestParam(required = false, defaultValue = "russell1000") String scope,
             @RequestParam(required = false) String ticker) {
         try {
-            int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
+            int resolvedYear = (year != null) ? year : java.time.Year.now(MarketTime.MARKET).getValue();
             long startTime = System.currentTimeMillis();
             com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult r;
             String effectiveScope;
@@ -384,7 +385,7 @@ public class AdminController {
             }
         }
         try {
-            int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
+            int resolvedYear = (year != null) ? year : java.time.Year.now(MarketTime.MARKET).getValue();
             long startTime = System.currentTimeMillis();
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("year", resolvedYear);
@@ -450,7 +451,7 @@ public class AdminController {
             com.fattorestreet.sec_api.index.FattoreIndexRebuildService service,
             String indexLabel) {
         try {
-            int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
+            int resolvedYear = (year != null) ? year : java.time.Year.now(MarketTime.MARKET).getValue();
             long startTime = System.currentTimeMillis();
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("year", resolvedYear);

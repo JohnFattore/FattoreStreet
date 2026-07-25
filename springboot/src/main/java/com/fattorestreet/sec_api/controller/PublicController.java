@@ -37,6 +37,7 @@ import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.repository.FilingSummaryRepository;
 import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 import com.fattorestreet.sec_api.repository.QuarterRepository;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 @Validated
 @RestController
@@ -195,7 +196,7 @@ public class PublicController {
         if (start != null && end != null) {
             prices = dailyPriceRepository.findByTickerAndTradeDateBetweenOrderByTradeDateDesc(ticker, LocalDate.parse(start), LocalDate.parse(end));
         } else if (start != null) {
-            prices = dailyPriceRepository.findByTickerAndTradeDateBetweenOrderByTradeDateDesc(ticker, LocalDate.parse(start), LocalDate.now());
+            prices = dailyPriceRepository.findByTickerAndTradeDateBetweenOrderByTradeDateDesc(ticker, LocalDate.parse(start), LocalDate.now(MarketTime.MARKET));
         } else {
             prices = dailyPriceRepository.findByTickerOrderByTradeDateDesc(ticker);
         }

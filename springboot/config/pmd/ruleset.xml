@@ -35,10 +35,14 @@
          UnusedFormalParameter is the reason PMD is here at all: neither
          SpotBugs nor Checkstyle reports it.
          NOT included, to avoid three tools reporting one problem:
-           UnusedPrivateMethod  - SpotBugs UPM_UNCALLED_PRIVATE_METHOD already
-                                  covers it, and the five current hits are
-                                  tracked in config/spotbugs/exclude.xml.
-           UnusedLocalVariable  - Checkstyle already has this rule. -->
+           UnusedPrivateMethod  - SpotBugs UPM_UNCALLED_PRIVATE_METHOD and
+                                  Error Prone UnusedMethod both cover it.
+           UnusedLocalVariable  - Checkstyle already has this rule.
+         NOTE on UnusedPrivateField below: PMD counts a constructor's
+         `this.x = x;` as a use, so it cannot see an unused constructor-
+         injected field - the common case in Spring beans. Error Prone
+         UnusedVariable (ERROR tier, see pom.xml) is what actually catches
+         those. This rule is kept for the plain-field case it does report. -->
     <rule ref="category/java/bestpractices.xml/UnusedPrivateField" />
     <rule ref="category/java/bestpractices.xml/UnusedFormalParameter" />
     <rule ref="category/java/bestpractices.xml/UnusedAssignment" />

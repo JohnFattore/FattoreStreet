@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.Quarter;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -130,7 +131,7 @@ public class EdgarService {
     public Map<String, Object> syncFramesFull() throws Exception {
         Map<Long, Asset> assetMap = loadAssetMap();
         long fundsSkipped = assetRepository.countByIsFund(true);
-        int currentYear = LocalDate.now().getYear();
+        int currentYear = LocalDate.now(MarketTime.MARKET).getYear();
 
         // Phase 1: Collect all quarterly frames (2009 to present)
         Map<String, Quarter> collected = new HashMap<>();
