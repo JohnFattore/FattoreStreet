@@ -53,6 +53,7 @@
 		<jacoco.line.minimum>0.76</jacoco.line.minimum>
 		<spotbugs.annotations.version>4.9.6</spotbugs.annotations.version>
 		<pmd.plugin.version>3.27.0</pmd.plugin.version>
+		<errorprone.version>2.36.0</errorprone.version>
 	</properties>
 	<dependencies>
 		<!-- @SuppressFBWarnings only; provided+optional so it never ships in the jar -->
@@ -356,5 +357,56 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Error Prone runs as a javac plugin during `compile`, which the Docker
+		     build stage reaches via `package`. Unlike the other gates it cannot be
+		     turned off with a <skip> parameter, so it lives in a profile that
+		     deactivates whenever -Dquality.skip is passed on the command line.
+		     Maven property activation inspects command-line -D and settings.xml,
+		     not the <properties> block, so the default quality.skip=false above
+		     does NOT deactivate it for a normal build. -->
+		<profile>
+			<id>errorprone</id>
+			<activation>
+				<property>
+					<name>!quality.skip</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<configuration>
+							<compilerArgs>
+								<arg>-XDcompilePolicy=simple</arg>
+								<arg>--should-stop=ifError=FLOW</arg>
+								<!-- Default severities: ERROR-tier checks fail the build,
+								     WARNING-tier ones are advisory. The tree is clean at
+								     ERROR tier today, so this gate starts green.
+								     The :OFF list below silences pure-style checks that
+								     would drown the warnings worth reading. Do not add a
+								     check here without saying why it does not apply. -->
+								<arg>-Xplugin:ErrorProne \
+								    -Xep:MissingSummary:OFF \
+								    -Xep:NonApiType:OFF \
+								    -Xep:InlineFormatString:OFF \
+								    -Xep:MixedMutabilityReturnType:OFF \
+								    -Xep:ArrayRecordComponent:OFF</arg>
+							</compilerArgs>
+							<annotationProcessorPaths>
+								<path>
+									<groupId>com.google.errorprone</groupId>
+									<artifactId>error_prone_core</artifactId>
+									<version>${errorprone.version}</version>
+								</path>
+							</annotationProcessorPaths>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

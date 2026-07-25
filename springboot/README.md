@@ -335,6 +335,9 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 | Checkstyle | `validate` | `config/checkstyle/checkstyle.xml` |
 | SpotBugs + FindSecBugs | `verify` | `config/spotbugs/exclude.xml` |
 | PMD | `verify` | `config/pmd/ruleset.xml` |
+| Error Prone | `compile` | `pom.xml` (`errorprone` profile) |
+
+Error Prone runs as a javac plugin, so unlike the others it cannot be turned off with a `<skip>` parameter. It lives in a profile that deactivates whenever `-Dquality.skip` is passed, which is what keeps it out of the Docker build. Its ERROR-tier checks fail the build; WARNING-tier checks are advisory and worth reading, particularly `JavaTimeDefaultTimeZone`.
 | JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco.line.minimum`) |
 
 To silence a SpotBugs finding, silence a whole **category** in `config/spotbugs/exclude.xml` with a written rationale, or a single intentional **site** with `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is not optional; reviewers should reject entries without one. Two blocks in that file are marked `REVISIT` because they are accepted risk rather than false positives.

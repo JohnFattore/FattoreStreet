@@ -53,6 +53,8 @@ Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
   - one intentional site: `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is mandatory
 - Prefer `InputStream.skipNBytes` over `skipBytes`; the latter can skip fewer bytes than asked and returns the count, which silently desynchronises binary parsing
 - PMD also gates `mvn verify`, with a deliberately small ruleset in `springboot/config/pmd/ruleset.xml`. It references individual rules, never whole categories, so it only reports what Spotless, Checkstyle and SpotBugs do not. Keep it that way when adding rules
+- Error Prone runs at `compile` via the `errorprone` profile. Its ERROR-tier checks fail the build; WARNING-tier ones are advisory
+- Pass an explicit `ZoneId` to `LocalDate.now()`, `LocalDateTime.now()` and `Year.now()`. Without one they silently use the server's default zone, which decides what "today" means for trading-day and filing-window logic. Error Prone reports these as `JavaTimeDefaultTimeZone`
 
 ## SEC EDGAR Patterns
 
