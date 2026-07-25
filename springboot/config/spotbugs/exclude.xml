@@ -99,22 +99,39 @@
          nor PMD can see. Do not re-add an exclusion here for dead code. -->
 
     <!-- 8. REDOS, scoped to the corporate-action date extractors (20 sites).
-         REVISIT - THIS IS A REAL RISK, ACCEPTED FOR NOW, NOT A FALSE POSITIVE.
+         MITIGATED - no longer accepted risk.
          FindSecBugs flags the SEC filing date-extraction regexes for
          catastrophic backtracking: they combine lazy bounded quantifiers
          (.{0,900}?) with large month-name alternations. A pathological filing
          could stall the nightly ingest.
 
-         Excluded rather than fixed because rewriting 20 interlocking regexes
-         is exactly the kind of change that silently degrades dividend and
-         split extraction accuracy, and this repo has dedicated accuracy-pass
-         workflows for that. It belongs in that work, not in the commit that
-         turns SpotBugs on.
+         The runtime risk is now bounded by a match timeout. Every one of these
+         patterns runs through CorporateActionFilingDateService
+         .extractDatedCandidates, which matches against BoundedRegexInput (see
+         corporateaction/support/) - a CharSequence that aborts the match once
+         it exceeds REGEX_BUDGET_MILLIS. A timeout is treated as "no further
+         matches from this pattern", the same path an unmatched filing already
+         takes, so a slow document costs a fraction of a second instead of the
+         run. Covered by BoundedRegexInputTest.
 
-         Mitigating for now: input is SEC EDGAR filings, not user-supplied
-         text, and the ingest is a batch job rather than a request path.
-         If these regexes ever run against user input, fix before shipping.
-         The durable fix is a match timeout or possessive quantifiers. -->
+         The finding itself cannot be cleared: FindSecBugs inspects the pattern
+         CONSTRUCTION, not the matcher call, so it fires regardless of how the
+         match is guarded. Hence this block stays - but as documentation of a
+         mitigation, not as an accepted risk.
+
+         The two alternatives were rejected deliberately, both because they
+         change WHICH date a filing resolves to:
+           - Possessive quantifiers (.{0,900}++) are not a drop-in. The `?` is
+             lazy on purpose: it finds the NEAREST date after a keyword.
+             Possessive matching consumes greedily and never backtracks.
+           - Truncating filing text would bound runtime too, but could drop a
+             legitimate date near the end of a long filing.
+         Guarding the input leaves all 20 patterns byte-identical, so
+         extraction accuracy is provably unchanged.
+
+         Still true, and still worth knowing: input is SEC EDGAR filings, not
+         user-supplied text, and the ingest is a batch job, not a request path.
+         New filing-text patterns must run through the same guard. -->
     <Match>
         <Package name="~com\.fattorestreet\.sec_api\.corporateaction(\..*)?" />
         <Bug pattern="REDOS" />
