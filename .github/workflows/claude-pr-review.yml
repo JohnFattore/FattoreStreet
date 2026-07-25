@@ -53,8 +53,20 @@ jobs:
         run: |
           set -euo pipefail
 
-          existing=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/check-runs" \
-            --jq '[.check_runs[] | select(.name == env.CHECK_NAME)] | first | .id // empty')
+          # filter=all rather than the default filter=latest. Re-running this
+          # workflow resets its check suite, and the verdict check drops out of
+          # the "latest" view while that happens, so the default query answers
+          # "no check exists" on every re-run. The seed then reopens a check the
+          # verdict job had already completed, flipping a green PR back to
+          # pending with nothing left to complete it (the verdict job only fires
+          # on a new comment). Observed on PR #133.
+          #
+          # Read the first line in the shell instead of piping to head, which
+          # would close the pipe early and trip pipefail on a large page.
+          existing_ids=$(gh api --paginate \
+            "repos/${REPO}/commits/${HEAD_SHA}/check-runs?filter=all&per_page=100" \
+            --jq '.check_runs[] | select(.name == env.CHECK_NAME) | .id')
+          existing=${existing_ids%%$'\n'*}
           if [ -n "$existing" ]; then
             echo "Check run ${existing} already exists for ${HEAD_SHA}; leaving it alone."
             exit 0
