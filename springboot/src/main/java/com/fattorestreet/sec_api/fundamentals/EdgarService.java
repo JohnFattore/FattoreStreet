@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -25,6 +26,8 @@ import tools.jackson.databind.ObjectMapper;
 public class EdgarService {
 
     private static final Logger log = LoggerFactory.getLogger(EdgarService.class);
+    /** Splits the "year|quarter" grouping key built in {@link #persistCollected}. */
+    private static final Pattern GROUP_KEY_SPLIT = Pattern.compile("\\|");
 
     private final WebService webService;
     private final QuarterService quarterService;
@@ -355,8 +358,8 @@ public class EdgarService {
             LocalDate[] slotStarts = new LocalDate[4];
             LocalDate[] slotEnds = new LocalDate[4];
             for (int i = 0; i < 4; i++) {
-                slotStarts[i] = annualStart.plusMonths(i * 3);
-                slotEnds[i] = annualStart.plusMonths((i + 1) * 3).minusDays(1);
+                slotStarts[i] = annualStart.plusMonths(i * 3L);
+                slotEnds[i] = annualStart.plusMonths((i + 1) * 3L).minusDays(1);
             }
             slotEnds[3] = annual.periodEnd;
 
@@ -423,7 +426,7 @@ public class EdgarService {
         Map<String, List<Quarter>> groups = collected.values().stream()
                 .collect(Collectors.groupingBy(q -> q.getYear() + "|" + q.getQuarter()));
         for (Map.Entry<String, List<Quarter>> entry : groups.entrySet()) {
-            String[] parts = entry.getKey().split("\\|");
+            String[] parts = GROUP_KEY_SPLIT.split(entry.getKey(), -1);
             int year = Integer.parseInt(parts[0]);
             int qtr = Integer.parseInt(parts[1]);
             quarterService.batchUpsertQuarters(year, qtr, entry.getValue());
@@ -705,6 +708,9 @@ public class EdgarService {
                                 else
                                     durationMonths = (int) (days / 30);
                             } catch (Exception ignored) {
+                                // Unparseable start date: leave durationMonths at its default and keep
+                                // the frame. Skipping the whole frame over one bad date would lose
+                                // otherwise-good XBRL facts.
                             }
                         }
 

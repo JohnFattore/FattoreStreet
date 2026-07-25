@@ -187,6 +187,8 @@ public final class PcapParser {
                         count++;
                     }
                 } catch (Exception ignored) {
+                    // Malformed message: skip it and continue the scan. This runs per IEX message
+                    // and has no logger by design, since the parser is tuned for throughput.
                 }
             }
             offset += msgLen;
@@ -234,6 +236,8 @@ public final class PcapParser {
                         count++;
                     }
                 } catch (Exception ignored) {
+                    // Malformed message: skip it and continue the scan. This runs per IEX message
+                    // and has no logger by design, since the parser is tuned for throughput.
                 }
             }
             offset += msgLen;

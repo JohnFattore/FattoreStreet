@@ -40,7 +40,7 @@ public class WebService {
     private final long secRetryBaseBackoffMs;
     private final long secMinIntervalMs;
     private long nextSecRequestEpochMs;
-    private final ThreadLocal<Map<String, String>> secTickerScopedCache = new ThreadLocal<>();
+    private static final ThreadLocal<Map<String, String>> secTickerScopedCache = new ThreadLocal<>();
 
     private static final String CACHE_SUBMISSIONS_MAIN = "__SUBMISSIONS_MAIN__";
     private static final String CACHE_FILING_INDEX_JSON = "__INDEX_JSON__";

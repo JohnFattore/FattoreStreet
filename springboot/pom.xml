@@ -63,7 +63,11 @@
 		     worth reading. Do not add one without saying why it does not apply.
 
 		     The :ERROR entries promote WARNING-tier checks this repo treats as build
-		     failures. Each was driven to zero before promotion:
+		     failures. On MAIN sources these are belt-and-braces: -Werror (see the
+		     compiler plugin below) already fails on any warning. They are kept because
+		     they document which findings matter most, they survive -Werror being
+		     removed, and errorprone.checks.common also applies to TEST sources, which
+		     deliberately do NOT get -Werror. Each was driven to zero before promotion:
 		       UnusedMethod/UnusedVariable/UnusedNestedClass - dead code. UnusedVariable
 		         is the only analyser here that catches an unused constructor-injected
 		         field: PMD counts `this.x = x;` as a use and SpotBugs does not do fields
@@ -412,8 +416,18 @@
 							<compilerArgs>
 								<arg>-XDcompilePolicy=simple</arg>
 								<arg>--should-stop=ifError=FLOW</arg>
-								<!-- Applies to main sources. See the errorprone.checks.* properties
-								     for what is turned off, what is promoted, and why. -->
+								<!-- Main sources are warning-free and -Werror keeps them that way:
+								     ANY javac or Error Prone warning fails the build, so a new
+								     WARNING-tier finding cannot accumulate unnoticed and no
+								     per-check promotion list has to be maintained.
+								     -Xlint:deprecation is enabled deliberately; rawtypes/unchecked
+								     are NOT, since Spring and JPA generics would make them noise.
+								     If this ever has to come off, promote the checks that matter
+								     individually in errorprone.checks.main instead. -->
+								<arg>-Xlint:deprecation</arg>
+								<arg>-Werror</arg>
+								<!-- See the errorprone.checks.* properties for what is turned off,
+								     what is promoted, and why. -->
 								<arg>${errorprone.checks.main}</arg>
 							</compilerArgs>
 							<annotationProcessorPaths>

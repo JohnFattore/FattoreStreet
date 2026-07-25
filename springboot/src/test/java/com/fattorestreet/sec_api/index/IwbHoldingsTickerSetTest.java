@@ -1,6 +1,7 @@
 package com.fattorestreet.sec_api.index;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ class IwbHoldingsTickerSetTest {
         assertFalse(tickers.isEmpty(), "bundled IWB_holdings.csv should yield tickers");
         assertEquals(tickers.size(), tickerSet.equityRows().size(),
                 "rows and deduplicated ticker set should agree");
-        assertTrue(tickers.stream().allMatch(t -> t.equals(t.toUpperCase())),
+        assertTrue(tickers.stream().allMatch(t -> t.equals(t.toUpperCase(Locale.US))),
                 "tickers are uppercase symbols");
     }
 
