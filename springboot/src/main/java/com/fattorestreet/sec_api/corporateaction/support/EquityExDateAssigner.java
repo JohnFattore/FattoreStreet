@@ -19,6 +19,7 @@ import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateServic
 import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 @Component
 public class EquityExDateAssigner {
@@ -210,7 +211,7 @@ public class EquityExDateAssigner {
         }
         LocalDate newestPeriodEnd = regularEvents.get(regularEvents.size() - 1).fiscalPeriodEnd();
         double newestRegularAmount = regularEvents.get(regularEvents.size() - 1).rawAmount();
-        LocalDate oldestPromotableRecordDate = LocalDate.now().minusDays(MAX_PROMOTION_RECORD_AGE_DAYS);
+        LocalDate oldestPromotableRecordDate = LocalDate.now(MarketTime.MARKET).minusDays(MAX_PROMOTION_RECORD_AGE_DAYS);
         Map<LocalDate, DividendDeclarationTupleExtractor.DividendDeclaration> bestByRecordDate = new HashMap<>();
         for (int i = 0; i < tuples.size(); i++) {
             if (usedTuples.contains(i)) {

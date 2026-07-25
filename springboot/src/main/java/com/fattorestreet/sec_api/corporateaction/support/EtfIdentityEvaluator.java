@@ -12,6 +12,7 @@ import com.fattorestreet.sec_api.util.SecTextUtils;
 @Component
 public class EtfIdentityEvaluator {
 
+
     public IdentitySignal evaluateIdentity(
             String filingText,
             Listing listing,

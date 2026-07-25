@@ -335,12 +335,25 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 | Checkstyle | `validate` | `config/checkstyle/checkstyle.xml` |
 | SpotBugs + FindSecBugs | `verify` | `config/spotbugs/exclude.xml` |
 | PMD | `verify` | `config/pmd/ruleset.xml` |
-| Error Prone | `compile` | `pom.xml` (`errorprone` profile) |
-
-Error Prone runs as a javac plugin, so unlike the others it cannot be turned off with a `<skip>` parameter. It lives in a profile that deactivates whenever `-Dquality.skip` is passed, which is what keeps it out of the Docker build. Its ERROR-tier checks fail the build; WARNING-tier checks are advisory and worth reading, particularly `JavaTimeDefaultTimeZone`.
+| Error Prone | `compile` | `pom.xml` (`errorprone.checks.*` properties) |
 | JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco.line.minimum`) |
 
-To silence a SpotBugs finding, silence a whole **category** in `config/spotbugs/exclude.xml` with a written rationale, or a single intentional **site** with `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is not optional; reviewers should reject entries without one. Two blocks in that file are marked `REVISIT` because they are accepted risk rather than false positives.
+Error Prone runs as a javac plugin, so unlike the others it cannot be turned off with a `<skip>` parameter. It lives in a profile that deactivates whenever `-Dquality.skip` is passed, which is what keeps it out of the Docker build. Its ERROR-tier checks fail the build; WARNING-tier checks are advisory.
+
+Four WARNING-tier checks are promoted to ERROR, defined in the `errorprone.checks.*` properties:
+
+| Check | Scope | Why |
+|---|---|---|
+| `UnusedMethod` | main | Dead private methods |
+| `UnusedVariable` | main | Dead fields — **the only gate that catches an unused constructor-injected field**, since PMD counts `this.x = x;` as a use and SpotBugs does not analyse fields |
+| `UnusedNestedClass` | main | Dead nested records/classes |
+| `JavaTimeDefaultTimeZone` | main + test | A zone-less `LocalDate.now()`/`Year.now()` reads the host default zone, so "today" differs between a laptop, CI and Fargate — silently shifting trading-day and filing-window boundaries |
+
+The dead-code trio is advisory on test sources only. Mockito's `@InjectMocks` is fed by `@Mock` fields that are never read when a test neither stubs nor verifies them: load-bearing (dropping one injects `null`) but indistinguishable from dead code to Error Prone, which cannot see field injection.
+
+For `now()` calls, pass a constant from `util/MarketTime.java` rather than an inline zone: `MarketTime.MARKET` (`America/New_York`) for anything answering "what trading day or filing year is it", `MarketTime.STORAGE` (UTC) for audit timestamps that are only ever compared to other stored timestamps.
+
+To silence a SpotBugs finding, silence a whole **category** in `config/spotbugs/exclude.xml` with a written rationale, or a single intentional **site** with `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is not optional; reviewers should reject entries without one. One block in that file is marked `REVISIT` because it is accepted risk rather than a false positive. Do not add an exclusion there for dead code — Error Prone gates it at compile time now.
 
 CI runs `mvn verify`, so the coverage floor is enforced on every PR. The floor lives in the `jacoco.line.minimum` property; raise it deliberately as coverage improves and never lower it to make a build pass. It is overridable on the command line (`-Djacoco.line.minimum=0.95`) purely so the gate itself can be tested.
 

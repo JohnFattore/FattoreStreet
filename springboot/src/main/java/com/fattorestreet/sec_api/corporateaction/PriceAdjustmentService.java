@@ -31,6 +31,7 @@ import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.repository.ListingRepository;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 @Service
 public class PriceAdjustmentService {
@@ -328,7 +329,7 @@ public class PriceAdjustmentService {
      * refresh rolls through every ticker about weekly with bounded runtime and SEC load.
      */
     private Set<String> scheduleStaleDetections(Set<String> allPriceTickers, Map<String, Listing> listingByTicker) {
-        LocalDateTime staleCutoff = LocalDateTime.now().minusDays(SEC_REDETECTION_INTERVAL_DAYS);
+        LocalDateTime staleCutoff = LocalDateTime.now(MarketTime.STORAGE).minusDays(SEC_REDETECTION_INTERVAL_DAYS);
         List<String> staleCandidates = new ArrayList<>();
         for (String ticker : allPriceTickers) {
             Listing listing = listingByTicker.get(ticker);
@@ -351,14 +352,15 @@ public class PriceAdjustmentService {
         if (listing == null || listing.getLastSecDetectionAt() == null) {
             return true;
         }
-        return listing.getLastSecDetectionAt().isBefore(LocalDateTime.now().minusDays(SEC_REDETECTION_INTERVAL_DAYS));
+        return listing.getLastSecDetectionAt()
+                .isBefore(LocalDateTime.now(MarketTime.STORAGE).minusDays(SEC_REDETECTION_INTERVAL_DAYS));
     }
 
     private void stampDetection(Listing listing) {
         if (listing == null) {
             return;
         }
-        listing.setLastSecDetectionAt(LocalDateTime.now());
+        listing.setLastSecDetectionAt(LocalDateTime.now(MarketTime.STORAGE));
         listingRepository.save(listing);
     }
 

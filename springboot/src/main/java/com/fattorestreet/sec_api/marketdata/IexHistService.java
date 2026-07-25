@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import com.fattorestreet.sec_api.model.DailyPrice;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import com.fattorestreet.sec_api.util.MarketTime;
 import com.fattorestreet.sec_api.util.PcapParser;
 import com.fattorestreet.sec_api.util.PcapParser.TradeReport;
 
@@ -234,7 +235,7 @@ public class IexHistService {
 
     private List<LocalDate> tradingDates(int numDays, Set<String> availableDates) {
         List<LocalDate> result = new ArrayList<>();
-        LocalDate date = LocalDate.now().minusDays(1);
+        LocalDate date = LocalDate.now(MarketTime.MARKET).minusDays(1);
         int lookback = numDays * 3;
 
         for (int i = 0; i < lookback && result.size() < numDays; i++) {

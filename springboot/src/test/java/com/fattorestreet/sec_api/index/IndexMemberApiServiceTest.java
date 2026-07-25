@@ -17,6 +17,7 @@ import com.fattorestreet.sec_api.model.ListingIndexMetrics;
 import com.fattorestreet.sec_api.model.MarketIndex;
 import com.fattorestreet.sec_api.repository.IndexMemberRepository;
 import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class IndexMemberApiServiceTest {
 
-    private static final int CURRENT_YEAR = Year.now().getValue();
+    private static final int CURRENT_YEAR = Year.now(MarketTime.MARKET).getValue();
 
     @Mock
     private IndexMemberRepository indexMemberRepository;

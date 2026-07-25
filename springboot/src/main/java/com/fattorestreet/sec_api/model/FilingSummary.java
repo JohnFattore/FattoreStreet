@@ -16,6 +16,8 @@ import jakarta.persistence.UniqueConstraint;
 
 import org.hibernate.envers.Audited;
 
+import com.fattorestreet.sec_api.util.MarketTime;
+
 @Entity
 @Audited
 @Table(name = "filing_summaries",
@@ -50,7 +52,7 @@ public class FilingSummary {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(MarketTime.STORAGE);
     }
 
     public Long getId() { return id; }

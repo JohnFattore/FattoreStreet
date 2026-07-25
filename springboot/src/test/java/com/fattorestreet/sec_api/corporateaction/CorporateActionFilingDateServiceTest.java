@@ -49,7 +49,7 @@ class CorporateActionFilingDateServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         EdgarFilingDiscoveryService filingDiscoveryService = new EdgarFilingDiscoveryService(webService, mapper);
         FilingExtractionStore extractionStore = new FilingExtractionStore(filingExtractionRepository, mapper);
-        service = new CorporateActionFilingDateService(webService, filingDiscoveryService, extractionStore, mapper);
+        service = new CorporateActionFilingDateService(webService, filingDiscoveryService, extractionStore);
     }
 
     @Test

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import com.fattorestreet.sec_api.model.FilingExtraction;
 import com.fattorestreet.sec_api.repository.FilingExtractionRepository;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -129,7 +130,7 @@ public class FilingExtractionStore {
         row.setAccessionNumber(accessionNumber);
         row.setFilingDate(filingDate);
         row.setFormType(formType);
-        row.setExtractedAt(LocalDateTime.now());
+        row.setExtractedAt(LocalDateTime.now(MarketTime.STORAGE));
         return row;
     }
 

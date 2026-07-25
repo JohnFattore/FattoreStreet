@@ -15,6 +15,7 @@ import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.model.ListingIndexMetrics;
 import com.fattorestreet.sec_api.repository.IndexMemberRepository;
 import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 @Service
 public class IndexMemberApiService {
@@ -32,7 +33,7 @@ public class IndexMemberApiService {
     @Transactional(readOnly = true)
     public List<IndexMemberRow> listAll() {
         List<IndexMember> members = indexMemberRepository.findAllWithListingAndAsset();
-        int currentYear = Year.now().getValue();
+        int currentYear = Year.now(MarketTime.MARKET).getValue();
         Map<Long, ListingIndexMetrics> byListingId = metricsRepository.findAllByYear(currentYear).stream()
                 .filter(m -> m.getListing() != null && m.getListing().getId() != null)
                 .collect(Collectors.toMap(m -> m.getListing().getId(), m -> m, (a, b) -> a));
@@ -44,7 +45,7 @@ public class IndexMemberApiService {
     @Transactional(readOnly = true)
     public List<IndexMemberRow> listByIndexCode(String code) {
         List<IndexMember> members = indexMemberRepository.findByMarketIndex_CodeOrderByPercentDesc(code);
-        int currentYear = Year.now().getValue();
+        int currentYear = Year.now(MarketTime.MARKET).getValue();
         Map<Long, ListingIndexMetrics> byListingId = metricsRepository.findAllByYear(currentYear).stream()
                 .filter(m -> m.getListing() != null && m.getListing().getId() != null)
                 .collect(Collectors.toMap(m -> m.getListing().getId(), m -> m, (a, b) -> a));

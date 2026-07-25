@@ -29,6 +29,7 @@ import com.fattorestreet.sec_api.marketdata.IexHistService;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.testsupport.TestJwtTokens;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -281,7 +282,7 @@ class AdminControllerTest {
 
     @Test
     void adminRefreshIndexStocks_defaultScope_usesRussell1000() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(indexMetricsRefreshService.refreshRussell1000Listings(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(10, 2, List.of("X:no_cik")));
 
@@ -298,7 +299,7 @@ class AdminControllerTest {
 
     @Test
     void adminRefreshIndexStocks_scopeAll_usesAllTickers() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(indexMetricsRefreshService.refreshAllTickers(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(20, 1, List.of("Y:no_price")));
 
@@ -327,7 +328,7 @@ class AdminControllerTest {
 
     @Test
     void adminRefreshIndexStocks_withTicker_routesToSingleTicker() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(indexMetricsRefreshService.refreshSingleTicker(eq("NFLX"), anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(1, 0, List.of()));
 
@@ -346,7 +347,7 @@ class AdminControllerTest {
 
     @Test
     void adminRefreshIndexStocks_tickerOverridesScope() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(indexMetricsRefreshService.refreshSingleTicker(eq("aapl"), anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(1, 0, List.of()));
 
@@ -544,7 +545,7 @@ class AdminControllerTest {
 
     @Test
     void rebuildCapRanked_noCode_rebuildsAllOrdered() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT50", y, 50, false, BigDecimal.ONE, List.of("AAPL")));
@@ -571,7 +572,7 @@ class AdminControllerTest {
 
     @Test
     void rebuildCapRanked_codeFat50_onlyThatService() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT50", y, 50, false, BigDecimal.ONE, List.of("AAPL")));
@@ -609,7 +610,7 @@ class AdminControllerTest {
 
     @Test
     void rebuildFattore50_validKey_returns200() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT50", y, 50, false, BigDecimal.ONE, List.of("AAPL")));
@@ -631,7 +632,7 @@ class AdminControllerTest {
 
     @Test
     void rebuildFattore50_refreshMetrics_includesRefresh() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(indexMetricsRefreshService.refreshRussell1000Listings(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.IndexMetricsRefreshService.RefreshResult(10, 2, List.of("X:no_cik")));
         when(fattore50IndexRebuildService.rebuild(anyInt())).thenReturn(
@@ -651,7 +652,7 @@ class AdminControllerTest {
 
     @Test
     void rebuildFattore100_validKey_returns200() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(fattore100IndexRebuildService.rebuild(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT100", y, 100, false, BigDecimal.ONE, List.of("MSFT")));
@@ -674,7 +675,7 @@ class AdminControllerTest {
 
     @Test
     void rebuildFattore1000_validKey_returns200() throws Exception {
-        int y = Year.now().getValue();
+        int y = Year.now(MarketTime.MARKET).getValue();
         when(fattore1000IndexRebuildService.rebuild(anyInt())).thenReturn(
                 new com.fattorestreet.sec_api.index.FattoreIndexRebuildService.RebuildResult(
                         "FAT1000", y, 1000, false, BigDecimal.ONE, List.of("NVDA")));

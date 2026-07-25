@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
 import com.fattorestreet.sec_api.corporateaction.EquityCorporateActionService;
 import com.fattorestreet.sec_api.model.CorporateAction;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -267,8 +268,8 @@ class EquityExDateAssignerTest {
     void promotesRecentUnmatchedDeclarationToProvisionalEvent() {
         // A declared-but-not-yet-reported dividend (8-K before the next 10-Q) becomes a
         // provisional tuple-anchored event so price adjustment sees it without the XBRL lag.
-        LocalDate newestPeriodEnd = LocalDate.now().minusDays(60);
-        LocalDate declaredRecord = LocalDate.now().minusDays(10);
+        LocalDate newestPeriodEnd = LocalDate.now(MarketTime.MARKET).minusDays(60);
+        LocalDate declaredRecord = LocalDate.now(MarketTime.MARKET).minusDays(10);
         LocalDate expectedEx = declaredRecord.minusDays(1);
 
         List<EquityCorporateActionService.DividendEvent> normalized = List.of(
@@ -295,7 +296,7 @@ class EquityExDateAssignerTest {
 
     @Test
     void doesNotPromoteLowConfidenceOrStaleOrOutOfBandDeclarations() {
-        LocalDate newestPeriodEnd = LocalDate.now().minusDays(300);
+        LocalDate newestPeriodEnd = LocalDate.now(MarketTime.MARKET).minusDays(300);
 
         List<EquityCorporateActionService.DividendEvent> normalized = List.of(
                 new EquityCorporateActionService.DividendEvent(newestPeriodEnd, null, 0.22, 0.22,
@@ -308,11 +309,11 @@ class EquityExDateAssignerTest {
                 normalized, List.of(), List.of(),
                 List.of(
                         // Below the promotion confidence floor.
-                        declaration(0.24, LocalDate.now().minusDays(10), null, null, 70),
+                        declaration(0.24, LocalDate.now(MarketTime.MARKET).minusDays(10), null, null, 70),
                         // Older than the promotion recency window (blind-window only).
-                        declaration(0.24, LocalDate.now().minusDays(250), null, null, 95),
+                        declaration(0.24, LocalDate.now(MarketTime.MARKET).minusDays(250), null, null, 95),
                         // Amount far outside the plausibility band vs the latest regular event.
-                        declaration(9.99, LocalDate.now().minusDays(10), null, null, 95)),
+                        declaration(9.99, LocalDate.now(MarketTime.MARKET).minusDays(10), null, null, 95)),
                 List.of());
 
         assertEquals(0, result.promotedTupleEvents());

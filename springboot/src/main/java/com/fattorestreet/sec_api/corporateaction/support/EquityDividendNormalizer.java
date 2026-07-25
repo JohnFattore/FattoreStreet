@@ -364,16 +364,6 @@ public class EquityDividendNormalizer {
         return derivedQ4 <= round4(median * MAX_Q4_RELATIVE_JUMP);
     }
 
-    private boolean isLater(LocalDate candidate, LocalDate baseline) {
-        if (candidate == null) {
-            return false;
-        }
-        if (baseline == null) {
-            return true;
-        }
-        return candidate.isAfter(baseline);
-    }
-
     private boolean isCommonSplitRatio(double rawRatio) {
         for (double c : splitSnapRatios()) {
             if (Math.abs(rawRatio - c) / c < 0.02) {

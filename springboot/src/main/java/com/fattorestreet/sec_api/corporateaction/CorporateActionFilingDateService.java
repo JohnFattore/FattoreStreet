@@ -33,7 +33,6 @@ import com.fattorestreet.sec_api.corporateaction.support.FilingExtractionStore;
 import com.fattorestreet.sec_api.corporateaction.support.FilingTextDates;
 import com.fattorestreet.sec_api.model.FilingExtraction;
 
-import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class CorporateActionFilingDateService {
@@ -87,18 +86,15 @@ public class CorporateActionFilingDateService {
     private final WebService webService;
     private final EdgarFilingDiscoveryService filingDiscoveryService;
     private final FilingExtractionStore extractionStore;
-    private final ObjectMapper mapper;
     private final DividendDeclarationTupleExtractor tupleExtractor = new DividendDeclarationTupleExtractor();
 
     public CorporateActionFilingDateService(
             WebService webService,
             EdgarFilingDiscoveryService filingDiscoveryService,
-            FilingExtractionStore extractionStore,
-            ObjectMapper mapper) {
+            FilingExtractionStore extractionStore) {
         this.webService = webService;
         this.filingDiscoveryService = filingDiscoveryService;
         this.extractionStore = extractionStore;
-        this.mapper = mapper;
     }
 
     public RecordDateScanResult scanDividendRecordDates(Long cik) {
