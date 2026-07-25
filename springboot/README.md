@@ -338,9 +338,13 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 | Error Prone | `compile` | `pom.xml` (`errorprone.checks.*` properties) |
 | JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco.line.minimum`) |
 
-Error Prone runs as a javac plugin, so unlike the others it cannot be turned off with a `<skip>` parameter. It lives in a profile that deactivates whenever `-Dquality.skip` is passed, which is what keeps it out of the Docker build. Its ERROR-tier checks fail the build; WARNING-tier checks are advisory.
+Error Prone runs as a javac plugin, so unlike the others it cannot be turned off with a `<skip>` parameter. It lives in a profile that deactivates whenever `-Dquality.skip` is passed, which is what keeps it out of the Docker build.
 
-Four WARNING-tier checks are promoted to ERROR, defined in the `errorprone.checks.*` properties:
+**Main sources compile warning-free under `-Werror`.** Any javac warning *or* Error Prone WARNING-tier finding fails the build, so nothing accumulates unnoticed and no per-check promotion list has to be maintained. `-Xlint:deprecation` is enabled deliberately; `rawtypes`/`unchecked` are not, since Spring and JPA generics would make them noise. Test sources are exempt from `-Werror` (see below).
+
+Because of this, **use `JsonNode.asString()`, never `asText()`** — Jackson 3 deprecated the latter, and the build now rejects it.
+
+Four WARNING-tier checks are additionally promoted to ERROR in the `errorprone.checks.*` properties. On main sources `-Werror` already covers them; they are kept because they document which findings matter most, they survive `-Werror` being removed, and `errorprone.checks.common` also applies to test sources:
 
 | Check | Scope | Why |
 |---|---|---|
@@ -349,7 +353,7 @@ Four WARNING-tier checks are promoted to ERROR, defined in the `errorprone.check
 | `UnusedNestedClass` | main | Dead nested records/classes |
 | `JavaTimeDefaultTimeZone` | main + test | A zone-less `LocalDate.now()`/`Year.now()` reads the host default zone, so "today" differs between a laptop, CI and Fargate — silently shifting trading-day and filing-window boundaries |
 
-The dead-code trio is advisory on test sources only. Mockito's `@InjectMocks` is fed by `@Mock` fields that are never read when a test neither stubs nor verifies them: load-bearing (dropping one injects `null`) but indistinguishable from dead code to Error Prone, which cannot see field injection.
+The dead-code trio is advisory on test sources only, and test sources do not get `-Werror`. Mockito's `@InjectMocks` is fed by `@Mock` fields that are never read when a test neither stubs nor verifies them: load-bearing (dropping one injects `null`) but indistinguishable from dead code to Error Prone, which cannot see field injection. `testsupport/TestJwtTokens` is likewise stuck with `java.util.Date`, which JJWT's API requires.
 
 For `now()` calls, pass a constant from `util/MarketTime.java` rather than an inline zone: `MarketTime.MARKET` (`America/New_York`) for anything answering "what trading day or filing year is it", `MarketTime.STORAGE` (UTC) for audit timestamps that are only ever compared to other stored timestamps.
 

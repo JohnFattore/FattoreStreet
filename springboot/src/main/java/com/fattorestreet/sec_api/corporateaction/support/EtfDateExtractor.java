@@ -18,6 +18,7 @@ import com.fattorestreet.sec_api.util.SecTextUtils;
 @Component
 public class EtfDateExtractor {
 
+    private static final Pattern LINE_SPLIT = Pattern.compile("\\r?\\n");
     private static final Pattern EX_DIVIDEND_DATE_SENTENCE_PATTERN = Pattern.compile(
             "(?is)(?:ex-?dividend(?:\\s+(?:date|dt))?|ex\\s+(?:date|dt))[^\\n]{0,220}");
     private static final Pattern RECORD_DATE_SENTENCE_PATTERN = Pattern.compile(
@@ -157,7 +158,7 @@ public class EtfDateExtractor {
             List<DateCandidate> exCandidates,
             List<DateCandidate> recordCandidates,
             List<DateCandidate> payCandidates) {
-        String[] lines = filingText.split("\\r?\\n");
+        String[] lines = LINE_SPLIT.split(filingText, -1);
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
             if (line == null || line.isBlank()) {

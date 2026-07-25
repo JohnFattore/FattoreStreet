@@ -3,6 +3,7 @@ package com.fattorestreet.sec_api.corporateaction.support;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import com.fattorestreet.sec_api.util.SecTextUtils;
 @Component
 public class EtfIdentityEvaluator {
 
+    private static final Pattern WHITESPACE_SPLIT = Pattern.compile("\\s+");
 
     public IdentitySignal evaluateIdentity(
             String filingText,
@@ -71,7 +73,7 @@ public class EtfIdentityEvaluator {
         if (normalizedText.contains(normalizedName)) {
             return true;
         }
-        String[] words = normalizedName.split("\\s+");
+        String[] words = WHITESPACE_SPLIT.split(normalizedName, -1);
         int matched = 0;
         for (String word : words) {
             if (word.length() < 4) {

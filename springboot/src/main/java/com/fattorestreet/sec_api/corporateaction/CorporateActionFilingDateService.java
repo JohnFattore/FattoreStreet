@@ -82,6 +82,8 @@ public class CorporateActionFilingDateService {
     private static final Pattern SENTENCE_SPLIT_TRIGGER = Pattern.compile("(?i)\\b(split|stock split|split-adjusted)\\b");
     private static final Pattern SENTENCE_DIVIDEND_TRIGGER = Pattern.compile("(?i)\\b(dividend|record date|shareholders of record|holders of record)\\b");
     private static final Pattern HREF_PATTERN = Pattern.compile("(?is)href\\s*=\\s*['\"]([^'\"]+)['\"]");
+    /** Sentence boundary: split after terminal punctuation. Hoisted so filing scans do not recompile it per call. */
+    private static final Pattern SENTENCE_SPLIT = Pattern.compile("(?<=[.!?;])\\s+");
 
     private final WebService webService;
     private final EdgarFilingDiscoveryService filingDiscoveryService;
@@ -684,7 +686,7 @@ public class CorporateActionFilingDateService {
         if (searchable.isBlank()) {
             return Collections.emptyList();
         }
-        String[] rawSentences = searchable.split("(?<=[.!?;])\\s+");
+        String[] rawSentences = SENTENCE_SPLIT.split(searchable, -1);
         List<ExtractedRecordDate> out = new ArrayList<>();
         int matchIndex = 0;
         for (String sentence : rawSentences) {

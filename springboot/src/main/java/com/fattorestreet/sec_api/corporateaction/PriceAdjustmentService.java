@@ -208,8 +208,9 @@ public class PriceAdjustmentService {
                 scheduledDetections.size(), options.force());
 
         int tickersProcessed = 0;
-        int totalSplits = 0;
-        int totalDividends = 0;
+        // long: these accumulate Stream.count(), so an int would hide a lossy narrowing cast.
+        long totalSplits = 0;
+        long totalDividends = 0;
         int totalPricesUpdated = 0;
         int totalSnappedActions = 0;
         int skippedNoAsset = 0;
