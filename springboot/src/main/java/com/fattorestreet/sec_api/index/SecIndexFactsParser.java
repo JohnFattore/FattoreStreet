@@ -270,7 +270,7 @@ public final class SecIndexFactsParser {
             if (!n.has("val") || !n.has("end")) {
                 continue;
             }
-            LocalDate d = LocalDate.parse(n.get("end").asText());
+            LocalDate d = LocalDate.parse(n.get("end").asString());
             if (bestDate == null || d.isAfter(bestDate)) {
                 bestDate = d;
                 best = n;
@@ -284,10 +284,10 @@ public final class SecIndexFactsParser {
 
     private static String textOrNull(JsonNode node, String field) {
         JsonNode child = node.get(field);
-        if (child == null || child.isNull() || child.asText().isBlank()) {
+        if (child == null || child.isNull() || child.asString().isBlank()) {
             return null;
         }
-        return child.asText();
+        return child.asString();
     }
 
     private static JsonNode firstArrayUnit(JsonNode units) {

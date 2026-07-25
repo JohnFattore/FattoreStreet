@@ -176,7 +176,7 @@ public class CorporateActionValidationService {
             return;
         }
         dividendsNode.forEach(row -> {
-            String dateText = row.path("date").asText(null);
+            String dateText = row.path("date").asString(null);
             double amount = row.path("amount").asDouble(0.0);
             if (amount <= 0) {
                 amount = row.path("value").asDouble(0.0);
@@ -193,7 +193,7 @@ public class CorporateActionValidationService {
             return;
         }
         splitsNode.forEach(row -> {
-            String dateText = row.path("date").asText(null);
+            String dateText = row.path("date").asString(null);
             LocalDate date = parseIsoDate(dateText);
             if (date == null || date.isBefore(minDateInclusive)) {
                 return;

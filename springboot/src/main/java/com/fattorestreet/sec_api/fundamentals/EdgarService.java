@@ -186,8 +186,8 @@ public class EdgarService {
                         if (asset == null)
                             continue;
 
-                        String startStr = node.has("start") ? node.get("start").asText() : null;
-                        String endStr = node.get("end").asText();
+                        String startStr = node.has("start") ? node.get("start").asString() : null;
+                        String endStr = node.get("end").asString();
                         LocalDate start = startStr != null ? LocalDate.parse(startStr) : LocalDate.parse(endStr);
                         LocalDate end = LocalDate.parse(endStr);
 
@@ -206,7 +206,7 @@ public class EdgarService {
                             year = Integer.parseInt(period.substring(2, 6));
                         }
                         if (node.has("fp")) {
-                            String fp = node.get("fp").asText();
+                            String fp = node.get("fp").asString();
                             if (fp.equalsIgnoreCase("Q1"))
                                 qtr = 1;
                             else if (fp.equalsIgnoreCase("Q2"))
@@ -286,8 +286,8 @@ public class EdgarService {
                         if (!assetMap.containsKey(cik))
                             continue;
 
-                        String startStr = node.has("start") ? node.get("start").asText() : null;
-                        String endStr = node.get("end").asText();
+                        String startStr = node.has("start") ? node.get("start").asString() : null;
+                        String endStr = node.get("end").asString();
                         if (startStr == null)
                             continue; // Flow concepts must have a start date
 
@@ -680,17 +680,17 @@ public class EdgarService {
                         if (!entry.has("end"))
                             continue;
 
-                        String endStr = entry.get("end").asText();
+                        String endStr = entry.get("end").asString();
                         LocalDate endDate = LocalDate.parse(endStr);
                         int fy = entry.has("fy") ? entry.get("fy").asInt() : 0;
-                        String fp = entry.has("fp") ? entry.get("fp").asText() : null;
+                        String fp = entry.has("fp") ? entry.get("fp").asString() : null;
 
                         LocalDate startDate = null;
                         int durationMonths = 0; // 0 for stock/instant
 
                         if (entry.has("start")) {
                             try {
-                                startDate = LocalDate.parse(entry.get("start").asText());
+                                startDate = LocalDate.parse(entry.get("start").asString());
                                 long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
 
                                 // Approximate duration logic for bucketing
@@ -720,7 +720,7 @@ public class EdgarService {
                         JsonNode valNode = entry.get("val");
                         Object value = valNode.isNumber()
                                 ? (valNode.isFloatingPointNumber() ? valNode.asDouble() : valNode.asLong())
-                                : valNode.asText();
+                                : valNode.asString();
 
                         // Key by End Date for grouping similar durations
                         dataPoints.computeIfAbsent(endStr, k -> new HashMap<>()).putIfAbsent(durationMonths,

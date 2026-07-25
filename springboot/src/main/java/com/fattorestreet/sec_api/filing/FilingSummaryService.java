@@ -131,13 +131,13 @@ public class FilingSummaryService {
         int summarized = 0;
 
         for (int i = 0; i < forms.size(); i++) {
-            if (!"10-K".equals(forms.get(i).asText())) continue;
+            if (!"10-K".equals(forms.get(i).asString())) continue;
 
-            String accession = accessionNumbers.get(i).asText();
+            String accession = accessionNumbers.get(i).asString();
             if (filingSummaryRepository.existsByAccessionNumber(accession)) continue;
 
-            String filingDate = filingDates.get(i).asText();
-            String primaryDoc = primaryDocuments.get(i).asText();
+            String filingDate = filingDates.get(i).asString();
+            String primaryDoc = primaryDocuments.get(i).asString();
             String accessionPath = accession.replace("-", "");
 
             String filingUrl = String.format(SEC_ARCHIVES_URL, asset.getCik(), accessionPath, primaryDoc);
@@ -245,7 +245,7 @@ public class FilingSummaryService {
             ResponseEntity<String> response = restTemplate.exchange(
                     url, HttpMethod.POST, entity, String.class);
             JsonNode root = objectMapper.readTree(response.getBody());
-            return root.path("choices").get(0).path("message").path("content").asText();
+            return root.path("choices").get(0).path("message").path("content").asString();
         } catch (Exception e) {
             log.error("LLM call failed: {}", e.getMessage());
             return null;

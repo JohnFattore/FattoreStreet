@@ -299,7 +299,7 @@ public class EtfCorporateActionService {
                 JsonNode items = root.path("directory").path("item");
                 if (items.isArray()) {
                     for (JsonNode item : items) {
-                        String name = item.path("name").asText(null);
+                        String name = item.path("name").asString(null);
                         if (isLikelyDistributionDocument(name)) {
                             ordered.add(name);
                         }

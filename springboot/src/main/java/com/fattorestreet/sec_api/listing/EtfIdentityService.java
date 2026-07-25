@@ -141,7 +141,7 @@ public class EtfIdentityService {
         if (fieldsNode != null && fieldsNode.isArray() && dataNode != null && dataNode.isArray()) {
             List<String> fields = new ArrayList<>();
             for (JsonNode fieldNode : fieldsNode) {
-                String field = fieldNode.asText(null);
+                String field = fieldNode.asString(null);
                 fields.add(field == null ? "" : field);
             }
             for (JsonNode dataRow : dataNode) {
@@ -176,7 +176,7 @@ public class EtfIdentityService {
             if (value == null || value.isNull()) {
                 continue;
             }
-            String text = value.asText();
+            String text = value.asString();
             if (text != null && !text.isBlank()) {
                 return text.trim();
             }
