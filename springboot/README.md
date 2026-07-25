@@ -325,6 +325,7 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 ./mvnw spotless:apply    # auto-fix formatting (imports, whitespace, indentation)
 ./mvnw spotless:check    # what CI checks
 ./mvnw checkstyle:check  # lint rules
+./mvnw verify            # everything CI runs: gates + tests + coverage floor
 ```
 
 | Gate | Phase | Config |
@@ -332,7 +333,9 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 | Maven enforcer (Maven 3.9+, Java 17+) | `validate` | `pom.xml` |
 | Spotless | `validate` | `pom.xml` (inline) |
 | Checkstyle | `validate` | `config/checkstyle/checkstyle.xml` |
-| JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco:check`) |
+| JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco.line.minimum`) |
+
+CI runs `mvn verify`, so the coverage floor is enforced on every PR. The floor lives in the `jacoco.line.minimum` property; raise it deliberately as coverage improves and never lower it to make a build pass. It is overridable on the command line (`-Djacoco.line.minimum=0.95`) purely so the gate itself can be tested.
 
 Checkstyle owns semantics; Spotless owns whitespace, import order and line length. Never add whitespace, wrapping or `LineLength` modules to `checkstyle.xml`: two owners of the same concern produce a build that cannot be made green. The ruleset is curated rather than inherited from `sun_checks.xml` or `google_checks.xml`, and its header comment records what was excluded and why.
 

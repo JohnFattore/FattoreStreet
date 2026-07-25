@@ -44,6 +44,13 @@
 		<spotless.version>2.46.1</spotless.version>
 		<checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
 		<checkstyle.version>10.26.1</checkstyle.version>
+
+		<!-- Coverage floor enforced by jacoco:check at verify. Actual at the time
+		     CI started running verify: 81.5% line, 61.9% branch. Raise this
+		     deliberately when coverage improves; never lower it to make a build
+		     pass. Overridable on the command line so the gate itself can be
+		     tested (-Djacoco.line.minimum=0.95 should fail). -->
+		<jacoco.line.minimum>0.76</jacoco.line.minimum>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -265,7 +272,7 @@
 										<limit>
 											<counter>LINE</counter>
 											<value>COVEREDRATIO</value>
-											<minimum>0.76</minimum>
+											<minimum>${jacoco.line.minimum}</minimum>
 										</limit>
 									</limits>
 								</rule>
