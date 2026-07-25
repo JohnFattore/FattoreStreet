@@ -255,7 +255,7 @@ public class AdjustedPriceValidationService {
                     djangoPortfolioBaseUrl,
                     encodedTicker));
             rows.forEach(row -> {
-                LocalDate date = parseIsoDate(row.path("date").asText(null));
+                LocalDate date = parseIsoDate(row.path("date").asString(null));
                 double value = row.path("value").asDouble(0.0);
                 if (date != null && !date.isBefore(minDateInclusive) && value > 0) {
                     out.put(date, value);

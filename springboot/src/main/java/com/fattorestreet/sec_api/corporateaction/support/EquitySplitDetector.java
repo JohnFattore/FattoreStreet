@@ -78,7 +78,7 @@ public class EquitySplitDetector {
 
         List<SharesEntry> entries = new ArrayList<>();
         for (JsonNode entry : sharesNode) {
-            String form = entry.has("form") ? entry.get("form").asText() : "";
+            String form = entry.has("form") ? entry.get("form").asString() : "";
             if (!isRelevantSplitForm(form)) {
                 continue;
             }
@@ -86,7 +86,7 @@ public class EquitySplitDetector {
                 continue;
             }
             long val = entry.get("val").asLong();
-            LocalDate endDate = LocalDate.parse(entry.get("end").asText());
+            LocalDate endDate = LocalDate.parse(entry.get("end").asString());
             if (val > 0) {
                 entries.add(new SharesEntry(endDate, val));
             }

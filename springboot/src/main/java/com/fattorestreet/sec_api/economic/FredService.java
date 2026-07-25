@@ -70,11 +70,11 @@ public class FredService {
         for (JsonNode observation : root.path("observations")) {
             double value;
             try {
-                value = Double.parseDouble(observation.path("value").asText());
+                value = Double.parseDouble(observation.path("value").asString());
             } catch (NumberFormatException e) {
                 continue; // FRED marks missing values with "."
             }
-            result.add(new FredObservation(LocalDate.parse(observation.path("date").asText()), value));
+            result.add(new FredObservation(LocalDate.parse(observation.path("date").asString()), value));
         }
         result.sort(Comparator.comparing(FredObservation::date));
         return result;

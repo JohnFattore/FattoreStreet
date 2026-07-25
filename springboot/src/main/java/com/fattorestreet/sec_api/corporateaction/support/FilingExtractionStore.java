@@ -222,11 +222,11 @@ public class FilingExtractionStore {
 
     private LocalDate parseDate(JsonNode node, String field) {
         JsonNode value = node.get(field);
-        if (value == null || value.isNull() || value.asText().isBlank()) {
+        if (value == null || value.isNull() || value.asString().isBlank()) {
             return null;
         }
         try {
-            return LocalDate.parse(value.asText());
+            return LocalDate.parse(value.asString());
         } catch (Exception e) {
             return null;
         }

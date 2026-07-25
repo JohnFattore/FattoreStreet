@@ -70,7 +70,7 @@ public class EdgarFilingDiscoveryService {
                 if (scanned >= Math.max(maxSubmissionFilesToScan, 0)) {
                     break;
                 }
-                String name = fileEntry.path("name").asText(null);
+                String name = fileEntry.path("name").asString(null);
                 if (name == null || name.isBlank()) {
                     continue;
                 }
@@ -104,10 +104,10 @@ public class EdgarFilingDiscoveryService {
                 for (JsonNode filing : filingsArray) {
                     addFilingRow(
                             out,
-                            filing.path("accessionNumber").asText(null),
-                            filing.path("form").asText(null),
-                            filing.path("primaryDocument").asText(null),
-                            parseIsoDate(filing.path("filingDate").asText(null)));
+                            filing.path("accessionNumber").asString(null),
+                            filing.path("form").asString(null),
+                            filing.path("primaryDocument").asString(null),
+                            parseIsoDate(filing.path("filingDate").asString(null)));
                 }
             }
         } catch (JacksonException ex) {
@@ -128,10 +128,10 @@ public class EdgarFilingDiscoveryService {
         for (int i = 0; i < count; i++) {
             addFilingRow(
                     out,
-                    accession.path(i).asText(null),
-                    forms.path(i).asText(null),
-                    primaryDocs.path(i).asText(null),
-                    parseIsoDate(filingDates.path(i).asText(null)));
+                    accession.path(i).asString(null),
+                    forms.path(i).asString(null),
+                    primaryDocs.path(i).asString(null),
+                    parseIsoDate(filingDates.path(i).asString(null)));
         }
     }
 

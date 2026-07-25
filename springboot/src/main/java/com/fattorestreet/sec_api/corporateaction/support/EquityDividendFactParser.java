@@ -103,7 +103,7 @@ public class EquityDividendFactParser {
     }
 
     private EquityCorporateActionService.DividendFact parseDividendFactRow(JsonNode entry, String conceptName) {
-        String form = entry.has("form") ? entry.get("form").asText() : "";
+        String form = entry.has("form") ? entry.get("form").asString() : "";
         if (!isRelevantDividendForm(form)) {
             return null;
         }
@@ -112,14 +112,14 @@ public class EquityDividendFactParser {
         }
         LocalDate endDate;
         try {
-            endDate = LocalDate.parse(entry.get("end").asText());
+            endDate = LocalDate.parse(entry.get("end").asString());
         } catch (Exception ignored) {
             return null;
         }
         LocalDate startDate = null;
         if (entry.has("start")) {
             try {
-                startDate = LocalDate.parse(entry.get("start").asText());
+                startDate = LocalDate.parse(entry.get("start").asString());
             } catch (Exception ignored) {
                 startDate = null;
             }
@@ -131,7 +131,7 @@ public class EquityDividendFactParser {
         LocalDate filedDate = null;
         if (entry.has("filed")) {
             try {
-                filedDate = LocalDate.parse(entry.get("filed").asText());
+                filedDate = LocalDate.parse(entry.get("filed").asString());
             } catch (Exception ignored) {
                 filedDate = null;
             }
