@@ -52,6 +52,7 @@
 		     tested (-Djacoco.line.minimum=0.95 should fail). -->
 		<jacoco.line.minimum>0.76</jacoco.line.minimum>
 		<spotbugs.annotations.version>4.9.6</spotbugs.annotations.version>
+		<pmd.plugin.version>3.27.0</pmd.plugin.version>
 	</properties>
 	<dependencies>
 		<!-- @SuppressFBWarnings only; provided+optional so it never ships in the jar -->
@@ -290,6 +291,30 @@
 								<exclude>com/fattorestreet/sec_api/SecApiApplication.class</exclude>
 							</excludes>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>${pmd.plugin.version}</version>
+				<configuration>
+					<skip>${quality.skip}</skip>
+					<rulesets>
+						<ruleset>config/pmd/ruleset.xml</ruleset>
+					</rulesets>
+					<includeTests>false</includeTests>
+					<printFailingErrors>true</printFailingErrors>
+					<failOnViolation>true</failOnViolation>
+					<linkXRef>false</linkXRef>
+				</configuration>
+				<executions>
+					<execution>
+						<id>pmd-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<ruleset name="sec-api"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+                             https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Curated PMD ruleset for sec-api.
+
+        PMD is the third analyser here, after Spotless (shape), Checkstyle
+        (semantics) and SpotBugs+FindSecBugs (bytecode defects). It earns its
+        place only where it sees something the others do not, so this file
+        references INDIVIDUAL RULES rather than whole category files.
+
+        Whole categories are deliberately NOT imported:
+          category/java/codestyle.xml   - Spotless and Checkstyle own style.
+                                          Importing it guarantees conflicts.
+          category/java/documentation.xml - no Javadoc culture in this tree.
+          category/java/performance.xml - mostly micro-optimisation advice
+                                          that fights readability.
+          category/java/design.xml      - complexity metrics would fail
+                                          immediately on the XBRL mapping and
+                                          corporate-action detectors.
+          category/java/security.xml    - FindSecBugs already covers this, at
+                                          bytecode level, more precisely.
+
+        The remaining rules below are ones SpotBugs does not report:
+        unused private methods and parameters are PMD's genuine edge, since
+        SpotBugs only reports uncalled private METHODS, not parameters, and
+        PMD sees source-level constructs the bytecode has already erased.
+    </description>
+
+    <!-- ===== Genuinely dead code =====
+         UnusedFormalParameter is the reason PMD is here at all: neither
+         SpotBugs nor Checkstyle reports it.
+         NOT included, to avoid three tools reporting one problem:
+           UnusedPrivateMethod  - SpotBugs UPM_UNCALLED_PRIVATE_METHOD already
+                                  covers it, and the five current hits are
+                                  tracked in config/spotbugs/exclude.xml.
+           UnusedLocalVariable  - Checkstyle already has this rule. -->
+    <rule ref="category/java/bestpractices.xml/UnusedPrivateField" />
+    <rule ref="category/java/bestpractices.xml/UnusedFormalParameter" />
+    <rule ref="category/java/bestpractices.xml/UnusedAssignment" />
+
+    <!-- ===== Likely mistakes ===== -->
+    <rule ref="category/java/errorprone.xml/CompareObjectsWithEquals" />
+    <rule ref="category/java/errorprone.xml/BrokenNullCheck" />
+    <rule ref="category/java/errorprone.xml/MisplacedNullCheck" />
+    <rule ref="category/java/errorprone.xml/OverrideBothEqualsAndHashcode" />
+    <rule ref="category/java/errorprone.xml/UnconditionalIfStatement" />
+    <rule ref="category/java/errorprone.xml/JumbledIncrementer" />
+
+    <!-- ===== Needless control flow =====
+         NOT included:
+           UselessParentheses - a codestyle rule, and importing it would break
+             the ownership split stated above. Its 12 hits were all explicit
+             grouping in boolean and arithmetic expressions, where the parens
+             help the reader more than the rule does.
+           AvoidBranchingStatementAsLastInLoop - its single hit was a false
+             positive: a `break` that ends a first-match search whose earlier
+             paths `continue`, so the loop is not pointless. A rule whose only
+             finding is wrong costs more than it returns. -->
+    <rule ref="category/java/errorprone.xml/UselessOperationOnImmutable" />
+    <rule ref="category/java/design.xml/SimplifiedTernary" />
+    <rule ref="category/java/design.xml/CollapsibleIfStatements" />
+
+</ruleset>

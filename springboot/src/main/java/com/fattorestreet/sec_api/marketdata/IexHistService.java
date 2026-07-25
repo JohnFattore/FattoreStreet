@@ -111,10 +111,9 @@ public class IexHistService {
         int errors = 0;
 
         CompletableFuture<Path> nextDownload = null;
-        DayTask nextTask = null;
 
         if (!toProcess.isEmpty()) {
-            nextTask = toProcess.get(0);
+            DayTask nextTask = toProcess.get(0);
             log.info("[{}] Prefetching TOPS ({} MB)...", nextTask.date, nextTask.sizeMb);
             nextDownload = startAsyncDownload(nextTask.link);
         }
