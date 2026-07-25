@@ -52,6 +52,7 @@ Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
   - a whole category: `springboot/config/spotbugs/exclude.xml`, with a written rationale in the XML comment
   - one intentional site: `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is mandatory
 - Prefer `InputStream.skipNBytes` over `skipBytes`; the latter can skip fewer bytes than asked and returns the count, which silently desynchronises binary parsing
+- PMD also gates `mvn verify`, with a deliberately small ruleset in `springboot/config/pmd/ruleset.xml`. It references individual rules, never whole categories, so it only reports what Spotless, Checkstyle and SpotBugs do not. Keep it that way when adding rules
 
 ## SEC EDGAR Patterns
 

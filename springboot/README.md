@@ -334,6 +334,7 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 | Spotless | `validate` | `pom.xml` (inline) |
 | Checkstyle | `validate` | `config/checkstyle/checkstyle.xml` |
 | SpotBugs + FindSecBugs | `verify` | `config/spotbugs/exclude.xml` |
+| PMD | `verify` | `config/pmd/ruleset.xml` |
 | JaCoCo coverage floor | `verify` | `pom.xml` (`jacoco.line.minimum`) |
 
 To silence a SpotBugs finding, silence a whole **category** in `config/spotbugs/exclude.xml` with a written rationale, or a single intentional **site** with `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is not optional; reviewers should reject entries without one. Two blocks in that file are marked `REVISIT` because they are accepted risk rather than false positives.

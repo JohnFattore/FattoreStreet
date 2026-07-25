@@ -118,10 +118,10 @@ public class CorporateActionValidationService {
                 if (amount > 0) {
                     out.add(new NormalizedEvent(ActionType.DIVIDEND, action.getEffectiveDate(), round4(amount), "sec"));
                 }
-            } else if (action.getActionType() == ActionType.SPLIT) {
-                if (action.getRatio() != null && action.getRatio() > 0) {
-                    out.add(new NormalizedEvent(ActionType.SPLIT, action.getEffectiveDate(), round4(action.getRatio()), "sec"));
-                }
+            } else if (action.getActionType() == ActionType.SPLIT
+                    && action.getRatio() != null
+                    && action.getRatio() > 0) {
+                out.add(new NormalizedEvent(ActionType.SPLIT, action.getEffectiveDate(), round4(action.getRatio()), "sec"));
             }
         }
         out.sort(Comparator.comparing(NormalizedEvent::date).thenComparing(NormalizedEvent::value));
