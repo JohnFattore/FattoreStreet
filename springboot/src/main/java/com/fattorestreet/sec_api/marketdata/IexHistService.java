@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -125,7 +126,10 @@ public class IexHistService {
 
             Path tempFile = null;
             try {
-                tempFile = nextDownload.join();
+                // Non-null whenever this loop runs: the prefetch above is started under the same
+                // non-empty check that gates the loop. Asserted rather than assumed so a future
+                // edit that breaks the pairing fails loudly instead of NPEing mid-ingest.
+                tempFile = Objects.requireNonNull(nextDownload, "prefetch not started before ingest loop").join();
                 long dlMs = System.currentTimeMillis() - dayStart;
                 log.info("[{}] Download ready ({}s), parsing trades...", current.date, dlMs / 1000);
 
@@ -196,7 +200,6 @@ public class IexHistService {
         }, downloadExecutor);
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, List<Map<String, Object>>> fetchHistIndex() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(HIST_INDEX_URL))

@@ -509,16 +509,16 @@ public class EdgarService {
         Long l = q.getLiabilities();
         Long e = q.getStockholdersEquity();
 
-        int present = (a != null ? 1 : 0) + (l != null ? 1 : 0) + (e != null ? 1 : 0);
-        if (present != 2)
-            return;
-
-        if (a == null)
+        // Exactly one of the three may be missing; derive it from assets = liabilities + equity.
+        // Spelling out each operand's null check (rather than counting non-nulls) is what lets
+        // the compiler see that the arithmetic below can never unbox a null.
+        if (a == null && l != null && e != null) {
             q.setAssets(l + e);
-        else if (l == null)
+        } else if (l == null && a != null && e != null) {
             q.setLiabilities(a - e);
-        else
+        } else if (e == null && a != null && l != null) {
             q.setStockholdersEquity(a - l);
+        }
     }
 
     public void updateFinancials(Asset asset) throws Exception {
