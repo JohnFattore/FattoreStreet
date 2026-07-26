@@ -14,7 +14,10 @@ name: Claude Code Review
 # Running the review as an action puts the three missing controls in this file:
 #   use_sticky_comment  -> one comment per PR, edited in place on every re-run
 #   cancel-in-progress  -> a push landing mid-review cancels the stale run
-#   --max-turns         -> caps the self-correction loop that caused the spam
+#   --max-turns         -> a runaway-cost ceiling, backed by timeout-minutes
+#
+# The sticky comment, not the turn cap, is what makes duplicates impossible:
+# there is one comment and every run edits it. --max-turns only bounds spend.
 #
 # Auth is a subscription-backed OAuth token (generate with `claude setup-token`,
 # store as the CLAUDE_CODE_OAUTH_TOKEN secret), so reviews draw down the same
@@ -74,4 +77,9 @@ jobs:
             (Critical, Suggestion, Nit), each citing file:line. Lead with a
             one-line tally. If nothing is worth raising, say so in one line
             instead of padding the comment.
-          claude_args: "--max-turns 8"
+          # 8 was too tight and failed with "Reached maximum number of turns":
+          # the review reads SKILL.md, the rule files that match the diff, and
+          # the diff itself before writing anything. 30 leaves room for a real
+          # review on a large PR while still capping a runaway; timeout-minutes
+          # above is the harder backstop.
+          claude_args: "--max-turns 30"

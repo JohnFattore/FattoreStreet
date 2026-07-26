@@ -132,6 +132,8 @@ On every push and pull request to `main`, [`.github/workflows/ci.yml`](../.githu
 
 A second workflow, [`.github/workflows/docker-build.yml`](../.github/workflows/docker-build.yml), builds all three production Docker images (`nginx`, `django`, `springboot`) on the same triggers as a merge check — images are built but not pushed. The nginx image is hermetic: it compiles the React bundle and runs `collectstatic` inside the build, so it needs no pre-built local artifacts.
 
+A third workflow, [`.github/workflows/claude-code-review.yml`](../.github/workflows/claude-code-review.yml), runs `anthropics/claude-code-action` on PR open/ready/push and posts its findings as a single sticky comment, edited in place on re-runs. It is advisory: the job succeeds whatever the review finds and never gates a merge. Setting up CI from scratch needs one repository secret for it, `CLAUDE_CODE_OAUTH_TOKEN` — generate the value with `claude setup-token` and add it under Settings → Secrets and variables → Actions. Without the secret the job fails immediately on a missing credential; nothing else in CI depends on it.
+
 The frontend **lint** step runs `eslint` with zero warnings allowed; if it fails on GitHub, run `npm run lint` in `react-app/` and fix or suppress the reported issues.
 
 ### Backend Tests
