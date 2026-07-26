@@ -60,6 +60,22 @@ Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not
 2. **tfvars** — `cp terraform.tfvars.example terraform.tfvars` and fill in VPC, subnets, the EC2
    instance's security group id, and its private IP/DNS for `db_host`.
 
+## Credentials
+
+Every command below runs under `AWS_PROFILE=fattorestreet`, which assumes the
+scoped role `FattoreStreetDeveloper` rather than using an admin key. Claude Code
+sets it automatically via `.claude/settings.json`; set it yourself in a plain
+shell. Setup is [`deploy/iam/CONSOLE-SETUP.md`](../../../deploy/iam/CONSOLE-SETUP.md),
+rationale is [`deploy/DEPLOY.md`](../../../deploy/DEPLOY.md) §5.
+
+The role deliberately has **no IAM write**. It can read the `fattorestreet-*`
+roles, so `plan` is accurate, but any change to the IAM resources in `main.tf`
+(the execution, task, or scheduler role) fails on `apply` with `AccessDenied`.
+That is not a bug to route around by switching credentials: apply those from
+CloudShell as an admin, then resume here. It also cannot read secret *values*,
+which the module never needs, since `env_secret_arn` is only ever passed through
+as a string.
+
 ## Deploy
 
 ```bash

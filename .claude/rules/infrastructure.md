@@ -65,6 +65,24 @@ instance, plus two one-shot Fargate tasks managed by Terraform.
   definition's `secrets` block, so the entrypoint no-ops there
 - Never hardcode credentials or connection strings. See `.claude/rules/secrets-check.md`
 
+## AWS credentials
+
+- Local work runs as `AWS_PROFILE=fattorestreet`, set in `.claude/settings.json`. It
+  assumes role `FattoreStreetDeveloper` (IAM user `claude-code` can do nothing but
+  assume it), so sessions expire hourly and every call is attributable
+- **Never read or write `~/.aws/*`.** Profile setup is a human step:
+  `deploy/iam/CONSOLE-SETUP.md`
+- The policy JSON is versioned in `deploy/iam/`, with `<ACCOUNT_ID>` / `<VPC_ID>`
+  placeholders; `deploy/iam/render.sh` substitutes them into a temp dir outside the repo
+- The role has **no IAM write** and cannot call `secretsmanager:GetSecretValue`. Both are
+  explicit denies that beat any allow
+- On `AccessDenied`, the fix is to widen the policy in `deploy/iam/` and have a human
+  apply it from CloudShell. **Never reach for another credential**, never suggest
+  falling back to an admin key, and never work around it by shelling out to a
+  different profile
+- CI is unaffected by any of this: it authenticates through OIDC role
+  `github-deploy-fattorestreet` and stores no AWS key
+
 ## General
 
 - Always use environment variables for service URLs, database credentials, and API keys

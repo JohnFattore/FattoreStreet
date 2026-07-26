@@ -25,7 +25,7 @@ into the transcript. Use `describe-secret` to inspect metadata instead.
 |---|---|
 | Account | `196185437114` |
 | Region | `us-east-1` (everything; no other region is in use) |
-| Local identity | IAM user `Spike`, keys in `~/.aws/credentials`, `Admin` group (AdministratorAccess) |
+| Local identity | `AWS_PROFILE=fattorestreet`, which assumes role `FattoreStreetDeveloper`. Read-heavy and non-admin: no IAM write, no `GetSecretValue`, `us-east-1` only. See `deploy/iam/` |
 | ECS cluster | `fattorestreet-hist-load` (the only one) |
 | ECS services | none, ever. Only one-shot scheduled tasks |
 | Task families | `fattorestreet-hist-load`, `fattorestreet-index-load` |

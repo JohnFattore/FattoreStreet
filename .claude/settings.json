@@ -1,5 +1,10 @@
 {
   "plansDirectory": ".claude/plans",
+  "env": {
+    "AWS_PROFILE": "fattorestreet",
+    "AWS_REGION": "us-east-1",
+    "AWS_DEFAULT_REGION": "us-east-1"
+  },
   "permissions": {
     "allow": [
       "Bash(aws sts get-caller-identity:*)",

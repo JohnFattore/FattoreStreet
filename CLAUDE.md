@@ -127,7 +127,7 @@ Additional conventions:
 - No Hungarian notation
 - Python follows PEP 8; TypeScript strict mode is enabled
 - camelCase in frontend, snake_case in Django; RTK Query `transformResponse` converts between them
-- Infra: Docker Compose stacks and deploy scripts in `deploy/` (images on GHCR, deployed via AWS SSM), Nginx in `nginx/`, Terraform for the one-shot Fargate price load in `springboot/deploy/terraform/`
+- Infra: Docker Compose stacks and deploy scripts in `deploy/` (images on GHCR, deployed via AWS SSM), Nginx in `nginx/`, Terraform for the one-shot Fargate price load in `springboot/deploy/terraform/`. Local AWS work runs under `AWS_PROFILE=fattorestreet`, a scoped non-admin role with no IAM write and no secret-value read; policy JSON in `deploy/iam/`
 
 ## Skills & Rules
 

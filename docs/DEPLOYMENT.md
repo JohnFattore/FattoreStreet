@@ -34,6 +34,7 @@ The production environment runs on a single EC2 instance behind Route 53:
   - `SECRETS_ARN`/`AWS_REGION` come from `deploy/.env` on the host (template: `deploy/.env.example`).
 - **Rollback**: re-run the deploy with an older commit's SHA, or on the host `sudo ./deploy.sh <old-sha>`.
 - **Runbook**: `deploy/compose.sh` documents one-time host setup and emergency manual commands. `deploy/run.sh` is kept as reference for the pre-Compose setup (including secret creation and certbot commands).
+- **Local AWS access**: laptop and Claude Code work runs under `AWS_PROFILE=fattorestreet`, an IAM user whose only permission is to assume the scoped role `FattoreStreetDeveloper` (no IAM write, no secret-value read, `us-east-1` only, hourly sessions). No admin key on the laptop. Policy JSON in [`deploy/iam/`](../deploy/iam/), console setup in [`deploy/iam/CONSOLE-SETUP.md`](../deploy/iam/CONSOLE-SETUP.md). CI is separate and unaffected: it uses OIDC and stores no key.
 
 Watchtower-based auto-updates are retired: deploys are an explicit, ordered, health-checked `deploy.sh` run, so nginx and the backends restart in a coordinated way.
 
