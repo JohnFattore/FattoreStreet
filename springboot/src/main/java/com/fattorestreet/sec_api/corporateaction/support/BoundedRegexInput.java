@@ -39,6 +39,13 @@ public final class BoundedRegexInput implements CharSequence {
     }
 
     /**
+     * Default per-match wall-clock budget. Generous next to a normal match (low single-digit
+     * milliseconds even on large filings) but small next to a nightly ingest, so a pathological
+     * document costs a fraction of a second instead of stalling the run.
+     */
+    public static final long DEFAULT_BUDGET_MILLIS = 2_000L;
+
+    /**
      * Characters read between deadline checks. Reading the clock on every {@code charAt} would
      * cost more than the backtracking it guards against; a few thousand characters is far below
      * the budget yet still bounds overshoot.
@@ -65,6 +72,17 @@ public final class BoundedRegexInput implements CharSequence {
      */
     public static BoundedRegexInput of(CharSequence text, long budgetMillis) {
         return new BoundedRegexInput(text, budgetMillis);
+    }
+
+    /**
+     * Wraps {@code text} with {@link #DEFAULT_BUDGET_MILLIS}. Preferred over the explicit-budget
+     * overload; pass a budget only when a test needs to force the timeout path.
+     *
+     * @param text the text to match against
+     * @return a guarded view of {@code text}
+     */
+    public static BoundedRegexInput of(CharSequence text) {
+        return of(text, DEFAULT_BUDGET_MILLIS);
     }
 
     @Override

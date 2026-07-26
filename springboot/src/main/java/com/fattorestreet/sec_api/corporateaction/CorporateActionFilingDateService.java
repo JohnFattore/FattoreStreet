@@ -50,12 +50,6 @@ public class CorporateActionFilingDateService {
     private static final int MAX_DIVIDEND_FILINGS_TO_SCAN = 250;
     private static final int MAX_SPLIT_FILINGS_TO_SCAN = 400;
     private static final int MAX_EXHIBIT_DOCS_TO_SCAN = 6;
-    /**
-     * Per-pattern wall-clock budget for the date regexes. Generous next to a normal match (low
-     * single-digit milliseconds even on large filings) but small next to a nightly ingest, so a
-     * pathological document costs a fraction of a second instead of stalling the run.
-     */
-    private static final long REGEX_BUDGET_MILLIS = 2_000L;
 
     private static final String DATE_PATTERN = FilingTextDates.DATE_PATTERN;
     private static final Pattern RECORD_DATE_NEAR_DIVIDEND = Pattern.compile(
@@ -631,7 +625,7 @@ public class CorporateActionFilingDateService {
         Map<LocalDate, ExtractedRecordDate> bestByDate = new HashMap<>();
         for (PatternSpec spec : specs) {
             // Fresh budget per pattern so one pathological match cannot starve the others.
-            Matcher matcher = spec.pattern().matcher(BoundedRegexInput.of(searchable, REGEX_BUDGET_MILLIS));
+            Matcher matcher = spec.pattern().matcher(BoundedRegexInput.of(searchable));
             int matchIndex = 0;
             try {
                 while (matcher.find()) {

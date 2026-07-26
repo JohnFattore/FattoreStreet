@@ -114,4 +114,35 @@ class EtfDateExtractorTest {
         assertNotNull(signals);
         assertEquals(LocalDate.of(2024, 5, 9), signals.effectiveDate());
     }
+
+    /**
+     * Dead "record date" labels with no date inside the pattern's 50-char gap, then a bare "Ex"
+     * label on its own line. Bare "Ex" is matched only by LABELED_DATE_PATTERN, not by the
+     * ex-dividend sentence or table patterns, so the trailing date is reachable through the guarded
+     * pass alone and its loss is observable. The newline matters: {@code [^\n\r\d]{0,50}} cannot
+     * cross it, which stops the last "record date" label from claiming the same date.
+     */
+    private static String backtrackHeavyFiling() {
+        return "record date pending further review ".repeat(40) + "\nEx 2024-05-09";
+    }
+
+    @Test
+    void extractEtfDateSignals_labeledDateTimeoutIsContainedAndDropsOnlyThatPass() {
+        // Control: with the production budget the guarded pass reaches the trailing date.
+        EtfDateExtractor.EtfDateSignals completed =
+                extractor.extractEtfDateSignals(backtrackHeavyFiling(), LocalDate.of(2024, 4, 1));
+        assertEquals(LocalDate.of(2024, 5, 9), completed.effectiveDate());
+        assertEquals("labeled_pattern", completed.exSource());
+
+        // A budget of zero trips the deadline on its first check. The timeout must be swallowed
+        // rather than propagating, so resolution continues without the labeled pass.
+        EtfDateExtractor.EtfDateSignals degraded = assertDoesNotThrow(
+                () -> extractor.extractEtfDateSignals(backtrackHeavyFiling(), LocalDate.of(2024, 4, 1), 0L));
+
+        // Only the labeled signal is lost; the extractor still returns, falling back to the filing
+        // date rather than aborting the ETF scan.
+        assertNotNull(degraded);
+        assertNull(degraded.exSource());
+        assertEquals("filing_date_fallback", degraded.resolutionPath());
+    }
 }
