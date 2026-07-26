@@ -68,7 +68,23 @@ terraform init
 terraform apply        # creates ECR repo, cluster, task def, IAM, SG rule, schedule
 ```
 
-Then build the **ARM64** image and push it to the ECR repo Terraform created:
+The image comes from CI. `.github/workflows/docker-build.yml` builds the springboot image on
+every merge to `main` and pushes it to **both** GHCR (for the EC2 compose stack) and this ECR
+repo, tagged `latest` + commit SHA. The task definitions pin `:latest`, so a merge to `main` is
+all it takes for the next nightly run to pick up new code.
+
+> The Dockerfile needs no changes — run mode is selected purely by the `APP_RUN_MODE` env var that
+> the task definition sets.
+
+**`terraform apply` is not a deploy.** Terraform can add a task definition referencing a runner
+that the ECR image does not yet contain; the container then falls through to `APP_RUN_MODE=server`,
+boots Tomcat, and **never exits**, so the task runs (and bills) forever and the failure alert below
+never fires, because it only triggers on a task that *stops*. This happened once: `IndexLoadRunner`
+landed 2026-07-18 against an image built 2026-07-01, and six orphaned tasks accumulated at ~$17/mo
+each before anyone looked. If you add a run mode, merge it to `main` (so CI publishes the image)
+before or with the `terraform apply`, and check the cluster afterwards.
+
+To build and push by hand (CI unavailable, or bootstrapping before the repo exists):
 
 ```bash
 REPO=$(terraform output -raw ecr_repository_url)
@@ -79,9 +95,6 @@ aws ecr get-login-password --region "$REGION" | docker login --username AWS --pa
 cd ../..                       # -> springboot/
 docker buildx build --platform linux/arm64 -t "$REPO:latest" --push .
 ```
-
-> The Dockerfile needs no changes — run mode is selected purely by the `APP_RUN_MODE` env var that
-> the task definition sets.
 
 ## Test a run before trusting the schedule
 

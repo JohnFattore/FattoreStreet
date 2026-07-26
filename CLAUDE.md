@@ -51,7 +51,7 @@ mvn clean test                                   # Clean + test
 ```
 
 ### CI
-GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`: React lint (ESLint) + style lint (Stylelint) + format check (Prettier) + Sass compile + build + tests, Django tests, Spring Boot format check (Spotless) + lint (Checkstyle) + `mvn verify` (tests + coverage floor + SpotBugs/FindSecBugs + PMD + Error Prone), and a detect-secrets scan (`pre-commit run detect-secrets --all-files`, config in `.pre-commit-config.yaml`). All four must pass before merge. `docker-build.yml` builds the nginx/django/springboot images (build-only on PRs; pushes to `main` publish to GHCR tagged `latest` + commit SHA).
+GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`: React lint (ESLint) + style lint (Stylelint) + format check (Prettier) + Sass compile + build + tests, Django tests, Spring Boot format check (Spotless) + lint (Checkstyle) + `mvn verify` (tests + coverage floor + SpotBugs/FindSecBugs + PMD + Error Prone), and a detect-secrets scan (`pre-commit run detect-secrets --all-files`, config in `.pre-commit-config.yaml`). All four must pass before merge. `docker-build.yml` builds the nginx/django/springboot images (build-only on PRs; pushes to `main` publish to GHCR tagged `latest` + commit SHA). The springboot image also publishes to the ECR repo `fattorestreet-hist-load`, because the nightly Fargate loads run that image from ECR; both publishes happen in the same build step so the registries cannot drift.
 
 ## Architecture
 

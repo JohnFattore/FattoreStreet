@@ -134,6 +134,42 @@ aws iam put-role-policy --role-name github-deploy-fattorestreet \
   --policy-name ssm-deploy --policy-document file://permissions.json
 ```
 
+The same role also pushes the springboot image to ECR for the nightly Fargate
+loads, which needs a second inline policy (`ecr-push.json`):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EcrAuthToken",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "PushHistLoadImage",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Resource": "arn:aws:ecr:us-east-1:<ACCOUNT_ID>:repository/fattorestreet-hist-load"
+    }
+  ]
+}
+```
+
+```sh
+aws iam put-role-policy --role-name github-deploy-fattorestreet \
+  --policy-name ecr-push --policy-document file://ecr-push.json
+```
+
 Point the workflow at the role (repo Actions **variable**, not a secret):
 
 ```sh
