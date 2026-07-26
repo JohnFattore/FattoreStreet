@@ -141,9 +141,15 @@ resource "aws_ecs_task_definition" "this" {
 
       # Pull individual keys out of the single fattorestreet/env JSON secret.
       # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
+      # SEC_CONTACT_EMAIL is not sensitive, but it lives in the same JSON secret,
+      # so pulling it from there beats adding a variable that would put an email
+      # address in tfvars. Without it the SEC User-Agent is empty and data.sec.gov
+      # answers 403 "Undeclared Automated Tool", which fails corporate-action
+      # detection after the price load.
       secrets = [
         { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
         { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
+        { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
       ]
 
       logConfiguration = {
@@ -290,9 +296,13 @@ resource "aws_ecs_task_definition" "index_load" {
 
       # Pull individual keys out of the single fattorestreet/env JSON secret.
       # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
+      # SEC_CONTACT_EMAIL is required: the metrics refresh calls data.sec.gov for
+      # every ticker, and an empty User-Agent gets 403 "Undeclared Automated Tool",
+      # which skips every ticker and exits the task non-zero.
       secrets = [
         { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
         { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
+        { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
       ]
 
       logConfiguration = {

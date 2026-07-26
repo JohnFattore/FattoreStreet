@@ -45,10 +45,14 @@ Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not
 ## One-time prerequisites
 
 1. **Secret** — the task reads the single `fattorestreet/env` secret (the same JSON secret the EC2
-   containers use), pulling `POSTGRES_PASSWORD` and `SECRET_KEY` out of it by key. It should already
-   exist; if not, create it as a JSON object:
+   containers use), pulling `POSTGRES_PASSWORD`, `SECRET_KEY`, and `SEC_CONTACT_EMAIL` out of it by
+   key. `SEC_CONTACT_EMAIL` is not sensitive, but it lives in the same JSON, and sourcing it there
+   beats a variable that would put an email address in tfvars. It is **required**: SEC sends it as
+   the User-Agent, and an empty one gets `403 Undeclared Automated Tool` on every ticker. It should
+   already exist; if not, create it as a JSON object:
    ```bash
    aws secretsmanager create-secret --name fattorestreet/env --secret-string '{
+     "SEC_CONTACT_EMAIL": "<your-email>",
      "POSTGRES_PASSWORD": "<postgres-password>",
      "SECRET_KEY": "<django-secret-key>"
    }'   # ...plus the other app keys; see deploy/run.sh

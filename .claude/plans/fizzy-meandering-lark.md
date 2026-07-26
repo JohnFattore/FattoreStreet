@@ -96,19 +96,45 @@ Applied:
 - **`docs/DEPLOYMENT.md`**: bullet in the AWS hosting list.
 - **`CLAUDE.md`**: Infra bullet extended with the scoped-profile clause.
 
-## 3. Verification still outstanding
+## 3. Verification (done 2026-07-26)
 
-Both are writes, so they need a go-ahead:
+- **SSM send-command**: passed. `docker ps` against `Key=tag:App,Values=fattorestreet`
+  returned `Success` / `ResponseCode 0`, all six containers healthy. Exercises the
+  `ops` policy's tag-gated `SendCommand`.
+- **ECS run-task**: the grant passed. `RunTask` was accepted (so `PassRole` is scoped
+  right), and the task pulled from ECR, resolved both secrets, connected to Postgres,
+  and wrote logs. It exited 1 for application reasons, see below.
 
-- **SSM send-command**: `describe-instance-information`, then `docker ps` against
-  `Key=tag:App,Values=fattorestreet`, read back with `get-command-invocation`.
-  Exercises the `ops` policy's tag-gated `SendCommand`.
-- **ECS run-task**: the single-ticker `index-load` override from
-  `springboot/deploy/terraform/README.md:121`, then `describe-tasks` for
-  `exitCode 0`. Exercises `RunTask` + `PassRole`.
-- **Session Manager** (interactive, so yours): `aws ssm start-session --target <INSTANCE_ID>`.
-- **ECR push**: only meaningfully tested by an actual push; CI already covers this
-  path, so a local `get-login-password` + `docker login` is the cheap check.
+Still outstanding:
+
+- **Session Manager** (interactive, so yours): `aws ssm start-session --target i-09b3fa349b473e596`
+- **ECR push**: only meaningfully tested by an actual push, which CI already does.
+
+### Found by the run-task: two production bugs
+
+**a. Stale ECR image, silently degrading tasks to `server` mode.** Already fixed by
+`bd37eda5` in this PR, and confirmed. The 07-25 index-load ran for **23 hours**
+(09:30:28 → 08:38:30 next day) and `IndexLoadRunner` never fired; 07-24 and 07-20
+look identical, 58 startup events each and then Tomcat idling on 8080. ECR was
+serving images from 2026-07-01 and 2026-06-20. This is exactly the failure
+`.claude/rules/infrastructure.md` warns about, and it was billing Fargate the
+whole time. The 08:42 push today was the first image containing the runner, and
+the 09:30 run was the first to execute it.
+
+**b. `SEC_CONTACT_EMAIL` missing from both task definitions.** Fixed in this PR.
+`application.properties:44` reads `sec.contact-email=${SEC_CONTACT_EMAIL:}`,
+defaulting to empty, and `WebService.java:83` sends it as the User-Agent that SEC
+requires. Neither task definition passed it, so every ticker got
+`403 Undeclared Automated Tool` and the run exited non-zero having processed
+nothing. Added to the `secrets` block of both, sourced from the same
+`fattorestreet/env` JSON as `POSTGRES_PASSWORD` / `SECRET_KEY` (verified present
+in the live secret), so no new variable and no IAM change.
+
+Neither is verified end to end yet: that needs `terraform apply` plus a re-run.
+
+Note the two bugs compound. (a) hid (b): while the image lacked the runner, the
+SEC call never happened, so the missing env var could not surface. And the SNS
+gap in §1 hid both, since these runs have been exiting non-zero all along.
 
 ## 4. Key cleanup (only after the above passes)
 
@@ -116,9 +142,17 @@ This identity cannot inspect IAM users: `iam:ListAccessKeys` on `user/Spike`
 returns `AccessDenied`, since `IamReadOnly` is scoped to `role/fattorestreet-*`.
 That is by design, so all of this is console or CloudShell work.
 
-1. Delete the deactivated key `AKIAS3LMQGO5KVGCRH32`, and remove its `[default]`
-   block from `~/.aws/credentials` if still present.
-2. The 2023 key `AKIAS3LMQGO5G7HTDRO3` is the larger exposure: 2.5 years old,
+Key IDs are written truncated on purpose. They are identifiers, not credentials,
+but this repo is public and one of them is an active admin key; the last four
+characters are enough to pick the right row in the console, and publishing the
+full ID only helps someone enumerate. This is also why they are truncated rather
+than pragma-allowlisted: `.claude/rules/secrets-check.md` reserves pragmas for
+provable non-secrets, and an active admin key ID is not that.
+
+1. Delete the deactivated key ending `RH32` (created 2026-06-20 to run one
+   `terraform apply`), and remove its `[default]` block from `~/.aws/credentials`
+   if still present.
+2. The 2023 key ending `DRO3` is the larger exposure: 2.5 years old,
    admin, on a Linux host that is not this Mac, last used 2026-06-21 for
    `ecr:ListImages`. Its CloudTrail history is entirely describe/list plus
    `secretsmanager:DescribeSecret`, exactly what `EC2FattoreStreetRole` already
