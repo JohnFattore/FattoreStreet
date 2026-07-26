@@ -98,21 +98,29 @@
          also catches unused constructor-injected fields that neither SpotBugs
          nor PMD can see. Do not re-add an exclusion here for dead code. -->
 
-    <!-- 8. REDOS, scoped to the corporate-action date extractors (20 sites).
+    <!-- 8. REDOS, scoped to the corporate-action date extractors (19 sites).
          MITIGATED - no longer accepted risk.
          FindSecBugs flags the SEC filing date-extraction regexes for
          catastrophic backtracking: they combine lazy bounded quantifiers
          (.{0,900}?) with large month-name alternations. A pathological filing
          could stall the nightly ingest.
 
-         The runtime risk is now bounded by a match timeout. Every one of these
-         patterns runs through CorporateActionFilingDateService
-         .extractDatedCandidates, which matches against BoundedRegexInput (see
-         corporateaction/support/) - a CharSequence that aborts the match once
-         it exceeds REGEX_BUDGET_MILLIS. A timeout is treated as "no further
-         matches from this pattern", the same path an unmatched filing already
-         takes, so a slow document costs a fraction of a second instead of the
-         run. Covered by BoundedRegexInputTest.
+         The runtime risk is bounded by a match timeout. Each flagged pattern
+         is matched against BoundedRegexInput (see corporateaction/support/) -
+         a CharSequence that aborts the match once it exceeds
+         DEFAULT_BUDGET_MILLIS. A timeout is treated as "no further matches
+         from this pattern", the same path an unmatched filing already takes,
+         so a slow document costs a fraction of a second instead of the run.
+
+         The 19 findings reach the guard through exactly three funnels, one per
+         class. Verify with: delete this Match block, run
+         `mvn -DskipTests compile spotbugs:spotbugs`, and group
+         BugInstance[@type="REDOS"] in target/spotbugsXml.xml by class.
+           14  CorporateActionFilingDateService.extractDatedCandidates
+            4  support/DividendDeclarationTupleExtractor.closestLabeledDate
+            1  support/EtfDateExtractor.collectLabeledDateCandidates
+         Covered by BoundedRegexInputTest plus timeout cases in
+         DividendDeclarationTupleExtractorTest and EtfDateExtractorTest.
 
          The finding itself cannot be cleared: FindSecBugs inspects the pattern
          CONSTRUCTION, not the matcher call, so it fires regardless of how the
@@ -126,12 +134,17 @@
              Possessive matching consumes greedily and never backtracks.
            - Truncating filing text would bound runtime too, but could drop a
              legitimate date near the end of a long filing.
-         Guarding the input leaves all 20 patterns byte-identical, so
+         Guarding the input leaves all 19 patterns byte-identical, so
          extraction accuracy is provably unchanged.
 
+         Because the Match below is package-wide, a NEW flagged pattern is
+         silently suppressed the moment it is written. Any pattern that pairs a
+         lazy or bounded quantifier with a large alternation must be matched
+         through the guard, and the counts above updated.
+
          Still true, and still worth knowing: input is SEC EDGAR filings, not
-         user-supplied text, and the ingest is a batch job, not a request path.
-         New filing-text patterns must run through the same guard. -->
+         user-supplied text, and the ingest is a batch job, not a request
+         path. -->
     <Match>
         <Package name="~com\.fattorestreet\.sec_api\.corporateaction(\..*)?" />
         <Bug pattern="REDOS" />

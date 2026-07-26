@@ -361,9 +361,11 @@ To silence a SpotBugs finding, silence a whole **category** in `config/spotbugs/
 
 ### Filing-text regexes
 
-The corporate-action date patterns combine lazy bounded quantifiers (`.{0,900}?`) with large month-name alternations, which FindSecBugs flags as REDOS. Runtime is bounded by `corporateaction/support/BoundedRegexInput`, a `CharSequence` that aborts a match once it exceeds a budget; a timeout is treated as "no further matches", the same path an unmatched filing already takes.
+The corporate-action date patterns combine lazy bounded quantifiers (`.{0,900}?`) with large month-name alternations, which FindSecBugs flags as REDOS. Runtime is bounded by `corporateaction/support/BoundedRegexInput`, a `CharSequence` that aborts a match once it exceeds `DEFAULT_BUDGET_MILLIS`; a timeout is treated as "no further matches", the same path an unmatched filing already takes.
 
-**Any new pattern run over filing text must match through the same guard.** Guarding the input keeps every pattern byte-identical, so extraction accuracy is provably unchanged — unlike possessive quantifiers (which break the deliberate *nearest*-date semantics of the lazy `?`) or truncating input (which could drop a date near the end of a long filing). The FindSecBugs finding itself cannot be cleared, since it inspects pattern construction rather than the matcher call.
+The 19 flagged patterns reach the guard through three funnels, one per class: `CorporateActionFilingDateService.extractDatedCandidates` (14), `DividendDeclarationTupleExtractor.closestLabeledDate` (4) and `EtfDateExtractor.collectLabeledDateCandidates` (1).
+
+**A new pattern pairing a lazy or bounded quantifier with a large alternation must match through the same guard.** That is the shape FindSecBugs flags, and the exclusion in `config/spotbugs/exclude.xml` is package-wide, so a new one is suppressed the moment it is written rather than reported. Patterns without that shape — simple greedy negated classes like `EtfAmountExtractor`'s, or the sentence-level triggers — do not need it. Guarding the input keeps every pattern byte-identical, so extraction accuracy is provably unchanged, unlike possessive quantifiers (which break the deliberate *nearest*-date semantics of the lazy `?`) or truncating input (which could drop a date near the end of a long filing). The FindSecBugs finding itself cannot be cleared, since it inspects pattern construction rather than the matcher call.
 
 CI runs `mvn verify`, so the coverage floor is enforced on every PR. The floor lives in the `jacoco.line.minimum` property; raise it deliberately as coverage improves and never lower it to make a build pass. It is overridable on the command line (`-Djacoco.line.minimum=0.95`) purely so the gate itself can be tested.
 
