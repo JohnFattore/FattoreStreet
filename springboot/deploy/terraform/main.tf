@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 locals {
   container_name       = "hist-load"
   tags                 = merge({ Project = "FattoreStreet", Component = "springboot-hist-load" }, var.tags)
@@ -188,14 +190,22 @@ resource "aws_iam_role" "scheduler" {
 data "aws_iam_policy_document" "scheduler_run_task" {
   statement {
     actions = ["ecs:RunTask"]
-    # Wildcards only. `family:*` already matches every revision, so pinning the
-    # current one adds nothing but makes this policy change on every task
-    # definition edit -- which turns a routine apply into an IAM write, and the
-    # local developer role has none by design. Keeping it static means an apply
-    # that only touches task definitions needs no admin.
+    # Wildcards only, and built from variables rather than from the task
+    # definition resources. `family:*` already matches every revision, so
+    # pinning the current one adds nothing.
+    #
+    # The string interpolation is deliberate. Referencing
+    # `aws_ecs_task_definition.this.arn_without_revision` would be tidier, but it
+    # makes this document unknown at plan time whenever a task definition is
+    # replaced, so Terraform plans a policy update and calls iam:PutRolePolicy on
+    # every apply. `iam:Put*` is an explicit deny on the local developer role, so
+    # that turns every routine task definition change into CloudShell work. The
+    # family names are plain variables, so composing the ARNs by hand keeps this
+    # document static: it is known at plan time and does not change when a task
+    # definition is replaced.
     resources = [
-      "${aws_ecs_task_definition.this.arn_without_revision}:*",
-      "${aws_ecs_task_definition.index_load.arn_without_revision}:*",
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name_prefix}:*",
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.index_load_name_prefix}:*",
     ]
     condition {
       test     = "ArnLike"

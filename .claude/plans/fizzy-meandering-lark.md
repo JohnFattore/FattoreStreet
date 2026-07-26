@@ -90,17 +90,42 @@ reproduces this exact symptom forever.
 The two `destroy` entries are the old task-definition revisions being replaced,
 not anything being lost.
 
-**This apply cannot run locally.** `aws_iam_role_policy.scheduler_run_task`
-requires `iam:PutRolePolicy`, and `iam:Put*` is an explicit deny in
-`fattorestreet-developer-guardrails.json`, which beats every allow. Run it from
-CloudShell as an admin.
+One of those six needs a credential this role does not have.
+`aws_iam_role_policy.scheduler_run_task` requires `iam:PutRolePolicy`, and
+`iam:Put*` is an explicit deny in `fattorestreet-developer-guardrails.json`,
+which beats every allow.
 
-The scheduler policy change is what stops this recurring. It previously listed
-both `family:*` and the exact current revision ARN, so every task-definition edit
-rewrote the policy and turned a routine apply into an IAM write. `family:*`
-already matches every revision, so the pinned entries were redundant; the
-schedules still pass the pinned ARN as the RunTask target and remain authorized.
-After this one apply, task-definition changes stay inside the developer role.
+**CloudShell does not solve this**, which was the first answer here and it was
+wrong. State is local and `*.tfstate` / `*.tfvars` are both gitignored, so a
+CloudShell clone has `main.tf` and nothing to apply it against. Shipping state up
+and back is possible but puts the only copy on a round trip.
+
+Instead: paste the rendered policy into the console once (IAM → role
+`fattorestreet-hist-load-sched-*` → inline policy `run-task`), then
+`terraform apply` from the Mac. Terraform refreshes, finds the policy already
+matching, plans no change to it, and never calls `iam:PutRolePolicy`. Exact JSON:
+
+```
+terraform console -plan <<< 'data.aws_iam_policy_document.scheduler_run_task.json'
+```
+
+That only holds because the document is now **static**. It originally built its
+resource list from `aws_ecs_task_definition.*.arn_without_revision`, which is
+unknown at plan time whenever a task definition is replaced. Terraform therefore
+planned a policy update on every apply regardless of what AWS already held, so a
+hand-edit would not have helped and each task-definition change dragged in an IAM
+write. Composing the ARNs from `var.name_prefix` / `var.index_load_name_prefix`
+and `data.aws_caller_identity` makes it known at plan time and invariant across
+task-definition replacement. `family:*` matches every revision, and the schedules
+still pass the pinned ARN as the RunTask target, so authorization is unchanged.
+
+### Longer term: remote state
+
+Local state on one laptop is the reason this is awkward, and it is also a single
+point of failure. An S3 backend with native locking would let CloudShell, CI, or
+a second machine apply. Not done here: the bucket is itself admin work, since the
+guardrails deny S3 outright. Worth doing before a second person or CI ever needs
+to apply.
 
 ## 2. Repo changes (done 2026-07-26)
 

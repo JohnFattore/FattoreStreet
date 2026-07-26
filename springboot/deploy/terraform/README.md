@@ -88,8 +88,29 @@ role still needs CloudShell.
 
 That property starts one apply from now. The change that removed the pinned
 revision ARNs rewrites `aws_iam_role_policy.scheduler_run_task` itself, and
-`iam:Put*` is an explicit deny, so the **first** apply carrying it must run from
-CloudShell as an admin. Every task-definition apply after that is local.
+`iam:Put*` is an explicit deny, so that one update cannot come from here.
+
+**CloudShell is not the way to do it.** State is local and gitignored, so a
+CloudShell clone has the config but neither `terraform.tfstate` nor
+`terraform.tfvars`. Uploading both, applying, and downloading the state back
+works, but it puts the only copy of state on a round trip, and forgetting the
+return leg leaves this directory silently stale.
+
+Do the single IAM write in the console instead, then apply from here:
+
+1. IAM → Roles → `fattorestreet-hist-load-sched-*` → inline policy `run-task` → edit.
+2. Replace the document with the one `terraform console -plan` renders:
+   ```
+   terraform console -plan <<< 'data.aws_iam_policy_document.scheduler_run_task.json'
+   ```
+   Paste it verbatim. Anything else leaves a permanent diff.
+3. `terraform apply` locally. The policy now matches, so Terraform plans no
+   change to it and never calls `iam:PutRolePolicy`.
+
+Step 3 only works because the document is static (see the comment in `main.tf`).
+Were it still derived from the task definition resources, it would read as
+unknown at plan time, Terraform would plan the update regardless of what is
+already in AWS, and the apply would fail on the deny.
 
 ## Deploy
 
