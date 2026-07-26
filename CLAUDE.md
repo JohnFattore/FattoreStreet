@@ -53,6 +53,8 @@ mvn clean test                                   # Clean + test
 ### CI
 GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`: React lint (ESLint) + style lint (Stylelint) + format check (Prettier) + Sass compile + build + tests, Django tests, Spring Boot format check (Spotless) + lint (Checkstyle) + `mvn verify` (tests + coverage floor + SpotBugs/FindSecBugs + PMD + Error Prone), and a detect-secrets scan (`pre-commit run detect-secrets --all-files`, config in `.pre-commit-config.yaml`). All four must pass before merge. `docker-build.yml` builds the nginx/django/springboot images (build-only on PRs; pushes to `main` publish to GHCR tagged `latest` + commit SHA).
 
+`claude-code-review.yml` runs `anthropics/claude-code-action` on PR open/ready/push and posts its findings as one sticky comment, edited in place on every re-run. It is advisory: the job succeeds whatever the review finds and is not a merge gate. It needs the `CLAUDE_CODE_OAUTH_TOKEN` secret (generate with `claude setup-token`), which bills reviews to the Claude subscription rather than API credits. Unlike `ci.yml` and `docker-build.yml` it is not filtered to `branches: [main]`, so stacked PRs get reviewed too.
+
 ## Architecture
 
 ### Request Flow
