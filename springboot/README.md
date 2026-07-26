@@ -357,7 +357,15 @@ The dead-code trio is advisory on test sources only, and test sources do not get
 
 For `now()` calls, pass a constant from `util/MarketTime.java` rather than an inline zone: `MarketTime.MARKET` (`America/New_York`) for anything answering "what trading day or filing year is it", `MarketTime.STORAGE` (UTC) for audit timestamps that are only ever compared to other stored timestamps.
 
-To silence a SpotBugs finding, silence a whole **category** in `config/spotbugs/exclude.xml` with a written rationale, or a single intentional **site** with `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is not optional; reviewers should reject entries without one. One block in that file is marked `REVISIT` because it is accepted risk rather than a false positive. Do not add an exclusion there for dead code — Error Prone gates it at compile time now.
+To silence a SpotBugs finding, silence a whole **category** in `config/spotbugs/exclude.xml` with a written rationale, or a single intentional **site** with `@SuppressFBWarnings(value = "...", justification = "...")` at the narrowest scope. The justification is not optional; reviewers should reject entries without one. No block in that file is accepted risk any more. Do not add an exclusion there for dead code — Error Prone gates it at compile time now.
+
+### Filing-text regexes
+
+The corporate-action date patterns combine lazy bounded quantifiers (`.{0,900}?`) with large month-name alternations, which FindSecBugs flags as REDOS. Runtime is bounded by `corporateaction/support/BoundedRegexInput`, a `CharSequence` that aborts a match once it exceeds `DEFAULT_BUDGET_MILLIS`; a timeout is treated as "no further matches", the same path an unmatched filing already takes.
+
+The 19 flagged patterns reach the guard through three funnels, one per class: `CorporateActionFilingDateService.extractDatedCandidates` (14), `DividendDeclarationTupleExtractor.closestLabeledDate` (4) and `EtfDateExtractor.collectLabeledDateCandidates` (1).
+
+**A new pattern pairing a lazy or bounded quantifier with a large alternation must match through the same guard.** That is the shape FindSecBugs flags, and the exclusion in `config/spotbugs/exclude.xml` is package-wide, so a new one is suppressed the moment it is written rather than reported. Patterns without that shape — simple greedy negated classes like `EtfAmountExtractor`'s, or the sentence-level triggers — do not need it. Guarding the input keeps every pattern byte-identical, so extraction accuracy is provably unchanged, unlike possessive quantifiers (which break the deliberate *nearest*-date semantics of the lazy `?`) or truncating input (which could drop a date near the end of a long filing). The FindSecBugs finding itself cannot be cleared, since it inspects pattern construction rather than the matcher call.
 
 CI runs `mvn verify`, so the coverage floor is enforced on every PR. The floor lives in the `jacoco.line.minimum` property; raise it deliberately as coverage improves and never lower it to make a build pass. It is overridable on the command line (`-Djacoco.line.minimum=0.95`) purely so the gate itself can be tested.
 

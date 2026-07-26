@@ -9,6 +9,8 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.fattorestreet.sec_api.corporateaction.CorporateActionFilingDateService;
@@ -17,6 +19,8 @@ import com.fattorestreet.sec_api.util.SecTextUtils;
 
 @Component
 public class EtfDateExtractor {
+
+    private static final Logger log = LoggerFactory.getLogger(EtfDateExtractor.class);
 
     private static final Pattern LINE_SPLIT = Pattern.compile("\\r?\\n");
     private static final Pattern EX_DIVIDEND_DATE_SENTENCE_PATTERN = Pattern.compile(
@@ -48,6 +52,11 @@ public class EtfDateExtractor {
     }
 
     public EtfDateSignals extractEtfDateSignals(String filingText, LocalDate filingDate) {
+        return extractEtfDateSignals(filingText, filingDate, BoundedRegexInput.DEFAULT_BUDGET_MILLIS);
+    }
+
+    /** Visible for testing: lets a test force the timeout path without a multi-second input. */
+    EtfDateSignals extractEtfDateSignals(String filingText, LocalDate filingDate, long regexBudgetMillis) {
         String normalizedDateText = SecTextUtils.normalizeDateExtractionText(filingText);
         List<DateCandidate> exCandidates = extractDateCandidates(
                 normalizedDateText,
@@ -61,7 +70,8 @@ public class EtfDateExtractor {
                 normalizedDateText,
                 PAY_DATE_SENTENCE_PATTERN,
                 "pay");
-        collectLabeledDateCandidates(normalizedDateText, exCandidates, recordCandidates, payCandidates);
+        collectLabeledDateCandidates(
+                normalizedDateText, exCandidates, recordCandidates, payCandidates, regexBudgetMillis);
         collectTableDateCandidates(normalizedDateText, exCandidates, recordCandidates, payCandidates);
 
         DateCandidate exBest = bestDate(exCandidates, filingDate);
@@ -133,23 +143,35 @@ public class EtfDateExtractor {
             String filingText,
             List<DateCandidate> exCandidates,
             List<DateCandidate> recordCandidates,
-            List<DateCandidate> payCandidates) {
-        Matcher labeled = LABELED_DATE_PATTERN.matcher(filingText);
-        while (labeled.find()) {
-            String label = Objects.toString(labeled.group(1), "").toLowerCase(Locale.US);
-            String rawDate = Objects.toString(labeled.group(2), "");
-            LocalDate parsed = SecDateParsingUtils.parseAnyDate(rawDate);
-            if (parsed == null) {
-                continue;
+            List<DateCandidate> payCandidates,
+            long regexBudgetMillis) {
+        // The one pattern here FindSecBugs flags as REDOS, and the only one in this class matched
+        // against the whole filing rather than a line or a window, so it is the one that needs
+        // the guard.
+        Matcher labeled = LABELED_DATE_PATTERN.matcher(BoundedRegexInput.of(filingText, regexBudgetMillis));
+        try {
+            while (labeled.find()) {
+                String label = Objects.toString(labeled.group(1), "").toLowerCase(Locale.US);
+                String rawDate = Objects.toString(labeled.group(2), "");
+                LocalDate parsed = SecDateParsingUtils.parseAnyDate(rawDate);
+                if (parsed == null) {
+                    continue;
+                }
+                DateCandidate candidate = new DateCandidate(parsed, 92, "labeled_pattern");
+                if (label.contains("ex")) {
+                    exCandidates.add(candidate);
+                } else if (label.contains("record") || label.contains("holders") || label.contains("shareholder")) {
+                    recordCandidates.add(candidate);
+                } else if (label.contains("pay")) {
+                    payCandidates.add(candidate);
+                }
             }
-            DateCandidate candidate = new DateCandidate(parsed, 92, "labeled_pattern");
-            if (label.contains("ex")) {
-                exCandidates.add(candidate);
-            } else if (label.contains("record") || label.contains("holders") || label.contains("shareholder")) {
-                recordCandidates.add(candidate);
-            } else if (label.contains("pay")) {
-                payCandidates.add(candidate);
-            }
+        } catch (BoundedRegexInput.RegexTimeoutException e) {
+            // Keep the candidates already collected. The sentence and table passes still ran, so
+            // a slow document degrades this signal rather than losing the whole extraction.
+            log.warn("Labeled-date pattern timed out over {} chars; keeping {} ex / {} record / {} pay so far: {}",
+                    filingText.length(), exCandidates.size(), recordCandidates.size(), payCandidates.size(),
+                    e.getMessage());
         }
     }
 

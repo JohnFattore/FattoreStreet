@@ -117,4 +117,34 @@ class DividendDeclarationTupleExtractorTest {
         assertTrue(extract("").isEmpty());
         assertTrue(extract(null).isEmpty());
     }
+
+    /**
+     * Many "record date" labels with no date inside the pattern's 160-char gap, then a real record
+     * date last. Each dead label drives the lazy quantifier through its full range, so the guard's
+     * deadline is checked well before the scan reaches the date at the end.
+     */
+    private static String backtrackHeavyWindow() {
+        return "The Board declared a dividend of $0.24 per share. "
+                + "record date no ".repeat(20)
+                + "record date March 10, 2025.";
+    }
+
+    @Test
+    void labeledDateTimeoutIsContainedAndDegradesToNoMatch() {
+        // Control: with the production budget the scan completes and finds the trailing date.
+        List<DividendDeclarationTupleExtractor.DividendDeclaration> completed = extract(backtrackHeavyWindow());
+        assertEquals(1, completed.size());
+        assertEquals(LocalDate.of(2025, 3, 10), completed.get(0).recordDate());
+
+        // A budget of zero trips the deadline on its first check. The timeout must be swallowed as
+        // "no further matches" rather than propagating out of extract().
+        DividendDeclarationTupleExtractor timingOut = new DividendDeclarationTupleExtractor(0L);
+
+        List<DividendDeclarationTupleExtractor.DividendDeclaration> degraded =
+                assertDoesNotThrow(() -> timingOut.extract(backtrackHeavyWindow(), FILING_DATE, ACCESSION));
+
+        // No record date survives the abort, and a tuple without one is dropped, so the pathological
+        // document costs this declaration instead of the whole run.
+        assertTrue(degraded.isEmpty());
+    }
 }

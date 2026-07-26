@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.fattorestreet.sec_api.client.WebService;
+import com.fattorestreet.sec_api.corporateaction.support.BoundedRegexInput;
 import com.fattorestreet.sec_api.corporateaction.support.DividendDeclarationTupleExtractor;
 import com.fattorestreet.sec_api.corporateaction.support.FilingExtractionStore;
 import com.fattorestreet.sec_api.corporateaction.support.FilingTextDates;
@@ -623,27 +624,36 @@ public class CorporateActionFilingDateService {
     private List<ExtractedRecordDate> extractDatedCandidates(String searchable, List<PatternSpec> specs, String source) {
         Map<LocalDate, ExtractedRecordDate> bestByDate = new HashMap<>();
         for (PatternSpec spec : specs) {
-            Matcher matcher = spec.pattern().matcher(searchable);
+            // Fresh budget per pattern so one pathological match cannot starve the others.
+            Matcher matcher = spec.pattern().matcher(BoundedRegexInput.of(searchable));
             int matchIndex = 0;
-            while (matcher.find()) {
-                Optional<LocalDate> parsed = parseUsDate(matcher.group(1));
-                if (parsed.isEmpty()) {
-                    continue;
+            try {
+                while (matcher.find()) {
+                    Optional<LocalDate> parsed = parseUsDate(matcher.group(1));
+                    if (parsed.isEmpty()) {
+                        continue;
+                    }
+                    int score = Math.max(1, spec.baseScore() - (matchIndex * 2));
+                    ExtractedRecordDate candidate = new ExtractedRecordDate(
+                            parsed.get(),
+                            score,
+                            matchIndex,
+                            source,
+                            spec.label(),
+                            intentRankForPattern(spec.label()),
+                            confidenceLabelForScore(score));
+                    ExtractedRecordDate current = bestByDate.get(candidate.date());
+                    if (current == null || compareCandidates(candidate, current) > 0) {
+                        bestByDate.put(candidate.date(), candidate);
+                    }
+                    matchIndex++;
                 }
-                int score = Math.max(1, spec.baseScore() - (matchIndex * 2));
-                ExtractedRecordDate candidate = new ExtractedRecordDate(
-                        parsed.get(),
-                        score,
-                        matchIndex,
-                        source,
-                        spec.label(),
-                        intentRankForPattern(spec.label()),
-                        confidenceLabelForScore(score));
-                ExtractedRecordDate current = bestByDate.get(candidate.date());
-                if (current == null || compareCandidates(candidate, current) > 0) {
-                    bestByDate.put(candidate.date(), candidate);
-                }
-                matchIndex++;
+            } catch (BoundedRegexInput.RegexTimeoutException e) {
+                // Keep whatever this pattern already matched and move on. Same outcome as a
+                // filing that simply contains no further dates, so the scan is never aborted
+                // by one slow document.
+                log.warn("[{}] Pattern {} timed out over {} chars; keeping {} match(es) found so far: {}",
+                        source, spec.label(), searchable.length(), matchIndex, e.getMessage());
             }
         }
         return bestByDate.values().stream()

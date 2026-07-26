@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Extracts amount-anchored dividend declaration tuples from 8-K / press-release text:
  * a per-share dollar amount plus the record / payable / declaration / ex-dividend dates
@@ -19,6 +22,8 @@ import java.util.regex.Pattern;
  * normalized via {@link FilingTextDates#toSearchableText}.
  */
 public class DividendDeclarationTupleExtractor {
+
+    private static final Logger log = LoggerFactory.getLogger(DividendDeclarationTupleExtractor.class);
 
     /** Chars scanned on each side of an amount anchor for labeled dates. */
     private static final int WINDOW_RADIUS = 600;
@@ -46,6 +51,17 @@ public class DividendDeclarationTupleExtractor {
                     + "[^$]{0,160}?(" + FilingTextDates.DATE_PATTERN + ")");
     private static final Pattern EX_DATE = Pattern.compile(
             "(?is)ex-?dividend(?:\\s+(?:date|dt))?[^$]{0,160}?(" + FilingTextDates.DATE_PATTERN + ")");
+
+    private final long regexBudgetMillis;
+
+    public DividendDeclarationTupleExtractor() {
+        this(BoundedRegexInput.DEFAULT_BUDGET_MILLIS);
+    }
+
+    /** Visible for testing: lets a test force the timeout path without a multi-second input. */
+    DividendDeclarationTupleExtractor(long regexBudgetMillis) {
+        this.regexBudgetMillis = regexBudgetMillis;
+    }
 
     /**
      * @param amountPerShare declared per-share cash amount (as stated at declaration time)
@@ -136,19 +152,29 @@ public class DividendDeclarationTupleExtractor {
 
     /** Best labeled date in the window: nearest label occurrence to the amount anchor. */
     private LocalDate closestLabeledDate(String window, Pattern labelPattern, int anchorInWindow) {
-        Matcher matcher = labelPattern.matcher(window);
+        // All four date patterns funnel through here, and each pairs a lazy bounded quantifier
+        // with the month-name alternation FindSecBugs flags as REDOS. Fresh budget per call so
+        // one pathological window cannot starve the others.
+        Matcher matcher = labelPattern.matcher(BoundedRegexInput.of(window, regexBudgetMillis));
         LocalDate best = null;
         int bestDistance = Integer.MAX_VALUE;
-        while (matcher.find()) {
-            LocalDate parsed = FilingTextDates.parseUsDate(matcher.group(1)).orElse(null);
-            if (parsed == null) {
-                continue;
+        try {
+            while (matcher.find()) {
+                LocalDate parsed = FilingTextDates.parseUsDate(matcher.group(1)).orElse(null);
+                if (parsed == null) {
+                    continue;
+                }
+                int distance = Math.abs(matcher.start() - anchorInWindow);
+                if (distance < bestDistance) {
+                    best = parsed;
+                    bestDistance = distance;
+                }
             }
-            int distance = Math.abs(matcher.start() - anchorInWindow);
-            if (distance < bestDistance) {
-                best = parsed;
-                bestDistance = distance;
-            }
+        } catch (BoundedRegexInput.RegexTimeoutException e) {
+            // Keep the nearest date found so far. Same outcome as a window holding no further
+            // labeled dates, so one slow document never aborts the extraction.
+            log.warn("Labeled-date pattern timed out over {} chars; keeping nearest match so far ({}): {}",
+                    window.length(), best, e.getMessage());
         }
         return best;
     }
