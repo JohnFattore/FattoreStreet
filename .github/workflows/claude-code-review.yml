@@ -1,0 +1,85 @@
+name: Claude Code Review
+
+# Replaces the claude.ai routine (claude.ai/code/routines) that used to drive PR
+# review, along with the 242-line claude-pr-review.yml that existed only to
+# scrape the routine's comment for a marker and a Verdict line.
+#
+# The routine posted a fresh comment every time it revised a review instead of
+# editing the one it had already posted, so PRs #135-#138 collected 20 review
+# comments where 4 were intended. That was not fixable from here: a routine's
+# prompt and triggers live in a claude.ai dashboard rather than the repo, and
+# each matching GitHub event starts its own cloud session with no dedupe and no
+# way to cancel a superseded run.
+#
+# Running the review as an action puts the three missing controls in this file:
+#   use_sticky_comment  -> one comment per PR, edited in place on every re-run
+#   cancel-in-progress  -> a push landing mid-review cancels the stale run
+#   --max-turns         -> a runaway-cost ceiling, backed by timeout-minutes
+#
+# The sticky comment, not the turn cap, is what makes duplicates impossible:
+# there is one comment and every run edits it. --max-turns only bounds spend.
+#
+# Auth is a subscription-backed OAuth token (generate with `claude setup-token`,
+# store as the CLAUDE_CODE_OAUTH_TOKEN secret), so reviews draw down the same
+# Pro/Max allowance the routine did rather than API credits.
+#
+# Advisory only: the job succeeds whatever the review finds, and nothing here
+# gates a merge.
+#
+# Deliberately NOT filtered to `branches: [main]`. ci.yml and docker-build.yml
+# are, which is why neither ran on PR #138 while it was still based on
+# linters/02-werror. A review is worth having on stacked PRs too.
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+
+# One review at a time per PR. A push that lands while a review is still running
+# cancels it, so a burst of commits costs about one review instead of one each.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Claude review
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Full history so the review can diff against the base branch, and so the
+      # repo's own .claude/ skills and rules are on disk for the session.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          use_sticky_comment: true
+          # The skill is named by path rather than invoked as `/code-review`.
+          # The repo skill shares its name with the built-in /code-review
+          # command, which is marked disable-model-invocation; naming the path
+          # removes the ambiguity.
+          prompt: |
+            Review the changes in this pull request against its base branch.
+
+            Follow the checklist in .claude/skills/code-review/SKILL.md and the
+            conventions in .claude/rules/. Each rule's `paths:` frontmatter says
+            which files it governs; rules without frontmatter always apply.
+
+            Post a single PR comment with the findings grouped by severity
+            (Critical, Suggestion, Nit), each citing file:line. Lead with a
+            one-line tally. If nothing is worth raising, say so in one line
+            instead of padding the comment.
+          # 8 was too tight and failed with "Reached maximum number of turns":
+          # the review reads SKILL.md, the rule files that match the diff, and
+          # the diff itself before writing anything. 30 leaves room for a real
+          # review on a large PR while still capping a runaway; timeout-minutes
+          # above is the harder backstop.
+          claude_args: "--max-turns 30"
