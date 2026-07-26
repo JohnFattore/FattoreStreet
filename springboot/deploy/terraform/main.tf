@@ -188,11 +188,14 @@ resource "aws_iam_role" "scheduler" {
 data "aws_iam_policy_document" "scheduler_run_task" {
   statement {
     actions = ["ecs:RunTask"]
+    # Wildcards only. `family:*` already matches every revision, so pinning the
+    # current one adds nothing but makes this policy change on every task
+    # definition edit -- which turns a routine apply into an IAM write, and the
+    # local developer role has none by design. Keeping it static means an apply
+    # that only touches task definitions needs no admin.
     resources = [
       "${aws_ecs_task_definition.this.arn_without_revision}:*",
-      aws_ecs_task_definition.this.arn,
       "${aws_ecs_task_definition.index_load.arn_without_revision}:*",
-      aws_ecs_task_definition.index_load.arn,
     ]
     condition {
       test     = "ArnLike"

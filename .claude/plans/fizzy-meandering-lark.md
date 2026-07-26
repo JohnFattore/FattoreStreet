@@ -74,6 +74,34 @@ re-plan to confirm clean. Skipping the click puts it straight back into this
 state. Worth also confirming the address is right, since a typo'd endpoint
 reproduces this exact symptom forever.
 
+## 1a. The pending apply, and why it needs CloudShell (2026-07-26)
+
+`terraform plan` now returns **3 to add, 3 to change, 2 to destroy**:
+
+| Resource | Action | Why |
+|---|---|---|
+| `aws_ecs_task_definition.this` | replace | new revision carrying `SEC_CONTACT_EMAIL` (§3b) |
+| `aws_ecs_task_definition.index_load` | replace | same |
+| `aws_scheduler_schedule.this` | update | repoint at the new revision |
+| `aws_scheduler_schedule.index_load` | update | same |
+| `aws_iam_role_policy.scheduler_run_task` | update | drop the pinned revision ARNs |
+| `aws_sns_topic_subscription.task_failures_email[0]` | create | §1 |
+
+The two `destroy` entries are the old task-definition revisions being replaced,
+not anything being lost.
+
+**This apply cannot run locally.** `aws_iam_role_policy.scheduler_run_task`
+requires `iam:PutRolePolicy`, and `iam:Put*` is an explicit deny in
+`fattorestreet-developer-guardrails.json`, which beats every allow. Run it from
+CloudShell as an admin.
+
+The scheduler policy change is what stops this recurring. It previously listed
+both `family:*` and the exact current revision ARN, so every task-definition edit
+rewrote the policy and turned a routine apply into an IAM write. `family:*`
+already matches every revision, so the pinned entries were redundant; the
+schedules still pass the pinned ARN as the RunTask target and remain authorized.
+After this one apply, task-definition changes stay inside the developer role.
+
 ## 2. Repo changes (done 2026-07-26)
 
 Two items from the original step 4 needed no work: `.claude/settings.json`

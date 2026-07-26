@@ -80,6 +80,17 @@ CloudShell as an admin, then resume here. It also cannot read secret *values*,
 which the module never needs, since `env_secret_arn` is only ever passed through
 as a string.
 
+Editing a task definition does **not** count as an IAM change. The scheduler's
+`ecs:RunTask` policy is scoped to `family:*` wildcards only, which already match
+every revision, so bumping a task definition leaves the policy byte-identical and
+the apply stays inside what this role can do. Adding a *new* task definition or
+role still needs CloudShell.
+
+That property starts one apply from now. The change that removed the pinned
+revision ARNs rewrites `aws_iam_role_policy.scheduler_run_task` itself, and
+`iam:Put*` is an explicit deny, so the **first** apply carrying it must run from
+CloudShell as an admin. Every task-definition apply after that is local.
+
 ## Deploy
 
 ```bash
