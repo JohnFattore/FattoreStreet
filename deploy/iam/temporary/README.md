@@ -19,7 +19,7 @@ actions. Five are already inside the role. Exactly one is not:
 
 | Resource | Action | API call | Covered by |
 |---|---|---|---|
-| `aws_ecs_task_definition.this` | replace | `ecs:RegisterTaskDefinition`, `ecs:DeregisterTaskDefinition`, `iam:PassRole` | `EcsRegisterTaskDef`, `EcsTaskDefs`, `PassRole` |
+| `aws_ecs_task_definition.this` | replace | `ecs:RegisterTaskDefinition`, `iam:PassRole` | `EcsRegisterTaskDef`, `PassRole` |
 | `aws_ecs_task_definition.index_load` | replace | same | same |
 | `aws_scheduler_schedule.this` | update | `scheduler:GetSchedule`, `scheduler:UpdateSchedule`, `iam:PassRole` | `GlobalReads`, `Scheduler`, `PassRole` |
 | `aws_scheduler_schedule.index_load` | update | same | same |
@@ -27,6 +27,15 @@ actions. Five are already inside the role. Exactly one is not:
 | `aws_iam_role_policy.scheduler_run_task` | update | **`iam:PutRolePolicy`** | **nothing, and explicitly denied** |
 
 So the whole grant is one action on one role.
+
+The task definition rows originally listed `ecs:DeregisterTaskDefinition` as
+covered by `EcsTaskDefs`. That was wrong, and an apply proved it: the statement
+scopes the action to `task-definition/fattorestreet-*:*`, but
+`ecs:DeregisterTaskDefinition` takes no resource-level permissions, so it only
+matches on `"*"`. Rather than widen it, both task definitions now set
+`skip_destroy = true` and the call is never made. Worth remembering as a general
+trap: an ECS action scoped to an ARN may silently never match, and AWS names the
+resource as `*` in the denial when that happens.
 
 ### Why an allow policy alone does not work
 
