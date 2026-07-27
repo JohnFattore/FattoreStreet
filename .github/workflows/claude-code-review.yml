@@ -58,10 +58,24 @@ jobs:
           fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
+        id: claude
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
           use_sticky_comment: true
+          # Required, and the reason no review was ever posted. A custom
+          # `prompt` on a pull_request event is "automation mode", which creates
+          # no tracking comment and so never registers the comment MCP tool.
+          # action.yml: track_progress "forces tag mode with tracking comments
+          # for pull_request and issue events", default false. Without it the
+          # reviewer wrote a full review, went looking for
+          # mcp__github_comment__update_claude_comment, found nothing (four
+          # ToolSearch calls in the transcript), fell back to `gh pr comment`,
+          # was denied, and the job still exited 0.
+          #
+          # use_sticky_comment above is what keeps that to ONE comment edited in
+          # place; track_progress alone would still be a comment per run.
+          track_progress: true
           # The skill is named by path rather than invoked as `/code-review`.
           # The repo skill shares its name with the built-in /code-review
           # command, which is marked disable-model-invocation; naming the path
@@ -73,13 +87,58 @@ jobs:
             conventions in .claude/rules/. Each rule's `paths:` frontmatter says
             which files it governs; rules without frontmatter always apply.
 
-            Post a single PR comment with the findings grouped by severity
-            (Critical, Suggestion, Nit), each citing file:line. Lead with a
-            one-line tally. If nothing is worth raising, say so in one line
-            instead of padding the comment.
-          # 8 was too tight and failed with "Reached maximum number of turns":
-          # the review reads SKILL.md, the rule files that match the diff, and
-          # the diff itself before writing anything. 30 leaves room for a real
-          # review on a large PR while still capping a runaway; timeout-minutes
-          # above is the harder backstop.
-          claude_args: "--max-turns 30"
+            Post the findings by calling mcp__github_comment__update_claude_comment,
+            which edits the one sticky comment this PR already has. Do NOT use
+            `gh pr comment` or `gh api` to post: that adds a new comment per run,
+            which is the duplicate spam this workflow exists to prevent, and it is
+            denied anyway.
+
+            Group findings by severity (Critical, Suggestion, Nit), each citing
+            file:line. Lead with a one-line tally. If nothing is worth raising,
+            say so in one line instead of padding the comment.
+          # The turn cap went 8 -> 30 and still failed, 9 of 10 runs dying at
+          # exactly 31. 50 fixed that; runs now land at 23-32, so the headroom is
+          # real but no longer the binding constraint. timeout-minutes above is
+          # the harder backstop and nothing has come near it (2.3 min of 20).
+          #
+          # The tool grants come from reading an actual execution transcript
+          # rather than guessing, which is what the upload step below is for.
+          # Per the action's configuration docs Claude "does not have access to
+          # execute arbitrary Bash commands by default", and SKILL.md opens by
+          # saying to run `git diff`, so every run was denying its own first
+          # instruction. The git entries fixed that: git status/log/diff/show all
+          # run now. `:*` rather than the docs' bare `Bash(git diff)` is required
+          # because the review diffs against the base branch with arguments.
+          #
+          # `gh pr view` is here because the review spent five turns trying to
+          # read the PR title and body and being denied each time. It is
+          # read-only.
+          #
+          # `gh pr comment` is deliberately NOT granted, and the prompt above
+          # says so. It is the obvious one-line fix for the review posting
+          # nothing, and it is the wrong one: a fresh comment per run is exactly
+          # the duplicate spam this workflow replaced the claude.ai routine to
+          # stop. Posting goes through the sticky-comment tool instead.
+          claude_args: >-
+            --max-turns 50
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(gh pr view:*)"
+
+      # Diagnostic. The workflow log records that N tool calls were denied but
+      # never which ones, and every run so far has denied 8-16 -- including the
+      # two that reported success and still posted no review comment. This
+      # uploads the execution transcript the action already writes, so the
+      # denied tool names are recoverable instead of guessed at.
+      #
+      # `if: always()` because the runs worth reading are the failed ones, and
+      # the path comes from the action's own execution_file output rather than
+      # a hardcoded runner temp path.
+      #
+      # Remove this once the denials are understood; it is not load-bearing.
+      - name: Upload Claude execution log
+        if: always() && steps.claude.outputs.execution_file != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-execution-output-${{ github.event.pull_request.number }}
+          path: ${{ steps.claude.outputs.execution_file }}
+          retention-days: 7
+          if-no-files-found: warn

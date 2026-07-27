@@ -21,6 +21,41 @@ resource "aws_ecr_repository" "this" {
   tags = local.tags
 }
 
+# Expire untagged images. CI moves :latest on every merge to main, and the image it
+# displaces keeps its layers forever otherwise; two such orphans had already collected
+# by the time this was added.
+#
+# Safe despite the repo holding multi-arch pushes. `docker buildx` pushes an OCI image
+# index and tags only the index: the arm64 platform manifest and the buildx attestation
+# manifest both show up as untagged, so a naive reading says this rule deletes what
+# :latest resolves to. It does not. Per the ECR lifecycle policy evaluation rules, "if
+# an image is referenced by a manifest list, it cannot be expired or archived without
+# the manifest list being deleted or archived first", and reference artifacts (the
+# attestation) are expired with their subject image rather than on their own. Only
+# genuinely orphaned manifests age out.
+#
+# Keep this rule `untagged`. Widening it to `any` would expire the tagged index itself
+# and take the live image with it.
+resource "aws_ecr_lifecycle_policy" "this" {
+  repository = aws_ecr_repository.this.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Expire untagged images after ${var.ecr_untagged_retention_days} days"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = var.ecr_untagged_retention_days
+        }
+        action = { type = "expire" }
+      }
+    ]
+  })
+}
+
 resource "aws_cloudwatch_log_group" "this" {
   name              = "/ecs/${var.name_prefix}"
   retention_in_days = var.log_retention_days

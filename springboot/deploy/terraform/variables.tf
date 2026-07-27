@@ -193,6 +193,16 @@ variable "log_retention_days" {
   default     = 30
 }
 
+variable "ecr_untagged_retention_days" {
+  description = <<-EOT
+    Days an untagged ECR image is kept before the lifecycle policy expires it. Untagged images here
+    are superseded :latest targets left behind by the next CI push. Keep this comfortably longer
+    than the window in which you would want to roll back by digest.
+  EOT
+  type        = number
+  default     = 14
+}
+
 variable "tags" {
   description = "Tags applied to all resources."
   type        = map(string)
