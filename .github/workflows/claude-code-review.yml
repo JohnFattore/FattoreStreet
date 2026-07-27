@@ -58,6 +58,7 @@ jobs:
           fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
+        id: claude
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
@@ -98,3 +99,23 @@ jobs:
           claude_args: >-
             --max-turns 50
             --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(git status:*)"
+
+      # Diagnostic. The workflow log records that N tool calls were denied but
+      # never which ones, and every run so far has denied 8-16 -- including the
+      # two that reported success and still posted no review comment. This
+      # uploads the execution transcript the action already writes, so the
+      # denied tool names are recoverable instead of guessed at.
+      #
+      # `if: always()` because the runs worth reading are the failed ones, and
+      # the path comes from the action's own execution_file output rather than
+      # a hardcoded runner temp path.
+      #
+      # Remove this once the denials are understood; it is not load-bearing.
+      - name: Upload Claude execution log
+        if: always() && steps.claude.outputs.execution_file != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-execution-output-${{ github.event.pull_request.number }}
+          path: ${{ steps.claude.outputs.execution_file }}
+          retention-days: 7
+          if-no-files-found: warn
