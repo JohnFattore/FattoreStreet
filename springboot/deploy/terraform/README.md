@@ -80,6 +80,32 @@ CloudShell as an admin, then resume here. It also cannot read secret *values*,
 which the module never needs, since `env_secret_arn` is only ever passed through
 as a string.
 
+A separate case: the ECR lifecycle policy (see Image retention) is not an IAM resource,
+but the role was missing the ECR actions Terraform needs to manage it. `deploy/iam/`
+already grants `ecr:PutLifecyclePolicy`; `ecr:GetLifecyclePolicy` was added alongside
+`ecr:StartLifecyclePolicyPreview` and `ecr:GetLifecyclePolicyPreview`, because Terraform
+reads the policy back after writing it and would otherwise fail the apply *after*
+mutating ECR. Push a new default version of `FattoreStreetDeveloper-infra` from
+CloudShell as an admin before applying:
+
+```sh
+# The committed JSON carries <ACCOUNT_ID>/<VPC_ID> placeholders, so render first.
+# terraform.tfvars is gitignored and absent in CloudShell, hence VPC_ID by hand.
+OUT=$(VPC_ID=vpc-xxxxxxxx deploy/iam/render.sh | tail -1)
+
+aws iam create-policy-version \
+  --policy-arn "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/FattoreStreetDeveloper-infra" \
+  --policy-document "file://$OUT/fattorestreet-developer-infra.json" \
+  --set-as-default
+```
+
+A managed policy holds at most five versions; delete an old one with
+`aws iam delete-policy-version` if that limit is hit.
+
+This is a permanent widening, not one of the revocable grants in
+`deploy/iam/temporary/`. The guardrails policy does not deny `ecr:*`, so no carve-out is
+needed — only the missing allow.
+
 Editing a task definition does **not** count as an IAM change. The scheduler's
 `ecs:RunTask` policy is scoped to `family:*` wildcards only, which already match
 every revision, so bumping a task definition leaves the policy byte-identical and
@@ -216,6 +242,34 @@ manually with the `aws ecs run-task` commands above.
 
 Leave `notification_email = ""` to skip creating the alerting resources entirely.
 
+## Image retention
+
+CI moves `:latest` on every merge to `main`, and the image it displaces keeps its layers
+forever. An ECR lifecycle policy expires untagged images after
+`ecr_untagged_retention_days` (default 14) to stop that piling up.
+
+The rule looks more dangerous than it is. `docker buildx` pushes an **OCI image index**
+and tags only the index, so the arm64 platform manifest and the buildx attestation
+manifest both appear untagged in `describe-images` — that is, the thing `:latest`
+actually resolves to is itself untagged. ECR will not expire it: per the [lifecycle
+policy evaluation rules](https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html),
+"if an image is referenced by a manifest list, it cannot be expired or archived without
+the manifest list being deleted or archived first", and reference artifacts such as the
+attestation are expired alongside their subject image rather than on their own. Only
+genuinely orphaned manifests age out.
+
+Keep the rule's `tagStatus` as `untagged`. Widening it to `any` would expire the tagged
+index and take the live image with it. To check before trusting it:
+
+```bash
+aws ecr start-lifecycle-policy-preview --repository-name fattorestreet-hist-load
+aws ecr get-lifecycle-policy-preview --repository-name fattorestreet-hist-load \
+  --query 'previewResults[].{digest:imageDigest,tags:imageTags}' --output table
+```
+
+SHA-tagged images are never expired, so they still accumulate — about 220 MB per merge.
+That is pennies a month for now; add a second `imageCountMoreThan` rule if it grows.
+
 ## Tuning knobs
 
 | Variable | Default | Notes |
@@ -229,4 +283,5 @@ Leave `notification_email = ""` to skip creating the alerting resources entirely
 | `index_load_min_processed` | `800` | Rebuild guard threshold; below it the task keeps yesterday's members and exits `1`. |
 | `index_load_schedule_expression` | `cron(30 9 * * ? *)` | When the index load runs (tfvars example: `cron(0 5 * * ? *)`); shares `schedule_timezone`. Keep it well after the hist load. |
 | `index_load_schedule_enabled` | `true` | Toggle the nightly index-load trigger. |
-| `notification_email` | `""` | Email alerted when a task exits non-zero or fails to start; `""` disables alerting. | 
+| `notification_email` | `""` | Email alerted when a task exits non-zero or fails to start; `""` disables alerting. |
+| `ecr_untagged_retention_days` | `14` | Days an untagged ECR image is kept before the lifecycle policy expires it. See Image retention. | 
