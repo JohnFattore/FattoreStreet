@@ -115,7 +115,16 @@ resource "aws_ecs_cluster" "this" {
 }
 
 resource "aws_ecs_task_definition" "this" {
-  family                   = var.name_prefix
+  family = var.name_prefix
+
+  # Leave superseded revisions registered instead of deregistering them.
+  # ecs:DeregisterTaskDefinition does not support resource-level permissions, so
+  # allowing it means granting it on "*", and the developer role scopes ECS
+  # writes to fattorestreet-* on purpose. Keeping old revisions costs nothing,
+  # and the schedules always target the revision this module just registered.
+  # It also leaves a rollback: repoint a schedule at an earlier revision.
+  skip_destroy = true
+
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = var.task_cpu
@@ -280,7 +289,11 @@ resource "aws_cloudwatch_log_group" "index_load" {
 }
 
 resource "aws_ecs_task_definition" "index_load" {
-  family                   = var.index_load_name_prefix
+  family = var.index_load_name_prefix
+
+  # See the note on aws_ecs_task_definition.this.
+  skip_destroy = true
+
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = var.index_load_task_cpu
