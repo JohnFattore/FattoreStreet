@@ -1,0 +1,128 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyOutsideUsEast1",
+      "Effect": "Deny",
+      "NotAction": [
+        "iam:*",
+        "sts:*",
+        "organizations:*",
+        "account:*",
+        "route53:*",
+        "cloudfront:*",
+        "support:*",
+        "budgets:*",
+        "ce:*",
+        "health:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": { "aws:RequestedRegion": "us-east-1" }
+      }
+    },
+    {
+      "Sid": "DenyAllIamWrite",
+      "Effect": "Deny",
+      "Action": [
+        "iam:Create*",
+        "iam:Put*",
+        "iam:Attach*",
+        "iam:Detach*",
+        "iam:Delete*",
+        "iam:Update*",
+        "iam:Add*",
+        "iam:Remove*",
+        "iam:Set*",
+        "iam:Tag*",
+        "iam:Untag*",
+        "iam:Enable*",
+        "iam:Deactivate*",
+        "iam:Resync*",
+        "iam:ChangePassword",
+        "iam:UploadServerCertificate",
+        "iam:UploadSigningCertificate",
+        "iam:UploadSSHPublicKey"
+      ],
+      "NotResource": "arn:aws:iam::*:role/aws-service-role/*"
+    },
+    {
+      "Sid": "DenyRoleChaining",
+      "Effect": "Deny",
+      "Action": [
+        "sts:AssumeRole",
+        "sts:AssumeRoleWithSAML",
+        "sts:AssumeRoleWithWebIdentity",
+        "sts:GetFederationToken"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenySecretValueAccess",
+      "Effect": "Deny",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:PutSecretValue",
+        "secretsmanager:UpdateSecret",
+        "secretsmanager:DeleteSecret",
+        "secretsmanager:PutResourcePolicy",
+        "secretsmanager:DeleteResourcePolicy",
+        "secretsmanager:RestoreSecret",
+        "secretsmanager:RotateSecret"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyAuditTampering",
+      "Effect": "Deny",
+      "Action": [
+        "cloudtrail:StopLogging",
+        "cloudtrail:DeleteTrail",
+        "cloudtrail:UpdateTrail",
+        "cloudtrail:PutEventSelectors",
+        "config:Delete*",
+        "config:Stop*",
+        "guardduty:Delete*",
+        "guardduty:Update*",
+        "securityhub:Disable*",
+        "organizations:*",
+        "account:*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyDestructiveOutOfScope",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "ec2:StopInstances",
+        "ec2:RebootInstances",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:AssociateIamInstanceProfile",
+        "ec2:ReplaceIamInstanceProfileAssociation",
+        "ec2:DeleteVpc",
+        "ec2:DeleteSubnet",
+        "ec2:DeleteRouteTable",
+        "ec2:DeleteInternetGateway",
+        "ec2:DeleteNatGateway",
+        "ec2:DeleteVolume",
+        "ec2:DeleteSnapshot",
+        "ec2:ReleaseAddress",
+        "rds:*",
+        "route53:ChangeResourceRecordSets",
+        "s3:DeleteBucket",
+        "s3:PutBucketPolicy",
+        "s3:PutBucketAcl",
+        "kms:ScheduleKeyDeletion",
+        "kms:DisableKey",
+        "kms:PutKeyPolicy",
+        "ses:*",
+        "lambda:*",
+        "bedrock:*",
+        "sagemaker:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

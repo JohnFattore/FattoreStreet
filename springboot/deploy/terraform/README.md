@@ -45,10 +45,14 @@ Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not
 ## One-time prerequisites
 
 1. **Secret** — the task reads the single `fattorestreet/env` secret (the same JSON secret the EC2
-   containers use), pulling `POSTGRES_PASSWORD` and `SECRET_KEY` out of it by key. It should already
-   exist; if not, create it as a JSON object:
+   containers use), pulling `POSTGRES_PASSWORD`, `SECRET_KEY`, and `SEC_CONTACT_EMAIL` out of it by
+   key. `SEC_CONTACT_EMAIL` is not sensitive, but it lives in the same JSON, and sourcing it there
+   beats a variable that would put an email address in tfvars. It is **required**: SEC sends it as
+   the User-Agent, and an empty one gets `403 Undeclared Automated Tool` on every ticker. It should
+   already exist; if not, create it as a JSON object:
    ```bash
    aws secretsmanager create-secret --name fattorestreet/env --secret-string '{
+     "SEC_CONTACT_EMAIL": "<your-email>",
      "POSTGRES_PASSWORD": "<postgres-password>",
      "SECRET_KEY": "<django-secret-key>"
    }'   # ...plus the other app keys; see deploy/run.sh
@@ -60,6 +64,54 @@ Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not
 2. **tfvars** — `cp terraform.tfvars.example terraform.tfvars` and fill in VPC, subnets, the EC2
    instance's security group id, and its private IP/DNS for `db_host`.
 
+## Credentials
+
+Every command below runs under `AWS_PROFILE=fattorestreet`, which assumes the
+scoped role `FattoreStreetDeveloper` rather than using an admin key. Claude Code
+sets it automatically via `.claude/settings.json`; set it yourself in a plain
+shell. Setup is [`deploy/iam/CONSOLE-SETUP.md`](../../../deploy/iam/CONSOLE-SETUP.md),
+rationale is [`deploy/DEPLOY.md`](../../../deploy/DEPLOY.md) §5.
+
+The role deliberately has **no IAM write**. It can read the `fattorestreet-*`
+roles, so `plan` is accurate, but any change to the IAM resources in `main.tf`
+(the execution, task, or scheduler role) fails on `apply` with `AccessDenied`.
+That is not a bug to route around by switching credentials: apply those from
+CloudShell as an admin, then resume here. It also cannot read secret *values*,
+which the module never needs, since `env_secret_arn` is only ever passed through
+as a string.
+
+Editing a task definition does **not** count as an IAM change. The scheduler's
+`ecs:RunTask` policy is scoped to `family:*` wildcards only, which already match
+every revision, so bumping a task definition leaves the policy byte-identical and
+the apply stays inside what this role can do. Adding a *new* task definition or
+role still needs CloudShell.
+
+That property starts one apply from now. The change that removed the pinned
+revision ARNs rewrites `aws_iam_role_policy.scheduler_run_task` itself, and
+`iam:Put*` is an explicit deny, so that one update cannot come from here.
+
+**CloudShell is not the way to do it.** State is local and gitignored, so a
+CloudShell clone has the config but neither `terraform.tfstate` nor
+`terraform.tfvars`. Uploading both, applying, and downloading the state back
+works, but it puts the only copy of state on a round trip, and forgetting the
+return leg leaves this directory silently stale.
+
+Do the single IAM write in the console instead, then apply from here:
+
+1. IAM → Roles → `fattorestreet-hist-load-sched-*` → inline policy `run-task` → edit.
+2. Replace the document with the one `terraform console -plan` renders:
+   ```
+   terraform console -plan <<< 'data.aws_iam_policy_document.scheduler_run_task.json'
+   ```
+   Paste it verbatim. Anything else leaves a permanent diff.
+3. `terraform apply` locally. The policy now matches, so Terraform plans no
+   change to it and never calls `iam:PutRolePolicy`.
+
+Step 3 only works because the document is static (see the comment in `main.tf`).
+Were it still derived from the task definition resources, it would read as
+unknown at plan time, Terraform would plan the update regardless of what is
+already in AWS, and the apply would fail on the deny.
+
 ## Deploy
 
 ```bash
@@ -68,7 +120,23 @@ terraform init
 terraform apply        # creates ECR repo, cluster, task def, IAM, SG rule, schedule
 ```
 
-Then build the **ARM64** image and push it to the ECR repo Terraform created:
+The image comes from CI. `.github/workflows/docker-build.yml` builds the springboot image on
+every merge to `main` and pushes it to **both** GHCR (for the EC2 compose stack) and this ECR
+repo, tagged `latest` + commit SHA. The task definitions pin `:latest`, so a merge to `main` is
+all it takes for the next nightly run to pick up new code.
+
+> The Dockerfile needs no changes — run mode is selected purely by the `APP_RUN_MODE` env var that
+> the task definition sets.
+
+**`terraform apply` is not a deploy.** Terraform can add a task definition referencing a runner
+that the ECR image does not yet contain; the container then falls through to `APP_RUN_MODE=server`,
+boots Tomcat, and **never exits**, so the task runs (and bills) forever and the failure alert below
+never fires, because it only triggers on a task that *stops*. This happened once: `IndexLoadRunner`
+landed 2026-07-18 against an image built 2026-07-01, and six orphaned tasks accumulated at ~$17/mo
+each before anyone looked. If you add a run mode, merge it to `main` (so CI publishes the image)
+before or with the `terraform apply`, and check the cluster afterwards.
+
+To build and push by hand (CI unavailable, or bootstrapping before the repo exists):
 
 ```bash
 REPO=$(terraform output -raw ecr_repository_url)
@@ -79,9 +147,6 @@ aws ecr get-login-password --region "$REGION" | docker login --username AWS --pa
 cd ../..                       # -> springboot/
 docker buildx build --platform linux/arm64 -t "$REPO:latest" --push .
 ```
-
-> The Dockerfile needs no changes — run mode is selected purely by the `APP_RUN_MODE` env var that
-> the task definition sets.
 
 ## Test a run before trusting the schedule
 

@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 locals {
   container_name       = "hist-load"
   tags                 = merge({ Project = "FattoreStreet", Component = "springboot-hist-load" }, var.tags)
@@ -113,7 +115,16 @@ resource "aws_ecs_cluster" "this" {
 }
 
 resource "aws_ecs_task_definition" "this" {
-  family                   = var.name_prefix
+  family = var.name_prefix
+
+  # Leave superseded revisions registered instead of deregistering them.
+  # ecs:DeregisterTaskDefinition does not support resource-level permissions, so
+  # allowing it means granting it on "*", and the developer role scopes ECS
+  # writes to fattorestreet-* on purpose. Keeping old revisions costs nothing,
+  # and the schedules always target the revision this module just registered.
+  # It also leaves a rollback: repoint a schedule at an earlier revision.
+  skip_destroy = true
+
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = var.task_cpu
@@ -141,9 +152,15 @@ resource "aws_ecs_task_definition" "this" {
 
       # Pull individual keys out of the single fattorestreet/env JSON secret.
       # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
+      # SEC_CONTACT_EMAIL is not sensitive, but it lives in the same JSON secret,
+      # so pulling it from there beats adding a variable that would put an email
+      # address in tfvars. Without it the SEC User-Agent is empty and data.sec.gov
+      # answers 403 "Undeclared Automated Tool", which fails corporate-action
+      # detection after the price load.
       secrets = [
         { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
         { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
+        { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
       ]
 
       logConfiguration = {
@@ -182,11 +199,22 @@ resource "aws_iam_role" "scheduler" {
 data "aws_iam_policy_document" "scheduler_run_task" {
   statement {
     actions = ["ecs:RunTask"]
+    # Wildcards only, and built from variables rather than from the task
+    # definition resources. `family:*` already matches every revision, so
+    # pinning the current one adds nothing.
+    #
+    # The string interpolation is deliberate. Referencing
+    # `aws_ecs_task_definition.this.arn_without_revision` would be tidier, but it
+    # makes this document unknown at plan time whenever a task definition is
+    # replaced, so Terraform plans a policy update and calls iam:PutRolePolicy on
+    # every apply. `iam:Put*` is an explicit deny on the local developer role, so
+    # that turns every routine task definition change into CloudShell work. The
+    # family names are plain variables, so composing the ARNs by hand keeps this
+    # document static: it is known at plan time and does not change when a task
+    # definition is replaced.
     resources = [
-      "${aws_ecs_task_definition.this.arn_without_revision}:*",
-      aws_ecs_task_definition.this.arn,
-      "${aws_ecs_task_definition.index_load.arn_without_revision}:*",
-      aws_ecs_task_definition.index_load.arn,
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name_prefix}:*",
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.index_load_name_prefix}:*",
     ]
     condition {
       test     = "ArnLike"
@@ -261,7 +289,11 @@ resource "aws_cloudwatch_log_group" "index_load" {
 }
 
 resource "aws_ecs_task_definition" "index_load" {
-  family                   = var.index_load_name_prefix
+  family = var.index_load_name_prefix
+
+  # See the note on aws_ecs_task_definition.this.
+  skip_destroy = true
+
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = var.index_load_task_cpu
@@ -290,9 +322,13 @@ resource "aws_ecs_task_definition" "index_load" {
 
       # Pull individual keys out of the single fattorestreet/env JSON secret.
       # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
+      # SEC_CONTACT_EMAIL is required: the metrics refresh calls data.sec.gov for
+      # every ticker, and an empty User-Agent gets 403 "Undeclared Automated Tool",
+      # which skips every ticker and exits the task non-zero.
       secrets = [
         { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
         { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
+        { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
       ]
 
       logConfiguration = {

@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LocalDeveloperIdentities",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::<ACCOUNT_ID>:user/claude-code",
+          "arn:aws:iam::<ACCOUNT_ID>:user/Spike"
+        ]
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "Bool": { "aws:SecureTransport": "true" }
+      }
+    }
+  ]
+}

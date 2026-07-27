@@ -134,6 +134,42 @@ aws iam put-role-policy --role-name github-deploy-fattorestreet \
   --policy-name ssm-deploy --policy-document file://permissions.json
 ```
 
+The same role also pushes the springboot image to ECR for the nightly Fargate
+loads, which needs a second inline policy (`ecr-push.json`):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EcrAuthToken",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "PushHistLoadImage",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Resource": "arn:aws:ecr:us-east-1:<ACCOUNT_ID>:repository/fattorestreet-hist-load"
+    }
+  ]
+}
+```
+
+```sh
+aws iam put-role-policy --role-name github-deploy-fattorestreet \
+  --policy-name ecr-push --policy-document file://ecr-push.json
+```
+
 Point the workflow at the role (repo Actions **variable**, not a secret):
 
 ```sh
@@ -164,6 +200,21 @@ Change visibility → Public.
   Session Manager replaces interactive SSH:
   `aws ssm start-session --target <INSTANCE_ID>`.
 
+### 5. Local developer credentials (laptop + Claude Code)
+
+Local `aws` / `terraform` / SSM work runs as IAM user `claude-code`, whose only
+permission is to assume role `FattoreStreetDeveloper`; that role carries the
+grants. No admin key on the laptop, sessions expire hourly, and revoking is a
+one-line trust-policy edit.
+
+The five policy documents are versioned in [`iam/`](iam/), and the console
+click-path that creates the user, the role, and the key is
+[`iam/CONSOLE-SETUP.md`](iam/CONSOLE-SETUP.md). All commands then run under
+`AWS_PROFILE=fattorestreet`.
+
+The role has **no IAM write** and cannot read secret values, so IAM changes in
+`springboot/deploy/terraform/` must be applied by an admin from CloudShell.
+
 ## Notes & limits
 
 - Images are **linux/arm64 only** — the EC2 host is a t4g (Graviton), and CI
@@ -178,3 +229,5 @@ Change visibility → Public.
   silent green.
 - Deploys are serialized by the workflow's `concurrency: deploy` group; a
   second merge queues until the first finishes.
+- CI is unaffected by the local-credential setup in §5: it authenticates through
+  OIDC role `github-deploy-fattorestreet` and stores no AWS key.

@@ -101,8 +101,8 @@ uv sync                 # sync .venv to the lockfile
 - Nginx reverse proxy
 - PostgreSQL database
 - All services run in Docker containers
-- Kubernetes manifests in `kubernetes/`
-- Hosted on AWS EC2
+- Docker Compose stack and deploy scripts in `deploy/`
+- Hosted on AWS EC2 (Graviton/ARM64)
 - Django admin: with `DJANGO_FORCE_SCRIPT_NAME=/django` (matching nginx `location /django/`), use **`/django/admin/`** in the browser; local dev without that env continues to use **`/admin/`**.
 
 ## Documentation

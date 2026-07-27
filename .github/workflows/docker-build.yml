@@ -6,6 +6,12 @@ name: Docker images
 # and deploy that SHA to the EC2 host via SSM RunCommand, which runs the
 # versioned deploy/deploy.sh from the host's repo clone. One-time AWS/GitHub
 # setup lives in deploy/DEPLOY.md.
+#
+# The springboot image is ALSO pushed to ECR, because the nightly Fargate
+# loads (springboot/deploy/terraform/) run that same image from ECR rather
+# than GHCR. Keep both publishes in one build so they can never diverge: an
+# ECR image older than the code silently degrades a one-shot task to
+# APP_RUN_MODE=server, which never exits and bills until someone notices.
 
 on:
   push:
@@ -29,6 +35,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # OIDC for the ECR push on the springboot image; unused by the others
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -38,12 +46,16 @@ jobs:
           - image: nginx
             context: .
             dockerfile: nginx/Dockerfile
+            ecr: ""
           - image: django
             context: django
             dockerfile: django/Dockerfile
+            ecr: ""
+          # ecr: also publish to this ECR repo for the nightly Fargate loads
           - image: springboot
             context: springboot
             dockerfile: springboot/Dockerfile
+            ecr: fattorestreet-hist-load
     steps:
       - uses: actions/checkout@v7
 
@@ -58,6 +70,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Configure AWS credentials (OIDC)
+        if: matrix.ecr != '' && github.ref == 'refs/heads/main'
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Log in to ECR
+        id: ecr-login
+        if: matrix.ecr != '' && github.ref == 'refs/heads/main'
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build ${{ matrix.image }}
         uses: docker/build-push-action@v7
         with:
@@ -65,9 +89,13 @@ jobs:
           file: ${{ matrix.dockerfile }}
           # PRs build-only; main pushes publish latest + the commit SHA
           push: ${{ github.ref == 'refs/heads/main' }}
+          # The ECR lines resolve to empty (and are dropped) for the images
+          # that set ecr: "" and on PRs, where the login step is skipped.
           tags: |
             ghcr.io/johnfattore/${{ matrix.image }}:latest
             ghcr.io/johnfattore/${{ matrix.image }}:${{ github.sha }}
+            ${{ steps.ecr-login.outputs.registry && format('{0}/{1}:latest', steps.ecr-login.outputs.registry, matrix.ecr) || '' }}
+            ${{ steps.ecr-login.outputs.registry && format('{0}/{1}:{2}', steps.ecr-login.outputs.registry, matrix.ecr, github.sha) || '' }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 

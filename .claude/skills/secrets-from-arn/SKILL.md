@@ -1,6 +1,6 @@
 ---
 name: secrets-from-arn
-description: Convert a container so docker run passes only SECRETS_ARN and the image fetches its config from AWS Secrets Manager at start (replacing the long -e KEY=value list in kubernetes/run.sh). Use when moving a service's secrets out of run.sh into Secrets Manager.
+description: Convert a container so docker run passes only SECRETS_ARN and the image fetches its config from AWS Secrets Manager at start (replacing the long -e KEY=value list in deploy/run.sh). Use when moving a service's secrets out of run.sh into Secrets Manager.
 ---
 
 # Secrets from ARN
@@ -10,7 +10,7 @@ flags on `docker run`, and instead receives **one** env var -- `SECRETS_ARN` --
 and fetches the rest from AWS Secrets Manager at container start.
 
 Use this when the user wants to move a service's secrets/config out of
-`kubernetes/run.sh` and into Secrets Manager. The springboot service is the
+`deploy/run.sh` and into Secrets Manager. The springboot service is the
 reference implementation; mirror it for any other container.
 
 ## The pattern
@@ -32,11 +32,11 @@ reference implementation; mirror it for any other container.
 
 - Entrypoint: `springboot/docker-entrypoint.sh`
 - Dockerfile runtime stage: `springboot/Dockerfile`
-- Run command: the `# springboot` block in `kubernetes/run.sh`
+- Run command: the `# springboot` block in `deploy/run.sh`
 
 ## Steps to apply to a container `<svc>`
 
-1. **Inventory the env.** Find the `# <svc>` block in `kubernetes/run.sh` and
+1. **Inventory the env.** Find the `# <svc>` block in `deploy/run.sh` and
    list every `-e KEY=value`. These become the keys of the secret's JSON object.
    Split out anything that must stay an explicit flag (e.g. `AWS_REGION`, run-mode
    selectors read before secrets load) -- only app config moves into the secret.
@@ -66,7 +66,7 @@ reference implementation; mirror it for any other container.
      start command into `CMD [...]`. (If the old line was `CMD ["gunicorn", ...]`
      as in django, keep that CMD and just add the ENTRYPOINT.)
 
-4. **Edit `kubernetes/run.sh`.** Replace the `-e KEY=value` lines in the `# <svc>`
+4. **Edit `deploy/run.sh`.** Replace the `-e KEY=value` lines in the `# <svc>`
    block with `-e SECRETS_ARN=<arn>` and `-e AWS_REGION=us-east-1`. Leave a
    comment with the `aws secretsmanager create-secret` JSON so the source of
    truth is discoverable. Don't commit real secret *values* if avoidable -- but
@@ -94,7 +94,7 @@ reference implementation; mirror it for any other container.
 
 6. **Verify.**
    - `docker build` the image (or `docker buildx build --platform linux/arm64`
-     to match the Graviton runtime, per `kubernetes/build.sh`).
+     to match the Graviton runtime, per `deploy/build.sh`).
    - Run with a real ARN and watch for `[entrypoint] loading secrets from ...`
      and a clean app start: `docker logs <svc>`.
    - A missing/forbidden secret should make the container exit non-zero (the
@@ -107,7 +107,7 @@ reference implementation; mirror it for any other container.
 - **One shared secret**: this project keeps ALL services' config in a single
   secret, `fattorestreet/env` (a flat JSON of every key). Each container is
   pointed at the same ARN via the `SECRETS_ARN` shell var set at the top of
-  `kubernetes/run.sh`; extra keys a service doesn't read are harmless. When
+  `deploy/run.sh`; extra keys a service doesn't read are harmless. When
   onboarding a new service, add its keys to that one secret rather than creating
   a new one.
 - **Multiple secrets**: `SECRETS_ARN` also accepts a comma-separated list of

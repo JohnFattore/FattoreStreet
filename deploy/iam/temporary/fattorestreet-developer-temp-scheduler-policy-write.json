@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TempWriteSchedulerInlinePolicy",
+      "Effect": "Allow",
+      "Action": "iam:PutRolePolicy",
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/fattorestreet-hist-load-sched-*"
+    }
+  ]
+}

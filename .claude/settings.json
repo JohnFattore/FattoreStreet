@@ -1,3 +1,58 @@
 {
-  "plansDirectory": ".claude/plans"
+  "plansDirectory": ".claude/plans",
+  "env": {
+    "AWS_PROFILE": "fattorestreet",
+    "AWS_REGION": "us-east-1",
+    "AWS_DEFAULT_REGION": "us-east-1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(aws sts get-caller-identity:*)",
+      "Bash(aws ecs list-clusters:*)",
+      "Bash(aws ecs list-tasks:*)",
+      "Bash(aws ecs list-services:*)",
+      "Bash(aws ecs list-task-definitions:*)",
+      "Bash(aws ecs describe-clusters:*)",
+      "Bash(aws ecs describe-tasks:*)",
+      "Bash(aws ecs describe-services:*)",
+      "Bash(aws ecs describe-task-definition:*)",
+      "Bash(aws logs tail:*)",
+      "Bash(aws logs describe-log-groups:*)",
+      "Bash(aws logs describe-log-streams:*)",
+      "Bash(aws logs filter-log-events:*)",
+      "Bash(aws logs get-log-events:*)",
+      "Bash(aws scheduler list-schedules:*)",
+      "Bash(aws scheduler get-schedule:*)",
+      "Bash(aws events list-rules:*)",
+      "Bash(aws events describe-rule:*)",
+      "Bash(aws events list-targets-by-rule:*)",
+      "Bash(aws ecr describe-repositories:*)",
+      "Bash(aws ecr describe-images:*)",
+      "Bash(aws ecr list-images:*)",
+      "Bash(aws ec2 describe-instances:*)",
+      "Bash(aws ec2 describe-instance-status:*)",
+      "Bash(aws ec2 describe-security-groups:*)",
+      "Bash(aws ec2 describe-subnets:*)",
+      "Bash(aws ec2 describe-vpcs:*)",
+      "Bash(aws ec2 describe-volumes:*)",
+      "Bash(aws cloudwatch get-metric-statistics:*)",
+      "Bash(aws cloudwatch get-metric-data:*)",
+      "Bash(aws cloudwatch list-metrics:*)",
+      "Bash(aws ce get-cost-and-usage:*)",
+      "Bash(aws ce get-cost-forecast:*)",
+      "Bash(aws secretsmanager list-secrets:*)",
+      "Bash(aws secretsmanager describe-secret:*)",
+      "Bash(aws sns list-topics:*)",
+      "Bash(aws sns list-subscriptions-by-topic:*)",
+      "Bash(aws ssm describe-instance-information:*)",
+      "Bash(aws iam list-attached-role-policies:*)",
+      "Bash(aws iam list-attached-user-policies:*)",
+      "Bash(aws iam list-groups-for-user:*)",
+      "Bash(aws iam list-roles:*)",
+      "Bash(aws iam get-role:*)"
+    ],
+    "deny": [
+      "Bash(aws secretsmanager get-secret-value:*)"
+    ]
+  }
 }
