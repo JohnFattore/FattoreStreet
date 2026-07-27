@@ -74,31 +74,41 @@ jobs:
             conventions in .claude/rules/. Each rule's `paths:` frontmatter says
             which files it governs; rules without frontmatter always apply.
 
-            Post a single PR comment with the findings grouped by severity
-            (Critical, Suggestion, Nit), each citing file:line. Lead with a
-            one-line tally. If nothing is worth raising, say so in one line
-            instead of padding the comment.
-          # The turn cap went 8 -> 30 and still failed: 9 of the 10 runs after
-          # that change died at exactly 31 turns with "Reached maximum number of
-          # turns", and the single success finished at 26, a 4-turn margin.
+            Post the findings by calling mcp__github_comment__update_claude_comment,
+            which edits the one sticky comment this PR already has. Do NOT use
+            `gh pr comment` or `gh api` to post: that adds a new comment per run,
+            which is the duplicate spam this workflow exists to prevent, and it is
+            denied anyway.
+
+            Group findings by severity (Critical, Suggestion, Nit), each citing
+            file:line. Lead with a one-line tally. If nothing is worth raising,
+            say so in one line instead of padding the comment.
+          # The turn cap went 8 -> 30 and still failed, 9 of 10 runs dying at
+          # exactly 31. 50 fixed that; runs now land at 23-32, so the headroom is
+          # real but no longer the binding constraint. timeout-minutes above is
+          # the harder backstop and nothing has come near it (2.3 min of 20).
           #
-          # The cap was only half the story. Every one of those runs also logged
-          # 8-16 permission_denials, the success included. The action grants
-          # read-only git plus file operations but, per its configuration docs,
-          # "Claude does not have access to execute arbitrary Bash commands by
-          # default" -- and SKILL.md opens by saying to run `git diff`. So the
-          # review's first instruction was denied every run, and it spent turns
-          # working around it before starting the actual review.
+          # The tool grants come from reading an actual execution transcript
+          # rather than guessing, which is what the upload step below is for.
+          # Per the action's configuration docs Claude "does not have access to
+          # execute arbitrary Bash commands by default", and SKILL.md opens by
+          # saying to run `git diff`, so every run was denying its own first
+          # instruction. The git entries fixed that: git status/log/diff/show all
+          # run now. `:*` rather than the docs' bare `Bash(git diff)` is required
+          # because the review diffs against the base branch with arguments.
           #
-          # Hence both flags. --allowedTools is the fix; --max-turns 50 is
-          # headroom for a large PR, not the remedy. All three commands are
-          # read-only, and `:*` (rather than the docs' bare `Bash(git diff)`) is
-          # required because the review diffs against the base branch with
-          # arguments. Cost stays bounded by timeout-minutes above, which no run
-          # has approached -- the failures burned 2.3 minutes of the 20.
+          # `gh pr view` is here because the review spent five turns trying to
+          # read the PR title and body and being denied each time. It is
+          # read-only.
+          #
+          # `gh pr comment` is deliberately NOT granted, and the prompt above
+          # says so. It is the obvious one-line fix for the review posting
+          # nothing, and it is the wrong one: a fresh comment per run is exactly
+          # the duplicate spam this workflow replaced the claude.ai routine to
+          # stop. Posting goes through the sticky-comment tool instead.
           claude_args: >-
             --max-turns 50
-            --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(git status:*)"
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(gh pr view:*)"
 
       # Diagnostic. The workflow log records that N tool calls were denied but
       # never which ones, and every run so far has denied 8-16 -- including the
