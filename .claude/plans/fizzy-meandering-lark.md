@@ -49,6 +49,13 @@ CloudShell.
 
 # What is left
 
+> **Applied and verified 2026-07-27.** Both task definitions now carry
+> `SEC_CONTACT_EMAIL` (hist-load rev 3, index-load rev 2), both schedules target
+> those revisions and are `ENABLED`, the SNS subscription is confirmed
+> (`SubscriptionsConfirmed 1`), and `terraform plan` reports **"No changes."**
+> Sections 1 and 3 below are the diagnosis, kept for the record; §6 is what the
+> apply actually took.
+
 ## 1. SNS failure alerts are not being delivered (found during verification)
 
 `terraform plan` returns `1 to add`, not "No changes":
@@ -229,6 +236,47 @@ Note `bd37eda5`'s `aws-inspect` skill advertised `IAM user Spike, keys in
 ~/.aws/credentials, Admin group (AdministratorAccess)` on a public repo. That
 line is rewritten to describe the scoped profile, so it never reaches public
 history. Keep it that way.
+
+## 6. What the apply actually took (2026-07-27)
+
+Three obstacles, none of which needed an admin credential in the end.
+
+**a. The scheduler policy could not be written from here.**
+`aws_iam_role_policy.scheduler_run_task` needs `iam:PutRolePolicy`, denied by
+`DenyAllIamWrite`. CloudShell was the first answer and was wrong: state is local
+and both `*.tfstate` and `*.tfvars` are gitignored, so a clone there has nothing
+to apply against. Resolved by pasting the rendered document into the console by
+hand, after which Terraform found the policy already matching and dropped the
+resource from the plan entirely. `deploy/iam/temporary/` holds a revocable grant
+as an alternative; it went unused.
+
+This only worked because the document was first made **static** (`00a2ff95`).
+While it was built from `aws_ecs_task_definition.*.arn_without_revision`, it read
+as unknown at plan time whenever a task definition was replaced, so Terraform
+would have planned the write regardless of what AWS already held and the paste
+would have been ignored.
+
+**b. `ecs:DeregisterTaskDefinition` was denied.** `EcsTaskDefs` allows the action
+but scopes it to `task-definition/fattorestreet-*:*`, and the action takes **no
+resource-level permissions**, so it only ever matches on `"*"`. The tell is that
+AWS reports the denial against `resource: *` even though the statement names an
+ARN. Fixed with `skip_destroy = true` rather than widening the role.
+
+**c. `skip_destroy` could not apply to itself.** On a replacement the provider
+reads `skip_destroy` from the **prior state object**, not the new config. State
+held `false`, so the deregister was still attempted and the apply failed a second
+time. Broken with a two-step apply: drop the `SEC_CONTACT_EMAIL` lines so the
+only diff is `skip_destroy` (0 add / 2 change / 0 destroy, no API calls), apply
+that, restore the lines, then apply the replacement, which now skips the destroy.
+
+Superseded revisions stay `ACTIVE` by design (hist-load 2, index-load 1), which
+is the rollback: repoint a schedule at an earlier revision.
+
+**Still unverified:** that `SEC_CONTACT_EMAIL` exists as a key in
+`fattorestreet/env`. This role denies `GetSecretValue`, so it cannot be checked
+from here. If the key is absent the task now fails at container start with
+`ResourceInitializationError` instead of running and 403-ing, which is a worse
+failure mode. The next scheduled run settles it, and SNS alerts now work.
 
 ## Non-secrets, for the record
 

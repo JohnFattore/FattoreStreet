@@ -44,6 +44,9 @@ springboot/data/
 *.tfstate
 *.tfstate.*
 .terraform/
+# Saved plan files embed the resolved variable values, so treat them like tfvars.
+tfplan
+tfplan-*
 crash.log
 
 llm/llama.cpp/
