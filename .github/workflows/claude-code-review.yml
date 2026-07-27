@@ -77,9 +77,24 @@ jobs:
             (Critical, Suggestion, Nit), each citing file:line. Lead with a
             one-line tally. If nothing is worth raising, say so in one line
             instead of padding the comment.
-          # 8 was too tight and failed with "Reached maximum number of turns":
-          # the review reads SKILL.md, the rule files that match the diff, and
-          # the diff itself before writing anything. 30 leaves room for a real
-          # review on a large PR while still capping a runaway; timeout-minutes
-          # above is the harder backstop.
-          claude_args: "--max-turns 30"
+          # The turn cap went 8 -> 30 and still failed: 9 of the 10 runs after
+          # that change died at exactly 31 turns with "Reached maximum number of
+          # turns", and the single success finished at 26, a 4-turn margin.
+          #
+          # The cap was only half the story. Every one of those runs also logged
+          # 8-16 permission_denials, the success included. The action grants
+          # read-only git plus file operations but, per its configuration docs,
+          # "Claude does not have access to execute arbitrary Bash commands by
+          # default" -- and SKILL.md opens by saying to run `git diff`. So the
+          # review's first instruction was denied every run, and it spent turns
+          # working around it before starting the actual review.
+          #
+          # Hence both flags. --allowedTools is the fix; --max-turns 50 is
+          # headroom for a large PR, not the remedy. All three commands are
+          # read-only, and `:*` (rather than the docs' bare `Bash(git diff)`) is
+          # required because the review diffs against the base branch with
+          # arguments. Cost stays bounded by timeout-minutes above, which no run
+          # has approached -- the failures burned 2.3 minutes of the 20.
+          claude_args: >-
+            --max-turns 50
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(git status:*)"
