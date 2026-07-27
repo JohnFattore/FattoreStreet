@@ -63,6 +63,19 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
           use_sticky_comment: true
+          # Required, and the reason no review was ever posted. A custom
+          # `prompt` on a pull_request event is "automation mode", which creates
+          # no tracking comment and so never registers the comment MCP tool.
+          # action.yml: track_progress "forces tag mode with tracking comments
+          # for pull_request and issue events", default false. Without it the
+          # reviewer wrote a full review, went looking for
+          # mcp__github_comment__update_claude_comment, found nothing (four
+          # ToolSearch calls in the transcript), fell back to `gh pr comment`,
+          # was denied, and the job still exited 0.
+          #
+          # use_sticky_comment above is what keeps that to ONE comment edited in
+          # place; track_progress alone would still be a comment per run.
+          track_progress: true
           # The skill is named by path rather than invoked as `/code-review`.
           # The repo skill shares its name with the built-in /code-review
           # command, which is marked disable-model-invocation; naming the path
