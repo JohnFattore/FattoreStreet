@@ -7,7 +7,9 @@ the one-shot loads on Fargate — run mode is selected purely by the `APP_RUN_MO
 - **`hist-load`** (`HistLoadRunner`) — the bulky IEX price load (`IexHistService.loadHistData`),
   which runs once and exits. After a successful load the task also runs corporate-action price
   adjustment (`adjustAllTickers`, rolling SEC re-detection included); set
-  `HIST_LOAD_ADJUST_ENABLED=false` on the task to skip it.
+  `HIST_LOAD_ADJUST_ENABLED=false` on the task to skip it. The adjustment is restricted to
+  equities via `HIST_LOAD_EQUITY_ONLY=true` (variable `hist_load_equity_only`) because ETF
+  detection is SEC-fetch bound and dominates the runtime.
 - **`index-load`** (`IndexLoadRunner`) — index metrics refresh (SEC companyfacts/submissions for
   the Russell 1000 universe) followed by cap-ranked rebuilds of FAT100, FAT1000, FAT50. Scheduled
   a few hours **after** the hist load so fresh `DailyPrice` rows exist. Guard: if the refresh
@@ -276,6 +278,7 @@ That is pennies a month for now; add a second `imageCountMoreThan` rule if it gr
 |----------|---------|-------|
 | `task_memory` | `4096` | Lower to `2048` after profiling a real run. |
 | `hist_load_days` | `20` | Days walked back; already-loaded days are skipped (idempotent). |
+| `hist_load_equity_only` | `true` | Restricts the post-load adjustment to non-fund tickers. Set `false` to include ETFs, accepting a much longer run. |
 | `schedule_expression` / `schedule_timezone` | `cron(30 6 * * ? *)` / `Etc/UTC` | When the hist load runs (tfvars example: `cron(0 2 * * ? *)` / `America/New_York`). |
 | `schedule_enabled` | `true` | Toggle the nightly hist-load trigger. |
 | `index_load_task_cpu` / `index_load_task_memory` | `512` / `2048` | The index load is SEC-rate-limit bound (mostly idle); profile the first real run. |

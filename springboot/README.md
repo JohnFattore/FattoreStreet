@@ -72,6 +72,7 @@ Before adding or changing any external data source:
 | (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore 50 rebuild includes. Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
 | (property) `fattore100.rebuild.top-n` | `100` | How many names the Fattore 100 rebuild includes. Set in `.env` as `fattore100.rebuild.top-n=100` if needed. |
 | (property) `fattore1000.rebuild.top-n` | `1000` | How many names the Fattore 1000 rebuild includes. Set in `.env` as `fattore1000.rebuild.top-n=1000` if needed. |
+| `HIST_LOAD_EQUITY_ONLY` | `false` | When `true`, the post-load price adjustment skips fund tickers. ETF detection fetches hundreds of filings per fund and dominates the runtime; the scheduled Fargate task sets this to `true`. |
 | `INDEX_LOAD_YEAR` | `0` (current year) | Target calendar year for the one-shot index load (`APP_RUN_MODE=index-load`) |
 | `INDEX_LOAD_SCOPE` | `russell1000` | Index-load metrics refresh scope: `russell1000` (IWB universe) or `all` |
 | `INDEX_LOAD_SKIP_REFRESH` | `false` | When `true`, the index load skips the metrics refresh and only rebuilds |
@@ -182,7 +183,17 @@ most recent closes is re-detected immediately (split signature; the check scans 
 a multi-day catch-up load cannot bury the break). A failed SEC fetch does **not** stamp
 `last_sec_detection_at`, so the ticker retries the next run instead of waiting out the interval.
 Price rows are only written when an adjusted value actually changes, so the nightly run writes just
-the new rows unless detection changed an action. The endpoints below stay available for manual runs:
+the new rows unless detection changed an action.
+
+The scheduled task sets `HIST_LOAD_EQUITY_ONLY=true` (property `app.hist-load.equity-only`,
+Terraform variable `hist_load_equity_only`), so the nightly adjustment covers equities only. ETFs
+have no XBRL dividend facts, so `EtfCorporateActionService` brute-force fetches the filing index and
+hundreds of documents per fund against the SEC rate limit; leaving funds in stretched nightly runs
+past 17 hours. Fund detection stays available on demand through the `etfOnly` parameter on the
+endpoints below. The property defaults to `false`, so a manual `hist-load` run still covers
+everything.
+
+The endpoints below stay available for manual runs:
 
 ```bash
 # Adjust all tickers (rolling SEC re-detection: stalest ~1/7 of tickers + price-jump triggers)

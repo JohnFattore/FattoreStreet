@@ -26,11 +26,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * runner executes once the context is up, then exits) — port 8080 binds but receives no traffic
  * inside the isolated task, which keeps the boot path identical to the running service.
  *
- * <p>After a successful load, the corporate-action price adjustment runs
- * (default {@code AdjustmentOptions}, i.e. no force) unless {@code app.hist-load.adjust-enabled=false}: the
- * newly loaded rows have NULL adjusted columns, which selects exactly the tickers needing
- * recomputation, and the service's rolling staleness window plus price-jump trigger keep SEC
- * detection fresh. yfinance validation is never invoked here (dev-only diagnostics).
+ * <p>After a successful load, the corporate-action price adjustment runs (no force) unless
+ * {@code app.hist-load.adjust-enabled=false}: the newly loaded rows have NULL adjusted columns, which
+ * selects exactly the tickers needing recomputation, and the service's rolling staleness window plus
+ * price-jump trigger keep SEC detection fresh. yfinance validation is never invoked here (dev-only
+ * diagnostics).
+ *
+ * <p>{@code app.hist-load.equity-only=true} (env {@code HIST_LOAD_EQUITY_ONLY}) restricts the adjustment
+ * phase to non-fund tickers. ETF detection has no XBRL equivalent, so it fetches hundreds of filings per
+ * fund against the SEC rate limit and dominates the task's runtime; the scheduled Fargate task sets this
+ * so the nightly run stays short, leaving ETFs to the admin endpoint. Defaults to {@code false} so a
+ * manual {@code hist-load} run still covers everything.
  *
  * <p>Exit codes (surfaced as the container exit code): {@code 0} on completion, {@code 1} when the
  * load throws, every attempted day failed, or the adjustment phase throws. Per-day errors with at
@@ -53,6 +59,9 @@ public class HistLoadRunner implements ApplicationRunner {
 
     @Value("${app.hist-load.adjust-enabled:true}")
     private boolean adjustEnabled;
+
+    @Value("${app.hist-load.equity-only:false}")
+    private boolean equityOnly;
 
     public HistLoadRunner(IexHistService iexHistService,
                           PriceAdjustmentService priceAdjustmentService,
@@ -109,9 +118,11 @@ public class HistLoadRunner implements ApplicationRunner {
             return 0;
         }
         long startTime = System.currentTimeMillis();
-        log.info("Starting corporate-action price adjustment");
+        log.info("Starting corporate-action price adjustment (equityOnly={})", equityOnly);
         try {
-            Map<String, Object> result = priceAdjustmentService.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+            PriceAdjustmentService.AdjustmentOptions options =
+                    new PriceAdjustmentService.AdjustmentOptions(false, false, equityOnly, false);
+            Map<String, Object> result = priceAdjustmentService.adjustAllTickers(options);
             long elapsedMs = System.currentTimeMillis() - startTime;
             log.info("Price adjustment finished in {}m {}s -- tickersProcessed={}, failedTickers={}, "
                             + "scheduledDetections={}, jumpTriggeredDetections={}, pricesUpdated={}, snappedActions={}",
