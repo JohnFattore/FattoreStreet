@@ -13,6 +13,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,14 @@ class HistLoadRunnerTest {
     @Mock
     private ConfigurableApplicationContext context;
 
+    /** What the runner passes when equity-only is off: no force, no fund filter, no yfinance. */
+    private static final PriceAdjustmentService.AdjustmentOptions ALL_TICKERS =
+            new PriceAdjustmentService.AdjustmentOptions(false, false, false, false);
+
+    /** What the scheduled Fargate task passes (HIST_LOAD_EQUITY_ONLY=true): funds skipped. */
+    private static final PriceAdjustmentService.AdjustmentOptions EQUITY_ONLY =
+            new PriceAdjustmentService.AdjustmentOptions(false, false, true, false);
+
     private HistLoadRunner runner;
 
     @BeforeEach
@@ -36,6 +45,7 @@ class HistLoadRunnerTest {
         runner = new HistLoadRunner(iexHistService, priceAdjustmentService, context);
         ReflectionTestUtils.setField(runner, "days", 20);
         ReflectionTestUtils.setField(runner, "adjustEnabled", true);
+        ReflectionTestUtils.setField(runner, "equityOnly", false);
     }
 
     private void stubSuccessfulLoad() throws Exception {
@@ -44,7 +54,7 @@ class HistLoadRunnerTest {
     }
 
     private void stubSuccessfulAdjustment() {
-        when(priceAdjustmentService.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS)).thenReturn(
+        when(priceAdjustmentService.adjustAllTickers(ALL_TICKERS)).thenReturn(
                 Map.of("tickersProcessed", 5, "failedTickers", 0, "scheduledDetections", 1,
                         "jumpTriggeredDetections", 0, "totalPricesUpdated", 100, "totalSnappedActions", 0));
     }
@@ -55,7 +65,7 @@ class HistLoadRunnerTest {
         stubSuccessfulAdjustment();
 
         assertEquals(0, runner.runLoad());
-        verify(priceAdjustmentService).adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+        verify(priceAdjustmentService).adjustAllTickers(ALL_TICKERS);
     }
 
     @Test
@@ -83,7 +93,7 @@ class HistLoadRunnerTest {
                 Map.of("processed", 0, "skipped", 0, "notAvailable", 0, "errors", 4));
 
         assertEquals(1, runner.runLoad());
-        verify(priceAdjustmentService, never()).adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+        verify(priceAdjustmentService, never()).adjustAllTickers(any());
     }
 
     @Test
@@ -91,15 +101,27 @@ class HistLoadRunnerTest {
         when(iexHistService.loadHistData(20)).thenThrow(new RuntimeException("boom"));
 
         assertEquals(1, runner.runLoad());
-        verify(priceAdjustmentService, never()).adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+        verify(priceAdjustmentService, never()).adjustAllTickers(any());
     }
 
     @Test
     void returnsOneWhenAdjustmentThrows() throws Exception {
         stubSuccessfulLoad();
-        when(priceAdjustmentService.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS)).thenThrow(new RuntimeException("adjust boom"));
+        when(priceAdjustmentService.adjustAllTickers(ALL_TICKERS)).thenThrow(new RuntimeException("adjust boom"));
 
         assertEquals(1, runner.runLoad());
+    }
+
+    @Test
+    void passesEquityOnlyWhenConfigured() throws Exception {
+        stubSuccessfulLoad();
+        ReflectionTestUtils.setField(runner, "equityOnly", true);
+        when(priceAdjustmentService.adjustAllTickers(EQUITY_ONLY)).thenReturn(
+                Map.of("tickersProcessed", 3, "failedTickers", 0, "scheduledDetections", 1,
+                        "jumpTriggeredDetections", 0, "totalPricesUpdated", 60, "totalSnappedActions", 0));
+
+        assertEquals(0, runner.runLoad());
+        verify(priceAdjustmentService).adjustAllTickers(EQUITY_ONLY);
     }
 
     @Test
@@ -108,6 +130,6 @@ class HistLoadRunnerTest {
         ReflectionTestUtils.setField(runner, "adjustEnabled", false);
 
         assertEquals(0, runner.runLoad());
-        verify(priceAdjustmentService, never()).adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+        verify(priceAdjustmentService, never()).adjustAllTickers(any());
     }
 }

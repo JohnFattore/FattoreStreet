@@ -100,6 +100,17 @@ variable "hist_load_days" {
   default     = 20
 }
 
+variable "hist_load_equity_only" {
+  description = <<-EOT
+    Restrict the post-load corporate-action adjustment to non-fund tickers (HIST_LOAD_EQUITY_ONLY).
+    ETF detection has no XBRL equivalent and brute-force fetches hundreds of filings per fund against
+    the SEC rate limit, which is what stretched nightly runs past 17 hours. Set false to include funds
+    again, accepting that runtime.
+  EOT
+  type        = bool
+  default     = true
+}
+
 # ---------------------------------------------------------------------------
 # Schedule.
 # ---------------------------------------------------------------------------

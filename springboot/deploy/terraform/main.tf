@@ -181,6 +181,7 @@ resource "aws_ecs_task_definition" "this" {
       environment = [
         { name = "APP_RUN_MODE", value = "hist-load" },
         { name = "HIST_LOAD_DAYS", value = tostring(var.hist_load_days) },
+        { name = "HIST_LOAD_EQUITY_ONLY", value = tostring(var.hist_load_equity_only) },
         { name = "DB_URL", value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}" },
         { name = "DB_USERNAME", value = var.db_username },
       ]
