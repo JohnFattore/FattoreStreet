@@ -309,8 +309,8 @@ public class PublicController {
         if (val == null) {
             return "0.00";
         }
-        if (val instanceof Number) {
-            return String.format("%.2f", ((Number) val).doubleValue());
+        if (val instanceof Number number) {
+            return String.format("%.2f", number.doubleValue());
         }
         return val.toString();
     }

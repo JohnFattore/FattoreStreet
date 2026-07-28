@@ -1,8 +1,10 @@
 # Stage 1: Build
-# maven:3.9.9 matches .mvn/wrapper/maven-wrapper.properties and the enforcer
-# requireMavenVersion floor; temurin-17 matches <java.version>. The previous
-# maven:3.8-openjdk-18 was EOL and ran a JDK the project never targets.
-FROM maven:3.9.9-eclipse-temurin-17 AS build
+# maven:3.9.16 matches .mvn/wrapper/maven-wrapper.properties and clears the
+# enforcer requireMavenVersion floor; temurin-25 matches <java.version> and the
+# stage-2 runtime, so the jar is built and run on the same JDK. Always take an
+# LTS here: the previous eclipse-temurin:19 was non-LTS, went EOL, and left this
+# image stranded on a dead tag family that Dependabot could not bump.
+FROM maven:3.9.16-eclipse-temurin-25 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
@@ -12,7 +14,9 @@ COPY src ./src
 RUN mvn -B clean package -DskipTests -Dquality.skip=true
 
 # Stage 2: Runtime
-FROM eclipse-temurin:19-jre-focal
+# noble (Ubuntu 24.04) is deliberate: the AWS CLI v2 install below is a glibc
+# binary with no musl build, so alpine is not an option here.
+FROM eclipse-temurin:25-jre-noble
 WORKDIR /app
 
 # AWS CLI v2 + jq so the entrypoint can pull config from Secrets Manager at start.

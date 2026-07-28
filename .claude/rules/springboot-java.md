@@ -27,7 +27,9 @@ Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
 
 ## Code Style
 
-- Java 17 features are available (records, sealed classes, pattern matching, text blocks)
+- Java 25 features are available: records, sealed classes, text blocks, pattern matching
+  for `switch`, record patterns, sequenced collections (`getFirst()`/`getLast()`), and
+  virtual threads
 - Use constructor injection (not field injection with `@Autowired`)
 - Logging via SLF4J: `private static final Logger log = LoggerFactory.getLogger(MyClass.class);`
 - Use `Map.ofEntries()` and `List.of()` for immutable collections

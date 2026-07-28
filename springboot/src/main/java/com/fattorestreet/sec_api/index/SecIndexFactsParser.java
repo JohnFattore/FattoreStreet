@@ -210,7 +210,7 @@ public final class SecIndexFactsParser {
     /**
      * Classifies SEC "state or country" / incorporation strings into country + optional US state or opaque code.
      */
-    static LocationParts classifyJurisdiction(String raw) {
+    private static LocationParts classifyJurisdiction(String raw) {
         if (raw == null || raw.isBlank()) {
             return LocationParts.empty();
         }

@@ -188,7 +188,7 @@ public class EquityExDateAssigner {
             }
         }
         int promotedTupleEvents = promoteUnmatchedDeclarations(mapped, regularEvents, tuples, usedTuples);
-        mapped.sort(Comparator.comparing(EquityCorporateActionService.DividendEvent::effectiveDate).thenComparing(EquityCorporateActionService.DividendEvent::rawAmount));
+        mapped.sort(Comparator.comparing(EquityCorporateActionService.DividendEvent::effectiveDate).thenComparingDouble(EquityCorporateActionService.DividendEvent::rawAmount));
         return new EquityCorporateActionService.AssignmentResult(
                 mapped, tupleMatchedAssignments, directExAssignments, dpAssignments, syntheticAssignments,
                 promotedTupleEvents);

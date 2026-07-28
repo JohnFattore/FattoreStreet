@@ -28,7 +28,7 @@
 		<url />
 	</scm>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>25</java.version>
 
 		<!-- One switch that disables every format/static-analysis gate.
 		     The Docker build stage passes -Dquality.skip=true because it copies
@@ -51,9 +51,16 @@
 		     pass. Overridable on the command line so the gate itself can be
 		     tested (-Djacoco.line.minimum=0.95 should fail). -->
 		<jacoco.line.minimum>0.76</jacoco.line.minimum>
-		<spotbugs.annotations.version>4.9.6</spotbugs.annotations.version>
-		<pmd.plugin.version>3.27.0</pmd.plugin.version>
-		<errorprone.version>2.36.0</errorprone.version>
+		<spotbugs.annotations.version>4.10.3</spotbugs.annotations.version>
+		<!-- 3.28.0 bundles PMD 7.17.0. Do not drop below it: 3.27.0 shipped PMD
+		     7.14.0, which rejects the targetJdk value maven-pmd-plugin derives
+		     from java.version above with "Unsupported targetJdk value '25'".
+		     Java 25 support landed in PMD 7.16.0. -->
+		<pmd.plugin.version>3.28.0</pmd.plugin.version>
+		<!-- Error Prone 2.43.0 raised its own floor to JDK 21, and versions
+		     before that cannot run on JDK 25 at all, so this property is pinned
+		     to java.version above rather than being independently upgradable. -->
+		<errorprone.version>2.50.0</errorprone.version>
 		<!-- Error Prone check severities.
 
 		     Default tiers: ERROR-tier checks fail the build, WARNING-tier ones are
@@ -184,13 +191,16 @@
 						</goals>
 						<configuration>
 							<rules>
-								<!-- Matches .mvn/wrapper/maven-wrapper.properties and the
-								     maven:3.9.9 builder image in Dockerfile -->
+								<!-- Cleared by .mvn/wrapper/maven-wrapper.properties and the
+								     maven:3.9.16 builder image in Dockerfile -->
 								<requireMavenVersion>
 									<version>[3.9.0,)</version>
 								</requireMavenVersion>
+								<!-- Matches <java.version> and the eclipse-temurin:25 runtime
+								     image. A lower local JDK would silently produce a jar the
+								     container cannot load, so fail at validate instead. -->
 								<requireJavaVersion>
-									<version>[17,)</version>
+									<version>[25,)</version>
 								</requireJavaVersion>
 								<banDuplicatePomDependencyVersions />
 							</rules>

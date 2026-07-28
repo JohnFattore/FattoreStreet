@@ -52,7 +52,7 @@ uv run python manage.py migrate
 uv run python manage.py runserver
 ```
 
-**Spring Boot (SEC / filings service)** — requires **Java 17**, **Maven**, and **PostgreSQL**. Copy or create `springboot/.env` with database credentials and **`SECRET_KEY` set to the same value as Django** (JWT verification for `/admin/**`; see [springboot/README.md](springboot/README.md)):
+**Spring Boot (SEC / filings service)** — requires **Java 25**, **Maven**, and **PostgreSQL**. Copy or create `springboot/.env` with database credentials and **`SECRET_KEY` set to the same value as Django** (JWT verification for `/admin/**`; see [springboot/README.md](springboot/README.md)):
 
 ```bash
 cd springboot

@@ -437,54 +437,25 @@ public class EdgarService {
         if (val == null || !(val instanceof Number num))
             return;
         switch (field) {
-            case "revenues":
-                q.setRevenues(num.longValue());
-                break;
-            case "netIncomeLoss":
-                q.setNetIncomeLoss(num.longValue());
-                break;
-            case "operatingIncomeLoss":
-                q.setOperatingIncomeLoss(num.longValue());
-                break;
-            case "grossProfit":
-                q.setGrossProfit(num.longValue());
-                break;
-            case "earningsPerShareBasic":
-                q.setEarningsPerShareBasic(num.doubleValue());
-                break;
-            case "earningsPerShareDiluted":
-                q.setEarningsPerShareDiluted(num.doubleValue());
-                break;
-            case "assets":
-                q.setAssets(num.longValue());
-                break;
-            case "liabilities":
-                q.setLiabilities(num.longValue());
-                break;
-            case "stockholdersEquity":
-                q.setStockholdersEquity(num.longValue());
-                break;
-            case "cashAndCashEquivalentsAtCarryingValue":
+            case "revenues" -> q.setRevenues(num.longValue());
+            case "netIncomeLoss" -> q.setNetIncomeLoss(num.longValue());
+            case "operatingIncomeLoss" -> q.setOperatingIncomeLoss(num.longValue());
+            case "grossProfit" -> q.setGrossProfit(num.longValue());
+            case "earningsPerShareBasic" -> q.setEarningsPerShareBasic(num.doubleValue());
+            case "earningsPerShareDiluted" -> q.setEarningsPerShareDiluted(num.doubleValue());
+            case "assets" -> q.setAssets(num.longValue());
+            case "liabilities" -> q.setLiabilities(num.longValue());
+            case "stockholdersEquity" -> q.setStockholdersEquity(num.longValue());
+            case "cashAndCashEquivalentsAtCarryingValue" ->
                 q.setCashAndCashEquivalentsAtCarryingValue(num.longValue());
-                break;
-            case "accountsReceivableNetCurrent":
-                q.setAccountsReceivableNetCurrent(num.longValue());
-                break;
-            case "inventoryNet":
-                q.setInventoryNet(num.longValue());
-                break;
-            case "netCashProvidedByUsedInOperatingActivities":
+            case "accountsReceivableNetCurrent" -> q.setAccountsReceivableNetCurrent(num.longValue());
+            case "inventoryNet" -> q.setInventoryNet(num.longValue());
+            case "netCashProvidedByUsedInOperatingActivities" ->
                 q.setNetCashProvidedByUsedInOperatingActivities(num.longValue());
-                break;
-            case "paymentsOfDividends":
-                q.setPaymentsOfDividends(num.longValue());
-                break;
-            case "paymentsForRepurchaseOfCommonStock":
-                q.setPaymentsForRepurchaseOfCommonStock(num.longValue());
-                break;
-            default:
-                // field is not one this method maps onto Quarter; ignore it
-                break;
+            case "paymentsOfDividends" -> q.setPaymentsOfDividends(num.longValue());
+            case "paymentsForRepurchaseOfCommonStock" -> q.setPaymentsForRepurchaseOfCommonStock(num.longValue());
+            // field is not one this method maps onto Quarter; ignore it
+            default -> {}
         }
     }
 
