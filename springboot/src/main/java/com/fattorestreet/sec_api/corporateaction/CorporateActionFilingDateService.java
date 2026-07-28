@@ -161,7 +161,7 @@ public class CorporateActionFilingDateService {
         List<DividendDeclarationTupleExtractor.DividendDeclaration> declarations = new ArrayList<>(declarationsByKey.values());
         declarations.sort(Comparator
                 .comparing(DividendDeclarationTupleExtractor.DividendDeclaration::recordDate)
-                .thenComparing(DividendDeclarationTupleExtractor.DividendDeclaration::amountPerShare));
+                .thenComparingDouble(DividendDeclarationTupleExtractor.DividendDeclaration::amountPerShare));
         log.info("[CIK {}] Dividend record-date scan finished: {} record-date candidates, {} direct ex-date candidates, {} declaration tuples ({} cached, {} fetched, {} failed, {} deferred)",
                 cik, out.size(), exOut.size(), declarations.size(), cachedFilings, fetchedFilings, failedFilings, budgetSkipped);
         return new RecordDateScanResult(out, exOut, declarations, selection.discoveredByForm(), selection.selectedByForm(), selection.rejectedByForm(),
@@ -988,8 +988,12 @@ public class CorporateActionFilingDateService {
         }
     }
 
-    /** Shared shape of candidates extracted from a dated SEC filing. */
-    private interface FilingDatedCandidate {
+    /**
+     * Shared shape of candidates extracted from a dated SEC filing. Package-private rather
+     * than private: the three candidate records below are public and name it in their
+     * {@code implements} clause, which a private type cannot appear in.
+     */
+    interface FilingDatedCandidate {
         LocalDate filingDate();
         String accessionNumber();
         int confidenceScore();

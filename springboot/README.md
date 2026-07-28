@@ -25,7 +25,7 @@ Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebSer
 
 ## Stack
 
-- Java 17, Spring Boot 3.4.2
+- Java 25 (LTS), Spring Boot 4.1
 - Spring Data JPA + Hibernate (PostgreSQL)
 - **Hibernate Envers** — all JPA entities are audited (`@Audited`). Hibernate creates a `revinfo` table and per-entity `*_AUD` tables (for example `assets_AUD`, `daily_prices_AUD`). Expect **large** audit table growth on high-churn data, especially `daily_prices` ingests; plan disk and retention accordingly. The inverse `Asset.listings` collection is `@NotAudited` so listing history is tracked only via `listings_AUD`.
 - Spring Security OAuth2 Resource Server (JWT): admin routes verify Django SimpleJWT access tokens (HS256, same `SECRET_KEY`; only `user_id` claim `1` is granted admin)
@@ -56,7 +56,7 @@ Before adding or changing any external data source:
 
 ### Prerequisites
 
-- Java 17
+- Java 25 (the Maven enforcer fails the build on anything older)
 - Maven
 - PostgreSQL
 
@@ -330,7 +330,7 @@ Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` i
 
 | Gate | Phase | Config |
 |---|---|---|
-| Maven enforcer (Maven 3.9+, Java 17+) | `validate` | `pom.xml` |
+| Maven enforcer (Maven 3.9+, Java 25+) | `validate` | `pom.xml` |
 | Spotless | `validate` | `pom.xml` (inline) |
 | Checkstyle | `validate` | `config/checkstyle/checkstyle.xml` |
 | SpotBugs + FindSecBugs | `verify` | `config/spotbugs/exclude.xml` |

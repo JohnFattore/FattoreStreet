@@ -124,7 +124,7 @@ public class CorporateActionValidationService {
                 out.add(new NormalizedEvent(ActionType.SPLIT, action.getEffectiveDate(), round4(action.getRatio()), "sec"));
             }
         }
-        out.sort(Comparator.comparing(NormalizedEvent::date).thenComparing(NormalizedEvent::value));
+        out.sort(Comparator.comparing(NormalizedEvent::date).thenComparingDouble(NormalizedEvent::value));
         return out;
     }
 
@@ -144,7 +144,7 @@ public class CorporateActionValidationService {
                     encodedTicker));
             parseDjangoDividends(dividends, minDateInclusive, out);
             parseDjangoSplits(splits, minDateInclusive, out);
-            out.sort(Comparator.comparing(NormalizedEvent::date).thenComparing(NormalizedEvent::value));
+            out.sort(Comparator.comparing(NormalizedEvent::date).thenComparingDouble(NormalizedEvent::value));
             return out;
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {

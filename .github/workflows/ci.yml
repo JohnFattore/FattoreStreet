@@ -93,7 +93,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "25"
           cache: maven
 
       # Fast gate first: fails in seconds, before the 564-test suite. Runs as a

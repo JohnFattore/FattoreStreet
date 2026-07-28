@@ -198,7 +198,7 @@ public class EquityDividendUpserter {
             keptByDate.put(event.effectiveDate(), sameDateCount + 1);
         }
         return deduped.values().stream()
-                .sorted(Comparator.comparing(EquityCorporateActionService.DividendEvent::effectiveDate).thenComparing(EquityCorporateActionService.DividendEvent::rawAmount))
+                .sorted(Comparator.comparing(EquityCorporateActionService.DividendEvent::effectiveDate).thenComparingDouble(EquityCorporateActionService.DividendEvent::rawAmount))
                 .toList();
     }
 

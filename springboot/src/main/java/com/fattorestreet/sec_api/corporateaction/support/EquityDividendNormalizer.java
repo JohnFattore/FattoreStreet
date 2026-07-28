@@ -162,7 +162,7 @@ public class EquityDividendNormalizer {
         combined.addAll(dedupedSpecials.values());
         combined.sort(Comparator
                 .comparing(EquityCorporateActionService.DividendEvent::fiscalPeriodEnd)
-                .thenComparing(EquityCorporateActionService.DividendEvent::rawAmount));
+                .thenComparingDouble(EquityCorporateActionService.DividendEvent::rawAmount));
         return combined;
     }
 

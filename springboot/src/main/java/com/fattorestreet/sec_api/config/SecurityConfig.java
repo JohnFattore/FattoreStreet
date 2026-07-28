@@ -55,7 +55,7 @@ public class SecurityConfig {
         if (raw == null) {
             return List.of();
         }
-        long userId = raw instanceof Number ? ((Number) raw).longValue() : Long.parseLong(raw.toString());
+        long userId = raw instanceof Number number ? number.longValue() : Long.parseLong(raw.toString());
         if (userId == ADMIN_DJANGO_USER_ID) {
             return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
         }
