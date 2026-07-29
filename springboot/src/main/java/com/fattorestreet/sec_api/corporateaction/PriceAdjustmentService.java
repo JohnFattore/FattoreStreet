@@ -20,8 +20,10 @@ import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.fattorestreet.sec_api.index.FattoreIndexCodes;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
@@ -30,6 +32,7 @@ import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import com.fattorestreet.sec_api.repository.IndexMemberRepository;
 import com.fattorestreet.sec_api.repository.ListingRepository;
 import com.fattorestreet.sec_api.util.MarketTime;
 
@@ -52,6 +55,16 @@ public class PriceAdjustmentService {
     private final CorporateActionValidationService corporateActionValidationService;
     private final AdjustedPriceValidationService adjustedPriceValidationService;
     private final ListingRepository listingRepository;
+    private final IndexMemberRepository indexMemberRepository;
+
+    /**
+     * Index whose members are eligible for automatic SEC detection. The price universe is the
+     * IEX HIST symbol set (tens of thousands of rows, most with no SEC counterpart), which is far
+     * too large to re-scan on a nightly budget, so automatic pulls are scoped to this index.
+     * Blank disables scoping and falls back to every ticker that has prices.
+     */
+    @Value("${app.price-adjustment.detection-index-code:" + FattoreIndexCodes.FAT1000 + "}")
+    private String detectionIndexCode;
 
     public PriceAdjustmentService(DailyPriceRepository dailyPriceRepository,
                                   CorporateActionRepository corporateActionRepository,
@@ -60,7 +73,8 @@ public class PriceAdjustmentService {
                                   EtfCorporateActionService etfCorporateActionService,
                                   CorporateActionValidationService corporateActionValidationService,
                                   AdjustedPriceValidationService adjustedPriceValidationService,
-                                  ListingRepository listingRepository) {
+                                  ListingRepository listingRepository,
+                                  IndexMemberRepository indexMemberRepository) {
         this.dailyPriceRepository = dailyPriceRepository;
         this.corporateActionRepository = corporateActionRepository;
         this.assetRepository = assetRepository;
@@ -69,6 +83,7 @@ public class PriceAdjustmentService {
         this.corporateActionValidationService = corporateActionValidationService;
         this.adjustedPriceValidationService = adjustedPriceValidationService;
         this.listingRepository = listingRepository;
+        this.indexMemberRepository = indexMemberRepository;
     }
 
     /**
@@ -195,7 +210,8 @@ public class PriceAdjustmentService {
 
         Set<String> allPriceTickers = new HashSet<>(dailyPriceRepository.findDistinctTickers());
 
-        Set<String> scheduledDetections = scheduleStaleDetections(allPriceTickers, listingByTicker);
+        Set<String> detectionScope = resolveDetectionScope(allPriceTickers);
+        Set<String> scheduledDetections = scheduleStaleDetections(detectionScope, listingByTicker);
 
         Set<String> tickersToProcess = new HashSet<>(tickersNeedingAdjustment);
         tickersToProcess.addAll(scheduledDetections);
@@ -203,8 +219,9 @@ public class PriceAdjustmentService {
             tickersToProcess.addAll(allPriceTickers);
         }
 
-        log.info("Adjust prices: {} total price tickers, {} needing adjustment, {} with existing actions, {} scheduled for re-detection, force={}",
-                allPriceTickers.size(), tickersNeedingAdjustment.size(), tickersWithExistingActions.size(),
+        log.info("Adjust prices: {} total price tickers, {} in detection scope ({}), {} needing adjustment, {} with existing actions, {} scheduled for re-detection, force={}",
+                allPriceTickers.size(), detectionScope.size(), describeDetectionScope(),
+                tickersNeedingAdjustment.size(), tickersWithExistingActions.size(),
                 scheduledDetections.size(), options.force());
 
         int tickersProcessed = 0;
@@ -249,14 +266,20 @@ public class PriceAdjustmentService {
                         .anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
                 Listing listing = listingByTicker.get(ticker);
                 boolean neverDetected = listing == null || listing.getLastSecDetectionAt() == null;
+                // Every automatic trigger is gated on the detection scope; without that gate the
+                // never-detected clause below pulls SEC for the whole unadjusted backlog and the
+                // rolling cap stops bounding the run. force() stays the deliberate escape hatch.
+                boolean inDetectionScope = detectionScope.contains(ticker);
                 boolean shouldFetchSec = options.force()
-                        || scheduledDetections.contains(ticker)
-                        || (!hasExistingActions && neverDetected)
-                        || (!isFund && options.validateWithYfinance() && !hasEquityDividends);
+                        || (inDetectionScope
+                                && (scheduledDetections.contains(ticker)
+                                        || (!hasExistingActions && neverDetected)
+                                        || (!isFund && options.validateWithYfinance() && !hasEquityDividends)));
                 // A huge overnight raw move on freshly loaded prices is the signature of a
                 // just-effective split; re-detect immediately instead of waiting for the
                 // rolling refresh to reach this ticker.
                 if (!shouldFetchSec
+                        && inDetectionScope
                         && tickersNeedingAdjustment.contains(ticker)
                         && hasOvernightPriceJump(ticker)) {
                     jumpTriggeredDetections++;
@@ -324,15 +347,46 @@ public class PriceAdjustmentService {
     }
 
     /**
+     * Resolves the set of tickers eligible for automatic SEC detection: the members of
+     * {@link #detectionIndexCode} that also have price data. Returns an empty set when the index
+     * is configured but has no members, which fails closed: skipping a night of detection is
+     * recoverable, whereas falling back to the full IEX price universe is the multi-day,
+     * SEC-hammering run this scope exists to prevent. Blank config disables scoping entirely.
+     */
+    private Set<String> resolveDetectionScope(Set<String> allPriceTickers) {
+        if (detectionIndexCode == null || detectionIndexCode.isBlank()) {
+            return allPriceTickers;
+        }
+        String code = detectionIndexCode.trim().toUpperCase(Locale.US);
+        Set<String> members = new HashSet<>(indexMemberRepository.findTickersByIndexCode(code));
+        if (members.isEmpty()) {
+            log.error("Detection scope index {} has no members; skipping automatic SEC detection this run. "
+                    + "Rebuild the index, or set app.price-adjustment.detection-index-code to blank to "
+                    + "scan the full price universe.", code);
+            return Set.of();
+        }
+        members.retainAll(allPriceTickers);
+        return members;
+    }
+
+    private String describeDetectionScope() {
+        return detectionIndexCode == null || detectionIndexCode.isBlank()
+                ? "unscoped"
+                : detectionIndexCode.trim().toUpperCase(Locale.US);
+    }
+
+    /**
      * Picks the tickers whose SEC detection is stale (never ran, or older than
      * {@link #SEC_REDETECTION_INTERVAL_DAYS}), oldest first, capped at roughly
-     * 1/{@value #SEC_REDETECTION_INTERVAL_DAYS} of the price universe per run so the
-     * refresh rolls through every ticker about weekly with bounded runtime and SEC load.
+     * 1/{@value #SEC_REDETECTION_INTERVAL_DAYS} of the detection scope per run so the
+     * refresh rolls through every in-scope ticker about weekly with bounded runtime and SEC load.
+     * The cap is derived from the same set the candidates are drawn from; sizing it against a
+     * wider universe would oversubscribe the nightly budget.
      */
-    private Set<String> scheduleStaleDetections(Set<String> allPriceTickers, Map<String, Listing> listingByTicker) {
+    private Set<String> scheduleStaleDetections(Set<String> detectionScope, Map<String, Listing> listingByTicker) {
         LocalDateTime staleCutoff = LocalDateTime.now(MarketTime.STORAGE).minusDays(SEC_REDETECTION_INTERVAL_DAYS);
         List<String> staleCandidates = new ArrayList<>();
-        for (String ticker : allPriceTickers) {
+        for (String ticker : detectionScope) {
             Listing listing = listingByTicker.get(ticker);
             if (listing == null) {
                 continue;
@@ -345,7 +399,7 @@ public class PriceAdjustmentService {
         staleCandidates.sort(Comparator.comparing(
                 ticker -> listingByTicker.get(ticker).getLastSecDetectionAt(),
                 Comparator.nullsFirst(Comparator.naturalOrder())));
-        int cap = (int) Math.ceil(allPriceTickers.size() / (double) SEC_REDETECTION_INTERVAL_DAYS);
+        int cap = (int) Math.ceil(detectionScope.size() / (double) SEC_REDETECTION_INTERVAL_DAYS);
         return new LinkedHashSet<>(staleCandidates.subList(0, Math.min(cap, staleCandidates.size())));
     }
 

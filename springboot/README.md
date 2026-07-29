@@ -73,6 +73,7 @@ Before adding or changing any external data source:
 | (property) `fattore100.rebuild.top-n` | `100` | How many names the Fattore 100 rebuild includes. Set in `.env` as `fattore100.rebuild.top-n=100` if needed. |
 | (property) `fattore1000.rebuild.top-n` | `1000` | How many names the Fattore 1000 rebuild includes. Set in `.env` as `fattore1000.rebuild.top-n=1000` if needed. |
 | `HIST_LOAD_EQUITY_ONLY` | `false` | When `true`, the post-load price adjustment skips fund tickers. ETF detection fetches hundreds of filings per fund and dominates the runtime; the scheduled Fargate task sets this to `true`. |
+| `PRICE_ADJUSTMENT_DETECTION_INDEX` | `FAT1000` | Index code whose members are eligible for automatic SEC corporate-action detection (property `app.price-adjustment.detection-index-code`). The price universe is the whole IEX HIST symbol set (~24k tickers, about two thirds with no SEC counterpart), which takes days to re-scan at the SEC rate limit. Blank scans every ticker with prices; `force=true` bypasses the scope. |
 | `INDEX_LOAD_YEAR` | `0` (current year) | Target calendar year for the one-shot index load (`APP_RUN_MODE=index-load`) |
 | `INDEX_LOAD_SCOPE` | `russell1000` | Index-load metrics refresh scope: `russell1000` (IWB universe) or `all` |
 | `INDEX_LOAD_SKIP_REFRESH` | `false` | When `true`, the index load skips the metrics refresh and only rebuilds |
@@ -176,14 +177,30 @@ curl "http://localhost:8080/index-members?code=FAT1000"
 
 Corporate action detection and price adjustment runs automatically at the end of the nightly
 Fargate hist-load task (`APP_RUN_MODE=hist-load`; disable with env `HIST_LOAD_ADJUST_ENABLED=false`,
-property `app.hist-load.adjust-enabled`). Without `force`, SEC detection refreshes on a rolling
-cadence: each run re-detects the stalest ~1/7 of tickers (tracked via `listings.last_sec_detection_at`,
-so every ticker is re-scanned about weekly), and any ticker with a >25% overnight move among its
-most recent closes is re-detected immediately (split signature; the check scans the last few rows so
-a multi-day catch-up load cannot bury the break). A failed SEC fetch does **not** stamp
+property `app.hist-load.adjust-enabled`).
+
+**Detection scope.** Automatic SEC detection is limited to members of one index, `FAT1000` by
+default (property `app.price-adjustment.detection-index-code`). The price universe is the IEX HIST
+symbol set: roughly 24k distinct tickers, including ETFs, warrants, rights, units, preferred series,
+test symbols and every delisted ticker ever ingested, since `daily_prices` is append-only. About
+two thirds of those have no SEC counterpart at all, and re-scanning them at the SEC rate limit takes
+days rather than hours. Scoping to the index bounds the nightly SEC work to something that fits in
+one run. Set the property blank to scan every ticker with prices; if the configured index has no
+members the run logs an error and skips automatic detection rather than falling back to the full
+universe. `force=true` bypasses the scope entirely and remains the way to re-fetch everything.
+
+Within that scope, and without `force`, SEC detection refreshes on a rolling cadence: each run
+re-detects the stalest ~1/7 of in-scope tickers (tracked via `listings.last_sec_detection_at`, so
+every in-scope ticker is re-scanned about weekly), and any in-scope ticker with a >25% overnight move
+among its most recent closes is re-detected immediately (split signature; the check scans the last
+few rows so a multi-day catch-up load cannot bury the break). A failed SEC fetch does **not** stamp
 `last_sec_detection_at`, so the ticker retries the next run instead of waiting out the interval.
-Price rows are only written when an adjusted value actually changes, so the nightly run writes just
-the new rows unless detection changed an action.
+
+Price adjustment itself still covers every ticker with unadjusted rows regardless of scope:
+out-of-scope tickers get their adjusted columns filled from raw prices (or from actions already
+stored), so they drain out of the backlog instead of being re-examined every night. Price rows are
+only written when an adjusted value actually changes, so the nightly run writes just the new rows
+unless detection changed an action.
 
 The scheduled task sets `HIST_LOAD_EQUITY_ONLY=true` (property `app.hist-load.equity-only`,
 Terraform variable `hist_load_equity_only`), so the nightly adjustment covers equities only. ETFs
@@ -196,7 +213,7 @@ everything.
 The endpoints below stay available for manual runs:
 
 ```bash
-# Adjust all tickers (rolling SEC re-detection: stalest ~1/7 of tickers + price-jump triggers)
+# Adjust all tickers (rolling SEC re-detection within the scope index: stalest ~1/7 + price-jump triggers)
 curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/adjust-prices
 
 # Force re-fetch from SEC for all tickers (catches new splits/dividends)

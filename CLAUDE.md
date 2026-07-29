@@ -84,7 +84,7 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 - `blog/` — Blog posts with categories and tags
 - `entertainment/` — Media recommendations (books, movies, shows, music, podcasts, games, websites)
 
-**Scheduled jobs**: the IEX HIST daily price ingest runs as a Fargate one-shot task on an EventBridge Scheduler cron (see `springboot/deploy/terraform/`), not inside Django; after a successful load the same task runs corporate-action price adjustment (`PriceAdjustmentService.adjustAllTickers`), which re-detects SEC actions for the stalest ~1/7 of tickers per night (rolling weekly refresh via `listings.last_sec_detection_at`) plus any ticker with a >25% overnight move. External-data helpers (`portfolio/helper.py`) cache lazily in Redis on first request.
+**Scheduled jobs**: the IEX HIST daily price ingest runs as a Fargate one-shot task on an EventBridge Scheduler cron (see `springboot/deploy/terraform/`), not inside Django; after a successful load the same task runs corporate-action price adjustment (`PriceAdjustmentService.adjustAllTickers`). Automatic SEC detection is scoped to members of one index (`FAT1000` by default, property `app.price-adjustment.detection-index-code`), because the price universe is the full IEX HIST symbol set (~24k tickers, most with no SEC counterpart) and re-scanning it takes days; within that scope it re-detects the stalest ~1/7 of tickers per night (rolling weekly refresh via `listings.last_sec_detection_at`) plus any in-scope ticker with a >25% overnight move. Price adjustment itself still covers every ticker with unadjusted rows. External-data helpers (`portfolio/helper.py`) cache lazily in Redis on first request.
 
 ### Spring Boot Packages
 ```

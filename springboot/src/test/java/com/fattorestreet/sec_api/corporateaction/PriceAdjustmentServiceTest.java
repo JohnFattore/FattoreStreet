@@ -2,6 +2,7 @@ package com.fattorestreet.sec_api.corporateaction;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +13,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fattorestreet.sec_api.index.FattoreIndexCodes;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
@@ -21,6 +24,7 @@ import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.repository.AssetRepository;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
+import com.fattorestreet.sec_api.repository.IndexMemberRepository;
 import com.fattorestreet.sec_api.repository.ListingRepository;
 import com.fattorestreet.sec_api.util.MarketTime;
 
@@ -39,7 +43,18 @@ class PriceAdjustmentServiceTest {
     @Mock private CorporateActionValidationService corporateActionValidationService;
     @Mock private AdjustedPriceValidationService adjustedPriceValidationService;
     @Mock private ListingRepository listingRepository;
+    @Mock private IndexMemberRepository indexMemberRepository;
     @InjectMocks private PriceAdjustmentService service;
+
+    /**
+     * Points the service at an index detection scope and stubs its membership, standing in for the
+     * {@code @Value} injection that supplies the code in production. Tests that do not call this
+     * leave the code null, which is the unscoped path.
+     */
+    private void scopeDetectionTo(String code, String... members) {
+        ReflectionTestUtils.setField(service, "detectionIndexCode", code);
+        when(indexMemberRepository.findTickersByIndexCode(code)).thenReturn(List.of(members));
+    }
 
     private Listing freshListing(String ticker) {
         Listing l = new Listing();
@@ -529,6 +544,115 @@ class PriceAdjustmentServiceTest {
         assertEquals(1, result.get("scheduledDetections"));
         verify(equityCorporateActionService, times(1)).detectAndPersistWithDiagnostics(anyString(), anyLong());
         verify(listingRepository, times(1)).save(any(Listing.class));
+    }
+
+    @Test
+    void adjustAllTickers_detectionScopedToIndexSkipsNonMembers() {
+        // ZZZ is never-detected with unadjusted prices, which would otherwise trigger a SEC
+        // fetch; being outside the index scope must suppress that.
+        Asset member = buildAssetWithListing("AAA", 1L);
+        Asset nonMember = buildAssetWithListing("ZZZ", 2L);
+
+        scopeDetectionTo(FattoreIndexCodes.FAT1000, "AAA");
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAA", "ZZZ"));
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(Collections.emptyList());
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(member, nonMember));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAA", "ZZZ"));
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAA", 1L))
+                .thenReturn(buildEquityReport("AAA", 1L, 0));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc(anyString()))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc(anyString()))
+                .thenReturn(List.of(buildPrice("X", LocalDate.of(2025, 1, 1), 100.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+
+        verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAA", 1L);
+        verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(eq("ZZZ"), anyLong());
+        // Out-of-scope tickers still get adjusted columns filled from raw, so they drain out of
+        // the unadjusted backlog instead of being re-examined every run.
+        assertEquals(2, result.get("tickersProcessed"));
+    }
+
+    @Test
+    void adjustAllTickers_capIsSizedFromDetectionScopeNotPriceUniverse() {
+        // 14 index members inside a 700-ticker price universe: the nightly cap must be
+        // ceil(14/7) = 2, not ceil(700/7) = 100.
+        List<String> members = new ArrayList<>();
+        List<Asset> assets = new ArrayList<>();
+        for (int i = 0; i < 14; i++) {
+            String ticker = "M" + i;
+            members.add(ticker);
+            assets.add(buildAssetWithListing(ticker, (long) i + 1));
+        }
+        List<String> priceUniverse = new ArrayList<>(members);
+        for (int i = 0; i < 686; i++) {
+            priceUniverse.add("X" + i);
+        }
+
+        scopeDetectionTo(FattoreIndexCodes.FAT1000, members.toArray(new String[0]));
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(Collections.emptyList());
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(Collections.emptyList());
+        when(assetRepository.findAllWithListings()).thenReturn(assets);
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(priceUniverse);
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics(anyString(), anyLong()))
+                .thenReturn(buildEquityReport("M", 1L, 0));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc(anyString()))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc(anyString()))
+                .thenReturn(List.of(buildPrice("M", LocalDate.of(2025, 1, 1), 100.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+
+        assertEquals(2, result.get("scheduledDetections"));
+        verify(equityCorporateActionService, times(2)).detectAndPersistWithDiagnostics(anyString(), anyLong());
+    }
+
+    @Test
+    void adjustAllTickers_emptyDetectionIndexFailsClosed() {
+        // An unbuilt index must not silently fall back to the full price universe; that is the
+        // multi-day run the scope exists to prevent.
+        Asset aapl = buildAssetWithListing("AAPL", 320193L);
+
+        ReflectionTestUtils.setField(service, "detectionIndexCode", FattoreIndexCodes.FAT1000);
+        when(indexMemberRepository.findTickersByIndexCode(FattoreIndexCodes.FAT1000))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("AAPL"));
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(Collections.emptyList());
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 1), 100.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+
+        assertEquals(0, result.get("scheduledDetections"));
+        verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
+    }
+
+    @Test
+    void adjustAllTickers_blankDetectionIndexScansFullPriceUniverse() {
+        // The documented escape hatch: blank config disables scoping, so the index is never queried.
+        Asset aapl = buildAssetWithListing("AAPL", 320193L);
+
+        ReflectionTestUtils.setField(service, "detectionIndexCode", "  ");
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(Collections.emptyList());
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(Collections.emptyList());
+        when(assetRepository.findAllWithListings()).thenReturn(List.of(aapl));
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(List.of("AAPL"));
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193L))
+                .thenReturn(buildEquityReport("AAPL", 320193L, 0));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc("AAPL"))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc("AAPL"))
+                .thenReturn(List.of(buildPrice("AAPL", LocalDate.of(2025, 1, 1), 100.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+
+        assertEquals(1, result.get("scheduledDetections"));
+        verify(indexMemberRepository, never()).findTickersByIndexCode(anyString());
     }
 
     @Test
