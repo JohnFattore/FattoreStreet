@@ -23,14 +23,14 @@ dependencies = [
     # History
     "django-simple-history==3.13.0",
     # YFinance API
-    "yfinance==1.5.1",
+    "yfinance==1.5.2",
     # Redis library for the Django cache backend
-    "redis==8.0.1",
+    "redis==8.1.0",
     # pandas for numerical computations
     "pandas==3.0.5",
     "numpy==2.5.1",
     # Google Gemini SDK
-    "google-genai==2.14.0",
+    "google-genai==2.15.0",
     "django-redis==7.0.0",
     "pandas-market-calendars==5.4.0",
 ]
