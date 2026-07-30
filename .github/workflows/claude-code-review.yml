@@ -53,7 +53,7 @@ jobs:
     steps:
       # Full history so the review can diff against the base branch, and so the
       # repo's own .claude/ skills and rules are on disk for the session.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
