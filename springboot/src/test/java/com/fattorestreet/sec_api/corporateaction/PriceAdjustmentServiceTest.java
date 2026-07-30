@@ -609,6 +609,43 @@ class PriceAdjustmentServiceTest {
     }
 
     @Test
+    void adjustAllTickers_capBindsWhenInScopeTickersHaveNoActionsAndNoDetectionStamp() {
+        // The real nightly shape, and the one the cap used to miss: every in-scope ticker has
+        // unadjusted prices (so it enters the loop), no corporate actions yet, and no detection
+        // stamp. A trigger keyed on "never detected" un-defers exactly the tickers the cap just
+        // deferred, so the cap must be the only thing that decides who gets a SEC pull.
+        // 14 members => ceil(14/7) = 2 detections, not 14.
+        List<String> members = new ArrayList<>();
+        List<Asset> assets = new ArrayList<>();
+        for (int i = 0; i < 14; i++) {
+            String ticker = "M" + i;
+            members.add(ticker);
+            assets.add(buildAssetWithListing(ticker, (long) i + 1));
+        }
+
+        scopeDetectionTo(FattoreIndexCodes.FAT1000, members.toArray(new String[0]));
+        when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(members);
+        when(corporateActionRepository.findDistinctTickers()).thenReturn(Collections.emptyList());
+        when(assetRepository.findAllWithListings()).thenReturn(assets);
+        when(dailyPriceRepository.findDistinctTickers()).thenReturn(members);
+        when(equityCorporateActionService.detectAndPersistWithDiagnostics(anyString(), anyLong()))
+                .thenReturn(buildEquityReport("M", 1L, 0));
+        when(corporateActionRepository.findByTickerOrderByEffectiveDateDesc(anyString()))
+                .thenReturn(Collections.emptyList());
+        when(dailyPriceRepository.findByTickerOrderByTradeDateDesc(anyString()))
+                .thenReturn(List.of(buildPrice("M", LocalDate.of(2025, 1, 1), 100.0)));
+
+        Map<String, Object> result = service.adjustAllTickers(PriceAdjustmentService.AdjustmentOptions.DEFAULTS);
+
+        assertEquals(2, result.get("scheduledDetections"));
+        verify(equityCorporateActionService, times(2)).detectAndPersistWithDiagnostics(anyString(), anyLong());
+        verify(listingRepository, times(2)).save(any(Listing.class));
+        // Only the SEC pull is rationed; all 14 still get their adjusted columns filled, so they
+        // drain out of the unadjusted backlog on this run rather than returning every night.
+        assertEquals(14, result.get("tickersProcessed"));
+    }
+
+    @Test
     void adjustAllTickers_emptyDetectionIndexFailsClosed() {
         // An unbuilt index must not silently fall back to the full price universe; that is the
         // multi-day run the scope exists to prevent.
