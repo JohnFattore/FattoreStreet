@@ -43,6 +43,21 @@ output "index_load_schedule_name" {
   value       = aws_scheduler_schedule.index_load.name
 }
 
+output "fundamentals_load_task_definition_family" {
+  description = "Fundamentals-load task definition family."
+  value       = aws_ecs_task_definition.fundamentals_load.family
+}
+
+output "fundamentals_load_log_group_name" {
+  description = "CloudWatch log group for fundamentals-load task output."
+  value       = aws_cloudwatch_log_group.fundamentals_load.name
+}
+
+output "fundamentals_load_schedule_name" {
+  description = "EventBridge schedule name for the fundamentals load."
+  value       = aws_scheduler_schedule.fundamentals_load.name
+}
+
 output "task_failures_sns_topic_arn" {
   description = "SNS topic notified on task failures (empty when notification_email is unset)."
   value       = var.notification_email != "" ? aws_sns_topic.task_failures[0].arn : ""

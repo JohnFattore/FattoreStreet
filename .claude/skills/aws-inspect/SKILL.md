@@ -41,9 +41,10 @@ is correct.
 ## Mental model that makes findings obvious
 
 The cluster runs **one-shot tasks only**. A healthy steady state is **zero running
-tasks**. The container image runs three modes off `APP_RUN_MODE` (`server`,
-`hist-load`, `index-load`); the load modes are `ApplicationRunner` beans that call
-`System.exit` when done, and `server` mode boots Tomcat and stays up forever.
+tasks**. The container image runs four modes off `APP_RUN_MODE` (`server`,
+`hist-load`, `index-load`, `fundamentals-load`); the load modes are `ApplicationRunner`
+beans that call `System.exit` when done, and `server` mode boots Tomcat and stays up
+forever.
 
 So: **any task alive for more than an hour or two is a bug, not activity.** The usual
 cause is the image not containing the runner the task definition asked for, which
@@ -71,7 +72,9 @@ aws logs tail /ecs/fattorestreet-index-load --since 24h --format short | tail -4
 ```
 
 Look for the runner's own first line (`Starting one-shot index load`,
-`Starting one-shot IEX HIST load`). If the app logged `Started SecApiApplication` and
+`Starting one-shot IEX HIST load`, `Starting one-shot fundamentals load`). The log
+groups are `/ecs/fattorestreet-{hist,index,fundamentals}-load`. If the app logged
+`Started SecApiApplication` and
 that runner line never appears, the runner bean was never created: the deployed image
 predates the runner, or `APP_RUN_MODE` is wrong. Confirm with the two commands below.
 

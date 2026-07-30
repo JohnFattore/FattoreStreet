@@ -11,7 +11,7 @@ paths:
 # Infrastructure Conventions
 
 There is no Kubernetes here. The stack is Docker Compose on a single Graviton EC2
-instance, plus two one-shot Fargate tasks managed by Terraform.
+instance, plus three one-shot Fargate tasks managed by Terraform.
 
 ## Docker
 
@@ -36,13 +36,17 @@ instance, plus two one-shot Fargate tasks managed by Terraform.
 
 ## Scheduled Fargate tasks (`springboot/deploy/terraform/`)
 
-- The nightly IEX HIST price load and index load run as **ephemeral Fargate tasks**, not
-  inside Django and not on the EC2 box. Terraform is the source of truth for the ECR repo,
-  ECS cluster, both task definitions, IAM roles, security group rule, EventBridge
-  schedules, and SNS failure alerting
+- The nightly IEX HIST price load, index load and fundamentals load (SEC XBRL frames
+  sync) run as **ephemeral Fargate tasks**, not inside Django and not on the EC2 box.
+  Terraform is the source of truth for the ECR repo, ECS cluster, all three task
+  definitions, IAM roles, security group rule, EventBridge schedules, and SNS failure
+  alerting
+- Keep the schedules from overlapping. The SEC rate limiter (`sec.http.min-interval-ms`)
+  is per-process, so two tasks calling data.sec.gov at once double the effective request
+  rate toward SEC's ceiling and earn 403s for both
 - Local state, no remote backend. `terraform apply` from `springboot/deploy/terraform/`
 - Run mode is selected purely by the `APP_RUN_MODE` env var (`server`, `hist-load`,
-  `index-load`) on the shared image. Adding a mode means a new `ApplicationRunner` gated
+  `index-load`, `fundamentals-load`) on the shared image. Adding a mode means a new `ApplicationRunner` gated
   by `@ConditionalOnProperty(name = "app.run-mode", ...)` that calls `System.exit`
 - CI publishes the springboot image to **both** GHCR and ECR on merge to `main`, and the
   task definitions pin `:latest`, so merging is what deploys a new run mode

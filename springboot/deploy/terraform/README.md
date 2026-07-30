@@ -1,6 +1,6 @@
-# Nightly Fargate loads (IEX HIST + index)
+# Nightly Fargate loads (IEX HIST + index + fundamentals)
 
-Runs two nightly loads as **ephemeral Fargate tasks** instead of keeping the RAM provisioned 24/7
+Runs three nightly loads as **ephemeral Fargate tasks** instead of keeping the RAM provisioned 24/7
 on the EC2 box. The same Spring Boot jar runs the API on EC2 (default `APP_RUN_MODE=server`) and
 the one-shot loads on Fargate — run mode is selected purely by the `APP_RUN_MODE` env var:
 
@@ -21,22 +21,38 @@ the one-shot loads on Fargate — run mode is selected purely by the `APP_RUN_MO
   load still fires and computes metrics from the previous day's prices (the min-processed guard
   only protects against a failed *refresh*, not stale prices). One day of staleness in cap ranks
   is acceptable; the failure alert below is what tells you the hist load needs attention.
+- **`fundamentals-load`** (`FundamentalsLoadRunner`) — the SEC XBRL frames sync
+  (`EdgarService.syncFrames`) that fills `Quarter` rows, i.e. the scheduled equivalent of
+  `GET /admin/sync-frames`. Unlike that endpoint, which walks 2009→present, the nightly run syncs
+  only `FUNDAMENTALS_LOAD_YEARS_BACK` (default 1) years back through the current year: frames are
+  fetched per (concept, period), so a full-history sync is thousands of multi-megabyte SEC requests
+  nearly all re-reading settled filings. Two calendar years absorbs amendments and late filers, and
+  quarters upsert by (asset, year, quarter), so restating a year overwrites in place. Guard: if
+  *every* frame request failed (the signature of a missing `SEC_CONTACT_EMAIL` — 403 on all of
+  them) the task exits `1`; partial failures exit `0`, since SEC legitimately 404s concept/period
+  combinations nobody tagged.
 
-Both tasks share the ECR repo/image, ECS cluster, IAM roles, and task security group; each has its
-own task definition, log group, and schedule.
+  Scheduled clear of the other two rather than alongside them. The SEC rate limiter
+  (`sec.http.min-interval-ms`) is per-process, so overlapping tasks double the effective request
+  rate toward SEC's ~10/s ceiling and earn 403s for both.
+
+All three tasks share the ECR repo/image, ECS cluster, IAM roles, and task security group; each has
+its own task definition, log group, and schedule.
 
 ## Architecture
 
 ```
-EventBridge Scheduler (cron)                EventBridge Scheduler (cron, ~3h later)
-        │ RunTask                                   │ RunTask
-        ▼                                           ▼
-Fargate task (ARM64, 1 vCPU / 4 GB)         Fargate task (ARM64, 0.5 vCPU / 2 GB)
-   APP_RUN_MODE=hist-load                      APP_RUN_MODE=index-load
-   → HistLoadRunner → loadHistData()           → IndexLoadRunner → refresh metrics
-   → adjustAllTickers(false) → System.exit     → rebuild FAT100/FAT1000/FAT50 → System.exit
-        │ 5432 (public subnet + public IP, no NAT)  │ 5432
-        ▼                                           ▼
+EventBridge Scheduler (cron)         (cron, ~3h later)          (cron, ~4h later)
+        │ RunTask                          │ RunTask                   │ RunTask
+        ▼                                  ▼                           ▼
+Fargate (ARM64, 1 vCPU / 4 GB)     (0.5 vCPU / 2 GB)           (0.5 vCPU / 4 GB)
+   APP_RUN_MODE=hist-load            APP_RUN_MODE=index-load     APP_RUN_MODE=fundamentals-load
+   → HistLoadRunner                  → IndexLoadRunner           → FundamentalsLoadRunner
+     → loadHistData()                  → refresh metrics           → syncFrames(startYear)
+     → adjustAllTickers(false)         → rebuild FAT100/1000/50    → upsert Quarter rows
+     → System.exit                     → System.exit               → System.exit
+        │ 5432 (public subnet + public IP, no NAT)  │ 5432             │ 5432
+        ▼                                  ▼                           ▼
 Postgres on the EC2 instance  (its SG gets one ingress rule from the shared task SG)
 ```
 
@@ -215,18 +231,42 @@ before a full run: override `INDEX_LOAD_TICKER=AAPL` on the task
 (`--overrides '{"containerOverrides":[{"name":"index-load","environment":[{"name":"INDEX_LOAD_TICKER","value":"AAPL"}]}]}'`)
 to refresh one ticker and still rebuild.
 
+Same shape again for the fundamentals load (use the `fundamentals_load_*` outputs):
+
+```bash
+aws ecs run-task \
+  --cluster "$CLUSTER" \
+  --task-definition "$(terraform output -raw fundamentals_load_task_definition_family)" \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxx],securityGroups=[$SG],assignPublicIp=ENABLED}"
+
+aws logs tail "$(terraform output -raw fundamentals_load_log_group_name)" --follow
+```
+
+Confirm the closing `Fundamentals load finished` line shows a non-zero `quartersPersisted` and a
+`frameFailures` well below `frameRequests`, and that the exit code is `0`. A `frameFailures ==
+frameRequests` run means the SEC User-Agent is missing or SEC is down; the task exits `1` on it.
+Then check `GET /quarters?ticker=AAPL` reflects the run. For a cheap smoke test, override
+`FUNDAMENTALS_LOAD_YEARS_BACK=0` (current year only) on the task.
+
+To backfill history after a schema or mapping change, run the task once with
+`--overrides '{"containerOverrides":[{"name":"fundamentals-load","environment":[{"name":"FUNDAMENTALS_LOAD_START_YEAR","value":"2009"}]}]}'`
+rather than changing the variable — that run takes hours, and leaving it as the nightly default
+re-fetches a decade of settled filings every night.
+
 ## Schedule cutover (done)
 
 This schedule replaced the old django-celery-beat trigger for `portfolio.tasks.load_iex_hist`;
 Celery has since been removed from the Django service entirely. The Spring Boot
 `/admin/load-hist` HTTP endpoint stays in place for manual runs.
 
-To pause either Fargate schedule without destroying anything: `schedule_enabled = false` (hist load)
-or `index_load_schedule_enabled = false` (index load) + `terraform apply`.
+To pause any Fargate schedule without destroying anything: `schedule_enabled = false` (hist load),
+`index_load_schedule_enabled = false` (index load), or `fundamentals_load_schedule_enabled = false`
+(fundamentals load) + `terraform apply`.
 
-The index load had no Celery/beat trigger to replace — it was manual-only via the admin endpoints
-(`POST /admin/indexes/refresh-stocks`, `POST /admin/indexes/rebuild`), which stay in place for
-manual runs.
+Neither the index load nor the fundamentals load had a Celery/beat trigger to replace — both were
+manual-only via the admin endpoints (`POST /admin/indexes/refresh-stocks`,
+`POST /admin/indexes/rebuild`, `GET /admin/sync-frames`), which stay in place for manual runs.
 
 ## Failure alerting
 
@@ -286,5 +326,10 @@ That is pennies a month for now; add a second `imageCountMoreThan` rule if it gr
 | `index_load_min_processed` | `800` | Rebuild guard threshold; below it the task keeps yesterday's members and exits `1`. |
 | `index_load_schedule_expression` | `cron(30 9 * * ? *)` | When the index load runs (tfvars example: `cron(0 5 * * ? *)`); shares `schedule_timezone`. Keep it well after the hist load. |
 | `index_load_schedule_enabled` | `true` | Toggle the nightly index-load trigger. |
+| `fundamentals_load_task_cpu` / `fundamentals_load_task_memory` | `512` / `4096` | SEC-rate-limit bound like the index load, but each frames response covers every filer for one concept/period; profile the first real run. |
+| `fundamentals_load_years_back` | `1` | Calendar years synced back from the current year. Raising it multiplies SEC requests for data that rarely changes. |
+| `fundamentals_load_start_year` | `0` | Explicit first year, overriding years-back. Use a one-off task override for a 2009 backfill instead of setting this. |
+| `fundamentals_load_schedule_expression` | `cron(30 13 * * ? *)` | When the fundamentals load runs; shares `schedule_timezone`. Keep it clear of the other two — the SEC rate limiter is per-process. |
+| `fundamentals_load_schedule_enabled` | `true` | Toggle the nightly fundamentals-load trigger. |
 | `notification_email` | `""` | Email alerted when a task exits non-zero or fails to start; `""` disables alerting. |
 | `ecr_untagged_retention_days` | `14` | Days an untagged ECR image is kept before the lifecycle policy expires it. See Image retention. | 

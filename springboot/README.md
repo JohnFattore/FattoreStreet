@@ -5,7 +5,7 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 ## Features
 
 - Fetches quarterly financial data from SEC EDGAR XBRL filings
-- Bulk sync of all XBRL frames (2009 to present)
+- Bulk sync of all XBRL frames (2009 to present), plus a nightly Fargate task that syncs a recent year window (`APP_RUN_MODE=fundamentals-load`)
 - Derives missing quarterly values from annual totals
 - Calculates Trailing Twelve Months (TTM) metrics and Year-over-Year (YoY) growth
 - Calculates financial ratios (net margin, gross margin, ROA, debt-to-assets)
@@ -79,6 +79,8 @@ Before adding or changing any external data source:
 | `INDEX_LOAD_SKIP_REFRESH` | `false` | When `true`, the index load skips the metrics refresh and only rebuilds |
 | `INDEX_LOAD_TICKER` | (empty) | When set, the index load refreshes just this ticker (smoke-test mode) before rebuilding |
 | `INDEX_LOAD_MIN_PROCESSED` | `800` | Minimum refreshed listings before the index load rebuilds; below it the task keeps existing members and exits `1` |
+| `FUNDAMENTALS_LOAD_YEARS_BACK` | `1` | Calendar years the one-shot fundamentals load (`APP_RUN_MODE=fundamentals-load`) syncs back from the current year. Frames are fetched per (concept, period), so raising this multiplies SEC requests for filings that rarely change |
+| `FUNDAMENTALS_LOAD_START_YEAR` | `0` (derive from years-back) | Explicit first year for the fundamentals load, clamped to 2009. Set to `2009` for a one-off full backfill |
 | `LLM_SERVER_URL` | `http://localhost:8081` | URL of the llama.cpp server for 10-K summarization |
 | `DJANGO_PORTFOLIO_BASE_URL` | `http://localhost:8000/portfolio` | Base URL for Django portfolio API used by diagnostics-only yfinance validation |
 | `SEC_HTTP_CONNECT_TIMEOUT_MS` | `15000` | SEC API connect timeout (milliseconds) |
@@ -172,6 +174,28 @@ curl "http://localhost:8080/index-members?code=FAT50"
 curl "http://localhost:8080/index-members?code=FAT100"
 curl "http://localhost:8080/index-members?code=FAT1000"
 ```
+
+### Quarterly Fundamentals (XBRL frames sync)
+
+`EdgarService.syncFrames(startYear)` populates `Quarter` rows from the SEC XBRL **frames** API: for
+each concept and period it pulls one payload covering every filer, keeps the CIKs matching a
+non-fund `Asset`, derives missing quarters from annual totals, and upserts by (asset, year,
+quarter).
+
+**Scheduled run (Fargate):** runs nightly as an ephemeral task (`APP_RUN_MODE=fundamentals-load` via
+`FundamentalsLoadRunner`; see `deploy/terraform/README.md`), scheduled clear of the hist and index
+loads because the SEC rate limiter is per-process and overlapping tasks earn 403s for both.
+
+The nightly run covers only `FUNDAMENTALS_LOAD_YEARS_BACK` (default 1) years back through the
+current year, where `GET /admin/sync-frames` walks 2009→present. Frames are fetched per (concept,
+period), so full history is thousands of multi-megabyte requests almost entirely re-reading settled
+filings; two calendar years absorbs amendments and late filers, and the upsert key makes restating a
+year overwrite in place. Set `FUNDAMENTALS_LOAD_START_YEAR=2009` for a one-off backfill.
+
+The runner exits `1` only when *every* frame request failed — the signature of a missing
+`SEC_CONTACT_EMAIL` (403 "Undeclared Automated Tool" on all of them), which would otherwise persist
+nothing and still report success. Partial failures exit `0`, since SEC legitimately 404s
+concept/period combinations nobody tagged.
 
 ### Price Adjustments (Splits & Dividends)
 
