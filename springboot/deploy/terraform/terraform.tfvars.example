@@ -32,10 +32,10 @@ index_load_schedule_expression = "cron(0 5 * * ? *)"
 index_load_schedule_enabled    = true
 index_load_task_memory         = 2048 # SEC-rate-limit bound; tune after profiling a real run
 
-# Fundamentals load (SEC XBRL frames sync): 13:00 America/New_York daily, clear
+# Fundamentals load (SEC XBRL frames sync): 13:30 America/New_York daily, clear
 # of the other two loads — the SEC rate limiter is per-process, so overlapping
 # tasks double the effective request rate and earn 403s for both.
-fundamentals_load_schedule_expression = "cron(0 13 * * ? *)"
+fundamentals_load_schedule_expression = "cron(30 13 * * ? *)"
 fundamentals_load_schedule_enabled    = true
 fundamentals_load_years_back          = 1 # current + prior year; raising this multiplies SEC requests
 
