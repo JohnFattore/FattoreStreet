@@ -23,7 +23,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          # Matches the react-build stage in nginx/Dockerfile, so CI tests the
+          # bundle on the same Node that builds the production image. Node 20
+          # went EOL in April 2026 and was already too old for current devDeps:
+          # jsdom 30 requires ^22.22.2 || ^24.15.0 || >=26.0.0 and every vitest
+          # worker died on 20 with "webidl.util.markAsUncloneable is not a
+          # function".
+          node-version: "26"
           cache: npm
           cache-dependency-path: react-app/package-lock.json
 
