@@ -6,7 +6,7 @@ This guide will help you set up the **Portfolio Manager** project locally for de
 
 Ensure you have the following installed on your machine:
 - **[uv](https://docs.astral.sh/uv/)** (for Django backend — manages Python and dependencies)
-- **Node.js 18+** & **npm** (for React frontend)
+- **Node.js 26** & **npm** (for React frontend — matches CI and the `nginx/Dockerfile` build stage; Node 20 and below can no longer run the test suite)
 - **Docker** & **Docker Compose** (optional, for running in containerized mode)
 - **PostgreSQL** (optional, SQLite is used by default for dev)
 
