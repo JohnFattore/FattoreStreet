@@ -265,15 +265,17 @@ public class PriceAdjustmentService {
                 boolean hasEquityDividends = existingActions.stream()
                         .anyMatch(a -> a.getActionType() == ActionType.DIVIDEND);
                 Listing listing = listingByTicker.get(ticker);
-                boolean neverDetected = listing == null || listing.getLastSecDetectionAt() == null;
-                // Every automatic trigger is gated on the detection scope; without that gate the
-                // never-detected clause below pulls SEC for the whole unadjusted backlog and the
-                // rolling cap stops bounding the run. force() stays the deliberate escape hatch.
+                // Every automatic trigger is gated on the detection scope, and first-time detection
+                // goes through scheduleStaleDetections like every other refresh: it sorts nulls
+                // first, so a never-detected ticker is already at the head of the queue and drains
+                // under the nightly cap. Re-adding a separate "never detected" clause here would
+                // un-defer exactly the tickers the cap just deferred, so the cap would bound
+                // nothing and the run would grow to the whole in-scope backlog.
+                // force() stays the deliberate escape hatch.
                 boolean inDetectionScope = detectionScope.contains(ticker);
                 boolean shouldFetchSec = options.force()
                         || (inDetectionScope
                                 && (scheduledDetections.contains(ticker)
-                                        || (!hasExistingActions && neverDetected)
                                         || (!isFund && options.validateWithYfinance() && !hasEquityDividends)));
                 // A huge overnight raw move on freshly loaded prices is the signature of a
                 // just-effective split; re-detect immediately instead of waiting for the

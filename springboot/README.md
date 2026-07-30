@@ -196,6 +196,12 @@ among its most recent closes is re-detected immediately (split signature; the ch
 few rows so a multi-day catch-up load cannot bury the break). A failed SEC fetch does **not** stamp
 `last_sec_detection_at`, so the ticker retries the next run instead of waiting out the interval.
 
+First-time detection goes through the same rolling cap, not around it. A ticker that has never been
+detected sorts first in the staleness queue (null stamps rank oldest), so a fresh index drains a
+1/7 slice per night like any other refresh. Do not add a separate "never detected" trigger: it
+un-defers exactly the tickers the cap just deferred, so the cap bounds nothing and the run grows to
+the entire in-scope backlog, which is what makes the nightly task overrun its window.
+
 Price adjustment itself still covers every ticker with unadjusted rows regardless of scope:
 out-of-scope tickers get their adjusted columns filled from raw prices (or from actions already
 stored), so they drain out of the backlog instead of being re-examined every night. Price rows are
