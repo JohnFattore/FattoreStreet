@@ -186,6 +186,73 @@ variable "index_load_schedule_enabled" {
   default     = true
 }
 
+# ---------------------------------------------------------------------------
+# Fundamentals load (third daily job; SEC XBRL frames sync). Shares the
+# cluster, ECR image, IAM roles, and task SG with the loads above — only the
+# task definition, log group, and schedule are its own.
+# ---------------------------------------------------------------------------
+
+variable "fundamentals_load_name_prefix" {
+  description = "Name for the fundamentals-load task definition family, log group, and schedule."
+  type        = string
+  default     = "fattorestreet-fundamentals-load"
+}
+
+variable "fundamentals_load_task_cpu" {
+  description = "Fundamentals-load Fargate task CPU units. SEC-rate-limit bound (mostly idle), so 0.5 vCPU suffices."
+  type        = number
+  default     = 512
+}
+
+variable "fundamentals_load_task_memory" {
+  description = <<-EOT
+    Fundamentals-load Fargate task memory (MiB). Larger than the index load's: an XBRL frames
+    response covers every filer for one concept and period (tens of MB parsed into a tree), and the
+    collected quarters accumulate in a map until the persist phase.
+  EOT
+  type        = number
+  default     = 4096
+}
+
+variable "fundamentals_load_years_back" {
+  description = <<-EOT
+    Calendar years the frames sync walks back from the current year (FUNDAMENTALS_LOAD_YEARS_BACK).
+    Default 1 syncs the current and prior year. Frames are fetched per (concept, period), so a
+    full 2009-to-present sync is thousands of multi-megabyte SEC requests re-reading settled
+    filings; two years absorbs amendments and late filers. Quarters upsert by (asset, year,
+    quarter), so restating a year overwrites in place rather than duplicating.
+  EOT
+  type        = number
+  default     = 1
+}
+
+variable "fundamentals_load_start_year" {
+  description = <<-EOT
+    Explicit first year to sync (FUNDAMENTALS_LOAD_START_YEAR), overriding years_back. 0 (the
+    default) derives it from years_back. Set to 2009 for a one-off full backfill, then set it back
+    — that run takes hours and re-fetches data that cannot have changed.
+  EOT
+  type        = number
+  default     = 0
+}
+
+variable "fundamentals_load_schedule_expression" {
+  description = <<-EOT
+    EventBridge Scheduler cron for the fundamentals load, in schedule_timezone (shared with the
+    other two loads). Default 13:30 daily, ~4h after the index load's 09:30 and clear of both:
+    the SEC rate limiter is per-process, so overlapping tasks double the effective request rate
+    toward SEC's ceiling and earn 403s for both.
+  EOT
+  type        = string
+  default     = "cron(30 13 * * ? *)"
+}
+
+variable "fundamentals_load_schedule_enabled" {
+  description = "Whether the fundamentals-load schedule is ENABLED. Set false to deploy the task without auto-running it yet."
+  type        = bool
+  default     = true
+}
+
 variable "notification_email" {
   description = <<-EOT
     Email address alerted (via an SNS topic + EventBridge rule) when a task in the cluster stops

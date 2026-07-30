@@ -1,10 +1,12 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  container_name       = "hist-load"
-  tags                 = merge({ Project = "FattoreStreet", Component = "springboot-hist-load" }, var.tags)
-  index_container_name = "index-load"
-  index_tags           = merge({ Project = "FattoreStreet", Component = "springboot-index-load" }, var.tags)
+  container_name              = "hist-load"
+  tags                        = merge({ Project = "FattoreStreet", Component = "springboot-hist-load" }, var.tags)
+  index_container_name        = "index-load"
+  index_tags                  = merge({ Project = "FattoreStreet", Component = "springboot-index-load" }, var.tags)
+  fundamentals_container_name = "fundamentals-load"
+  fundamentals_tags           = merge({ Project = "FattoreStreet", Component = "springboot-fundamentals-load" }, var.tags)
 }
 
 # ---------------------------------------------------------------------------
@@ -251,6 +253,7 @@ data "aws_iam_policy_document" "scheduler_run_task" {
     resources = [
       "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name_prefix}:*",
       "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.index_load_name_prefix}:*",
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.fundamentals_load_name_prefix}:*",
     ]
     condition {
       test     = "ArnLike"
@@ -418,10 +421,119 @@ resource "aws_scheduler_schedule" "index_load" {
 }
 
 # ---------------------------------------------------------------------------
+# Fundamentals load: third daily one-shot task (SEC XBRL frames sync — the
+# scheduled equivalent of GET /admin/sync-frames). Shares the ECR image,
+# cluster, IAM roles, and task SG above — APP_RUN_MODE selects the behavior.
+#
+# Scheduled clear of the other two rather than alongside them. The SEC rate
+# limiter (sec.http.min-interval-ms) is per-process, so two tasks hitting
+# data.sec.gov at once double the effective request rate toward SEC's ~10/s
+# ceiling and earn 403s for both.
+# ---------------------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "fundamentals_load" {
+  name              = "/ecs/${var.fundamentals_load_name_prefix}"
+  retention_in_days = var.log_retention_days
+  tags              = local.fundamentals_tags
+}
+
+resource "aws_ecs_task_definition" "fundamentals_load" {
+  family = var.fundamentals_load_name_prefix
+
+  # See the note on aws_ecs_task_definition.this.
+  skip_destroy = true
+
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.fundamentals_load_task_cpu
+  memory                   = var.fundamentals_load_task_memory
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = local.fundamentals_container_name
+      image     = "${aws_ecr_repository.this.repository_url}:${var.image_tag}"
+      essential = true
+
+      environment = [
+        { name = "APP_RUN_MODE", value = "fundamentals-load" },
+        { name = "FUNDAMENTALS_LOAD_YEARS_BACK", value = tostring(var.fundamentals_load_years_back) },
+        { name = "FUNDAMENTALS_LOAD_START_YEAR", value = tostring(var.fundamentals_load_start_year) },
+        { name = "DB_URL", value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}" },
+        { name = "DB_USERNAME", value = var.db_username },
+      ]
+
+      # Pull individual keys out of the single fattorestreet/env JSON secret.
+      # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
+      # SEC_CONTACT_EMAIL is required: every frame fetch goes to data.sec.gov, and an empty
+      # User-Agent gets 403 "Undeclared Automated Tool" on all of them, which the runner
+      # detects and exits non-zero on.
+      secrets = [
+        { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
+        { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
+        { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.fundamentals_load.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "fundamentals-load"
+        }
+      }
+    }
+  ])
+
+  tags = local.fundamentals_tags
+}
+
+resource "aws_scheduler_schedule" "fundamentals_load" {
+  name       = var.fundamentals_load_name_prefix
+  group_name = "default"
+  state      = var.fundamentals_load_schedule_enabled ? "ENABLED" : "DISABLED"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression          = var.fundamentals_load_schedule_expression
+  schedule_expression_timezone = var.schedule_timezone
+
+  target {
+    arn      = aws_ecs_cluster.this.arn
+    role_arn = aws_iam_role.scheduler.arn
+
+    ecs_parameters {
+      # Pinned to this revision; `terraform apply` rolls it forward on deploy, and the :tag image is
+      # still resolved at launch so re-pushing the same tag picks up new image content.
+      task_definition_arn = aws_ecs_task_definition.fundamentals_load.arn
+      task_count          = 1
+      launch_type         = "FARGATE"
+
+      network_configuration {
+        subnets          = var.public_subnet_ids
+        security_groups  = [aws_security_group.task.id]
+        assign_public_ip = true
+      }
+    }
+
+    retry_policy {
+      maximum_retry_attempts = 0
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Failure alerting: email (SNS) when any task in the cluster stops with a
-# non-zero exit code or never starts. Both nightly loads exit 1 only on total
-# failure (partial errors self-heal next run), so an alert means that night's
-# run did no useful work. Created only when notification_email is set.
+# non-zero exit code or never starts. All three nightly loads exit 1 only on
+# total failure (partial errors self-heal next run), so an alert means that
+# night's run did no useful work. Created only when notification_email is set.
 # ---------------------------------------------------------------------------
 resource "aws_sns_topic" "task_failures" {
   count = var.notification_email != "" ? 1 : 0
@@ -463,7 +575,7 @@ resource "aws_sns_topic_policy" "task_failures" {
 resource "aws_cloudwatch_event_rule" "task_failures" {
   count       = var.notification_email != "" ? 1 : 0
   name        = "${var.name_prefix}-task-failures"
-  description = "Nightly load task stopped with a non-zero exit code or failed to start"
+  description = "Nightly load task (hist, index or fundamentals) stopped with a non-zero exit code or failed to start"
 
   event_pattern = jsonencode({
     source      = ["aws.ecs"]
@@ -494,6 +606,6 @@ resource "aws_cloudwatch_event_target" "task_failures_sns" {
       taskArn  = "$.detail.taskArn"
     }
     # Output must be a JSON value; the surrounding quotes make it a JSON string.
-    input_template = "\"FattoreStreet nightly load failed: <group> stopped with exit code <exitCode>. Reason: <reason>. Task: <taskArn>. Logs: /ecs/${var.name_prefix} or /ecs/${var.index_load_name_prefix}.\""
+    input_template = "\"FattoreStreet nightly load failed: <group> stopped with exit code <exitCode>. Reason: <reason>. Task: <taskArn>. Logs: /ecs/${var.name_prefix}, /ecs/${var.index_load_name_prefix} or /ecs/${var.fundamentals_load_name_prefix}.\""
   }
 }

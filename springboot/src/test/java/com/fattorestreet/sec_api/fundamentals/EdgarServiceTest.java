@@ -15,6 +15,7 @@ import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.Quarter;
 import com.fattorestreet.sec_api.repository.AssetRepository;
+import com.fattorestreet.sec_api.util.MarketTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -338,6 +339,56 @@ class EdgarServiceTest {
 
         verify(quarterService, org.mockito.Mockito.never())
                 .batchUpsertQuarters(any(), any(), any());
+    }
+
+    // --- syncFrames (bounded year window) ---
+
+    @Test
+    void syncFrames_requestsOnlyPeriodsInsideTheWindow() throws Exception {
+        when(assetRepository.findByIsFund(false)).thenReturn(List.of(asset(320193L)));
+        when(assetRepository.countByIsFund(true)).thenReturn(0L);
+        lenient().when(webService.fetchXbrlFrames(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn("{}");
+
+        int currentYear = java.time.Year.now(MarketTime.MARKET).getValue();
+        var result = edgarService.syncFrames(currentYear);
+
+        assertEquals(currentYear, result.startYear());
+        assertEquals(currentYear, result.endYear());
+        // The window is what bounds the SEC request count; anything outside it must not be fetched.
+        verify(webService, org.mockito.Mockito.never())
+                .fetchXbrlFrames(anyString(), anyString(), anyString(), eq("CY" + (currentYear - 1) + "Q1"));
+        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD", "CY" + currentYear + "Q1");
+        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD", "CY" + currentYear);
+    }
+
+    @Test
+    void syncFrames_countsFrameFailuresWithoutAborting() throws Exception {
+        when(assetRepository.findByIsFund(false)).thenReturn(List.of(asset(320193L)));
+        when(assetRepository.countByIsFund(true)).thenReturn(0L);
+        // Every request fails, as it would with a 403 "Undeclared Automated Tool" from an empty
+        // User-Agent. The sync still completes; the runner is what turns this into a failed task.
+        lenient().when(webService.fetchXbrlFrames(anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("403 Forbidden"));
+
+        var result = edgarService.syncFrames(java.time.Year.now(MarketTime.MARKET).getValue());
+
+        assertTrue(result.frameRequests() > 0);
+        assertEquals(result.frameRequests(), result.frameFailures());
+        assertEquals(0, result.quartersPersisted());
+    }
+
+    @Test
+    void syncFramesFull_startsAtTheFramesEpoch() throws Exception {
+        when(assetRepository.findByIsFund(false)).thenReturn(List.of(asset(320193L)));
+        when(assetRepository.countByIsFund(true)).thenReturn(0L);
+        lenient().when(webService.fetchXbrlFrames(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn("{}");
+
+        edgarService.syncFramesFull();
+
+        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD",
+                "CY" + EdgarService.FRAMES_START_YEAR + "Q1");
     }
 
     private static String frame(String start, String end, long val, int fy, String fp) {

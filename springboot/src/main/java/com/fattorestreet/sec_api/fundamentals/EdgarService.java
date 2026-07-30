@@ -122,6 +122,36 @@ public class EdgarService {
         Map<String, Number> fields = new HashMap<>();
     }
 
+    /**
+     * First year SEC XBRL frames data is usable. Full-history syncs start here.
+     */
+    public static final int FRAMES_START_YEAR = 2009;
+
+    /**
+     * Counts frame fetches and how many of them failed, so a caller can tell a normal sync (SEC
+     * returns 404 for concept/period combinations nobody tagged, which is routine) from a total
+     * outage. {@link FundamentalsLoadRunner} uses it to decide the task's exit code.
+     */
+    private static final class FrameStats {
+        int requests;
+        int failures;
+    }
+
+    /**
+     * Outcome of a frames sync. {@code quartersPersisted} counts distinct (cik, year, quarter) rows
+     * upserted, which is the only figure that reflects how much data actually landed —
+     * {@code equitiesProcessed} is just the size of the non-fund asset universe that was eligible.
+     */
+    public record SyncResult(
+            int startYear,
+            int endYear,
+            int equitiesProcessed,
+            long fundsSkipped,
+            int quartersPersisted,
+            int frameRequests,
+            int frameFailures) {
+    }
+
     public EdgarService(WebService webService, QuarterService quarterService,
             com.fattorestreet.sec_api.repository.AssetRepository assetRepository) {
         this.webService = webService;
@@ -132,21 +162,40 @@ public class EdgarService {
     // --- Public entry point ---
 
     public Map<String, Object> syncFramesFull() throws Exception {
+        SyncResult result = syncFrames(FRAMES_START_YEAR);
+        return Map.of("equitiesProcessed", result.equitiesProcessed(), "fundsSkipped", result.fundsSkipped());
+    }
+
+    /**
+     * Syncs XBRL frames for {@code startYear} through the current year.
+     *
+     * <p>The window exists because frames are fetched per (concept, period): a full
+     * {@link #FRAMES_START_YEAR}-to-present sync is thousands of multi-megabyte requests against the
+     * SEC rate limit, and everything before the last couple of years is settled data that re-fetching
+     * cannot change. The nightly task therefore passes a recent {@code startYear}; pass
+     * {@link #FRAMES_START_YEAR} for a backfill.
+     *
+     * <p>Restating a year is safe and is why the nightly window is wider than one year: quarters
+     * upsert by (asset, year, quarter), so amended filings and late filers overwrite in place rather
+     * than duplicating.
+     */
+    public SyncResult syncFrames(int startYear) throws Exception {
         Map<Long, Asset> assetMap = loadAssetMap();
         long fundsSkipped = assetRepository.countByIsFund(true);
         int currentYear = LocalDate.now(MarketTime.MARKET).getYear();
+        FrameStats stats = new FrameStats();
 
-        // Phase 1: Collect all quarterly frames (2009 to present)
+        // Phase 1: Collect all quarterly frames in the window
         Map<String, Quarter> collected = new HashMap<>();
-        for (int y = 2009; y <= currentYear; y++) {
+        for (int y = startYear; y <= currentYear; y++) {
             for (int q = 1; q <= 4; q++) {
-                collectFrames("CY" + y + "Q" + q, assetMap, collected);
+                collectFrames("CY" + y + "Q" + q, assetMap, collected, stats);
             }
         }
 
         // Phase 2: Fetch annual frames and derive missing quarters
-        for (int y = 2009; y <= currentYear; y++) {
-            Map<Long, AnnualData> annualTotals = collectAnnualTotals(y, assetMap);
+        for (int y = startYear; y <= currentYear; y++) {
+            Map<Long, AnnualData> annualTotals = collectAnnualTotals(y, assetMap, stats);
             deriveFromAnnualTotals(collected, annualTotals, assetMap);
         }
 
@@ -158,7 +207,8 @@ public class EdgarService {
         // Phase 3: Persist everything
         persistCollected(collected);
 
-        return Map.of("equitiesProcessed", assetMap.size(), "fundsSkipped", fundsSkipped);
+        return new SyncResult(startYear, currentYear, assetMap.size(), fundsSkipped, collected.size(),
+                stats.requests, stats.failures);
     }
 
     // --- Private implementation ---
@@ -172,9 +222,11 @@ public class EdgarService {
      * Collects quarterly frame data for a single period (e.g. "CY2024Q3") into
      * the provided map. Does not persist -- caller is responsible for that.
      */
-    private void collectFrames(String period, Map<Long, Asset> assetMap, Map<String, Quarter> collected) {
+    private void collectFrames(String period, Map<Long, Asset> assetMap, Map<String, Quarter> collected,
+            FrameStats stats) {
         for (FrameConcept fc : FRAME_CONCEPTS) {
             for (String tag : fc.tags) {
+                stats.requests++;
                 try {
                     String framePeriod = fc.isInstant ? period + "I" : period;
                     String json = webService.fetchXbrlFrames(fc.taxonomy, tag, fc.unit, framePeriod);
@@ -259,6 +311,7 @@ public class EdgarService {
                         }
                     }
                 } catch (Exception e) {
+                    stats.failures++;
                     log.warn("Error collecting concept {} ({}) for {}: {}", fc.fieldName, tag, period,
                             e.getMessage());
                 }
@@ -270,12 +323,13 @@ public class EdgarService {
      * Fetches annual frame data (CY{year}) for all flow concepts and returns
      * per-CIK annual totals including fiscal year period dates.
      */
-    private Map<Long, AnnualData> collectAnnualTotals(int year, Map<Long, Asset> assetMap) {
+    private Map<Long, AnnualData> collectAnnualTotals(int year, Map<Long, Asset> assetMap, FrameStats stats) {
         Map<Long, AnnualData> annualMap = new HashMap<>();
         for (FrameConcept fc : FRAME_CONCEPTS) {
             if (fc.isInstant)
                 continue; // Only flow concepts need annual derivation
             for (String tag : fc.tags) {
+                stats.requests++;
                 try {
                     String framePeriod = "CY" + year;
                     String json = webService.fetchXbrlFrames(fc.taxonomy, tag, fc.unit, framePeriod);
@@ -324,6 +378,7 @@ public class EdgarService {
                         }
                     }
                 } catch (Exception e) {
+                    stats.failures++;
                     log.warn("Error collecting annual {} ({}) for CY{}: {}", fc.fieldName, tag, year,
                             e.getMessage());
                 }
