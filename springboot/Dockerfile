@@ -4,7 +4,7 @@
 # stage-2 runtime, so the jar is built and run on the same JDK. Always take an
 # LTS here: the previous eclipse-temurin:19 was non-LTS, went EOL, and left this
 # image stranded on a dead tag family that Dependabot could not bump.
-FROM maven:3.9.16-eclipse-temurin-25 AS build
+FROM maven:3-eclipse-temurin-26 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
