@@ -1,5 +1,9 @@
 {
   "plansDirectory": ".claude/plans",
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/statusline-command.sh\""
+  },
   "env": {
     "AWS_PROFILE": "fattorestreet",
     "AWS_REGION": "us-east-1",
