@@ -40,7 +40,7 @@
 		<!-- Boot's parent pluginManagement covers only compiler/failsafe/jar/
 		     war/resources/shade, so every quality plugin needs an explicit
 		     version here. -->
-		<enforcer.version>3.6.2</enforcer.version>
+		<enforcer.version>3.6.3</enforcer.version>
 		<spotless.version>2.46.1</spotless.version>
 		<checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
 		<checkstyle.version>10.26.1</checkstyle.version>
