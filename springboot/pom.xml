@@ -181,13 +181,12 @@
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Retained for the filter chain itself (CORS, CSRF-disable, stateless sessions).
+		     spring-boot-starter-oauth2-resource-server was dropped alongside the /admin
+		     routes: no route is authenticated any more, so nothing verifies a JWT. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 	</dependencies>
 

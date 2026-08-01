@@ -24,7 +24,7 @@ are listed under Dependencies.
 
 **Purpose**: Get the work onto its own branch with the spec artifacts committed.
 
-- [ ] T001 Create branch `002-retire-admin-routes` from `main`; bring over the untracked
+- [X] T001 Create branch `002-retire-admin-routes` from `main`; bring over the untracked
       `specs/002-retire-admin-routes/` directory and the modified `.specify/feature.json`
       (currently sitting on `split-llm-notebook-from-blog`), and commit them so the plan files
       ride the PR.
@@ -38,13 +38,13 @@ depending on a controller (plan Phase A). Purely behavior-preserving.
 
 **⚠️ CRITICAL**: T002–T003 block US1's runner work. US3 (infra-only) does not depend on them.
 
-- [ ] T002 Create `springboot/src/main/java/com/fattorestreet/sec_api/listing/SecTickerLoadService.java`
+- [X] T002 Create `springboot/src/main/java/com/fattorestreet/sec_api/listing/SecTickerLoadService.java`
       by extracting from `AdminController`: the upsert loop in `assetLoad` (method body,
       lines 106–182) plus the `SecTickerRow` record and the `parseCik`,
       `parseSecMutualFundTickers`, `extractSecMutualFundRows`, `firstText` helpers (from
       line 486). Constructor-inject the same collaborators the moved code already uses.
       Behavior identical, no new functionality.
-- [ ] T003 Rewire `AdminController.assetLoad` to delegate to `SecTickerLoadService`, delete the
+- [X] T003 Rewire `AdminController.assetLoad` to delegate to `SecTickerLoadService`, delete the
       moved private members from the controller, and run `cd springboot && mvn verify`:
       `AdminControllerTest` must pass unchanged against the still-existing route.
 
@@ -61,14 +61,14 @@ Infra-only: no code change, can start immediately.
 **Independent Test**: quickstart Scenario 5a. Task runs by hand, exits 0, persists quarters,
 all while the admin route still exists as fallback.
 
-- [ ] T004 [US3] From `springboot/deploy/terraform/`, run `terraform plan` and confirm the
+- [ ] T004 ⏸ [US3] From `springboot/deploy/terraform/`, run `terraform plan` and confirm the
       `fundamentals_load` log group, task definition, and schedule show as CREATE. If the plan
       shows unrelated drift, stop and reconcile before applying (local state plus gitignored
       tfvars means the repo cannot tell you what is deployed).
-- [ ] T005 [US3] `terraform apply`; confirm with `aws scheduler list-schedules` and
+- [ ] T005 ⏸ [US3] `terraform apply`; confirm with `aws scheduler list-schedules` and
       `aws logs describe-log-groups --log-group-name-prefix /ecs/` that the
       `fattorestreet-fundamentals-load` schedule (13:30 ET daily) and log group now exist.
-- [ ] T006 [US3] Run the task once by hand (`aws ecs run-task`, quickstart Scenario 5a), tail
+- [ ] T006 ⏸ [US3] Run the task once by hand (`aws ecs run-task`, quickstart Scenario 5a), tail
       `/ecs/fattorestreet-fundamentals-load`, and confirm exit code 0 with
       `quartersPersisted=N`, N > 0. **Time the run**: if its tail reaches past 20:00 ET,
       revisit the 20:00/22:00 slots for the two new jobs in plan.md and
@@ -86,7 +86,7 @@ deletable once the other replacements are verified.
 **Independent Test**: quickstart Scenario 1. `APP_RUN_MODE=asset-load` boots, upserts
 Assets/Listings, enriches ETF identity, logs one summary line, JVM terminates, exit 0.
 
-- [ ] T007 [US1] Create `springboot/src/main/java/com/fattorestreet/sec_api/listing/AssetLoadRunner.java`:
+- [X] T007 [US1] Create `springboot/src/main/java/com/fattorestreet/sec_api/listing/AssetLoadRunner.java`:
       `@ConditionalOnProperty(name = "app.run-mode", havingValue = "asset-load")`,
       implements `ApplicationRunner`, terminates via
       `System.exit(SpringApplication.exit(context, () -> exitCode))` with
@@ -95,13 +95,13 @@ Assets/Listings, enriches ETF identity, logs one summary line, JVM terminates, e
       `EtfIdentityService.enrichFundListingIdentities(overwriteExisting)`. Zero-ticker guard:
       exit 1 when the SEC fetch throws or zero tickers were loaded (the missing
       `SEC_CONTACT_EMAIL` 403 failure mode).
-- [ ] T008 [P] [US1] Add `app.asset-load.overwrite-existing=${ASSET_LOAD_OVERWRITE_EXISTING:false}`
+- [X] T008 [P] [US1] Add `app.asset-load.overwrite-existing=${ASSET_LOAD_OVERWRITE_EXISTING:false}`
       to `springboot/src/main/resources/application.properties`, following the existing
       `app.<mode>.<key>` block style.
-- [ ] T009 [US1] Create `springboot/src/test/java/com/fattorestreet/sec_api/listing/AssetLoadRunnerTest.java`
+- [X] T009 [US1] Create `springboot/src/test/java/com/fattorestreet/sec_api/listing/AssetLoadRunnerTest.java`
       following the `HistLoadRunner`/`IndexLoadRunner` test pattern (Mockito): success path
       exits 0, zero-ticker guard exits 1, overwrite flag passed through.
-- [ ] T010 [US1] Local verification (quickstart Scenario 1): run `asset-load` against a dev DB,
+- [ ] T010 [US1] ⏸ BLOCKED (needs a dev Postgres + SEC network access) Local verification (quickstart Scenario 1): run `asset-load` against a dev DB,
       confirm work done, one summary line, JVM actually terminates, `echo $?` is 0; then run
       with `SEC_CONTACT_EMAIL` unset and confirm exit 1.
 
@@ -115,31 +115,31 @@ SNS publish. Read-only against the database (FR-007).
 **Independent Test**: quickstart Scenario 1 (log-only local run) and Scenario 6 (email
 arrives from a manual task run with `VALIDATE_PRICES_MAX_TICKERS=5`).
 
-- [ ] T011 [P] [US2] Update `springboot/src/main/java/com/fattorestreet/sec_api/corporateaction/AdjustedPriceValidationService.java`:
+- [X] T011 [P] [US2] Update `springboot/src/main/java/com/fattorestreet/sec_api/corporateaction/AdjustedPriceValidationService.java`:
       class Javadoc must describe the new weekly caller instead of implying no job calls it;
       expose whatever batch entry point the runner needs over an index-scoped ticker list
       (scope resolution via the existing
       `IndexMemberRepository.findByMarketIndex_CodeOrderByPercentDesc(code)`).
-- [ ] T012 [P] [US2] Create `springboot/src/main/java/com/fattorestreet/sec_api/corporateaction/ValidationReportPublisher.java`:
+- [X] T012 [P] [US2] Create `springboot/src/main/java/com/fattorestreet/sec_api/corporateaction/ValidationReportPublisher.java`:
       render the ValidationReport fields from data-model.md (indexCode, tickersChecked,
       tickersSkipped, tickersOutOfTolerance, worst tickers capped at 10, breaks capped at 20,
       minDate, duration) as plain text under SNS's 256 KB limit, truncating with an explicit
       "N more omitted" line, never silently; publish via the AWS SDK SNS client. Add the SNS
       SDK dependency to `springboot/pom.xml`.
-- [ ] T013 [US2] Create `springboot/src/main/java/com/fattorestreet/sec_api/corporateaction/ValidatePricesRunner.java`
+- [X] T013 [US2] Create `springboot/src/main/java/com/fattorestreet/sec_api/corporateaction/ValidatePricesRunner.java`
       (same runner invariants as T007): resolve members of
       `app.validate-prices.index-code`; per-ticker reference-fetch failure increments
       `tickersSkipped` and continues; exit 1 only on zero-member scope or failed SNS publish;
       empty `sns-topic-arn` means log-only. **No database writes anywhere in the runner.**
-- [ ] T014 [P] [US2] Add the four `app.validate-prices.*` properties to
+- [X] T014 [P] [US2] Add the four `app.validate-prices.*` properties to
       `springboot/src/main/resources/application.properties`: `index-code` (`FAT1000`),
       `min-date` (`2016-01-01`), `sns-topic-arn` (empty), `max-tickers` (`0`), each with its
       env override per data-model.md.
-- [ ] T015 [US2] Create `springboot/src/test/java/com/fattorestreet/sec_api/corporateaction/ValidatePricesRunnerTest.java`:
+- [X] T015 [US2] Create `springboot/src/test/java/com/fattorestreet/sec_api/corporateaction/ValidatePricesRunnerTest.java`:
       report rendered and published on success (exit 0), zero-member index exits 1, publish
       failure exits 1, and an explicit assertion that no repository save/delete is ever
       invoked (licensing invariant, FR-007).
-- [ ] T016 [US2] Local verification (quickstart Scenario 1): log-only run with
+- [ ] T016 [US2] ⏸ BLOCKED (needs a dev Postgres + a running local Django) Local verification (quickstart Scenario 1): log-only run with
       `VALIDATE_PRICES_INDEX_CODE=FAT50` and `VALIDATE_PRICES_MAX_TICKERS=5` against local
       Django exits 0; a no-member index code exits 1.
 
@@ -153,32 +153,32 @@ arrives from a manual task run with `VALIDATE_PRICES_MAX_TICKERS=5`).
 the new jobs and each is verified by hand. Order is load-bearing: applying before the image
 exists creates a `server`-mode task that bills forever (research §9).
 
-- [ ] T017 [P] [US1] In `springboot/deploy/terraform/main.tf` + `variables.tf` +
+- [X] T017 [P] [US1] In `springboot/deploy/terraform/main.tf` + `variables.tf` +
       `terraform.tfvars.example`: `asset-load` log group, task definition (no `SECRET_KEY`
       entry), and monthly schedule (1st, 22:00 ET), with `asset_load_*` variables (schedule
       expression, `asset_load_schedule_enabled`, memory) mirroring the `index_load_*` naming;
       extend the failure-alert `input_template` (main.tf:596–610) to name both new log groups.
-- [ ] T018 [P] [US2] In the same Terraform module: `validate-prices` log group, task definition
+- [X] T018 [P] [US2] In the same Terraform module: `validate-prices` log group, task definition
       (env `DJANGO_PORTFOLIO_BASE_URL=https://fattorestreet.com/django/portfolio`, no
       `SECRET_KEY`), weekly schedule (Sun 20:00 ET), `validate_prices_*` variables; dedicated
       `aws_sns_topic` + `aws_sns_topic_subscription` for validation reports (reusing
       `var.notification_email`), and an `aws_iam_role_policy` on the **task** role granting
       `sns:Publish` scoped to that topic ARN; wire the topic ARN into the task definition env.
-- [ ] T019 [US1] Open PR1 from `002-retire-admin-routes` (Phases 2–5 code plus T017/T018
+- [ ] T019 ⏸ [US1] Open PR1 from `002-retire-admin-routes` (Phases 2–5 code plus T017/T018
       Terraform; admin routes untouched), get CI green, merge to `main`, and wait for
       `docker-build.yml` to publish the image to ECR.
-- [ ] T020 [US1] `terraform plan && terraform apply` from `springboot/deploy/terraform/`;
+- [ ] T020 ⏸ [US1] `terraform plan && terraform apply` from `springboot/deploy/terraform/`;
       confirm both new task definitions, schedules, and log groups exist.
-- [ ] T021 [US1] Run `asset-load` once by hand (quickstart Scenario 5b): `STOPPED` with
+- [ ] T021 ⏸ [US1] Run `asset-load` once by hand (quickstart Scenario 5b): `STOPPED` with
       `exitCode: 0`, summary line in CloudWatch, then
       `aws ecs list-tasks --cluster fattorestreet-hist-load --desired-status RUNNING` returns
       empty (no task degraded to `server` mode).
-- [ ] T022 [US2] Run `validate-prices` once with the `VALIDATE_PRICES_MAX_TICKERS=5` override
+- [ ] T022 ⏸ [US2] Run `validate-prices` once with the `VALIDATE_PRICES_MAX_TICKERS=5` override
       (quickstart Scenario 6): confirm the SNS subscription for the new topic is **confirmed**
       (first run sends a confirmation email that must be clicked), the report email arrives at
       `johnefattore@gmail.com`, and nothing was written
       (`SELECT max(created_at) FROM corporate_actions` unchanged).
-- [ ] T023 [US1] Confirm all five schedules exist and match contracts/run-modes.md slots
+- [ ] T023 ⏸ [US1] Confirm all five schedules exist and match contracts/run-modes.md slots
       (SC-008): `aws scheduler list-schedules` shows hist-load 02:00 daily, index-load 09:30
       daily, fundamentals-load 13:30 daily, validate-prices Sun 20:00 weekly, asset-load
       1st 22:00 monthly.
@@ -194,25 +194,25 @@ The routes are now safe to delete.
 Sequence the controller deletion first so the tree compiles at every task boundary (the
 controller is the only caller of `FilingSummaryService`, deleted in Phase 8).
 
-- [ ] T024 [US1] Delete
+- [X] T024 [US1] Delete
       `springboot/src/main/java/com/fattorestreet/sec_api/controller/AdminController.java` and
       `springboot/src/test/java/com/fattorestreet/sec_api/controller/AdminControllerTest.java`.
-- [ ] T025 [US1] Strip `springboot/src/main/java/com/fattorestreet/sec_api/config/SecurityConfig.java`
+- [X] T025 [US1] Strip `springboot/src/main/java/com/fattorestreet/sec_api/config/SecurityConfig.java`
       to CORS + CSRF-disable + stateless session: remove `jwtDecoder`,
       `jwtAuthenticationConverter`, `authoritiesFromUserIdClaim`, `ADMIN_DJANGO_USER_ID`, the
       `/admin/**` matcher, and the `.oauth2ResourceServer(...)` call. Keep every `permitAll`
       matcher including `"/filing-summaries"`. Remove the `app.django-jwt-secret=${SECRET_KEY:}`
       line and its comment from `springboot/src/main/resources/application.properties` (lines
       34–35).
-- [ ] T026 [P] [US1] Remove `spring-boot-starter-oauth2-resource-server` from
+- [X] T026 [P] [US1] Remove `spring-boot-starter-oauth2-resource-server` from
       `springboot/pom.xml` (keep `spring-boot-starter-security`; the retained filter chain
       needs it).
-- [ ] T027 [US1] Rewrite `springboot/src/test/java/com/fattorestreet/sec_api/config/SecurityConfigTest.java`
+- [X] T027 [US1] Rewrite `springboot/src/test/java/com/fattorestreet/sec_api/config/SecurityConfigTest.java`
       to assert the new reality: public routes reachable with no token, `/admin/asset-load`
       returns 404 both without and with a Bearer token, startup succeeds with `SECRET_KEY`
       unset. Then delete `springboot/src/test/java/com/fattorestreet/sec_api/testsupport/TestJwtTokens.java`
       (unreferenced once `AdminControllerTest` and the old `SecurityConfigTest` are gone).
-- [ ] T028 [P] [US1] React removal: delete `react-app/src/pages/Admin.tsx` and
+- [X] T028 [P] [US1] React removal: delete `react-app/src/pages/Admin.tsx` and
       `react-app/__tests__/Admin.test.tsx`; in `react-app/src/App.tsx` drop the `Admin` import
       and the `/react-admin` route while keeping `/react-admin/success-bar` and
       `AdminSuccessBar`; in `react-app/src/functions/api/springbootApi.ts` delete the seven
@@ -221,11 +221,11 @@ controller is the only caller of `FilingSummaryService`, deleted in Phase 8).
       `react-app/__tests__/mocks/handlers.ts` delete the admin handlers (including the
       `admin/load` one), keeping filing-summaries. `interfaces.ts` needs no change (verified:
       no admin-specific types).
-- [ ] T029 [P] [US1] Dev-config cleanup riding the same PR: remove the `SECRET_KEY` line from
+- [X] T029 [P] [US1] Dev-config cleanup riding the same PR: remove the `SECRET_KEY` line from
       the **springboot** service in `deploy/docker-compose.dev.yml` (line 55 only; line 22 is
       the `x-django-env` anchor Django still needs), and reword the comment at
       `deploy/run.sh:28` so it stops calling the key Django-and-springboot-shared.
-- [ ] T030 [US1] Run `cd springboot && mvn verify` and `cd react-app && npm run build && npx vitest --run`.
+- [X] T030 [US1] Run `cd springboot && mvn verify` and `cd react-app && npm run build && npx vitest --run`.
       Error Prone flags any constructor-injected field orphaned by the deletions as ERROR-tier
       `UnusedVariable` on `src/main`; fix everything it finds.
 
@@ -241,7 +241,7 @@ Runs after T024 (the controller was the service's only caller).
 **Independent Test**: quickstart Scenario 3. SEC Data page renders stored summaries; no code
 path in `src/main` can write a `FilingSummary` row.
 
-- [ ] T031 [US4] Delete `springboot/src/main/java/com/fattorestreet/sec_api/filing/FilingSummaryService.java`
+- [X] T031 [US4] Delete `springboot/src/main/java/com/fattorestreet/sec_api/filing/FilingSummaryService.java`
       (which empties and removes the `filing/` package) and
       `springboot/src/test/java/com/fattorestreet/sec_api/filing/FilingSummaryServiceTest.java`;
       remove the `llm.server.url=${LLM_SERVER_URL:...}` line from
@@ -249,9 +249,9 @@ path in `src/main` can write a `FilingSummary` row.
       `model/FilingSummary.java`, `repository/FilingSummaryRepository.java`,
       `PublicController.filingSummaries`, and `PublicControllerTest`'s filing cases untouched.
       No Flyway migration.
-- [ ] T032 [P] [US4] Update `.claude/rules/springboot-java.md`: remove `filing/` from the
+- [X] T032 [P] [US4] Update `.claude/rules/springboot-java.md`: remove `filing/` from the
       canonical package layout.
-- [ ] T033 [US4] Verify the freeze (quickstart Scenario 3):
+- [X] T033 [US4] Verify the freeze (quickstart Scenario 3):
       `grep -rn "filingSummaryRepository\.\(save\|delete\)\|new FilingSummary" springboot/src/main/java`
       returns nothing; `FilingSummaryRepository` is referenced in `src/main` only by
       `PublicController`; `cd react-app && npx vitest --run` passes with the SEC Data page

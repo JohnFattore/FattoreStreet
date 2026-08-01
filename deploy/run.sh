@@ -25,7 +25,7 @@ sudo docker network create --driver bridge pgadminNet
 #     "DJANGO_FORCE_SCRIPT_NAME": "/django",
 #     "REDIS_URL": "redis://redis:6379",
 #     "HOME_URL": "https://fattorestreet.com/",
-#     "SECRET_KEY": "<django-and-springboot-shared-secret-key>",
+#     "SECRET_KEY": "<django-secret-key>",
 #     "POSTGRES_PASSWORD": "<postgres-password>",
 #     "DB_USERNAME": "postgres",
 #     "DB_URL": "jdbc:postgresql://postgres:5432/springboot",
