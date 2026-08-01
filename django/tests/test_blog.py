@@ -3,6 +3,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
@@ -10,6 +11,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from blog.management.commands.sync_blog_posts import (
+    LEARNING_TOPIC_AUTHOR,
     LEARNING_TOPIC_CATEGORY,
     PostSource,
     default_sources,
@@ -90,6 +92,27 @@ class BlogPublicApiTests(BaseAPITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         slugs = [item["slug"] for item in resp.data["results"]]
         self.assertEqual(slugs, [self.public_post.slug])
+
+    def test_list_posts_excludes_a_category(self):
+        # How the blog index keeps the LLM Notebook off the human-written list.
+        notebook = Category.objects.create(name="LLM Notebook", slug="llm-notebook")
+        topic = Post.objects.create(
+            title="A Topic",
+            slug="a-topic",
+            body_markdown="Body",
+            published_at=self.now,
+        )
+        topic.categories.add(notebook)
+
+        resp = self.client.get("/blog/api/posts/?exclude_category=llm-notebook")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        slugs = [item["slug"] for item in resp.data["results"]]
+        self.assertIn(self.public_post.slug, slugs)
+        self.assertNotIn(topic.slug, slugs)
+
+        resp = self.client.get("/blog/api/posts/?category=llm-notebook")
+        slugs = [item["slug"] for item in resp.data["results"]]
+        self.assertEqual(slugs, [topic.slug])
 
 
 class SyncBlogPostsCommandTests(TestCase):
@@ -308,6 +331,7 @@ class SyncBlogPostsSourceTests(TestCase):
                 PostSource(
                     directory=self.learning_topics,
                     category=LEARNING_TOPIC_CATEGORY,
+                    author_username=LEARNING_TOPIC_AUTHOR,
                     strip_issue_number=True,
                 ),
             ],
@@ -383,6 +407,52 @@ class SyncBlogPostsSourceTests(TestCase):
             ),
             [LEARNING_TOPIC_CATEGORY, "Technology"],
         )
+
+    def test_learning_topics_are_credited_to_claude(self):
+        (self.journal / "PILOT.md").write_text("# Pilot\n\nBody.\n", encoding="utf-8")
+        (self.learning_topics / "111_A_TOPIC.md").write_text(
+            "# A topic\n\nBody.\n", encoding="utf-8"
+        )
+
+        self.sync()
+
+        author = Post.objects.get(slug="a-topic").author
+        self.assertIsNotNone(author)
+        self.assertEqual(author.username, LEARNING_TOPIC_AUTHOR)
+        # A byline, not a login.
+        self.assertFalse(author.has_usable_password())
+        # The author's own posts keep whatever byline they already had.
+        self.assertIsNone(Post.objects.get(slug="pilot").author)
+
+    def test_an_existing_claude_account_is_reused_not_replaced(self):
+        existing = get_user_model().objects.create_user(
+            username=LEARNING_TOPIC_AUTHOR,
+            password="not-a-real-password",  # pragma: allowlist secret
+        )
+        (self.learning_topics / "111_A_TOPIC.md").write_text(
+            "# A topic\n\nBody.\n", encoding="utf-8"
+        )
+
+        self.sync()
+
+        self.assertEqual(
+            get_user_model().objects.filter(username=LEARNING_TOPIC_AUTHOR).count(), 1
+        )
+        self.assertEqual(Post.objects.get(slug="a-topic").author_id, existing.pk)
+        existing.refresh_from_db()
+        self.assertTrue(existing.has_usable_password())
+
+    def test_dry_run_creates_no_author_account(self):
+        (self.learning_topics / "111_A_TOPIC.md").write_text(
+            "# A topic\n\nBody.\n", encoding="utf-8"
+        )
+
+        self.sync(dry_run=True)
+
+        self.assertFalse(
+            get_user_model().objects.filter(username=LEARNING_TOPIC_AUTHOR).exists()
+        )
+        self.assertFalse(Post.objects.exists())
 
     def test_duplicate_slug_across_the_two_directories_is_rejected(self):
         (self.journal / "TOPIC.md").write_text("# Topic\n\nBody.\n", encoding="utf-8")

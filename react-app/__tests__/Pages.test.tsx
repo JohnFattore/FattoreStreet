@@ -14,6 +14,7 @@ import AdminSuccessBar from "../src/pages/AdminSuccessBar";
 import Indexes from "../src/pages/Indexes";
 import Blog from "../src/pages/Blog";
 import BlogPost from "../src/pages/BlogPost";
+import LlmNotebook from "../src/pages/LlmNotebook";
 import Entertainment from "../src/pages/Entertainment";
 import PriceComparison from "../src/components/PriceComparison";
 import DividendComparison from "../src/components/DividendComparison";
@@ -208,6 +209,37 @@ describe("Blog", () => {
 
     expect(await screen.findByText("Blog")).toBeInTheDocument();
     expect(await screen.findByText("Hello World")).toBeInTheDocument();
+  });
+
+  it("hides LLM Notebook posts and links to their own page", async () => {
+    renderWithRoute(<Blog />, {
+      path: "/blog",
+      initialEntry: "/blog",
+    });
+
+    expect(await screen.findByText("Hello World")).toBeInTheDocument();
+    expect(
+      screen.queryByText("The JWT Trust Boundary"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /LLM Notebook/i })).toHaveAttribute(
+      "href",
+      "/blog/llm-notebook",
+    );
+  });
+});
+
+describe("LlmNotebook", () => {
+  it("renders only the learning topics, credited to Claude", async () => {
+    renderWithRoute(<LlmNotebook />, {
+      path: "/blog/llm-notebook",
+      initialEntry: "/blog/llm-notebook",
+    });
+
+    expect(
+      await screen.findByText("The JWT Trust Boundary"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/claude/)).toBeInTheDocument();
+    expect(screen.queryByText("Hello World")).not.toBeInTheDocument();
   });
 });
 

@@ -37,17 +37,19 @@ DROP TABLE IF EXISTS indexes_stock CASCADE;
 
 Blog content is Markdown in the repo, not rows typed into the admin. Two directories, both shipped inside the image:
 
-| Directory | Contents | Category |
-|-----------|----------|----------|
-| `blog/journal/` | The author's own posts | whatever front matter sets |
-| `blog/learning-topics/` | Daily study topics, one per GitHub issue, filenames prefixed with the issue number | `LLM Notebook`, applied automatically |
+| Directory | Contents | Category | Author |
+|-----------|----------|----------|--------|
+| `blog/journal/` | The author's own posts | whatever front matter sets | left as-is |
+| `blog/learning-topics/` | Daily study topics, one per GitHub issue, filenames prefixed with the issue number | `LLM Notebook`, applied automatically | `claude`, applied automatically |
+
+The `claude` account is a byline, not a login: the import creates it on first run with an unusable password, and reuses it (never rewriting its password) afterwards.
 
 `deploy/deploy.sh` runs `sync_blog_posts` on every deploy, so merging to `main` publishes. To run it by hand:
 
 ```bash
 uv run python manage.py sync_blog_posts --dry-run   # report changes, write nothing
 uv run python manage.py sync_blog_posts             # import
-uv run python manage.py sync_blog_posts --path DIR --category NAME   # one-off import
+uv run python manage.py sync_blog_posts --path DIR --category NAME --author USER  # one-off import
 ```
 
 Posts are matched on **slug**, which is derived from the filename (`CLAUDE_CODE.md` → `claude-code`) with a learning topic's leading issue number stripped (`111_THE_JWT_TRUST_BOUNDARY.md` → `the-jwt-trust-boundary`). Re-running updates in place; it never duplicates, never deletes, never clears or moves `published_at`, and never touches a post that has no file behind it. Two files resolving to one slug is an error raised before anything is written.

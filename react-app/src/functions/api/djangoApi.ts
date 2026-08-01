@@ -390,6 +390,7 @@ export const djangoApi = createApi({
       {
         search?: string;
         category?: string;
+        exclude_category?: string;
         tag?: string;
         page?: number;
         page_size?: number;
