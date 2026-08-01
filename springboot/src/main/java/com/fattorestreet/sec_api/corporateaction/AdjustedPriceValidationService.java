@@ -38,8 +38,15 @@ import tools.jackson.databind.ObjectMapper;
  * function: each step marks the exact date of a missing, extra, or misdated corporate
  * action, and its magnitude is the implied event size.
  *
- * <p>Diagnostics only. yfinance reference data is dev-only per the data-licensing rule:
- * nothing here is persisted or user-facing, and the nightly hist-load job never calls it.
+ * <p>Diagnostics only, and <strong>read-only</strong>: this service never writes to the database.
+ * yfinance reference data is dev-and-diagnostics-only per the data-licensing rule, so nothing it
+ * produces may be persisted, returned from an API, or rendered in the UI. Only derived comparison
+ * statistics leave this class.
+ *
+ * <p>Two callers exist. {@link PriceAdjustmentService} folds a summary into its own diagnostics
+ * output when explicitly asked to; and the weekly {@link ValidatePricesRunner} one-shot task calls
+ * {@link #validateBatch} over the members of one index and emails the result. The nightly
+ * hist-load job never calls either path -- it hardcodes {@code validateWithYfinance=false}.
  */
 @Service
 public class AdjustedPriceValidationService {
@@ -137,7 +144,38 @@ public class AdjustedPriceValidationService {
                 breaks);
     }
 
-    public Map<String, Object> summarizeBatch(List<PriceValidationReport> reports) {
+    /**
+     * Validates every ticker in {@code tickers} and aggregates the results.
+     *
+     * <p>A ticker whose reference fetch throws is counted as skipped and the batch continues: for a
+     * weekly report over ~1000 names, a partial report is far more useful than none. Only the
+     * caller's own guards (an empty scope, a failed delivery) are fatal.
+     */
+    public BatchSummary validateBatch(List<String> tickers, LocalDate minDateInclusive) {
+        List<PriceValidationReport> reports = new ArrayList<>();
+        int unreachable = 0;
+        for (String ticker : tickers) {
+            try {
+                reports.add(validateTicker(ticker, minDateInclusive));
+            } catch (RuntimeException e) {
+                unreachable++;
+                log.warn("[{}] adjusted-price validation failed, skipping ticker: {}", ticker, e.getMessage());
+            }
+        }
+        BatchSummary summary = summarize(reports);
+        return unreachable == 0
+                ? summary
+                : new BatchSummary(
+                        summary.tickersChecked(),
+                        summary.tickersSkipped() + unreachable,
+                        summary.tickersOutOfTolerance(),
+                        summary.totalBreaks(),
+                        summary.worstTickers(),
+                        summary.breaks());
+    }
+
+    /** Aggregates per-ticker reports into the counts and capped samples a report body needs. */
+    public BatchSummary summarize(List<PriceValidationReport> reports) {
         int tickersValidated = 0;
         int tickersWithoutReference = 0;
         int tickersOverThreshold = 0;
@@ -175,15 +213,17 @@ public class AdjustedPriceValidationService {
                 sampleBreaks.add(breakRow);
             }
         }
+        return new BatchSummary(
+                tickersValidated,
+                tickersWithoutReference,
+                tickersOverThreshold,
+                totalBreaks,
+                List.copyOf(worstTickers),
+                List.copyOf(sampleBreaks));
+    }
 
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("tickersValidated", tickersValidated);
-        out.put("tickersWithoutReference", tickersWithoutReference);
-        out.put("tickersOverThreshold", tickersOverThreshold);
-        out.put("totalBreaks", totalBreaks);
-        out.put("worstTickers", worstTickers);
-        out.put("sampleBreaks", sampleBreaks);
-        return out;
+    public Map<String, Object> summarizeBatch(List<PriceValidationReport> reports) {
+        return summarize(reports).toMap();
     }
 
     private List<Map<String, Object>> detectBreaks(String ticker, TreeMap<LocalDate, Double> ratios) {
@@ -310,6 +350,31 @@ public class AdjustedPriceValidationService {
 
     private double round6(double value) {
         return Math.round(value * 1_000_000.0) / 1_000_000.0;
+    }
+
+    /**
+     * Aggregate of one batch. {@code worstTickers} and {@code breaks} are already capped at
+     * {@link #MAX_SUMMARY_WORST_TICKERS} and {@link #MAX_SUMMARY_BREAKS}; {@code totalBreaks} is the
+     * uncapped count, so a renderer can say how many rows it is not showing.
+     */
+    public record BatchSummary(
+            int tickersChecked,
+            int tickersSkipped,
+            int tickersOutOfTolerance,
+            int totalBreaks,
+            List<Map<String, Object>> worstTickers,
+            List<Map<String, Object>> breaks) {
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("tickersValidated", tickersChecked);
+            out.put("tickersWithoutReference", tickersSkipped);
+            out.put("tickersOverThreshold", tickersOutOfTolerance);
+            out.put("totalBreaks", totalBreaks);
+            out.put("worstTickers", worstTickers);
+            out.put("sampleBreaks", breaks);
+            return out;
+        }
     }
 
     public record PriceValidationReport(

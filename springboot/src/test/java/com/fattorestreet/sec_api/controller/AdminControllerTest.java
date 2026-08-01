@@ -2,13 +2,10 @@ package com.fattorestreet.sec_api.controller;
 
 import java.math.BigDecimal;
 import java.time.Year;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -22,9 +19,8 @@ import com.fattorestreet.sec_api.config.SecurityConfig;
 import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 import com.fattorestreet.sec_api.filing.FilingSummaryService;
 import com.fattorestreet.sec_api.fundamentals.EdgarService;
-import com.fattorestreet.sec_api.listing.AssetService;
 import com.fattorestreet.sec_api.listing.EtfIdentityService;
-import com.fattorestreet.sec_api.listing.ListingService;
+import com.fattorestreet.sec_api.listing.SecTickerLoadService;
 import com.fattorestreet.sec_api.marketdata.IexHistService;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.repository.AssetRepository;
@@ -32,8 +28,7 @@ import com.fattorestreet.sec_api.testsupport.TestJwtTokens;
 import com.fattorestreet.sec_api.util.MarketTime;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -62,9 +57,8 @@ class AdminControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean private WebService webService;
-    @MockitoBean private AssetService assetService;
+    @MockitoBean private SecTickerLoadService secTickerLoadService;
     @MockitoBean private AssetRepository assetRepository;
-    @MockitoBean private ListingService listingService;
     @MockitoBean private EdgarService edgarService;
     @MockitoBean private PriceAdjustmentService priceAdjustmentService;
     @MockitoBean private com.fattorestreet.sec_api.corporateaction.AdjustedPriceValidationService adjustedPriceValidationService;
@@ -91,8 +85,8 @@ class AdminControllerTest {
 
     @Test
     void adminAssetLoad_validKey_returns200() throws Exception {
-        when(webService.fetchSecTickers()).thenReturn(Collections.emptyMap());
-        when(webService.fetchSecMutualFundTickers()).thenReturn("{}");
+        when(secTickerLoadService.load())
+                .thenReturn(new SecTickerLoadService.SecTickerLoadResult(0, 0));
         when(etfIdentityService.enrichFundListingIdentities(false)).thenReturn(
                 Map.of("fundListingsTotal", 0, "resolved", 0, "unresolved", 0, "updated", 0, "skipped", 0, "secMfTickerRows", 0, "unresolvedTickersSample", List.of()));
 
@@ -104,101 +98,29 @@ class AdminControllerTest {
     }
 
     @Test
-    void adminAssetLoad_mutualFundFallbackKeys_loadsTicker() throws Exception {
-        when(webService.fetchSecTickers()).thenReturn(Collections.emptyMap());
-        when(webService.fetchSecMutualFundTickers()).thenReturn("""
-                {
-                  "0": {
-                    "class_ticker": "VOO",
-                    "cik_str": "0000102909",
-                    "series_name": "Vanguard 500 Index Fund",
-                    "class_name": "ETF Shares"
-                  }
-                }
-                """);
-        when(assetService.createOrUpdateAsset(org.mockito.ArgumentMatchers.any(Asset.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    void adminAssetLoad_reportsServiceCounts() throws Exception {
+        // Ticker parsing itself is covered by SecTickerLoadServiceTest; here the route only has to
+        // surface whatever the service loaded.
+        when(secTickerLoadService.load())
+                .thenReturn(new SecTickerLoadService.SecTickerLoadResult(7, 1));
         when(etfIdentityService.enrichFundListingIdentities(false)).thenReturn(
                 Map.of("fundListingsTotal", 1, "resolved", 1, "unresolved", 0, "updated", 1, "skipped", 0, "secMfTickerRows", 1, "unresolvedTickersSample", List.of()));
 
         mockMvc.perform(get("/admin/asset-load").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.equitiesLoaded").value(7))
                 .andExpect(jsonPath("$.fundsLoaded").value(1))
+                .andExpect(jsonPath("$.tickersLoaded").value(8))
                 .andExpect(jsonPath("$.etfIdentityEnrichment.resolved").value(1));
-
-        ArgumentCaptor<Asset> assetCaptor = ArgumentCaptor.forClass(Asset.class);
-        verify(assetService, atLeastOnce()).createOrUpdateAsset(assetCaptor.capture());
-        Asset loadedAsset = assetCaptor.getAllValues().stream()
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElseThrow();
-        assertTrue(loadedAsset.getIsFund());
-        assertEquals(102909L, loadedAsset.getCik());
     }
 
     @Test
-    void adminAssetLoad_mutualFundTabularShape_loadsTicker() throws Exception {
-        when(webService.fetchSecTickers()).thenReturn(Collections.emptyMap());
-        when(webService.fetchSecMutualFundTickers()).thenReturn("""
-                {
-                  "fields": ["cik", "seriesId", "classId", "symbol", "series_name", "class_name"],
-                  "data": [
-                    ["0000102909", "S000001", "C000001", "VOO", "Vanguard 500 Index Fund", "ETF Shares"]
-                  ]
-                }
-                """);
-        when(assetService.createOrUpdateAsset(org.mockito.ArgumentMatchers.any(Asset.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        when(etfIdentityService.enrichFundListingIdentities(false)).thenReturn(
-                Map.of("fundListingsTotal", 1, "resolved", 1, "unresolved", 0, "updated", 1, "skipped", 0, "secMfTickerRows", 1, "unresolvedTickersSample", List.of()));
+    void adminAssetLoad_serviceThrows_returns500() throws Exception {
+        when(secTickerLoadService.load()).thenThrow(new RuntimeException("sec unavailable"));
 
         mockMvc.perform(get("/admin/asset-load").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fundsLoaded").value(1));
-
-        ArgumentCaptor<Asset> assetCaptor = ArgumentCaptor.forClass(Asset.class);
-        verify(assetService, atLeastOnce()).createOrUpdateAsset(assetCaptor.capture());
-        Asset loadedAsset = assetCaptor.getAllValues().stream()
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElseThrow();
-        assertTrue(loadedAsset.getIsFund());
-        assertEquals(102909L, loadedAsset.getCik());
-    }
-
-    @Test
-    void adminAssetLoad_mutualFundFieldsDataObjectRows_loadsTicker() throws Exception {
-        when(webService.fetchSecTickers()).thenReturn(Collections.emptyMap());
-        when(webService.fetchSecMutualFundTickers()).thenReturn("""
-                {
-                  "fields": ["cik", "class_ticker", "series_name", "class_name"],
-                  "data": [
-                    {
-                      "cik": "0000102909",
-                      "class_ticker": "VOO",
-                      "series_name": "Vanguard 500 Index Fund",
-                      "class_name": "ETF Shares"
-                    }
-                  ]
-                }
-                """);
-        when(assetService.createOrUpdateAsset(org.mockito.ArgumentMatchers.any(Asset.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        when(etfIdentityService.enrichFundListingIdentities(false)).thenReturn(
-                Map.of("fundListingsTotal", 1, "resolved", 1, "unresolved", 0, "updated", 1, "skipped", 0, "secMfTickerRows", 1, "unresolvedTickersSample", List.of()));
-
-        mockMvc.perform(get("/admin/asset-load").header(HttpHeaders.AUTHORIZATION, bearerAdmin()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fundsLoaded").value(1));
-
-        ArgumentCaptor<Asset> assetCaptor = ArgumentCaptor.forClass(Asset.class);
-        verify(assetService, atLeastOnce()).createOrUpdateAsset(assetCaptor.capture());
-        Asset loadedAsset = assetCaptor.getAllValues().stream()
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElseThrow();
-        assertTrue(loadedAsset.getIsFund());
-        assertEquals(102909L, loadedAsset.getCik());
+                .andExpect(status().isInternalServerError());
+        verify(etfIdentityService, never()).enrichFundListingIdentities(anyBoolean());
     }
 
     @Test
@@ -215,8 +137,8 @@ class AdminControllerTest {
 
     @Test
     void adminAssetLoad_overwriteExisting_passesTrueToEnrichment() throws Exception {
-        when(webService.fetchSecTickers()).thenReturn(Collections.emptyMap());
-        when(webService.fetchSecMutualFundTickers()).thenReturn("{}");
+        when(secTickerLoadService.load())
+                .thenReturn(new SecTickerLoadService.SecTickerLoadResult(0, 0));
         when(etfIdentityService.enrichFundListingIdentities(true)).thenReturn(
                 Map.of("fundListingsTotal", 0, "resolved", 0, "unresolved", 0, "updated", 0, "skipped", 0, "secMfTickerRows", 0, "unresolvedTickersSample", List.of()));
 

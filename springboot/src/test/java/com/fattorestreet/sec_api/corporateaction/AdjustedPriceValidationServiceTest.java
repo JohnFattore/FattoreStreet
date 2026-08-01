@@ -249,4 +249,75 @@ class AdjustedPriceValidationServiceTest {
         List<?> worst = (List<?>) summary.get("worstTickers");
         assertEquals("MSFT", ((Map<?, ?>) worst.get(0)).get("ticker"));
     }
+
+    @Test
+    void summarizeExposesTheSameCountsAsTheMapShape() {
+        PriceValidationReport clean = new PriceValidationReport(
+                "AAPL", "ok", 100, MIN_DATE, MIN_DATE.plusDays(100), 0.0001, 0.001, 0, List.of());
+        PriceValidationReport noRef = PriceValidationReport.empty("ZZZZ", "no_reference_data");
+
+        AdjustedPriceValidationService.BatchSummary summary = service.summarize(List.of(clean, noRef));
+
+        assertEquals(1, summary.tickersChecked());
+        assertEquals(1, summary.tickersSkipped());
+        assertEquals(0, summary.tickersOutOfTolerance());
+        assertEquals(0, summary.totalBreaks());
+        assertEquals(summary.toMap(), service.summarizeBatch(List.of(clean, noRef)));
+    }
+
+    @Test
+    void validateBatchWalksEveryTickerAndAggregates() throws Exception {
+        when(dailyPriceRepository.findByTickerOrderByTradeDateAsc(any()))
+                .thenReturn(List.of(price(LocalDate.of(2024, 1, 2), 100.0), price(LocalDate.of(2024, 1, 3), 101.0)));
+        stubDjango("[{\"date\": \"2024-01-02\", \"value\": \"100.0\"}, {\"date\": \"2024-01-03\", \"value\": \"101.0\"}]");
+        when(corporateActionRepository.findByTicker(any())).thenReturn(List.of());
+
+        AdjustedPriceValidationService.BatchSummary summary =
+                service.validateBatch(List.of("AAPL", "MSFT"), MIN_DATE);
+
+        assertEquals(2, summary.tickersChecked());
+        assertEquals(0, summary.tickersSkipped());
+        verify(dailyPriceRepository).findByTickerOrderByTradeDateAsc("AAPL");
+        verify(dailyPriceRepository).findByTickerOrderByTradeDateAsc("MSFT");
+    }
+
+    @Test
+    void validateBatchCountsAFailedTickerAsSkippedAndKeepsGoing() {
+        // A partial report is more useful than none, so one bad ticker must not abort the batch.
+        when(dailyPriceRepository.findByTickerOrderByTradeDateAsc("AAPL"))
+                .thenThrow(new IllegalStateException("db hiccup"));
+        when(dailyPriceRepository.findByTickerOrderByTradeDateAsc("MSFT")).thenReturn(List.of());
+
+        AdjustedPriceValidationService.BatchSummary summary =
+                service.validateBatch(List.of("AAPL", "MSFT"), MIN_DATE);
+
+        assertEquals(0, summary.tickersChecked());
+        // MSFT has no stored prices (skipped by status), AAPL threw -- both count as skipped.
+        assertEquals(2, summary.tickersSkipped());
+    }
+
+    @Test
+    void validateBatchOverAnEmptyListIsAnEmptySummary() {
+        AdjustedPriceValidationService.BatchSummary summary = service.validateBatch(List.of(), MIN_DATE);
+
+        assertEquals(0, summary.tickersChecked());
+        assertEquals(0, summary.tickersSkipped());
+        assertTrue(summary.worstTickers().isEmpty());
+        assertTrue(summary.breaks().isEmpty());
+        verifyNoInteractions(dailyPriceRepository);
+    }
+
+    @Test
+    void validateBatchNeverWritesThroughItsRepositories() {
+        when(dailyPriceRepository.findByTickerOrderByTradeDateAsc("AAPL")).thenReturn(List.of());
+
+        service.validateBatch(List.of("AAPL"), MIN_DATE);
+
+        verify(dailyPriceRepository, never()).save(any());
+        verify(dailyPriceRepository, never()).saveAll(any());
+        verify(dailyPriceRepository, never()).delete(any());
+        verify(corporateActionRepository, never()).save(any());
+        verify(corporateActionRepository, never()).saveAll(any());
+        verify(corporateActionRepository, never()).delete(any());
+    }
 }

@@ -1,7 +1,6 @@
 package com.fattorestreet.sec_api.controller;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -24,12 +23,10 @@ import com.fattorestreet.sec_api.corporateaction.PriceAdjustmentService;
 import com.fattorestreet.sec_api.filing.FilingSummaryService;
 import com.fattorestreet.sec_api.fundamentals.EdgarService;
 import com.fattorestreet.sec_api.index.FattoreIndexCodes;
-import com.fattorestreet.sec_api.listing.AssetService;
 import com.fattorestreet.sec_api.listing.EtfIdentityService;
-import com.fattorestreet.sec_api.listing.ListingService;
+import com.fattorestreet.sec_api.listing.SecTickerLoadService;
 import com.fattorestreet.sec_api.marketdata.IexHistService;
 import com.fattorestreet.sec_api.model.Asset;
-import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.util.MarketTime;
 
 import tools.jackson.databind.JsonNode;
@@ -42,8 +39,7 @@ public class AdminController {
     private static final Logger log = LoggerFactory.getLogger(AdminController.class);
 
     private final WebService webService;
-    private final AssetService assetService;
-    private final ListingService listingService;
+    private final SecTickerLoadService secTickerLoadService;
     private final EdgarService edgarService;
     private final PriceAdjustmentService priceAdjustmentService;
     private final AdjustedPriceValidationService adjustedPriceValidationService;
@@ -62,8 +58,7 @@ public class AdminController {
 
     public AdminController(
             WebService webService,
-            AssetService assetService,
-            ListingService listingService,
+            SecTickerLoadService secTickerLoadService,
             EdgarService edgarService,
             PriceAdjustmentService priceAdjustmentService,
             AdjustedPriceValidationService adjustedPriceValidationService,
@@ -82,8 +77,7 @@ public class AdminController {
             com.fattorestreet.sec_api.index.FattoreIndexRebuildService fattore1000IndexRebuildService
     ) {
         this.webService = webService;
-        this.assetService = assetService;
-        this.listingService = listingService;
+        this.secTickerLoadService = secTickerLoadService;
         this.edgarService = edgarService;
         this.priceAdjustmentService = priceAdjustmentService;
         this.adjustedPriceValidationService = adjustedPriceValidationService;
@@ -109,68 +103,13 @@ public class AdminController {
     ) {
         long startTime = System.currentTimeMillis();
         try {
-            Map<Integer, Map<String, String>> secTickers = webService.fetchSecTickers();
-            Map<String, SecTickerRow> tickerRows = new LinkedHashMap<>();
-            for (Map<String, String> secTicker : secTickers.values()) {
-                String ticker = secTicker.get("ticker");
-                Long cik = parseCik(secTicker.get("cik_str"));
-                if (ticker == null || ticker.isBlank() || cik == null) {
-                    continue;
-                }
-                tickerRows.put(ticker, new SecTickerRow(ticker, cik, secTicker.get("title"), false));
-            }
-
-            List<SecTickerRow> secFundRows = parseSecMutualFundTickers(webService.fetchSecMutualFundTickers());
-            for (SecTickerRow secFundRow : secFundRows) {
-                SecTickerRow existing = tickerRows.get(secFundRow.ticker());
-                if (existing == null) {
-                    tickerRows.put(secFundRow.ticker(), secFundRow);
-                    continue;
-                }
-                String mergedTitle = (existing.title() != null && !existing.title().isBlank())
-                        ? existing.title()
-                        : secFundRow.title();
-                tickerRows.put(
-                        secFundRow.ticker(),
-                        new SecTickerRow(
-                                secFundRow.ticker(),
-                                secFundRow.cik(),
-                                mergedTitle,
-                                existing.isFund() || secFundRow.isFund()
-                        )
-                );
-            }
-
-            int equityCount = 0;
-            int fundCount = 0;
-            for (SecTickerRow secTickerRow : tickerRows.values()) {
-                Asset asset = new Asset();
-                String ticker = secTickerRow.ticker();
-                boolean isFund = secTickerRow.isFund();
-                asset.setCik(secTickerRow.cik());
-                asset.setIsFund(isFund);
-                asset = assetService.createOrUpdateAsset(asset);
-                Listing listing = new Listing();
-                listing.setTicker(ticker);
-                listing.setTitle(
-                        secTickerRow.title() != null && !secTickerRow.title().isBlank()
-                                ? secTickerRow.title()
-                                : ticker
-                );
-                listing.setAsset(asset);
-                listingService.createOrUpdateListing(listing);
-                if (isFund) {
-                    fundCount++;
-                } else {
-                    equityCount++;
-                }
-            }
+            SecTickerLoadService.SecTickerLoadResult load = secTickerLoadService.load();
             Map<String, Object> result = etfIdentityService.enrichFundListingIdentities(overwriteExisting);
             String duration = formatDuration(System.currentTimeMillis() - startTime);
             Map<String, Object> response = new LinkedHashMap<>();
-            response.put("equitiesLoaded", equityCount);
-            response.put("fundsLoaded", fundCount);
-            response.put("tickersLoaded", equityCount + fundCount);
+            response.put("equitiesLoaded", load.equitiesLoaded());
+            response.put("fundsLoaded", load.fundsLoaded());
+            response.put("tickersLoaded", load.tickersLoaded());
             response.put("etfIdentityOverwriteExisting", overwriteExisting);
             response.put("etfIdentityEnrichment", result);
             response.put("duration", duration);
@@ -483,114 +422,4 @@ public class AdminController {
                 : seconds + "." + (elapsedMs % 1000) / 100 + "s";
     }
 
-    private Long parseCik(String cikValue) {
-        if (cikValue == null || cikValue.isBlank()) {
-            return null;
-        }
-        try {
-            return Long.parseLong(cikValue.trim());
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
-    private List<SecTickerRow> parseSecMutualFundTickers(String rawJson) {
-        List<SecTickerRow> rows = new ArrayList<>();
-        if (rawJson == null || rawJson.isBlank()) {
-            return rows;
-        }
-        try {
-            JsonNode root = mapper.readTree(rawJson);
-            if (root == null) {
-                return rows;
-            }
-            for (JsonNode row : extractSecMutualFundRows(root)) {
-                String ticker = firstText(row, "ticker", "symbol", "class_ticker", "classTicker");
-                Long cik = parseCik(firstText(row, "cik", "cik_str"));
-                if (ticker == null || ticker.isBlank() || cik == null) {
-                    continue;
-                }
-                String title = firstText(row, "title", "series_title", "class_title");
-                if (title == null || title.isBlank()) {
-                    String seriesName = firstText(row, "seriesName", "series_name");
-                    String className = firstText(row, "className", "class_name");
-                    if (seriesName != null && className != null) {
-                        title = seriesName + " - " + className;
-                    } else if (seriesName != null) {
-                        title = seriesName;
-                    } else if (className != null) {
-                        title = className;
-                    }
-                }
-                rows.add(new SecTickerRow(ticker, cik, title, true));
-            }
-        } catch (Exception e) {
-            log.warn("Unable to parse SEC mutual fund ticker index: {}", e.getMessage());
-        }
-        return rows;
-    }
-
-    private List<JsonNode> extractSecMutualFundRows(JsonNode root) {
-        List<JsonNode> rows = new ArrayList<>();
-        if (root.isArray()) {
-            root.forEach(rows::add);
-            return rows;
-        }
-        if (!root.isObject()) {
-            return rows;
-        }
-
-        JsonNode fieldsNode = root.get("fields");
-        JsonNode dataNode = root.get("data");
-        if (fieldsNode != null && fieldsNode.isArray() && dataNode != null && dataNode.isArray()) {
-            List<String> fields = new ArrayList<>();
-            for (JsonNode fieldNode : fieldsNode) {
-                String field = fieldNode.asString(null);
-                fields.add(field == null ? "" : field);
-            }
-            for (JsonNode dataRow : dataNode) {
-                if (dataRow.isObject()) {
-                    rows.add(dataRow);
-                    continue;
-                }
-                if (!dataRow.isArray()) {
-                    continue;
-                }
-                tools.jackson.databind.node.ObjectNode mappedRow = mapper.createObjectNode();
-                int max = Math.min(fields.size(), dataRow.size());
-                for (int i = 0; i < max; i++) {
-                    String fieldName = fields.get(i);
-                    if (fieldName == null || fieldName.isBlank()) {
-                        continue;
-                    }
-                    mappedRow.set(fieldName, dataRow.get(i));
-                }
-                rows.add(mappedRow);
-            }
-            return rows;
-        }
-
-        Iterator<Map.Entry<String, JsonNode>> iterator = root.properties().iterator();
-        while (iterator.hasNext()) {
-            rows.add(iterator.next().getValue());
-        }
-        return rows;
-    }
-
-    private String firstText(JsonNode row, String... keys) {
-        for (String key : keys) {
-            JsonNode value = row.get(key);
-            if (value == null || value.isNull()) {
-                continue;
-            }
-            String text = value.asString();
-            if (text != null && !text.isBlank()) {
-                return text.trim();
-            }
-        }
-        return null;
-    }
-
-    private record SecTickerRow(String ticker, Long cik, String title, boolean isFund) {
-    }
 }
