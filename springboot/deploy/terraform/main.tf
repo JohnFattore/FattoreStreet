@@ -7,6 +7,10 @@ locals {
   index_tags                  = merge({ Project = "FattoreStreet", Component = "springboot-index-load" }, var.tags)
   fundamentals_container_name = "fundamentals-load"
   fundamentals_tags           = merge({ Project = "FattoreStreet", Component = "springboot-fundamentals-load" }, var.tags)
+  validate_container_name     = "validate-prices"
+  validate_tags               = merge({ Project = "FattoreStreet", Component = "springboot-validate-prices" }, var.tags)
+  asset_container_name        = "asset-load"
+  asset_tags                  = merge({ Project = "FattoreStreet", Component = "springboot-asset-load" }, var.tags)
 }
 
 # ---------------------------------------------------------------------------
@@ -254,6 +258,8 @@ data "aws_iam_policy_document" "scheduler_run_task" {
       "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name_prefix}:*",
       "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.index_load_name_prefix}:*",
       "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.fundamentals_load_name_prefix}:*",
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.validate_prices_name_prefix}:*",
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.asset_load_name_prefix}:*",
     ]
     condition {
       test     = "ArnLike"
@@ -530,10 +536,269 @@ resource "aws_scheduler_schedule" "fundamentals_load" {
 }
 
 # ---------------------------------------------------------------------------
+# Validate prices: weekly one-shot task (adjusted-price accuracy report — the
+# scheduled equivalent of GET /admin/validate-adjusted-prices). Shares the ECR
+# image, cluster, IAM roles, and task SG above.
+#
+# The one job in this module that writes nothing: it reads stored adjusted
+# closes, compares them against a reference series served by Django, and
+# publishes derived statistics to its own SNS topic. Reference data is
+# diagnostics-only and may never be persisted or served, which is why this job
+# has no database write path at all.
+#
+# Placed in the evening, clear of every observed load tail. It makes no SEC
+# calls, so a long fundamentals-load tail cannot contend with it for the
+# per-process SEC rate limiter.
+# ---------------------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "validate_prices" {
+  name              = "/ecs/${var.validate_prices_name_prefix}"
+  retention_in_days = var.log_retention_days
+  tags              = local.validate_tags
+}
+
+# Dedicated topic rather than reusing task_failures. That topic's policy grants
+# publish only to events.amazonaws.com scoped to the failure rule's ARN, so
+# reusing it would mean widening the policy to the task role and mixing routine
+# weekly reports into a channel where every message currently means something broke.
+resource "aws_sns_topic" "validation_reports" {
+  count = var.notification_email != "" ? 1 : 0
+  name  = "${var.validate_prices_name_prefix}-reports"
+  tags  = local.validate_tags
+}
+
+resource "aws_sns_topic_subscription" "validation_reports_email" {
+  count     = var.notification_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.validation_reports[0].arn
+  protocol  = "email"
+  endpoint  = var.notification_email
+}
+
+# The task role is otherwise empty (no other job calls an AWS API). This is the
+# one grant it needs, scoped to the report topic only.
+data "aws_iam_policy_document" "task_publish_reports" {
+  count = var.notification_email != "" ? 1 : 0
+
+  statement {
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.validation_reports[0].arn]
+  }
+}
+
+resource "aws_iam_role_policy" "task_publish_reports" {
+  count  = var.notification_email != "" ? 1 : 0
+  name   = "publish-validation-reports"
+  role   = aws_iam_role.task.id
+  policy = data.aws_iam_policy_document.task_publish_reports[0].json
+}
+
+resource "aws_ecs_task_definition" "validate_prices" {
+  family = var.validate_prices_name_prefix
+
+  # See the note on aws_ecs_task_definition.this.
+  skip_destroy = true
+
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.validate_prices_task_cpu
+  memory                   = var.validate_prices_task_memory
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = local.validate_container_name
+      image     = "${aws_ecr_repository.this.repository_url}:${var.image_tag}"
+      essential = true
+
+      environment = concat([
+        { name = "APP_RUN_MODE", value = "validate-prices" },
+        { name = "VALIDATE_PRICES_INDEX_CODE", value = var.validate_prices_index_code },
+        { name = "VALIDATE_PRICES_MIN_DATE", value = var.validate_prices_min_date },
+        { name = "VALIDATE_PRICES_MAX_TICKERS", value = tostring(var.validate_prices_max_tickers) },
+        { name = "DJANGO_PORTFOLIO_BASE_URL", value = var.django_portfolio_base_url },
+        { name = "DB_URL", value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}" },
+        { name = "DB_USERNAME", value = var.db_username },
+        ], var.notification_email != "" ? [
+        { name = "VALIDATE_PRICES_SNS_TOPIC_ARN", value = aws_sns_topic.validation_reports[0].arn },
+      ] : [])
+
+      # No SECRET_KEY: nothing in the image reads it, and no SEC_CONTACT_EMAIL either —
+      # this job talks to Django and Postgres, never to data.sec.gov.
+      secrets = [
+        { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.validate_prices.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "validate-prices"
+        }
+      }
+    }
+  ])
+
+  tags = local.validate_tags
+}
+
+resource "aws_scheduler_schedule" "validate_prices" {
+  name       = var.validate_prices_name_prefix
+  group_name = "default"
+  state      = var.validate_prices_schedule_enabled ? "ENABLED" : "DISABLED"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression          = var.validate_prices_schedule_expression
+  schedule_expression_timezone = var.schedule_timezone
+
+  target {
+    arn      = aws_ecs_cluster.this.arn
+    role_arn = aws_iam_role.scheduler.arn
+
+    ecs_parameters {
+      # Pinned to this revision; `terraform apply` rolls it forward on deploy, and the :tag image is
+      # still resolved at launch so re-pushing the same tag picks up new image content.
+      task_definition_arn = aws_ecs_task_definition.validate_prices.arn
+      task_count          = 1
+      launch_type         = "FARGATE"
+
+      network_configuration {
+        subnets          = var.public_subnet_ids
+        security_groups  = [aws_security_group.task.id]
+        assign_public_ip = true
+      }
+    }
+
+    retry_policy {
+      maximum_retry_attempts = 0
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Asset load: monthly one-shot task (SEC ticker universe + ETF identity
+# enrichment — the scheduled equivalent of GET /admin/asset-load). Shares the
+# ECR image, cluster, IAM roles, and task SG above.
+#
+# Monthly rather than nightly: the SEC ticker indexes change slowly, and both
+# Asset and Listing upsert by their natural keys, so re-running only costs SEC
+# requests. Placed at 22:00 to stay clear of the validation report's Sunday
+# 20:00 slot in months whose 1st is a Sunday.
+# ---------------------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "asset_load" {
+  name              = "/ecs/${var.asset_load_name_prefix}"
+  retention_in_days = var.log_retention_days
+  tags              = local.asset_tags
+}
+
+resource "aws_ecs_task_definition" "asset_load" {
+  family = var.asset_load_name_prefix
+
+  # See the note on aws_ecs_task_definition.this.
+  skip_destroy = true
+
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.asset_load_task_cpu
+  memory                   = var.asset_load_task_memory
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = local.asset_container_name
+      image     = "${aws_ecr_repository.this.repository_url}:${var.image_tag}"
+      essential = true
+
+      environment = [
+        { name = "APP_RUN_MODE", value = "asset-load" },
+        { name = "ASSET_LOAD_OVERWRITE_EXISTING", value = tostring(var.asset_load_overwrite_existing) },
+        { name = "DB_URL", value = "jdbc:postgresql://${var.db_host}:${var.db_port}/${var.db_name}" },
+        { name = "DB_USERNAME", value = var.db_username },
+      ]
+
+      # Pull individual keys out of the single fattorestreet/env JSON secret.
+      # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
+      # SEC_CONTACT_EMAIL is required: both ticker indexes come from data.sec.gov, and an empty
+      # User-Agent gets 403 "Undeclared Automated Tool" on all of them — which the runner detects
+      # as a zero-ticker load and exits non-zero on. No SECRET_KEY: nothing in the image reads it.
+      secrets = [
+        { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
+        { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.asset_load.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "asset-load"
+        }
+      }
+    }
+  ])
+
+  tags = local.asset_tags
+}
+
+resource "aws_scheduler_schedule" "asset_load" {
+  name       = var.asset_load_name_prefix
+  group_name = "default"
+  state      = var.asset_load_schedule_enabled ? "ENABLED" : "DISABLED"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression          = var.asset_load_schedule_expression
+  schedule_expression_timezone = var.schedule_timezone
+
+  target {
+    arn      = aws_ecs_cluster.this.arn
+    role_arn = aws_iam_role.scheduler.arn
+
+    ecs_parameters {
+      # Pinned to this revision; `terraform apply` rolls it forward on deploy, and the :tag image is
+      # still resolved at launch so re-pushing the same tag picks up new image content.
+      task_definition_arn = aws_ecs_task_definition.asset_load.arn
+      task_count          = 1
+      launch_type         = "FARGATE"
+
+      network_configuration {
+        subnets          = var.public_subnet_ids
+        security_groups  = [aws_security_group.task.id]
+        assign_public_ip = true
+      }
+    }
+
+    retry_policy {
+      maximum_retry_attempts = 0
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Failure alerting: email (SNS) when any task in the cluster stops with a
-# non-zero exit code or never starts. All three nightly loads exit 1 only on
-# total failure (partial errors self-heal next run), so an alert means that
-# night's run did no useful work. Created only when notification_email is set.
+# non-zero exit code or never starts. Every job here exits 1 only on total
+# failure (partial errors self-heal next run), so an alert means that run did
+# no useful work. Created only when notification_email is set.
+#
+# The rule matches on clusterArn rather than per-task, so new schedules fall
+# inside its blast radius automatically — including manual `aws ecs run-task`
+# invocations, which is desirable.
 # ---------------------------------------------------------------------------
 resource "aws_sns_topic" "task_failures" {
   count = var.notification_email != "" ? 1 : 0
@@ -575,7 +840,7 @@ resource "aws_sns_topic_policy" "task_failures" {
 resource "aws_cloudwatch_event_rule" "task_failures" {
   count       = var.notification_email != "" ? 1 : 0
   name        = "${var.name_prefix}-task-failures"
-  description = "Nightly load task (hist, index or fundamentals) stopped with a non-zero exit code or failed to start"
+  description = "A scheduled task (hist, index, fundamentals, asset load or price validation) stopped with a non-zero exit code or failed to start"
 
   event_pattern = jsonencode({
     source      = ["aws.ecs"]
@@ -606,6 +871,6 @@ resource "aws_cloudwatch_event_target" "task_failures_sns" {
       taskArn  = "$.detail.taskArn"
     }
     # Output must be a JSON value; the surrounding quotes make it a JSON string.
-    input_template = "\"FattoreStreet nightly load failed: <group> stopped with exit code <exitCode>. Reason: <reason>. Task: <taskArn>. Logs: /ecs/${var.name_prefix}, /ecs/${var.index_load_name_prefix} or /ecs/${var.fundamentals_load_name_prefix}.\""
+    input_template = "\"FattoreStreet scheduled task failed: <group> stopped with exit code <exitCode>. Reason: <reason>. Task: <taskArn>. Logs: /ecs/${var.name_prefix}, /ecs/${var.index_load_name_prefix}, /ecs/${var.fundamentals_load_name_prefix}, /ecs/${var.asset_load_name_prefix} or /ecs/${var.validate_prices_name_prefix}.\""
   }
 }

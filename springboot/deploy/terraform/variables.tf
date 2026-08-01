@@ -253,6 +253,142 @@ variable "fundamentals_load_schedule_enabled" {
   default     = true
 }
 
+# ---------------------------------------------------------------------------
+# Validate prices (weekly; adjusted-price accuracy report). Shares the cluster,
+# ECR image, IAM roles, and task SG with the loads above — only the task
+# definition, log group, schedule, and its report SNS topic are its own.
+#
+# The only read-only job here: it compares stored adjusted closes against a
+# reference series and emails derived statistics. It writes nothing.
+# ---------------------------------------------------------------------------
+
+variable "validate_prices_name_prefix" {
+  description = "Name for the validate-prices task definition family, log group, and schedule."
+  type        = string
+  default     = "fattorestreet-validate-prices"
+}
+
+variable "validate_prices_task_cpu" {
+  description = "Validate-prices Fargate task CPU units. Network-bound on the reference fetch, so 0.5 vCPU suffices."
+  type        = number
+  default     = 512
+}
+
+variable "validate_prices_task_memory" {
+  description = <<-EOT
+    Validate-prices Fargate task memory (MiB). Holds one ticker's price series and the reference
+    series at a time, plus the capped report samples; nothing accumulates across tickers.
+  EOT
+  type        = number
+  default     = 2048
+}
+
+variable "validate_prices_index_code" {
+  description = <<-EOT
+    Index whose members are validated (VALIDATE_PRICES_INDEX_CODE). Scoped to an index rather than
+    every ticker with prices: the price universe is the full IEX HIST symbol set (~24k tickers),
+    most of which has no reference counterpart. FAT1000 is cap-ranked equities, matching the
+    universe corporate-action detection actually maintains.
+  EOT
+  type        = string
+  default     = "FAT1000"
+}
+
+variable "validate_prices_min_date" {
+  description = "Start of the comparison window, ISO date (VALIDATE_PRICES_MIN_DATE)."
+  type        = string
+  default     = "2016-01-01"
+}
+
+variable "validate_prices_max_tickers" {
+  description = <<-EOT
+    Safety cap on tickers validated per run, heaviest index weight first (VALIDATE_PRICES_MAX_TICKERS).
+    0 (the default) means no cap. Set to a small number in a `aws ecs run-task` override for a quick
+    smoke test rather than a full ~1000-ticker pass.
+  EOT
+  type        = number
+  default     = 0
+}
+
+variable "validate_prices_schedule_expression" {
+  description = <<-EOT
+    EventBridge Scheduler cron for the validation report, in schedule_timezone (shared with the
+    loads). Default Sunday 20:00, in the evening and clear of every observed load tail — hist-load
+    has been measured running from 02:00 to 17:32. This job makes no SEC calls, so it cannot
+    contend with a long fundamentals-load tail for the rate limiter.
+  EOT
+  type        = string
+  default     = "cron(0 20 ? * SUN *)"
+}
+
+variable "validate_prices_schedule_enabled" {
+  description = "Whether the validate-prices schedule is ENABLED. Set false to park the job with a one-line apply."
+  type        = bool
+  default     = true
+}
+
+variable "django_portfolio_base_url" {
+  description = <<-EOT
+    Base URL of the Django portfolio API the validation job reads its reference price series from
+    (DJANGO_PORTFOLIO_BASE_URL). Diagnostics only: the response is compared in memory and never
+    persisted, returned from an API, or rendered in the UI.
+  EOT
+  type        = string
+  default     = "https://fattorestreet.com/django/portfolio"
+}
+
+# ---------------------------------------------------------------------------
+# Asset load (monthly; SEC ticker universe + ETF identity enrichment). Shares
+# the cluster, ECR image, IAM roles, and task SG with the jobs above.
+# ---------------------------------------------------------------------------
+
+variable "asset_load_name_prefix" {
+  description = "Name for the asset-load task definition family, log group, and schedule."
+  type        = string
+  default     = "fattorestreet-asset-load"
+}
+
+variable "asset_load_task_cpu" {
+  description = "Asset-load Fargate task CPU units. Two SEC index downloads then a bulk upsert; 0.5 vCPU suffices."
+  type        = number
+  default     = 512
+}
+
+variable "asset_load_task_memory" {
+  description = <<-EOT
+    Asset-load Fargate task memory (MiB). The whole SEC ticker universe is held in one map while
+    the two indexes are merged, then upserted — larger than the index load's working set.
+  EOT
+  type        = number
+  default     = 4096
+}
+
+variable "asset_load_overwrite_existing" {
+  description = <<-EOT
+    Overwrite ETF identities that are already resolved rather than only filling gaps
+    (ASSET_LOAD_OVERWRITE_EXISTING). The scheduled run leaves resolved identities alone; flip it
+    in an `aws ecs run-task` override to re-resolve everything.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "asset_load_schedule_expression" {
+  description = <<-EOT
+    EventBridge Scheduler cron for the asset load, in schedule_timezone. Default the 1st of each
+    month at 22:00 — the SEC ticker indexes change slowly, and 22:00 keeps it clear of the
+    validation report's Sunday 20:00 slot for the months whose 1st falls on a Sunday.
+  EOT
+  type        = string
+  default     = "cron(0 22 1 * ? *)"
+}
+
+variable "asset_load_schedule_enabled" {
+  description = "Whether the asset-load schedule is ENABLED. Set false to park the job with a one-line apply."
+  type        = bool
+  default     = true
+}
+
 variable "notification_email" {
   description = <<-EOT
     Email address alerted (via an SNS topic + EventBridge rule) when a task in the cluster stops
