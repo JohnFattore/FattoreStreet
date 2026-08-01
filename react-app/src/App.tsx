@@ -25,6 +25,7 @@ import User from "./pages/User";
 import AdminSuccessBar from "./pages/AdminSuccessBar";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import LlmNotebook from "./pages/LlmNotebook";
 
 // react router for all our routes
 export default function App() {
@@ -95,6 +96,8 @@ export default function App() {
         <Route path="/iex-prices/:ticker" element={<IexPricesView />} />
         <Route path="/react-admin/success-bar" element={<AdminSuccessBar />} />
         <Route path="/blog" element={<Blog />} />
+        {/* Static segment, so it out-ranks /blog/:slug in the router */}
+        <Route path="/blog/llm-notebook" element={<LlmNotebook />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/user" element={<User />} />
         <Route path="/react-admin" element={<Admin />} />

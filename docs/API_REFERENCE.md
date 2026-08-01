@@ -68,7 +68,7 @@ Public blog posts (no authentication required).
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/blog/api/posts/` | List published blog posts (supports `search`, `category`, `tag`, `page`, `page_size`). |
+| `GET` | `/blog/api/posts/` | List published blog posts (supports `search`, `category`, `exclude_category`, `tag`, `page`, `page_size`). |
 | `GET` | `/blog/api/posts/<slug>/` | Retrieve a single published blog post by slug. |
 | `GET` | `/blog/api/categories/` | List blog categories. |
 | `GET` | `/blog/api/tags/` | List blog tags. |

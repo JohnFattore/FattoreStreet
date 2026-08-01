@@ -14,6 +14,35 @@ const chatbotApiBaseUrl = djangoBaseUrl + "chatbot/api/";
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// One post per blog list page: a hand-written one for /blog and a Claude-authored
+// learning topic for /blog/llm-notebook, so the category filters are observable.
+const blogPosts = [
+  {
+    title: "Hello World",
+    slug: "hello-world",
+    excerpt: "Intro",
+    cover_image_url: "",
+    published_at: "2026-03-01T00:00:00Z",
+    created_at: "2026-03-01T00:00:00Z",
+    updated_at: "2026-03-01T00:00:00Z",
+    author_username: "spike",
+    categories: [{ name: "Investing", slug: "investing" }],
+    tags: [{ name: "Bogleheads", slug: "bogleheads" }],
+  },
+  {
+    title: "The JWT Trust Boundary",
+    slug: "the-jwt-trust-boundary",
+    excerpt: "How Spring Boot verifies Django's tokens",
+    cover_image_url: "",
+    published_at: "2026-03-02T00:00:00Z",
+    created_at: "2026-03-02T00:00:00Z",
+    updated_at: "2026-03-02T00:00:00Z",
+    author_username: "claude",
+    categories: [{ name: "LLM Notebook", slug: "llm-notebook" }],
+    tags: [],
+  },
+];
+
 export const handlers = [
   http.get(portfolioApiBaseUrl.concat("accounts/"), () => {
     return Response.json(
@@ -863,27 +892,21 @@ export const handlers = [
   }),
 
   // --- Blog (Django) ---
-  http.get(blogApiBaseUrl.concat("posts/"), () => {
+  http.get(blogApiBaseUrl.concat("posts/"), ({ request }) => {
+    const params = new URL(request.url).searchParams;
+    const category = params.get("category");
+    const excludeCategory = params.get("exclude_category");
+
+    const results = blogPosts.filter((post) => {
+      const slugs = post.categories.map((entry) => entry.slug);
+      if (category && !slugs.includes(category)) {
+        return false;
+      }
+      return !(excludeCategory && slugs.includes(excludeCategory));
+    });
+
     return Response.json(
-      {
-        count: 1,
-        next: null,
-        previous: null,
-        results: [
-          {
-            title: "Hello World",
-            slug: "hello-world",
-            excerpt: "Intro",
-            cover_image_url: "",
-            published_at: "2026-03-01T00:00:00Z",
-            created_at: "2026-03-01T00:00:00Z",
-            updated_at: "2026-03-01T00:00:00Z",
-            author_username: "spike",
-            categories: [{ name: "Investing", slug: "investing" }],
-            tags: [{ name: "Bogleheads", slug: "bogleheads" }],
-          },
-        ],
-      },
+      { count: results.length, next: null, previous: null, results },
       { status: 200 },
     );
   }),

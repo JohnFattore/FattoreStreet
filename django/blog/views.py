@@ -36,6 +36,12 @@ class PostListView(generics.ListAPIView):
         if category_slug:
             qs = qs.filter(categories__slug=category_slug)
 
+        # The blog index is the author's own writing, so it asks for everything
+        # except the LLM Notebook category, which has its own list page.
+        exclude_category_slug = self.request.query_params.get("exclude_category")
+        if exclude_category_slug:
+            qs = qs.exclude(categories__slug=exclude_category_slug)
+
         tag_slug = self.request.query_params.get("tag")
         if tag_slug:
             qs = qs.filter(tags__slug=tag_slug)

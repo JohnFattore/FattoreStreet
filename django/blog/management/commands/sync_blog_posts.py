@@ -8,6 +8,10 @@ source of truth and ``deploy/deploy.sh`` runs this command on every deploy.
 Matching is by slug, so re-running updates in place instead of duplicating. The
 command only ever creates and updates: it never deletes a post, never clears or
 moves ``published_at``, and never touches a post with no file behind it.
+
+A directory can also carry a byline. Learning topics are Claude's writing, so
+they are credited to Claude's account; journal posts keep whatever author they
+already have.
 """
 
 import re
@@ -15,6 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, time
 from pathlib import Path
 
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
@@ -34,6 +39,10 @@ SCALAR_FIELDS = frozenset(
 # checkout, and in CI with nothing to configure.
 BLOG_APP_DIR = Path(__file__).resolve().parents[2]
 LEARNING_TOPIC_CATEGORY = "LLM Notebook"
+
+# Learning topics are written by Claude rather than the author, so they are
+# attributed to Claude's own account instead of showing an empty byline.
+LEARNING_TOPIC_AUTHOR = "claude"
 
 # Learning topic filenames lead with their GitHub issue number
 # (111_THE_DJANGO_SPRING_BOOT_JWT_TRUST_BOUNDARY.md); that identifies the
@@ -59,6 +68,7 @@ class PostSource:
 
     directory: Path
     category: str | None = None
+    author_username: str | None = None
     strip_issue_number: bool = False
 
 
@@ -80,6 +90,7 @@ def default_sources() -> list[PostSource]:
         PostSource(
             directory=BLOG_APP_DIR / "learning-topics",
             category=LEARNING_TOPIC_CATEGORY,
+            author_username=LEARNING_TOPIC_AUTHOR,
             strip_issue_number=True,
         ),
     ]
@@ -213,6 +224,14 @@ class Command(BaseCommand):
             help="Category applied to every post in a --path import.",
         )
         parser.add_argument(
+            "--author",
+            default=None,
+            help=(
+                "Username credited as the author of every post in a --path "
+                "import. The account is created if it does not exist."
+            ),
+        )
+        parser.add_argument(
             "--publish",
             action="store_true",
             help=(
@@ -227,7 +246,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options) -> None:
-        sources = self.resolve_sources(options["path"], options["category"])
+        sources = self.resolve_sources(
+            options["path"], options["category"], options["author"]
+        )
 
         parsed: list[ParsedPost] = []
         failed = 0
@@ -254,12 +275,16 @@ class Command(BaseCommand):
         # this is checked across every source before anything is written.
         self.reject_duplicate_slugs(parsed)
 
+        authors = self.resolve_authors(sources, create=not options["dry_run"])
+
         created = 0
         updated = 0
 
         for post in parsed:
             with transaction.atomic():
-                was_created = self.sync_post(post, publish=options["publish"])
+                was_created = self.sync_post(
+                    post, authors=authors, publish=options["publish"]
+                )
                 if options["dry_run"]:
                     transaction.set_rollback(True)
 
@@ -284,11 +309,15 @@ class Command(BaseCommand):
             raise CommandError(f"{failed} file(s) could not be imported")
 
     def resolve_sources(
-        self, path: str | None, category: str | None
+        self, path: str | None, category: str | None, author: str | None
     ) -> list[PostSource]:
         """Pick the directories to import: ``--path``, or the app's own two."""
         if path:
-            return [PostSource(directory=Path(path), category=category)]
+            return [
+                PostSource(
+                    directory=Path(path), category=category, author_username=author
+                )
+            ]
         return default_sources()
 
     def reject_duplicate_slugs(self, parsed: list[ParsedPost]) -> None:
@@ -324,7 +353,7 @@ class Command(BaseCommand):
             slug=slug,
         )
 
-    def sync_post(self, parsed: ParsedPost, publish: bool) -> bool:
+    def sync_post(self, parsed: ParsedPost, authors: dict, publish: bool) -> bool:
         """Upsert one parsed file into a ``Post``. Returns whether it was new."""
         front_matter = parsed.front_matter
         body = parsed.body
@@ -338,6 +367,12 @@ class Command(BaseCommand):
         post.excerpt = front_matter.get("excerpt") or derive_excerpt(body)
         post.body_markdown = body
         post.cover_image_url = front_matter.get("cover_image_url", post.cover_image_url)
+
+        # Only a source that names an author touches the byline, so a post
+        # credited by hand in the admin survives the next deploy.
+        author = authors.get(parsed.source.author_username)
+        if author is not None:
+            post.author = author
 
         # published_at is only ever set, never cleared or moved: a post already
         # live keeps the date it went out on, and re-importing its Markdown
@@ -354,6 +389,30 @@ class Command(BaseCommand):
         post.save()
         self.set_taxonomy(post, front_matter, parsed.source.category)
         return is_created
+
+    def resolve_authors(self, sources: list[PostSource], create: bool) -> dict:
+        """Look up (and normally create) the account each source is credited to.
+
+        Resolved once up front rather than per post: the accounts have to
+        outlive a ``--dry-run``'s rolled-back transactions to stay usable as
+        foreign keys. An account is a byline, not a login, so a freshly created
+        one gets an unusable password and nothing can authenticate as it.
+        """
+        user_model = get_user_model()
+        authors: dict = {}
+
+        for username in {s.author_username for s in sources if s.author_username}:
+            if create:
+                user, was_created = user_model.objects.get_or_create(username=username)
+                if was_created:
+                    user.set_unusable_password()
+                    user.save(update_fields=["password"])
+            else:
+                user = user_model.objects.filter(username=username).first()
+            if user is not None:
+                authors[username] = user
+
+        return authors
 
     def set_taxonomy(
         self, post: Post, front_matter: dict[str, str], implied_category: str | None
