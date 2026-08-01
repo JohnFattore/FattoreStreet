@@ -194,6 +194,8 @@ resource "aws_ecs_task_definition" "this" {
 
       # Pull individual keys out of the single fattorestreet/env JSON secret.
       # ECS syntax: <secret-arn>:<json-key>:<version-stage>:<version-id> (last two left empty).
+      # No SECRET_KEY: that key is Django's, and nothing in this image reads it since the
+      # /admin routes and their JWT verification were retired. It stays in the blob for Django.
       # SEC_CONTACT_EMAIL is not sensitive, but it lives in the same JSON secret,
       # so pulling it from there beats adding a variable that would put an email
       # address in tfvars. Without it the SEC User-Agent is empty and data.sec.gov
@@ -201,7 +203,6 @@ resource "aws_ecs_task_definition" "this" {
       # detection after the price load.
       secrets = [
         { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
-        { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
         { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
       ]
 
@@ -372,7 +373,6 @@ resource "aws_ecs_task_definition" "index_load" {
       # which skips every ticker and exits the task non-zero.
       secrets = [
         { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
-        { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
         { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
       ]
 
@@ -481,7 +481,6 @@ resource "aws_ecs_task_definition" "fundamentals_load" {
       # detects and exits non-zero on.
       secrets = [
         { name = "POSTGRES_PASSWORD", valueFrom = "${var.env_secret_arn}:POSTGRES_PASSWORD::" },
-        { name = "SECRET_KEY", valueFrom = "${var.env_secret_arn}:SECRET_KEY::" },
         { name = "SEC_CONTACT_EMAIL", valueFrom = "${var.env_secret_arn}:SEC_CONTACT_EMAIL::" },
       ]
 

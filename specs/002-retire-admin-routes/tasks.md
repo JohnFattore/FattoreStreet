@@ -307,7 +307,7 @@ the task stops supplying it).
 - [ ] T041 ⏸ Verify SC-007 and the HTTP contract (quickstart Scenario 2 against the deployed
       service): public routes 200, `/admin/asset-load` 404 with and without a token,
       `GET /filing-summaries?ticker=AAPL` unchanged.
-- [ ] T042 ⏸ Terraform secret removal (plan Phase F): delete the `SECRET_KEY` entries from the
+- [X] T042 (edits committed; `terraform plan && terraform apply` still to run) Terraform secret removal (plan Phase F): delete the `SECRET_KEY` entries from the
       three `secrets` blocks in `springboot/deploy/terraform/main.tf` (lines 200, 369, 478),
       `terraform plan && terraform apply`, then confirm the next scheduled `hist-load` and
       `index-load` runs complete normally without it. Do NOT touch the key in the
