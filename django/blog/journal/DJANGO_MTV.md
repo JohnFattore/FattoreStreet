@@ -1,5 +1,7 @@
 # Django's Model Template View System
 
+_FattoreStreet @ [`d7fb47e8`](https://github.com/JohnFattore/FattoreStreet/tree/d7fb47e844c0d6269be5c8856dc3f6208c02469e) — 2026-04-19_
+
 Django is a Python based, open source web framework that is famous for its batteries included approach. At its core, Django is a MTV (Model, Template, View) system, Django's name for an MVC (Model, View, Controller). They both follow the same pattern of defining a database model, creating user interfaces (templates/views), then adding a request handling layer in between them (view/controller). This set up creates a simple, but powerful way to design websites with server-side rendering. This removes the need for a separate front end app that can overcomplicate basic apps. For this post, I built a simple app for media recommendations you can see here: https://fattorestreet.com/django/entertainment/
 
 ## Models

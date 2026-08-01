@@ -1,4 +1,10 @@
+---
+slug: json-web-tokens
+---
+
 # JSON Web Tokens
+
+_FattoreStreet @ [`d7fb47e8`](https://github.com/JohnFattore/FattoreStreet/tree/d7fb47e844c0d6269be5c8856dc3f6208c02469e) — 2026-04-19_
 
 The Spring Boot server, which provides commercially free financial data, has been the main focus of the last month. I have been holding off on a ton of changes for about a month now and a big push this weekend was needed to get production back up to speed with development. It is a good reminder why pushing often and keeping development close to production is valuable. Regardless, the Spring Boot app is now robust featuring standardized migrations with Flyway, audit tables with Hibernate Envers, and JWT authentication. Check out an example of the financial data from this server here: https://fattorestreet.com/asset/AAPL. 
 

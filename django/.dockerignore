@@ -7,6 +7,14 @@ venv/
 .env
 .env.*
 *.md
+# The blog posts ARE app content, not documentation -- sync_blog_posts imports
+# them at deploy, so they must reach the image. The *.md line above does not
+# actually exclude them (a pattern's * does not cross /, so it only matches
+# root-level README.md and CLAUDE.md), but these negations state the dependency
+# outright so nobody later broadens that line to **/*.md and silently ships a
+# container with no posts in it.
+!blog/journal/*.md
+!blog/learning-topics/*.md
 docs/
 tests/
 .pytest_cache/

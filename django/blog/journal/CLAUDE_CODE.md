@@ -1,5 +1,7 @@
 # What is Claude Code?
 
+_FattoreStreet @ [`83f4335f`](https://github.com/JohnFattore/FattoreStreet/tree/83f4335f95484d99645a067a08f33582d49a8eb8) — 2026-07-19_
+
 Claude Code is a command-line tool from Anthropic that puts its models to work on software development tasks. Rather than being just a chat window, it's an orchestration layer on top of a large language model (LLM). It pulls relevant context from your project, gives the model tools (reading and writing files, running shell commands, searching the codebase, using git), and can spin up autonomous subagents to work on sub-tasks in isolation. In practice, it reads your codebase for context, writes and edits code directly, runs tests or builds, and iterates on the results in a loop until the task is done. The closest comparison is OpenAI's Codex, which follows the same terminal-based agent pattern with their models. Tools like this are genuinely changing how software gets built. Many organizations now lean on coding agents for a large share of the code they ship, shifting the developer's job from writing every line by hand to directing and reviewing the work.
 
 ## Compared to other tools (Cursor, Windsurf)
