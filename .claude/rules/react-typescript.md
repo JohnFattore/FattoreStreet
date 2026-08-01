@@ -35,11 +35,14 @@ paths:
 - Spring Boot URLs use the `baseUrl` override in the query config
 - Interfaces live in `react-app/src/interfaces.ts`
 
-## Spring Boot admin panel (`Admin.tsx`)
+## No Spring Boot admin panel
 
-- When you add a **new Spring Boot admin endpoint** (e.g. `AdminController` route under `/admin/...`), add a matching control on [`react-app/src/pages/Admin.tsx`](react-app/src/pages/Admin.tsx): local state for loading / success / error, call via **Axios** with `Authorization: Bearer ${access}` from Redux user state and base URL `import.meta.env.VITE_APP_SPRINGBOOT_URL` (same pattern as existing cards). The admin page is an intentional exception to the RTK Query–first rule above.
-- Under the card title/description, include a muted **Affects (springboot DB):** line naming the **main JPA entities / tables** the job writes or primarily reads (e.g. `ListingIndexMetrics`, `MarketIndex`, `IndexMember`).
-- Extend [`react-app/__tests__/Pages.test.tsx`](react-app/__tests__/Pages.test.tsx) when the new control is user-visible (e.g. assert button or heading text for user `spike`), following existing `Admin` tests.
+There is no admin page and no authenticated Spring Boot route. The `/admin/**` endpoints were
+retired; every data-loading job now runs as a scheduled Fargate one-shot selected by
+`APP_RUN_MODE` (see `springboot/deploy/terraform/README.md`). Do not add a React control to
+trigger a backend job, and do not reintroduce `Admin.tsx` -- a new job gets a run mode and a
+schedule, not a button. `/react-admin/success-bar` (`AdminSuccessBar`) is unrelated: it is a
+read-only diagnostics view and stays.
 
 ## Error Handling
 

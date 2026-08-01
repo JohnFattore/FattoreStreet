@@ -127,7 +127,7 @@ On every push and pull request to `main`, [`.github/workflows/ci.yml`](../.githu
 
 - **Frontend** (`react-app/`): `npm run lint`, `npm run build`, `npx vitest --run`
 - **Django** (`django/`): `uv sync --frozen` then `uv run python manage.py test` with SQLite and minimal env (`SECRET_KEY`, `DATABASE=sqlite`, `REDIS_URL`)
-- **Spring Boot** (`springboot/`): `mvn test` (H2 in-memory for tests). Local runs need `SECRET_KEY` in `.env` (same as Django) so JWT validation works for `/admin/**` integration checks.
+- **Spring Boot** (`springboot/`): `mvn test` (H2 in-memory for tests). No `SECRET_KEY` is needed -- the service has no authenticated routes and shares no secret with Django.
 - **Secrets**: `pre-commit run detect-secrets --all-files` (same baseline as local pre-commit)
 
 A second workflow, [`.github/workflows/docker-build.yml`](../.github/workflows/docker-build.yml), builds all three production Docker images (`nginx`, `django`, `springboot`) on the same triggers as a merge check — images are built but not pushed. The nginx image is hermetic: it compiles the React bundle and runs `collectstatic` inside the build, so it needs no pre-built local artifacts.

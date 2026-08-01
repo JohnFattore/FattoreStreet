@@ -6,7 +6,7 @@ The equity corporate action pipeline detects stock splits and dividends for a gi
 
 | # | File | Role |
 |---|------|------|
-| 1 | `controller/AdminController.java` | HTTP entry point: `GET /admin/adjust-prices?ticker=AAPL` |
+| 1 | `marketdata/HistLoadRunner.java` | Entry point: the nightly `hist-load` Fargate task runs the adjustment phase after the price load. There is no HTTP trigger. |
 | 2 | `corporateaction/PriceAdjustmentService.java` | Top-level orchestrator. Resolves Asset, decides equity vs ETF path, applies price adjustments after detection. |
 | 3 | `corporateaction/EquityCorporateActionService.java` | Core equity orchestrator. Coordinates split detection, dividend detection, and returns an `EquityDetectionReport`. |
 | 4 | `client/WebService.java` | SEC HTTP client. Fetches XBRL facts, submissions, and filing documents with rate limiting (250ms between requests) and retries (3 attempts, exponential backoff). |
@@ -28,11 +28,11 @@ Note: The support classes are instantiated directly by `EquityCorporateActionSer
 ## Architecture Diagram
 
 ```
-AdminController
-  GET /admin/adjust-prices?ticker=AAPL
+HistLoadRunner (APP_RUN_MODE=hist-load)
+  price load, then the adjustment phase
         |
         v
-PriceAdjustmentService.adjustTicker()
+PriceAdjustmentService.adjustAllTickers() -> adjustTicker() per ticker
   - Looks up Asset by ticker (gets CIK)
   - Checks isFund flag -> routes to equity or ETF path
         |
@@ -72,13 +72,11 @@ EquityCorporateActionService.detectAndPersistWithDiagnostics(ticker, cik)
 
 ## Happy Path: Loading AAPL
 
-### Step 1: HTTP Request to PriceAdjustmentService
+### Step 1: The nightly run reaches AAPL
 
-```
-GET /admin/adjust-prices?ticker=AAPL
-```
+`HistLoadRunner` finishes the price load and calls `PriceAdjustmentService.adjustAllTickers(...)`, which walks its working set and reaches `adjustTicker("AAPL", ...)`. The service looks up the `Asset` by ticker, finds CIK `320193`, sees `isFund=false`, and calls `EquityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193)`.
 
-`AdminController` delegates to `PriceAdjustmentService.adjustTicker("AAPL", ...)`. The service looks up the `Asset` by ticker, finds CIK `320193`, sees `isFund=false`, and calls `EquityCorporateActionService.detectAndPersistWithDiagnostics("AAPL", 320193)`.
+To reproduce one ticker while developing, call the service directly against a local database -- there is no longer an HTTP route for it.
 
 ### Step 2: Fetch SEC XBRL Facts
 

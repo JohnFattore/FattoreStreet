@@ -266,22 +266,22 @@ path in `src/main` can write a `FilingSummary` row.
 **Purpose**: FR-011: no doc may describe a route that no longer exists. All parallel, all
 must be in PR2.
 
-- [ ] T034 [P] Update `docs/API_REFERENCE.md`: remove the `/admin/**` route documentation;
+- [X] T034 [P] Update `docs/API_REFERENCE.md`: remove the `/admin/**` route documentation;
       note that Spring Boot has no authenticated routes.
-- [ ] T035 [P] Update `springboot/README.md`: remove the admin-route usage section (including
+- [X] T035 [P] Update `springboot/README.md`: remove the admin-route usage section (including
       the documented `minConfidence` parameter the code never had), remove `SECRET_KEY` and
       `LLM_SERVER_URL` from the env-var table, document the five run modes and their
       schedules, the frozen filing-summaries behavior (a ticker whose 10-K post-dates the last
       generation run returns an empty list, by design), and the ETF adjusted-price deferral.
-- [ ] T036 [P] Update `react-app/README.md`: remove the Admin page from the pages list and the
+- [X] T036 [P] Update `react-app/README.md`: remove the Admin page from the pages list and the
       admin mutations from the API layer section.
-- [ ] T037 [P] Update `docs/ARCHITECTURE.md` and root `CLAUDE.md`: authentication section (no
+- [X] T037 [P] Update `docs/ARCHITECTURE.md` and root `CLAUDE.md`: authentication section (no
       Spring Boot JWT verification, `SECRET_KEY` is Django-only), scheduled jobs (five Fargate
       one-shots, not three), and the two React notes that name `Admin.tsx` (the "only
       intentional exception is the raw axios calls in `src/pages/Admin.tsx`" line and the 401
       interceptor description), plus the springboot env-var list (`SECRET_KEY`,
       `LLM_SERVER_URL`).
-- [ ] T038 [P] Update `springboot/deploy/terraform/README.md`: the ad-hoc run-task runbook
+- [X] T038 [P] Update `springboot/deploy/terraform/README.md`: the ad-hoc run-task runbook
       table from contracts/run-modes.md (FR-010), the secret-blob description without
       `SECRET_KEY` for Spring Boot (66, 75), the ETF deferral note, and the
       `*_schedule_enabled` park procedure. Also reword `variables.tf:68` and
@@ -296,23 +296,23 @@ must be in PR2.
 task definitions (plan Phase F ordering: the running image must stop reading the key before
 the task stops supplying it).
 
-- [ ] T039 Full local CI gate (quickstart Scenario 4): react lint + lint:styles + format:check
+- [X] T039 Full local CI gate (quickstart Scenario 4): react lint + lint:styles + format:check
       + build + vitest; `uv run python manage.py test` in `django/` (proves the secret cleanup
       did not reach Django); `./mvnw spotless:apply && mvn verify` in `springboot/`. If the
       JaCoCo bundle floor fails after the deletions, add runner/controller tests; never lower
       the floor.
-- [ ] T040 Open PR2 (Phases 7–9), get CI green including the detect-secrets scan, merge to
+- [ ] T040 ⏸ Open PR2 (Phases 7–9), get CI green including the detect-secrets scan, merge to
       `main`, wait for `docker-build.yml`, and deploy the web tier per `deploy/` so the
       running springboot image no longer reads `SECRET_KEY`.
-- [ ] T041 Verify SC-007 and the HTTP contract (quickstart Scenario 2 against the deployed
+- [ ] T041 ⏸ Verify SC-007 and the HTTP contract (quickstart Scenario 2 against the deployed
       service): public routes 200, `/admin/asset-load` 404 with and without a token,
       `GET /filing-summaries?ticker=AAPL` unchanged.
-- [ ] T042 Terraform secret removal (plan Phase F): delete the `SECRET_KEY` entries from the
+- [ ] T042 ⏸ Terraform secret removal (plan Phase F): delete the `SECRET_KEY` entries from the
       three `secrets` blocks in `springboot/deploy/terraform/main.tf` (lines 200, 369, 478),
       `terraform plan && terraform apply`, then confirm the next scheduled `hist-load` and
       `index-load` runs complete normally without it. Do NOT touch the key in the
       `fattorestreet/env` Secrets Manager blob (Django still reads it).
-- [ ] T043 SC-002 final sweep: walk the route map in research.md §1 confirming each of the
+- [ ] T043 ⏸ SC-002 final sweep: walk the route map in research.md §1 confirming each of the
       twelve routes has its named replacement or recorded drop; `grep -rn "/admin/" docs/ *.md
       springboot/README.md react-app/README.md` finds no stale route references; mark the
       spec's success criteria checked.

@@ -1,8 +1,13 @@
-# Nightly Fargate loads (IEX HIST + index + fundamentals)
+# Scheduled Fargate jobs (IEX HIST + index + fundamentals + assets + validation)
 
-Runs three nightly loads as **ephemeral Fargate tasks** instead of keeping the RAM provisioned 24/7
+Runs five scheduled jobs as **ephemeral Fargate tasks** instead of keeping the RAM provisioned 24/7
 on the EC2 box. The same Spring Boot jar runs the API on EC2 (default `APP_RUN_MODE=server`) and
-the one-shot loads on Fargate — run mode is selected purely by the `APP_RUN_MODE` env var:
+the one-shot jobs on Fargate — run mode is selected purely by the `APP_RUN_MODE` env var.
+
+These are the **only** trigger for this work. The Spring Boot `/admin/**` routes that used to run
+it by hand were retired, and with them the service's JWT verification and its dependency on
+Django's `SECRET_KEY`. An ad-hoc run is an `aws ecs run-task` with a container environment
+override, never an HTTP call — see the runbook below.
 
 - **`hist-load`** (`HistLoadRunner`) — the bulky IEX price load (`IexHistService.loadHistData`),
   which runs once and exits. After a successful load the task also runs corporate-action price
@@ -22,9 +27,8 @@ the one-shot loads on Fargate — run mode is selected purely by the `APP_RUN_MO
   only protects against a failed *refresh*, not stale prices). One day of staleness in cap ranks
   is acceptable; the failure alert below is what tells you the hist load needs attention.
 - **`fundamentals-load`** (`FundamentalsLoadRunner`) — the SEC XBRL frames sync
-  (`EdgarService.syncFrames`) that fills `Quarter` rows, i.e. the scheduled equivalent of
-  `GET /admin/sync-frames`. Unlike that endpoint, which walks 2009→present, the nightly run syncs
-  only `FUNDAMENTALS_LOAD_YEARS_BACK` (default 1) years back through the current year: frames are
+  (`EdgarService.syncFrames`) that fills `Quarter` rows. Rather than the full 2009→present history,
+  the nightly run syncs only `FUNDAMENTALS_LOAD_YEARS_BACK` (default 1) years back through the current year: frames are
   fetched per (concept, period), so a full-history sync is thousands of multi-megabyte SEC requests
   nearly all re-reading settled filings. Two calendar years absorbs amendments and late filers, and
   quarters upsert by (asset, year, quarter), so restating a year overwrites in place. Guard: if
@@ -36,8 +40,35 @@ the one-shot loads on Fargate — run mode is selected purely by the `APP_RUN_MO
   (`sec.http.min-interval-ms`) is per-process, so overlapping tasks double the effective request
   rate toward SEC's ~10/s ceiling and earn 403s for both.
 
-All three tasks share the ECR repo/image, ECS cluster, IAM roles, and task security group; each has
+- **`validate-prices`** (`ValidatePricesRunner`) — weekly adjusted-price accuracy report. Compares
+  stored `adjustedClose` for the members of `VALIDATE_PRICES_INDEX_CODE` (default `FAT1000`)
+  against the yfinance reference series served by Django, and publishes a bounded plain-text report
+  to its own SNS topic. **The only job here that writes nothing**: reference data is
+  diagnostics-only and may never be persisted or served, so the runner has no database write path
+  at all. Guard: a zero-member index or a failed publish exits `1`; per-ticker fetch failures just
+  increment `tickersSkipped` and the run continues, because a partial report beats no report.
+
+  Scheduled Sunday evening, clear of every observed load tail (hist-load has been measured running
+  from 02:00 to 17:32). It makes no SEC calls, so it cannot contend for the rate limiter.
+- **`asset-load`** (`AssetLoadRunner`) — monthly load of the SEC ticker universe
+  (`company_tickers.json` + `company_tickers_mf.json`) into `Asset`/`Listing`, followed by ETF
+  series/class identity enrichment. Monthly because the SEC indexes change slowly and both entities
+  upsert by their natural keys, so re-running only costs SEC requests. Guard: zero tickers persisted
+  exits `1` — the signature of a missing `SEC_CONTACT_EMAIL`. Placed at 22:00 so it stays clear of
+  the validation slot in months whose 1st falls on a Sunday.
+
+All five tasks share the ECR repo/image, ECS cluster, IAM roles, and task security group; each has
 its own task definition, log group, and schedule.
+
+**Schedule allocation** — slots must not overlap, because the SEC rate limiter is per-process:
+
+| Mode | Cadence | Slot (ET) | SEC-bound? |
+|------|---------|-----------|------------|
+| `hist-load` | daily | 02:00 | yes (detection phase) |
+| `index-load` | daily | 09:30 | yes |
+| `fundamentals-load` | daily | 13:30 | yes, heavily |
+| `validate-prices` | weekly | Sun 20:00 | no — Django/yfinance only |
+| `asset-load` | monthly | 1st, 22:00 | yes, briefly |
 
 ## Architecture
 
@@ -63,8 +94,9 @@ Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not
 ## One-time prerequisites
 
 1. **Secret** — the task reads the single `fattorestreet/env` secret (the same JSON secret the EC2
-   containers use), pulling `POSTGRES_PASSWORD`, `SECRET_KEY`, and `SEC_CONTACT_EMAIL` out of it by
-   key. `SEC_CONTACT_EMAIL` is not sensitive, but it lives in the same JSON, and sourcing it there
+   containers use), pulling `POSTGRES_PASSWORD` and `SEC_CONTACT_EMAIL` out of it by key. The
+   secret also holds Django's `SECRET_KEY`, but no Spring Boot task reads it — nothing in the image
+   consumes it any more. `SEC_CONTACT_EMAIL` is not sensitive, but it lives in the same JSON, and sourcing it there
    beats a variable that would put an email address in tfvars. It is **required**: SEC sends it as
    the User-Agent, and an empty one gets `403 Undeclared Automated Tool` on every ticker. It should
    already exist; if not, create it as a JSON object:
@@ -73,7 +105,7 @@ Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not
      "SEC_CONTACT_EMAIL": "<your-email>",
      "POSTGRES_PASSWORD": "<postgres-password>",
      "SECRET_KEY": "<django-secret-key>"
-   }'   # ...plus the other app keys; see deploy/run.sh
+   }'   # SECRET_KEY is Django's; these tasks do not read it. See deploy/run.sh for the rest.
    ```
    Put its ARN in `terraform.tfvars` as `env_secret_arn`. (If it uses a **customer-managed KMS key**,
    also grant the execution role `kms:Decrypt` on that key — the default `aws/secretsmanager` key
@@ -254,19 +286,79 @@ To backfill history after a schema or mapping change, run the task once with
 rather than changing the variable — that run takes hours, and leaving it as the nightly default
 re-fetches a decade of settled filings every night.
 
+Same shape for the asset load (`asset_load_*` outputs):
+
+```bash
+aws ecs run-task \
+  --cluster "$CLUSTER" \
+  --task-definition "$(terraform output -raw asset_load_task_definition_family)" \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxx],securityGroups=[$SG],assignPublicIp=ENABLED}"
+
+aws logs tail "$(terraform output -raw asset_load_log_group_name)" --follow
+```
+
+Confirm the closing `Asset load finished` line shows a `tickersLoaded` in the tens of thousands and
+the exit code is `0`. A zero-ticker run exits `1` and means the SEC User-Agent is missing.
+
+And for the validation report (`validate_prices_*` outputs). **Run it with a small
+`VALIDATE_PRICES_MAX_TICKERS` the first time** — the first publish to a new SNS topic sends a
+subscription confirmation email that has to be clicked before any report arrives:
+
+```bash
+aws ecs run-task \
+  --cluster "$CLUSTER" \
+  --task-definition "$(terraform output -raw validate_prices_task_definition_family)" \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxx],securityGroups=[$SG],assignPublicIp=ENABLED}" \
+  --overrides '{"containerOverrides":[{"name":"validate-prices","environment":[{"name":"VALIDATE_PRICES_MAX_TICKERS","value":"5"}]}]}'
+
+aws logs tail "$(terraform output -raw validate_prices_log_group_name)" --follow
+```
+
+Confirm the report email arrives and that nothing was written (`SELECT max(created_at) FROM
+corporate_actions` unchanged). Leaving `VALIDATE_PRICES_SNS_TOPIC_ARN` empty in an override makes
+the run log the report instead of publishing it.
+
+### Ad-hoc invocation reference
+
+Everything the retired `/admin/**` query parameters offered, and how to get it now:
+
+| Former route + params | Replacement |
+|-----------------------|-------------|
+| `/admin/load-hist?days=30` | `hist-load` with `HIST_LOAD_DAYS=30` |
+| `/admin/sync-frames` (full 2009→present) | `fundamentals-load` with `FUNDAMENTALS_LOAD_START_YEAR=2009` |
+| `/admin/asset-load?overwriteExisting=true` | `asset-load` with `ASSET_LOAD_OVERWRITE_EXISTING=true` |
+| `/admin/indexes/refresh-stocks?ticker=X` | `index-load` with `INDEX_LOAD_TICKER=X` |
+| `/admin/indexes/rebuild?code=FAT50` | `index-load` rebuilds all three; no single-index override |
+| `/admin/validate-adjusted-prices?ticker=AAPL` | `validate-prices` scoped by index, or run the service locally against a dev database |
+| `/admin/adjust-prices?ticker=AAPL&force=true` | **No equivalent.** The nightly `hist-load` recomputes the full adjusted series for every active ticker anyway |
+| `/admin/adjust-prices?etfOnly=true` | **No supported equivalent.** ETF corporate actions and adjusted prices are deferred — funds freeze at their current adjusted values until this is revisited |
+| `/admin/summarize-filings` | **No equivalent.** The 10-K summarization generator is retired; stored summaries keep serving |
+| `/admin/test` | **No equivalent.** A debug leftover |
+
+### Parking a misbehaving job
+
+Every job has a `*_schedule_enabled` variable, so a bad run is one apply away from stopped — no
+destroy, no code change:
+
+```bash
+terraform apply -var='validate_prices_schedule_enabled=false'
+```
+
+The task definition stays registered, so an ad-hoc `run-task` still works while the cadence is off.
+
 ## Schedule cutover (done)
 
 This schedule replaced the old django-celery-beat trigger for `portfolio.tasks.load_iex_hist`;
-Celery has since been removed from the Django service entirely. The Spring Boot
-`/admin/load-hist` HTTP endpoint stays in place for manual runs.
+Celery has since been removed from the Django service entirely.
 
-To pause any Fargate schedule without destroying anything: `schedule_enabled = false` (hist load),
-`index_load_schedule_enabled = false` (index load), or `fundamentals_load_schedule_enabled = false`
-(fundamentals load) + `terraform apply`.
+The index and fundamentals loads had no Celery/beat trigger to replace — both were manual-only via
+Spring Boot admin endpoints. Those endpoints, and every other `/admin/**` route, have since been
+deleted: these schedules plus `aws ecs run-task` are now the only way to run any of this work.
 
-Neither the index load nor the fundamentals load had a Celery/beat trigger to replace — both were
-manual-only via the admin endpoints (`POST /admin/indexes/refresh-stocks`,
-`POST /admin/indexes/rebuild`, `GET /admin/sync-frames`), which stay in place for manual runs.
+To pause any schedule without destroying anything, set its `*_schedule_enabled` variable to `false`
+and apply — see "Parking a misbehaving job" above.
 
 ## Failure alerting
 
@@ -324,12 +416,23 @@ That is pennies a month for now; add a second `imageCountMoreThan` rule if it gr
 | `index_load_task_cpu` / `index_load_task_memory` | `512` / `2048` | The index load is SEC-rate-limit bound (mostly idle); profile the first real run. |
 | `index_load_scope` | `russell1000` | Metrics refresh scope (`russell1000` or `all`). |
 | `index_load_min_processed` | `800` | Rebuild guard threshold; below it the task keeps yesterday's members and exits `1`. |
-| `index_load_schedule_expression` | `cron(30 9 * * ? *)` | When the index load runs (tfvars example: `cron(0 5 * * ? *)`); shares `schedule_timezone`. Keep it well after the hist load. |
+| `index_load_schedule_expression` | `cron(30 9 * * ? *)` | When the index load runs; shares `schedule_timezone`. Keep it well after the hist load. |
 | `index_load_schedule_enabled` | `true` | Toggle the nightly index-load trigger. |
 | `fundamentals_load_task_cpu` / `fundamentals_load_task_memory` | `512` / `4096` | SEC-rate-limit bound like the index load, but each frames response covers every filer for one concept/period; profile the first real run. |
 | `fundamentals_load_years_back` | `1` | Calendar years synced back from the current year. Raising it multiplies SEC requests for data that rarely changes. |
 | `fundamentals_load_start_year` | `0` | Explicit first year, overriding years-back. Use a one-off task override for a 2009 backfill instead of setting this. |
 | `fundamentals_load_schedule_expression` | `cron(30 13 * * ? *)` | When the fundamentals load runs; shares `schedule_timezone`. Keep it clear of the other two — the SEC rate limiter is per-process. |
 | `fundamentals_load_schedule_enabled` | `true` | Toggle the nightly fundamentals-load trigger. |
-| `notification_email` | `""` | Email alerted when a task exits non-zero or fails to start; `""` disables alerting. |
+| `validate_prices_task_cpu` / `validate_prices_task_memory` | `512` / `2048` | Network-bound on the reference fetch; holds one ticker's series at a time. |
+| `validate_prices_index_code` | `FAT1000` | Index whose members are validated. |
+| `validate_prices_min_date` | `2016-01-01` | Start of the comparison window. |
+| `validate_prices_max_tickers` | `0` | Safety cap per run, heaviest weight first; `0` means no cap. Set small in a run-task override for a smoke test. |
+| `validate_prices_schedule_expression` | `cron(0 20 ? * SUN *)` | Sunday evening, clear of every observed load tail; shares `schedule_timezone`. |
+| `validate_prices_schedule_enabled` | `true` | Toggle the weekly validation report. |
+| `django_portfolio_base_url` | `https://fattorestreet.com/django/portfolio` | Where the validation job reads its reference price series. Diagnostics only; never persisted. |
+| `asset_load_task_cpu` / `asset_load_task_memory` | `512` / `4096` | The whole ticker universe is held in one map while the two SEC indexes are merged. |
+| `asset_load_overwrite_existing` | `false` | `true` re-resolves already-resolved ETF identities. |
+| `asset_load_schedule_expression` | `cron(0 22 1 * ? *)` | 1st of each month at 22:00; shares `schedule_timezone`. |
+| `asset_load_schedule_enabled` | `true` | Toggle the monthly asset load. |
+| `notification_email` | `""` | Email alerted when a task exits non-zero or fails to start, **and** the destination for the weekly validation report (a separate topic). `""` disables both. |
 | `ecr_untagged_retention_days` | `14` | Days an untagged ECR image is kept before the lifecycle policy expires it. See Image retention. | 
