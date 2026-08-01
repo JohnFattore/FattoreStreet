@@ -1,6 +1,6 @@
 # FattoreStreet Blog Voice Guide
 
-Distilled from the published posts in `docs/blog-posts/` (PILOT, INDEX_FUNDS_101, ETFS_VS_MUTUAL_FUNDS, JSON_WEB_TOKEN, DJANGO_MTV, REDUX). When calibration beyond this guide is needed, read one or two of those posts directly — `ETFS_VS_MUTUAL_FUNDS.md` and `JSON_WEB_TOKEN.md` are the strongest exemplars.
+Distilled from the published journal posts in `django/blog/journal/` (PILOT, INDEX_FUNDS_101, ETFS_VS_MUTUAL_FUNDS, JSON_WEB_TOKEN, DJANGO_MTV, REDUX, CLAUDE_CODE). When calibration beyond this guide is needed, read one or two of those posts directly — `django/blog/journal/ETFS_VS_MUTUAL_FUNDS.md` and `django/blog/journal/JSON_WEB_TOKEN.md` are the strongest exemplars. This guide covers journal posts only; learning topics in `django/blog/learning-topics/` use a neutral instructional format instead.
 
 ## Structure
 

@@ -1,4 +1,7 @@
 # State in the browser
+
+_FattoreStreet @ [`ba7bdd49`](https://github.com/JohnFattore/FattoreStreet/tree/ba7bdd493b23b46006192af715f480ec42db4cc5) — 2026-05-24_
+
 Handling state in the front end is one of the hardest parts of making a dynamic user interface. React provides useState, but managing state this way can get unwieldy as projects grow. Redux provides a system to manage state globally, providing all components with the same source of truth. Instead of juggling state bound to specific components, state can exist globally and be shared across all components.
 
 # Flux

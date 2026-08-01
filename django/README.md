@@ -20,7 +20,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 | `chatbot` | Boglehead AI financial advisor (Google Gemini) |
 | `restaurants` | Restaurant reviews and recommendations |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
-| `blog` | Public blog posts (Markdown body) via `/blog/api/posts/` |
+| `blog` | Public blog posts (Markdown body) via `/blog/api/posts/`; content lives as Markdown in `blog/journal/` and `blog/learning-topics/` (see [Blog posts](#blog-posts)) |
 
 Market index membership APIs live in the Spring Boot service (`sec-api`), not in Django.
 
@@ -32,6 +32,31 @@ DROP TABLE IF EXISTS indexes_historicalstock CASCADE;
 DROP TABLE IF EXISTS indexes_indexmember CASCADE;
 DROP TABLE IF EXISTS indexes_stock CASCADE;
 ```
+
+## Blog posts
+
+Blog content is Markdown in the repo, not rows typed into the admin. Two directories, both shipped inside the image:
+
+| Directory | Contents | Category |
+|-----------|----------|----------|
+| `blog/journal/` | The author's own posts | whatever front matter sets |
+| `blog/learning-topics/` | Daily study topics, one per GitHub issue, filenames prefixed with the issue number | `LLM Notebook`, applied automatically |
+
+`deploy/deploy.sh` runs `sync_blog_posts` on every deploy, so merging to `main` publishes. To run it by hand:
+
+```bash
+uv run python manage.py sync_blog_posts --dry-run   # report changes, write nothing
+uv run python manage.py sync_blog_posts             # import
+uv run python manage.py sync_blog_posts --path DIR --category NAME   # one-off import
+```
+
+Posts are matched on **slug**, which is derived from the filename (`CLAUDE_CODE.md` → `claude-code`) with a learning topic's leading issue number stripped (`111_THE_JWT_TRUST_BOUNDARY.md` → `the-jwt-trust-boundary`). Re-running updates in place; it never duplicates, never deletes, never clears or moves `published_at`, and never touches a post that has no file behind it. Two files resolving to one slug is an error raised before anything is written.
+
+Publication date comes from the version stamp under the title (`_FattoreStreet @ [`sha`](…) — 2026-07-19_`), which is what makes a re-import a genuine no-op. `--publish` only affects posts that have neither a stamp nor a `published_at`.
+
+Front matter is optional and fenced by `---`. Supported keys: `title`, `slug`, `excerpt`, `categories`, `tags`, `published_at`, `cover_image_url`; anything else is an error. Without it, the title comes from the first `#` heading and the excerpt from the first real paragraph (the version stamp and source lines are skipped). Use `slug:` to pin a post whose filename does not match the slug it is already published under.
+
+The format itself is owned by the `blog-editor` skill (`.claude/skills/blog-editor/`).
 
 ## Background Jobs & Caching
 

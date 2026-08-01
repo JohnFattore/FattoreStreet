@@ -1,4 +1,10 @@
+---
+slug: index-funds-rock
+---
+
 # Index Funds 101
+
+_FattoreStreet @ [`d7fb47e8`](https://github.com/JohnFattore/FattoreStreet/tree/d7fb47e844c0d6269be5c8856dc3f6208c02469e) — 2026-04-19_
 
 I built the Fattore Indexes, a set of free-float market-cap-weighted benchmarks for broad, low-cost index funds. You can see them here: https://fattorestreet.com/indexes
 

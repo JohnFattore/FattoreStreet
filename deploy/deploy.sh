@@ -64,6 +64,12 @@ docker compose up -d --remove-orphans
 # Django migrations (Spring Boot's Flyway migrates itself on start)
 docker compose run --rm django python manage.py migrate
 
+# Blog posts: the Markdown in blog/journal/ and blog/learning-topics/ ships in
+# the image and is the source of truth, so every deploy reconciles the DB with
+# it. Matching is by slug, so this updates in place and never duplicates; a
+# failure here fails the deploy (set -e) rather than leaving the blog stale.
+docker compose run --rm django python manage.py sync_blog_posts
+
 # Reclaim disk from superseded image layers (watchtower's cleanup is retired)
 docker image prune -f
 

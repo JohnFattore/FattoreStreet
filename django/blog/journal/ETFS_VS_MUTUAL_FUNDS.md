@@ -1,4 +1,7 @@
 # ETF vs Mutual Funds
+
+_FattoreStreet @ [`c1b6fe73`](https://github.com/JohnFattore/FattoreStreet/tree/c1b6fe731f5513783be6b22c218ba1eab010b345) — 2026-05-12_
+
 What's actually different between an exchange traded fund (ETF) and a mutual fund? Both are pooled fund vehicles that can track broad indexes at low costs. Vanguard, for example, has VTI and VTSAX, which both track the CRSP US Total Market Index at an ultra low cost. For disciplined index fund investors, the difference is small and both types provide exceptional options for retail investors. While they are similar products, there are some differences to be aware of to make more confident investment decisions.
 
 ## How they trade

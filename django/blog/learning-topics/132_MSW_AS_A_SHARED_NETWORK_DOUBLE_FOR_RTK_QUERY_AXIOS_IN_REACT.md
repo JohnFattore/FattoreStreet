@@ -1,0 +1,49 @@
+# MSW as a shared network double for RTK Query + axios in React tests
+
+_FattoreStreet @ [`34a682c7`](https://github.com/JohnFattore/FattoreStreet/tree/34a682c75f30ad51d49f572fcd47d75415990ba5) — 2026-07-24_
+
+_Source: [#132](https://github.com/JohnFattore/FattoreStreet/issues/132)_
+
+## Overview
+
+`react-app`'s test suite doesn't mock RTK Query hooks or axios calls individually — it runs a real network-interception server (Mock Service Worker, via `msw/node`) once for the whole suite, registers a shared library of handlers keyed by real API URLs, and lets components make actual `fetch`/axios calls that MSW intercepts before they leave the process. Because both RTK Query's custom `axiosBaseQuery` and the raw axios calls in `Admin.tsx` ultimately go through the same HTTP client, one interception layer covers both — the same "share one thing at the transport layer" idea covered in issue #113's axios-interceptor topic, but here applied to *test* infrastructure instead of production auth-refresh. This is worth understanding closely because it's a fundamentally different testing philosophy from mocking `useGetAssetsQuery` or `axios.get` directly: MSW handlers describe *server behavior* (what does `GET /portfolio/api/assets/` return), so the same handler set works whether a component calls it via an RTK Query hook, a `dispatch(endpoint.initiate(...))`, or a hand-written axios call — and per-test overrides let you simulate a single endpoint failing without touching the component or hook code at all.
+
+## Files to read
+
+- `react-app/__tests__/mocks/handlers.ts` (909 lines) — the shared handler library. Read the whole file structure, but focus on:
+  - Lines 1–12: base URLs are built from `import.meta.env.VITE_APP_DJANGO_URL`/`VITE_APP_SPRINGBOOT_URL` and concatenated with each Django app's `api/` prefix (`portfolioApiBaseUrl`, `restaurantsApiBaseUrl`, etc.) — handlers match on the *exact same URLs* the app's real RTK Query endpoints call, not arbitrary test-only paths
+  - Lines 14–15 and 418–423, 735–746: `escapeRegExp` plus `new RegExp(...)` handlers for paths with a dynamic ID segment (e.g. `DELETE .../review/\d+/`, `GET .../accounts/\d+/`) — MSW's string matcher can't express a wildcard path segment, so these fall back to a regex
+  - Lines 383–416: `http.post(restaurantsApiBaseUrl.concat("review-create/"), async ({ request }) => { const body = await request.json(); ... })` — a handler that echoes back parts of the real request body, so assertions on the created review reflect what the test actually submitted, not a hardcoded fixture
+  - Lines 493–559: a run of Spring Boot `admin/*` handlers that just echo `"<name> ok" + new URL(request.url).search` — these exist purely so `Admin.tsx`'s raw-axios calls (see `react-app/src/pages/Admin.tsx`) have something to hit in tests, proving the same handler file serves both RTK Query and non-RTK-Query call sites
+  - Lines 332–342 and 373–381: the `users/api/token/` and `token/refresh/` handlers return real-shaped (but fake-signed) JWTs — compare the `refresh`/`access` shapes here to what `userReducer.tsx`'s `extraReducers` matchers expect from issue #113
+- `react-app/__tests__/mocks/server.ts` (5 lines) — `setupServer(...handlers)` from `msw/node`; this is the actual interceptor, built once from the full handler array
+- `react-app/__tests__/setupTests.ts` (24 lines, read the whole thing) — the three-phase lifecycle every test file inherits automatically via `vitest.config.ts`'s `setupFiles`:
+  - Line 7: `server.listen()` in `beforeAll` — starts intercepting for the whole file
+  - Line 20: `server.resetHandlers()` in `afterEach` — throws away any per-test `server.use()` overrides so test N+1 starts from the clean default handler set, not test N's overrides
+  - Line 24: `server.close()` in `afterAll`
+  - Lines 8–13: a manual `ResizeObserver` stub assigned in the same `beforeAll` — unrelated to MSW, but shows this file is the single place test-environment globals get patched
+- `react-app/__tests__/RestaurantsFlows.test.tsx` lines 83–91 — a concrete per-test override: `server.use(http.get(restaurantsApiBaseUrl.concat("restaurant-recommend/"), () => Response.json({ detail: "model not loaded" }, { status: 500 })))` called *inside* a test, right before rendering — this only lasts until `afterEach`'s `resetHandlers()` fires
+- `react-app/__tests__/testutils.tsx` (67 lines) — `createTestStore`/`renderWithProviders` build a real Redux store with `djangoApi.middleware`/`springbootApi.middleware` attached (lines 8–16), which is *why* MSW is necessary here at all: RTK Query's middleware genuinely dispatches network requests during tests rather than being stubbed out
+- `react-app/vitest.config.ts` (29 lines) — lines 15–23: `define` hardcodes `import.meta.env.VITE_APP_DJANGO_URL`/`VITE_APP_SPRINGBOOT_URL` for the test environment, which is what lets `handlers.ts` build matching URLs at module-eval time; line 27: `setupFiles: ["./__tests__/setupTests.ts"]` is what wires the lifecycle into every test file without each one importing it manually
+- `.claude/skills/react-tests/SKILL.md` — the "MSW Mocking" section's `server.use()` override snippet is the pattern `RestaurantsFlows.test.tsx` demonstrates in real code
+
+## Questions to work through while reading
+
+1. `handlers.ts` builds base URLs from `import.meta.env.VITE_APP_DJANGO_URL`, and `vitest.config.ts` hardcodes that env var via `define` to `http://127.0.0.1:8000/`. If a component under test called an endpoint whose URL didn't match any registered handler (e.g. a typo, or a genuinely new unmocked endpoint), what would actually happen — would the test hang, throw, or silently return `undefined` data? (Check MSW's default "unhandled request" behavior for `setupServer` when no `onUnhandledRequest` option is passed to `server.listen()`.)
+2. Trace one full RTK Query dispatch through this stack: a component calls `useGetAssetsQuery()` → RTK Query's middleware calls the custom `axiosBaseQuery` (from issue #113) → that calls `axios(...)`. At what layer does MSW actually intercept this — does it patch global `fetch`, `XMLHttpRequest` (which axios uses under the hood in Node/jsdom), or something else? Why does that matter for whether MSW works transparently with axios versus needing axios-specific mocking.
+3. `server.resetHandlers()` runs in `afterEach`, not `afterAll`. Construct the failure scenario: what would go wrong across a test file with 3 tests if `RestaurantsFlows.test.tsx`'s `server.use()` override (lines 83–87) were added but `resetHandlers()` were removed from `setupTests.ts` — which test(s) would see stale mocked data, and why does ordering of tests within the file matter for whether the bug is caught?
+4. The `admin/*` handlers (lines 493–559) just echo back `"<name> ok" + search`. Given `Admin.tsx` is explicitly the one place using raw axios instead of RTK Query (per CLAUDE.md's React State & API section), what would you have had to build differently in `handlers.ts` if MSW only worked at the RTK Query/fetch layer and not for axios's underlying transport — and does the fact that these handlers exist at all confirm which layer MSW actually intercepts at?
+5. Compare the regex-based handler for `DELETE .../review/\d+/` (lines 418–423) to the string-based handler for `POST .../review-create/` (lines 383–416). Why can't `http.delete(restaurantsApiBaseUrl.concat("review/:id/"), ...)` — MSW's own path-parameter syntax — be used here instead of a hand-built regex? (Hint: look at how `restaurantsApiBaseUrl` is constructed vs. what MSW's path-to-regexp-based matcher expects as its base.)
+
+## Primer: MSW's approach vs. mocking modules/functions directly
+
+Most test mocking (Jest's `jest.mock`, Vitest's `vi.mock`) replaces a *module* — you swap out `axios` or a custom API-client function with a fake implementation, so the real network-calling code never runs at all. MSW (Mock Service Worker) takes a different approach: it intercepts requests at the network layer itself (patching the runtime's request-dispatch mechanism — `XMLHttpRequest`/`fetch` in Node via `msw/node`, or a real Service Worker in the browser), so *all* the application code that constructs and sends a request still runs exactly as it would in production — URL building, headers, serialization, RTK Query's caching/dedup logic — right up until the request would leave the process. Only at that boundary does a matching handler intercept it and return a canned response. The practical benefit: one handler set (`handlers.ts`) works identically whether the calling code is an RTK Query hook, a manually-dispatched RTK Query action, or completely unrelated axios code (`Admin.tsx`) — because none of those call sites need to know mocking exists. The cost: handlers are keyed by real URLs and HTTP methods, so they have to track the actual API surface (base URLs, path shapes, even dynamic segments needing regex) rather than being keyed by an arbitrary function/module name, and a genuinely new or renamed endpoint needs an explicit new handler before any test exercising it will pass.
+
+## External references
+
+- MSW documentation — request handlers, `setupServer`, and the `msw/node` integration: https://mswjs.io/docs/
+- MSW — handling unmatched requests (`onUnhandledRequest` behavior referenced in question 1): https://mswjs.io/docs/api/setup-server/listen#onunhandledrequest
+
+## Exercise (optional)
+
+Pick an existing RTK Query endpoint that already has a default handler in `handlers.ts` (e.g. `GET .../portfolio/api/quote/`, line 206). Write a small new test that calls `server.use()` to override just that one handler to return a 500/error-shaped response instead, render whatever component consumes that query, and assert the component's error UI (via `<StateHandler>`) appears — without touching `handlers.ts`'s default entry or any component code. This makes the "override is scoped to one test, then reset" lifecycle concrete rather than theoretical.
