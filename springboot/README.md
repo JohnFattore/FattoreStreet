@@ -15,20 +15,20 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Normalizes SEC dividend facts into quarterly payouts (handles cumulative YTD reporting and fiscal-Q4 edge cases)
 - Derives dividend ex-dates from SEC 8-K record-date disclosures and settlement-regime logic (T+3 before 2017-09-05, T+2 through 2024-05-27, T+1 after)
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
-- Fetches 10-K filings from SEC EDGAR, extracts the MD&A section, and generates ~500 word summaries via a local LLM (llama.cpp server)
+- Serves stored 10-K MD&A summaries through `GET /filing-summaries`. **The generator is retired** — no new summary is ever written, so a ticker whose 10-K post-dates the last generation run returns an empty list. That is current behavior, not a bug; see "Filing summaries (frozen)" below
 - Serves FRED (Federal Reserve Economic Data) observation series via public `POST /fred-data` (per-series optional year-over-year `pc1` units, 24h in-memory cache; powers the Economic Indicators page)
-- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` (no auth for now), `GET /iwb-reference-holdings` (bundled IWB CSV tickers + fund weights for UI benchmark), plus admin `POST /admin/indexes/refresh-stocks` and `POST /admin/indexes/rebuild` (`Authorization: Bearer` Django JWT for user id `1`, optional `code`, optional `year`). **Fattore 50** / **Fattore 100** / **Fattore 1000** are Russell-style (float-adjusted cap rank) top-50 / top-100 / top-1000 proxies (`FAT50` / `FAT100` / `FAT1000`), not official FTSE Russell products; run `refresh-stocks` first (or pass `refreshMetrics=true`) so metrics exist for the target year. Legacy paths `rebuild-fattore-50` / `rebuild-fattore-100` / `rebuild-fattore-1000` remain as aliases.
+- **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` and `GET /iwb-reference-holdings` (bundled IWB CSV tickers + fund weights for UI benchmark). Metrics refresh and rebuilds have no HTTP surface: the nightly `index-load` task refreshes metrics for the current year and then rebuilds all three indexes together. **Fattore 50** / **Fattore 100** / **Fattore 1000** are Russell-style (float-adjusted cap rank) top-50 / top-100 / top-1000 proxies (`FAT50` / `FAT100` / `FAT1000`), not official FTSE Russell products.
 
 ## Java package layout
 
-Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebService`), `index`, `corporateaction` and `corporateaction.support`, `economic` (FRED client/cache), `fundamentals`, `listing`, `filing`, `marketdata`, plus shared `controller`, `repository`, `model`, `config`, and `util`. The `index` package holds index membership listing, SEC facts parsing, and metrics refresh. Tests mirror those package names under `src/test/java`.
+Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebService`), `index`, `corporateaction` and `corporateaction.support`, `economic` (FRED client/cache), `fundamentals`, `listing`, `marketdata`, plus shared `controller`, `repository`, `model`, `config`, and `util`. The `index` package holds index membership listing, SEC facts parsing, and metrics refresh. Tests mirror those package names under `src/test/java`.
 
 ## Stack
 
 - Java 25 (LTS), Spring Boot 4.1
 - Spring Data JPA + Hibernate (PostgreSQL)
 - **Hibernate Envers** — all JPA entities are audited (`@Audited`). Hibernate creates a `revinfo` table and per-entity `*_AUD` tables (for example `assets_AUD`, `daily_prices_AUD`). Expect **large** audit table growth on high-churn data, especially `daily_prices` ingests; plan disk and retention accordingly. The inverse `Asset.listings` collection is `@NotAudited` so listing history is tracked only via `listings_AUD`.
-- Spring Security OAuth2 Resource Server (JWT): admin routes verify Django SimpleJWT access tokens (HS256, same `SECRET_KEY`; only `user_id` claim `1` is granted admin)
+- Spring Security for the filter chain only (CORS, CSRF-disable, stateless sessions). **No route is authenticated** and the service verifies no tokens: the JWT resource server went with the `/admin/**` routes, and with it Spring Boot's dependency on Django's `SECRET_KEY`
 - Spring `RestTemplate`-based SEC client (`WebService` in `client` package)
 - Bean Validation (`spring-boot-starter-validation`)
 - Custom pcap/pcapng + IEX-TP binary parser using `ByteBuffer` for HIST TOPS trade extraction
@@ -68,7 +68,6 @@ Before adding or changing any external data source:
 | `DB_USERNAME` | `postgres` | Database username |
 | `POSTGRES_PASSWORD` | `postgres` | Database password (same key Django uses; also the postgres image's init var) |
 | `SHOW_JPA_SQL` | `false` | When `true`, logs Hibernate-generated SQL. Use locally; leave unset or `false` in production. |
-| `SECRET_KEY` | (required) | Must match Django `SECRET_KEY` — used to verify `Authorization: Bearer` JWTs (SimpleJWT HS256). Only access tokens whose `user_id` claim is `1` may call `/admin/**`. |
 | (property) `fattore50.rebuild.top-n` | `50` | How many names the Fattore 50 rebuild includes. Set in `.env` as `fattore50.rebuild.top-n=50` if needed. |
 | (property) `fattore100.rebuild.top-n` | `100` | How many names the Fattore 100 rebuild includes. Set in `.env` as `fattore100.rebuild.top-n=100` if needed. |
 | (property) `fattore1000.rebuild.top-n` | `1000` | How many names the Fattore 1000 rebuild includes. Set in `.env` as `fattore1000.rebuild.top-n=1000` if needed. |
@@ -81,8 +80,13 @@ Before adding or changing any external data source:
 | `INDEX_LOAD_MIN_PROCESSED` | `800` | Minimum refreshed listings before the index load rebuilds; below it the task keeps existing members and exits `1` |
 | `FUNDAMENTALS_LOAD_YEARS_BACK` | `1` | Calendar years the one-shot fundamentals load (`APP_RUN_MODE=fundamentals-load`) syncs back from the current year. Frames are fetched per (concept, period), so raising this multiplies SEC requests for filings that rarely change |
 | `FUNDAMENTALS_LOAD_START_YEAR` | `0` (derive from years-back) | Explicit first year for the fundamentals load, clamped to 2009. Set to `2009` for a one-off full backfill |
-| `LLM_SERVER_URL` | `http://localhost:8081` | URL of the llama.cpp server for 10-K summarization |
 | `DJANGO_PORTFOLIO_BASE_URL` | `http://localhost:8000/portfolio` | Base URL for Django portfolio API used by diagnostics-only yfinance validation |
+| `APP_RUN_MODE` | `server` | Which one-shot job to run instead of serving the API: `hist-load`, `index-load`, `fundamentals-load`, `asset-load`, `validate-prices`. See "Run modes" below |
+| `ASSET_LOAD_OVERWRITE_EXISTING` | `false` | When `true`, the asset load re-resolves ETF identities that are already resolved rather than only filling gaps |
+| `VALIDATE_PRICES_INDEX_CODE` | `FAT1000` | Index whose members the weekly adjusted-price validation checks |
+| `VALIDATE_PRICES_MIN_DATE` | `2016-01-01` | Start of the validation comparison window |
+| `VALIDATE_PRICES_SNS_TOPIC_ARN` | (empty) | SNS topic the validation report is published to; empty logs the report instead |
+| `VALIDATE_PRICES_MAX_TICKERS` | `0` (no cap) | Safety cap on tickers validated per run, heaviest index weight first |
 | `SEC_HTTP_CONNECT_TIMEOUT_MS` | `15000` | SEC API connect timeout (milliseconds) |
 | `SEC_HTTP_READ_TIMEOUT_MS` | `120000` | SEC API read timeout per request (milliseconds) |
 | `SEC_HTTP_RETRY_MAX_ATTEMPTS` | `3` | Max attempts for transient SEC failures (429/5xx/timeout) |
@@ -96,13 +100,36 @@ Before adding or changing any external data source:
 mvn spring-boot:run
 ```
 
-`springboot/.env` is auto-imported at startup (`spring.config.import=optional:file:.env[.properties]`) for local runs. Keep values unquoted. Set `SECRET_KEY` to the **same value as Django** (JWT signing). Property `app.django-jwt-secret` defaults to `${SECRET_KEY}` in `application.properties`.
+`springboot/.env` is auto-imported at startup (`spring.config.import=optional:file:.env[.properties]`) for local runs. Keep values unquoted. No `SECRET_KEY` is needed: nothing in this service reads it.
 
-**CORS (browser → Spring from the Vite dev server or production):** `WebConfig` registers a `CorsConfigurationSource` and `SecurityConfig` enables `http.cors` so `OPTIONS` preflight succeeds before JWT filters. Allowed origins include local dev (`http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost`, `http://localhost:80`) and production (`https://fattorestreet.com`, `https://www.fattorestreet.com`). Edit `WebConfig` if you add more hosts.
-
-**Admin curl calls:** obtain an access token from Django (`POST /users/api/token/`), then pass `Authorization: Bearer <access>`. The token subject must be Django user **primary key 1**.
+**CORS (browser → Spring from the Vite dev server or production):** `WebConfig` registers a `CorsConfigurationSource` and `SecurityConfig` enables `http.cors`. Allowed origins include local dev (`http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost`, `http://localhost:80`) and production (`https://fattorestreet.com`, `https://www.fattorestreet.com`). Edit `WebConfig` if you add more hosts.
 
 The service starts on port **8080** by default.
+
+### Run modes
+
+`APP_RUN_MODE` selects exactly one `ApplicationRunner` on the shared image. `server` (the default)
+serves the API; every other value performs one job, logs a single summary line, and exits with a
+status code the container surfaces to EventBridge. **No route triggers any of these** — the admin
+endpoints that used to are gone, and each mode runs on its own EventBridge schedule.
+
+| Mode | Runner | Schedule (ET) | Work |
+|------|--------|---------------|------|
+| `server` | — | n/a | Serve the read-only API |
+| `hist-load` | `HistLoadRunner` | daily 02:00 | IEX HIST price load, then corporate-action detection and price adjustment |
+| `index-load` | `IndexLoadRunner` | daily 09:30 | Index metrics refresh, then rebuild `FAT50` / `FAT100` / `FAT1000` |
+| `fundamentals-load` | `FundamentalsLoadRunner` | daily 13:30 | SEC XBRL frames sync into `Quarter` rows |
+| `validate-prices` | `ValidatePricesRunner` | weekly, Sun 20:00 | Read-only adjusted-price accuracy report, emailed via SNS |
+| `asset-load` | `AssetLoadRunner` | monthly, 1st 22:00 | SEC ticker universe into `Asset` / `Listing`, then ETF identity enrichment |
+
+Slots must not overlap: the SEC rate limiter is per-process, so two tasks calling `data.sec.gov` at
+once double the effective request rate and earn 403s for both. Exit codes are uniform — `0` on
+completion (including per-item failures that are idempotent and retry next run), `1` when the job
+threw or a guard proved the run did no useful work. The EventBridge failure rule alerts on any
+non-zero exit, so a runner that swallows a total failure and exits `0` would be invisible.
+
+Ad-hoc runs go through `aws ecs run-task` with a container environment override; the runbook is in
+`deploy/terraform/README.md`.
 
 ### Run with Docker
 
@@ -112,22 +139,19 @@ docker run -p 8080:8080 \
   -e DB_URL=jdbc:postgresql://host:5432/springboot \
   -e DB_USERNAME=postgres \
   -e POSTGRES_PASSWORD=postgres \
-  -e SECRET_KEY=same-value-as-django-secret-key \
   sec-api
 ```
 
 ### IEX Price Data
 
-The service downloads IEX HIST TOPS pcap files, parses them in-process using a custom binary parser, and writes OHLCV data directly to the database. Trigger via the admin endpoint:
+The service downloads IEX HIST TOPS pcap files, parses them in-process using a custom binary parser, and writes OHLCV data directly to the database. It runs as the nightly `hist-load` task, not from an HTTP request:
 
 ```bash
-# export ACCESS_TOKEN='<Django access JWT for user id 1>'  # from POST /users/api/token/
+# Locally: 02:00 ET equivalent, ~1 year of IEX TOPS data
+APP_RUN_MODE=hist-load HIST_LOAD_DAYS=252 mvn spring-boot:run
 
-# Load ~1 year of IEX TOPS data (default 252 trading days)
-curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/load-hist
-
-# Or specify a smaller window
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/load-hist?days=30"
+# A smaller window
+APP_RUN_MODE=hist-load HIST_LOAD_DAYS=30 mvn spring-boot:run
 ```
 
 Dates already in the database are skipped automatically. IEX load saves raw prices only — price adjustments run as a separate process.
@@ -140,31 +164,23 @@ Dates already in the database are skipped automatically. IEX load saves raw pric
 
 **Upgrading existing databases** (pre–`MarketIndex` FK): if `index_members` still has a legacy `market_index` text column, insert the matching `market_indexes` row if needed, backfill `market_index_id`, then drop the old column after verifying rows.
 
-```bash
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/refresh-stocks
-# Optional: target a calendar year (defaults to current year)
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/refresh-stocks?year=2025"
-#
-# Optional: refresh all listings in the DB (not just Russell 1000 / IWB tickers)
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/refresh-stocks?scope=all"
-```
-
-Rebuild cap-ranked indexes (`FAT50`, `FAT100`, `FAT1000`): creates or reuses each `MarketIndex` row, replaces `IndexMember` rows (weights sum to 100%). Optional `code` selects one index; omit to rebuild all (FAT100, FAT1000, FAT50). Optional `refreshMetrics=true` refreshes metrics once for that year first; optional `year` defaults to the current calendar year.
+The refresh and the cap-ranked rebuild (`FAT50`, `FAT100`, `FAT1000`) run together as one job: the rebuild creates or reuses each `MarketIndex` row and replaces its `IndexMember` rows (weights sum to 100%). All three indexes are rebuilt together — there is no single-index selector.
 
 ```bash
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/rebuild?code=FAT50"
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/rebuild?code=FAT1000"
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/rebuild?refreshMetrics=true"
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/indexes/rebuild?year=2025&refreshMetrics=true"
+# The whole sequence, against a local database
+APP_RUN_MODE=index-load mvn spring-boot:run
 
-# Legacy aliases (singular `rebuild` in JSON response)
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild-fattore-50
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild-fattore-100
-curl -X POST -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/indexes/rebuild-fattore-1000
+# Refresh all listings in the DB, not just Russell 1000 / IWB tickers
+APP_RUN_MODE=index-load INDEX_LOAD_SCOPE=all mvn spring-boot:run
+
+# Smoke test: refresh one ticker, then rebuild
+APP_RUN_MODE=index-load INDEX_LOAD_TICKER=AAPL mvn spring-boot:run
+
+# Target a calendar year (defaults to the current year)
+APP_RUN_MODE=index-load INDEX_LOAD_YEAR=2025 mvn spring-boot:run
 ```
 
-**Scheduled run (Fargate):** the same refresh + rebuild-all sequence runs nightly as an ephemeral Fargate task (`APP_RUN_MODE=index-load` via `IndexLoadRunner`, scheduled after the hist-load task so fresh `DailyPrice` rows exist; see `deploy/terraform/README.md`). The runner skips the rebuild and exits `1` if the refresh processes fewer than `INDEX_LOAD_MIN_PROCESSED` listings — the rebuild deletes members by index code, so rebuilding after a mostly-failed refresh (SEC outage, empty new calendar year) would shrink the live indexes. The admin endpoints above remain for manual runs.
+**Scheduled run (Fargate):** this runs nightly as an ephemeral Fargate task (`APP_RUN_MODE=index-load` via `IndexLoadRunner`, scheduled after the hist-load task so fresh `DailyPrice` rows exist; see `deploy/terraform/README.md`). The runner skips the rebuild and exits `1` if the refresh processes fewer than `INDEX_LOAD_MIN_PROCESSED` listings — the rebuild deletes members by index code, so rebuilding after a mostly-failed refresh (SEC outage, empty new calendar year) would shrink the live indexes.
 
 List available indexes and fetch constituents:
 
@@ -187,7 +203,7 @@ quarter).
 loads because the SEC rate limiter is per-process and overlapping tasks earn 403s for both.
 
 The nightly run covers only `FUNDAMENTALS_LOAD_YEARS_BACK` (default 1) years back through the
-current year, where `GET /admin/sync-frames` walks 2009→present. Frames are fetched per (concept,
+current year, rather than the full 2009→present history. Frames are fetched per (concept,
 period), so full history is thousands of multi-megabyte requests almost entirely re-reading settled
 filings; two calendar years absorbs amendments and late filers, and the upsert key makes restating a
 year overwrite in place. Set `FUNDAMENTALS_LOAD_START_YEAR=2009` for a one-off backfill.
@@ -236,32 +252,16 @@ The scheduled task sets `HIST_LOAD_EQUITY_ONLY=true` (property `app.hist-load.eq
 Terraform variable `hist_load_equity_only`), so the nightly adjustment covers equities only. ETFs
 have no XBRL dividend facts, so `EtfCorporateActionService` brute-force fetches the filing index and
 hundreds of documents per fund against the SEC rate limit; leaving funds in stretched nightly runs
-past 17 hours. Fund detection stays available on demand through the `etfOnly` parameter on the
-endpoints below. The property defaults to `false`, so a manual `hist-load` run still covers
-everything.
+past 17 hours. The property defaults to `false`, so a local `hist-load` run still covers everything.
 
-The endpoints below stay available for manual runs:
+**ETF corporate actions and adjusted prices are currently deferred.** Nothing maintains them: the
+nightly job is equity-only and the `etfOnly` trigger went with the admin routes, so fund adjusted
+values freeze where they are. Restoring coverage means flipping `hist_load_equity_only` to `false`
+and accepting the runtime, or building a separate ETF job.
 
-```bash
-# Adjust all tickers (rolling SEC re-detection within the scope index: stalest ~1/7 + price-jump triggers)
-curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/adjust-prices
-
-# Force re-fetch from SEC for all tickers (catches new splits/dividends)
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?force=true"
-
-# Adjust ETFs only (SEC filing-derived ETF actions)
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?etfOnly=true&minConfidence=75"
-
-# Adjust a single ticker
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?ticker=AAPL"
-
-# Optional diagnostics-only validation against yfinance reference events (via Django portfolio API)
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/adjust-prices?ticker=AAPL&force=true&validateWithYfinance=true"
-
-# Diagnostics-only adjusted-price comparison against the yfinance adjusted-close reference
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/validate-adjusted-prices?ticker=AAPL"
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/validate-adjusted-prices?minDate=2020-01-01"
-```
+To reproduce a single ticker while developing, run the adjustment locally against a dev database or
+call `PriceAdjustmentService` directly. There is no HTTP trigger and no per-ticker task equivalent —
+the nightly run recomputes the full adjusted series for every ticker it touches anyway.
 
 Dividend ingestion behavior:
 - Normalizes dividend facts to per-quarter payouts before persistence.
@@ -289,11 +289,11 @@ Dividend ingestion behavior:
 - For ETF runs, scans primary filings plus a capped set of likely exhibit/attachment docs (for better recall on funds like VOO where distributions are often in exhibits).
 - Uses scored ETF identity matching (ticker/class ticker/series-class IDs/name signals) instead of strict single-token gating.
 - ETF date extraction normalizes filing HTML/text, supports additional date formats (`MM-DD-YYYY`, `MM/DD/YY`, `YYYY/MM/DD`, abbreviated month labels), and can use low-confidence pay-date/filing-date fallbacks when explicit ex/record dates are absent.
-- Returns ETF diagnostics in `/admin/adjust-prices` output:
+- Logs ETF diagnostics at the end of a run:
   - single-fund ticker mode: `etfDiagnostics`
   - batch mode: `etfDiagnosticsSummary`
   - both include skip-reason buckets and capped sample rows for troubleshooting misses (including separate `date_missing` and `below_confidence` reasons).
-- Returns equity diagnostics in `/admin/adjust-prices` output:
+- Logs equity diagnostics at the end of a run:
   - single-equity ticker mode: `equityDiagnostics`
   - batch mode: `equityDiagnosticsSummary`
   - includes split/date-path counters and dividend parser-path counters (facts parsed, normalized events, record-date path usage, fallback usage, inserts/updates), plus split price-corroboration counters (`priceCorroborated`, `priceSnapped`, `priceRejected`, `priceOnlyDetected`, `priceOnlyUnconfirmed`), ex-date assignment-path counters (`declarationTuples`, `tupleMatchedAssignments`, `directExAssignments`, `dpAssignments`, `syntheticAssignments`, `promotedTupleEvents`), and filing-scan health (`scanFailedFilings`, `scanDegraded` per ticker; `scanFailedFilings` / `scanDegradedTickers` in the batch summary).
@@ -306,10 +306,10 @@ Dividend ingestion behavior:
   - mismatch taxonomy: `missing_in_sec`, `extra_in_sec`, `date_drift`, `amount_drift`
   - ticker mode also adds `priceValidationReport` and batch mode `priceValidationSummary` (see below)
   - **No yfinance values are written to DB**; SEC remains source of truth.
-- Adjusted-price validation (`GET /admin/validate-adjusted-prices?ticker=&minDate=`) compares stored `adjustedClose` against the yfinance adjusted-close reference (`/portfolio/api/asset-prices/`), normalized at the latest common date:
-  - reports `meanAbsDeviation`, `maxAbsDeviation`, `datesOverThreshold` (0.5% level threshold)
-  - reports `breaks`: dates where the sec/yf ratio steps day-over-day by more than 1%, each with the nearest stored corporate action within ±7 days; every break localizes one missing, extra, or misdated event
-  - omit `ticker` for a batch summary (`worstTickers`, `sampleBreaks`); diagnostics-only, never persisted, never called by the nightly job.
+- Adjusted-price validation runs weekly as the `validate-prices` task (see "Run modes" below), comparing stored `adjustedClose` against the yfinance adjusted-close reference (`/portfolio/api/asset-prices/`), normalized at the latest common date:
+  - reports `tickersChecked`, `tickersSkipped`, `tickersOutOfTolerance` (0.5% level threshold)
+  - reports ratio breaks: dates where the sec/yf ratio steps day-over-day by more than 1%, each with the nearest stored corporate action within ±7 days; every break localizes one missing, extra, or misdated event
+  - index-scoped, read-only, emailed via SNS; never persisted, never called by the nightly job.
 - Public comparison endpoints exposed for UI validation views:
   - `GET /dividends?ticker=...` returns persisted internal dividend actions.
   - `GET /splits?ticker=...` returns persisted internal split actions (`ratio` is `old_shares / new_shares`).
@@ -318,35 +318,45 @@ Dividend ingestion behavior:
 
 Use this sequence for safe subset-to-batch reconciliation when load quality drifts:
 
-1. **Subset triage first**: run a small ticker cohort with `force=true&validateWithYfinance=true`.
+This is a **development** workflow, run locally against a dev database — the reconciliation
+affordances it uses (forced re-detection, yfinance validation, subset targeting) are dev-only and
+have no production trigger.
+
+1. **Subset triage first**: run a small ticker cohort with `force=true` and yfinance validation on.
 2. **Inspect diagnostics**: prioritize `missing_in_sec` and `amount_drift` mismatches and high-volume skip reasons.
 3. **Tune + retest**: apply parser/date-mapping fixes, rerun the same subset, and confirm mismatch reduction.
-4. **Promote to batch**: run full batch with `force=true` (optionally `etfOnly=true` or `equityOnly=true`) plus `validateWithYfinance=true`.
+4. **Promote to batch**: run the full batch with `force=true` plus yfinance validation.
 5. **Record outcomes**: capture `equityDiagnosticsSummary`, `etfDiagnosticsSummary`, and `validationSummary` snapshots for regression tracking.
 
-Asset load with integrated ETF identity enrichment:
+Nothing in a production run ever sets `validateWithYfinance` — the nightly job hardcodes it `false`,
+and the weekly `validate-prices` task writes nothing at all.
+
+### Asset load (SEC ticker universe + ETF identity)
+
+Loads every US ticker from the SEC ticker endpoints (`company_tickers.json` and
+`company_tickers_mf.json`) into `Asset` / `Listing`, then enriches ETF listings with SEC
+series/class identity. Runs monthly as the `asset-load` task:
 
 ```bash
 # Load equities/funds from SEC and enrich ETF series/class identity fields
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/asset-load"
+APP_RUN_MODE=asset-load mvn spring-boot:run
 
 # Overwrite previously resolved ETF identity rows during load
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/asset-load?overwriteExisting=true"
+APP_RUN_MODE=asset-load ASSET_LOAD_OVERWRITE_EXISTING=true mvn spring-boot:run
 ```
 
-### 10-K Filing Summaries
+The runner exits `1` if it persisted zero tickers — the signature of a missing `SEC_CONTACT_EMAIL`,
+which earns a 403 "Undeclared Automated Tool" on every request and would otherwise look like a
+successful run that happened to find nothing.
 
-Fetches 10-K filings from SEC EDGAR, extracts the Management's Discussion and Analysis (Item 7) section, and generates ~500 word summaries using a local Qwen 2.5-7B model via llama.cpp.
+### 10-K Filing Summaries (frozen)
 
-Requires the llama.cpp server to be running (see `llm/run-server.sh`):
+Existing summaries are served from `filing_summaries`; **the generator is retired**. `GET
+/filing-summaries` and the whole React read path are unchanged, the table and its Envers audit table
+are untouched, and no migration was needed — but nothing writes a new row, so a ticker whose 10-K
+post-dates the last generation run returns an empty list. That is correct behavior now, not a bug.
 
-```bash
-# Summarize all equities with a CIK
-curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/admin/summarize-filings
-
-# Summarize a single ticker
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "http://localhost:8080/admin/summarize-filings?ticker=AAPL"
-```
+The schema is retained deliberately so revisiting summarization later costs nothing.
 
 Retrieve stored summaries via the public endpoint:
 

@@ -73,7 +73,7 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 - Django issues SimpleJWT Access + Refresh tokens via `POST /users/api/token/`
 - React stores tokens in Redux (redux-persist), Axios interceptor adds `Authorization: Bearer <token>`
 - RTK Query base query handles automatic 401 refresh
-- Spring Boot admin endpoints require `Authorization: Bearer` with a Django SimpleJWT access token; JWT signing uses the same `SECRET_KEY` as Django, and only `user_id` claim `1` is allowed for `/admin/**`
+- Spring Boot authenticates nothing. Every route is public and no token is verified: the `/admin/**` routes and the JWT resource server that guarded them were retired, so `SECRET_KEY` is now Django-only. Do not add an authenticated Spring Boot route — a new backend job gets a run mode and a schedule, not an endpoint
 
 ### Django Apps
 - `portfolio/` — Asset & account CRUD, yfinance price data, quarterly financials
@@ -84,7 +84,7 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 - `blog/` — Blog posts with categories and tags. Content is Markdown in `blog/journal/` (the author's posts) and `blog/learning-topics/` (daily study topics, filenames prefixed with their GitHub issue number, filed under the `LLM Notebook` category). The files ship in the image and are the source of truth; `deploy/deploy.sh` runs `manage.py sync_blog_posts` on every deploy, so merging to `main` publishes. Posts match on slug derived from the filename — see `django/README.md`, and the `blog-editor` skill for the file format
 - `entertainment/` — Media recommendations (books, movies, shows, music, podcasts, games, websites)
 
-**Scheduled jobs**: three Fargate one-shot tasks on EventBridge Scheduler crons (see `springboot/deploy/terraform/`), not inside Django. The IEX HIST daily price ingest, which after a successful load also runs corporate-action price adjustment (`PriceAdjustmentService.adjustAllTickers`); the index load; and the SEC XBRL frames sync (`APP_RUN_MODE=fundamentals-load`, `EdgarService.syncFrames`), which covers a recent year window (`FUNDAMENTALS_LOAD_YEARS_BACK`, default 1) rather than the full 2009→present history the `/admin/sync-frames` endpoint walks, because frames are fetched per (concept, period). The three are scheduled clear of each other: the SEC rate limiter is per-process, so overlapping tasks double the effective request rate. Automatic SEC detection is scoped to members of one index (`FAT1000` by default, property `app.price-adjustment.detection-index-code`), because the price universe is the full IEX HIST symbol set (~24k tickers, most with no SEC counterpart) and re-scanning it takes days; within that scope it re-detects the stalest ~1/7 of tickers per night (rolling weekly refresh via `listings.last_sec_detection_at`) plus any in-scope ticker with a >25% overnight move. Price adjustment itself still covers every ticker with unadjusted rows. External-data helpers (`portfolio/helper.py`) cache lazily in Redis on first request.
+**Scheduled jobs**: five Fargate one-shot tasks on EventBridge Scheduler crons (see `springboot/deploy/terraform/`), not inside Django, and the only trigger for this work. `hist-load` (02:00 ET daily) is the IEX HIST daily price ingest, which after a successful load also runs corporate-action price adjustment (`PriceAdjustmentService.adjustAllTickers`); `index-load` (09:30 daily); `fundamentals-load` (13:30 daily, `EdgarService.syncFrames`), which covers a recent year window (`FUNDAMENTALS_LOAD_YEARS_BACK`, default 1) rather than the full 2009→present history, because frames are fetched per (concept, period); `validate-prices` (Sun 20:00 weekly), a read-only adjusted-price accuracy report emailed via SNS that writes nothing; and `asset-load` (1st of the month, 22:00), the SEC ticker universe load plus ETF identity enrichment. They are scheduled clear of each other: the SEC rate limiter is per-process, so overlapping tasks double the effective request rate. Automatic SEC detection is scoped to members of one index (`FAT1000` by default, property `app.price-adjustment.detection-index-code`), because the price universe is the full IEX HIST symbol set (~24k tickers, most with no SEC counterpart) and re-scanning it takes days; within that scope it re-detects the stalest ~1/7 of tickers per night (rolling weekly refresh via `listings.last_sec_detection_at`) plus any in-scope ticker with a >25% overnight move. Price adjustment itself still covers every ticker with unadjusted rows. External-data helpers (`portfolio/helper.py`) cache lazily in Redis on first request.
 
 ### Spring Boot Packages
 ```
@@ -95,7 +95,6 @@ com.fattorestreet.sec_api/
   corporateaction/   Dividends/splits detection, price adjustment
     support/         Parsers, extractors, persisters
   listing/           Assets, listings, ETF identity enrichment
-  filing/            10-K MD&A fetch + LLM summarization
   marketdata/        Daily prices, IEX HIST binary ingest
   economic/          FRED economic data client + in-memory cache
   index/             Index membership, metrics refresh
@@ -115,9 +114,9 @@ Test classes mirror source under `src/test/java/.../sec_api/`.
 - `MarketIndex`, `IndexMember`, `ListingIndexMetrics` — Index infrastructure
 
 ### React State & API
-- All API calls use **RTK Query** via `src/functions/api/` (`djangoApi.ts`, `springbootApi.ts`, shared `baseQuery.ts`); the only intentional exception is the raw axios calls in `src/pages/Admin.tsx`
+- All API calls use **RTK Query** via `src/functions/api/` (`djangoApi.ts`, `springbootApi.ts`, shared `baseQuery.ts`), with no exceptions — the Admin page that used raw axios is gone
 - Client-only state lives in `createSlice` reducers in `src/reducers/` (`user` for JWT tokens + dark mode, `location`, `watchList`, `adminSuccessBar`); the `user` slice captures tokens from the `login`/`refreshLogin` mutations via `extraReducers` matchers
-- 401 handling is a single global axios response interceptor in `src/App.tsx` that dispatches the `refreshLogin` mutation and retries — it covers RTK Query (whose baseQuery uses global axios) and Admin.tsx alike
+- 401 handling is a single global axios response interceptor in `src/App.tsx` that dispatches the `refreshLogin` mutation and retries. Only Django can return a 401; Spring Boot has no authenticated routes
 - API responses use snake_case (Django convention); RTK Query transforms to camelCase for components
 - All pages protected by `<StateHandler>` for loading/error display
 
@@ -151,8 +150,8 @@ Additional conventions:
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)
 - `DB_URL`, `DB_USERNAME`, `POSTGRES_PASSWORD` — PostgreSQL connection (`POSTGRES_PASSWORD` is the shared DB-password key used by Django and the postgres image too)
-- `SECRET_KEY` — must match Django `SECRET_KEY` for JWT verification on admin routes (`app.django-jwt-secret` defaults to this value)
-- `LLM_SERVER_URL` — llama.cpp server (default `http://localhost:8081`)
+- No `SECRET_KEY`: nothing in this service reads it
+- `APP_RUN_MODE` — `server` (default) or one of `hist-load`, `index-load`, `fundamentals-load`, `asset-load`, `validate-prices`
 - `DJANGO_PORTFOLIO_BASE_URL` — Django base URL for validation calls
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 - `FRED_API_KEY` — FRED key for the public `POST /fred-data` economic data endpoint

@@ -86,11 +86,11 @@ Public blog posts (no authentication required).
 | `GET` | `/indexes` | None | List available market indexes (`code`, `displayName`). |
 | `GET` | `/index-members` | None | List index members with nested `stock` payload (listing + metrics). Optional query param `code` filters to a single index (e.g. `?code=FAT50`, `?code=FAT100`, or `?code=FAT1000`). Each `stock` includes `countryIncorp`, `countryHQ`, `stateIncorp`, `stateHQ` (US state/territory codes or SEC opaque codes when country is unknown), plus float/mkt cap fields — see `IndexMemberApiService.StockRow` in Spring Boot. |
 | `GET` | `/iwb-reference-holdings` | None | Bundled iShares **IWB** (Russell 1000 ETF) equity rows from `classpath:/data/IWB_holdings.csv` (`springboot/src/main/resources/data/IWB_holdings.csv`): JSON array of `{ "ticker", "weightPercent" }` (fund-reported weight % of NAV). Used by the Indexes page to compare **FAT1000** vs the reference file. |
-| `POST` | `/admin/indexes/refresh-stocks` | `Authorization: Bearer` (Django JWT) | Recompute `ListingIndexMetrics` for a calendar **year** using IEX daily prices and SEC companyfacts. Optional query param `year` (defaults to current calendar year). Optional query param `scope` controls ticker universe: `russell1000` (default; tickers in bundled `classpath:/data/IWB_holdings.csv`, a Russell 1000 / IWB export) or `all` (all listings in the DB). Response includes `year`, `scope`, `skipReasonCounts` (aggregate counts by `skippedTickers` reason), `processed`, `skipped`, and `skippedTickers`. |
-| `POST` | `/admin/indexes/rebuild` | `Authorization: Bearer` (Django JWT) | Rebuild cap-ranked indexes (`FAT50`, `FAT100`, `FAT1000`). Optional query param `code` (case-insensitive) selects one index; omit or leave blank to rebuild **all** configured indexes (order: `FAT100`, `FAT1000`, `FAT50`). Optional `year` (defaults to current calendar year). Optional `refreshMetrics=true` runs `refresh-stocks` for that year once before rebuilds. Response JSON: `year`, `rebuilds` (array of objects: `indexCode`, `year`, `memberCount`, `partial`, `totalFreeFloatMarketCap`, `tickers`), optional `refresh`, `duration`. Unknown `code` returns 400. Not an official FTSE Russell index. |
-| `POST` | `/admin/indexes/rebuild-fattore-50` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT50`. Response uses singular `rebuild` instead of `rebuilds`. |
-| `POST` | `/admin/indexes/rebuild-fattore-100` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT100`. Response uses singular `rebuild` instead of `rebuilds`. |
-| `POST` | `/admin/indexes/rebuild-fattore-1000` | `Authorization: Bearer` (Django JWT) | **Legacy alias** for `POST /admin/indexes/rebuild?code=FAT1000`. Response uses singular `rebuild` instead of `rebuilds`. |
+
+Index metrics refresh and cap-ranked rebuilds have no HTTP surface. They run as the nightly
+`index-load` Fargate task (`APP_RUN_MODE=index-load`), which refreshes `ListingIndexMetrics` for
+the current year and then rebuilds `FAT50`, `FAT100` and `FAT1000` together. See
+`springboot/deploy/terraform/README.md` for the ad-hoc invocation.
 
 ## 📈 FRED Economic Data
 
@@ -246,34 +246,108 @@ Returns stored internal split events (corporate actions) for a specific ticker.
 
 `ratio` is the canonical split adjustment factor (`old_shares / new_shares`; e.g., `0.25` for a 4:1 forward split). `value` is provided as a compatibility alias.
 
-## 🔧 Admin Endpoints
+## 🔧 Scheduled jobs (no HTTP surface)
 
-All admin endpoints require `Authorization: Bearer <access_token>` where the token is a **Django SimpleJWT access JWT** (HS256, signed with the same `SECRET_KEY` configured on the Spring Boot service). The JWT `user_id` claim must be **`1`** (Django user primary key); other authenticated users receive **403** on `/admin/**`. Missing or invalid tokens yield **401**.
+**Spring Boot has no authenticated routes.** Every endpoint above is public, and the service
+verifies no tokens: the `/admin/**` routes and the Django-JWT resource server that guarded them
+were retired, and with them Spring Boot's dependency on Django's `SECRET_KEY`.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/admin/asset-load?overwriteExisting=false` | Load all US tickers from SEC ticker endpoints (`company_tickers.json` and `company_tickers_mf.json`) into the database, then enrich ETF listings with SEC series/class identity mapping. |
-| `GET` | `/admin/sync-frames` | Sync XBRL frame data from SEC (all frames since 2009) into `Quarter` rows. The same sync runs nightly as a Fargate task over a recent year window instead of full history (`APP_RUN_MODE=fundamentals-load`, `FUNDAMENTALS_LOAD_YEARS_BACK`); this endpoint remains the way to force a full-history backfill. |
-| `GET` | `/admin/load-hist?days=N` | Download IEX HIST TOPS PCAPs, parse trades, and insert raw OHLCV into DB. Default 252 days (~1 year). Does **not** trigger price adjustments. |
-| `GET` | `/admin/adjust-prices?ticker=X&force=false&etfOnly=false&equityOnly=false&minConfidence=70&validateWithYfinance=false` | Detect splits/dividends from SEC and apply adjustment factors to OHLCV prices. Supports ETF-only or equity-only batch mode and a minimum confidence threshold for ETF actions extracted from ETF filing forms (`497`, `485*`, `N-CSR/N-CSRS`). ETF detection scans the primary filing plus a capped set of likely exhibit/attachment documents, applies scored identity matching (ticker + class/series signals), and ranks amount/date candidates from sentence and table-like layouts. ETF date extraction now normalizes HTML/text blocks, supports additional formats (`MM-DD-YYYY`, `MM/DD/YY`, `YYYY/MM/DD`, abbreviated month labels), and can use low-confidence pay-date/filing-date fallbacks when explicit ex/record dates are missing. Dividend facts are normalized to quarterly payouts (including guarded fiscal-Q4 derivation from annual 10-K totals), and ex-dividend dates are mapped from SEC 8-K record dates (T+3 before 2017-09-05, T+2 through 2024-05-27, T+1 after) using filing metadata and exhibit fallback parsing. When record dates cannot be reliably recovered, SEC-only fallback infers ex-dates from cadence/lag (with diagnostics) instead of quarter-end placeholders. Split factors are snapped to canonical ratios before dividend back-adjustment, and split effective dates are resolved price-break-first: the raw IEX close series is searched for the overnight break matching the split multiplier (price break > SEC filing text > shares-fact date), XBRL split candidates with full price coverage but no matching break are rejected, same-ratio splits within ±90 days are re-dated in place, and unexplained persistent split-like price breaks are persisted as `SEC_PRICE_CORROBORATED` when a filing split-date candidate confirms them (or on price evidence alone for ≥5x moves). Equity dividend ex-dates are anchored to amount-matched 8-K declaration tuples (record/payable/ex dates stated next to the per-share amount) before falling back to direct ex-date extraction and DP record-date assignment; each row records its `ex_date_source` provenance and a matching confidence score, weaker-grounded re-detections never move dates set by stronger paths, and declaration-anchored rows are excluded from orphan pruning. Recent high-confidence declaration tuples that no XBRL event claims are promoted to provisional dividend events (closing the 8-K-to-10-Q blind window); per-accession extraction results are persisted in `filing_extractions` so re-scans only fetch documents for new accessions; and when too many filing fetches fail, the run suppresses synthetic inserts and pruning instead of degrading stored data. Persisted dividend rows keep both `rawValue` and `adjustedValue`; adjusted prices use `adjustedValue`. SEC fetches use bounded retries and configurable timeouts to avoid indefinite hangs during long scans. Omit `ticker` to adjust all. Without `force`, automatic SEC detection is scoped to members of one index (`FAT1000` by default, property `app.price-adjustment.detection-index-code`, env `PRICE_ADJUSTMENT_DETECTION_INDEX`); the price universe is the full IEX HIST symbol set (~24k tickers, about two thirds with no SEC counterpart), which takes days to re-scan at the SEC rate limit. Within that scope, detection refreshes on a rolling cadence: each batch run re-detects the stalest ~1/7 of in-scope tickers (tracked via `listings.last_sec_detection_at`, so every in-scope ticker is re-scanned about weekly) plus any in-scope ticker with a >25% overnight move among its most recent closes (split signature); a failed SEC fetch does not refresh the staleness stamp, so the ticker retries next run. Price adjustment still covers every ticker with unadjusted rows: out-of-scope tickers get adjusted columns filled from raw prices or already-stored actions, so they drain out of the backlog. A configured index with no members skips automatic detection rather than falling back to the full universe; `force=true` bypasses the scope. Actions dated on non-trading days are snapped forward to the next trade date; per-ticker failures leave adjusted columns NULL so the next run retries. Set `force=true` to re-fetch SEC data for all tickers (reconciles existing actions and catches new splits/dividends). Set `validateWithYfinance=true` for diagnostics-only mismatch reporting against yfinance reference events (no writes from yfinance). This same batch adjustment also runs automatically at the end of the nightly Fargate hist-load task (`APP_RUN_MODE=hist-load`, disable with `HIST_LOAD_ADJUST_ENABLED=false`), always without yfinance validation. |
-| `GET` | `/admin/validate-adjusted-prices?ticker=X&minDate=2016-01-01` | Diagnostics-only comparison of stored `adjustedClose` against the yfinance adjusted-close reference served by Django (`/portfolio/api/asset-prices/`). Ratios are normalized at the latest common date; the report includes `meanAbsDeviation`, `maxAbsDeviation`, `datesOverThreshold` (0.5% level threshold), and `breaks` (dates where the ratio steps day-over-day by more than 1%, each annotated with the nearest stored corporate action within ±7 days — every break localizes one missing, extra, or misdated event). Omit `ticker` for a batch summary across all price tickers (`worstTickers`, `sampleBreaks`). Nothing is persisted and the nightly job never calls it. |
+What those routes did now runs as one-shot Fargate tasks on the shared image, selected by
+`APP_RUN_MODE` and triggered by EventBridge Scheduler. They report through CloudWatch logs, a
+container exit code and an SNS failure alert rather than an HTTP response body. Ad-hoc runs go
+through `aws ecs run-task` with a container environment override -- the runbook lives in
+`springboot/deploy/terraform/README.md`.
 
-When ticker mode is used for a fund (`/admin/adjust-prices?ticker=VOO`), response may include:
-- `etfDiagnostics`: per-run ETF extraction diagnostics (`filingsConsidered`, `filingsFetched`, `candidateDocumentsScanned`, `identityMatched`, `amountExtracted`, `dateExtracted`, `belowConfidence`, `duplicates`, `saved`, `identityScoreBuckets`, `amountSourceCounts`, `dateResolutionPathCounts`, `dateSourceCounts`, `skipReasons`, `sampleSkips`, `sampleCreated`)
-  - `skipReasons` may include `date_missing` (no usable date signal found) and `below_confidence` (date found but filtered by `minConfidence`).
-- `equityDiagnostics`: per-run equity detection diagnostics (`split` and `dividend` parser-path counters, inserts/updates, and failure reason if SEC fetch fails).
-- `validationReport` (only when `validateWithYfinance=true`): diagnostics-only mismatch report with taxonomy `missing_in_sec`, `extra_in_sec`, `date_drift`, `amount_drift`.
-- `priceValidationReport` (only when `validateWithYfinance=true`): the adjusted-price comparison for the ticker (same shape as `/admin/validate-adjusted-prices`).
-- `snappedActions`: count of corporate actions whose effective date fell on a non-trading day and was applied on the next trade date.
+| Retired route | Replacement |
+|---------------|-------------|
+| `GET /admin/asset-load` | `asset-load`, monthly. Loads the SEC ticker universe (`company_tickers.json` + `company_tickers_mf.json`) into `Asset`/`Listing`, then enriches ETF series/class identity. `ASSET_LOAD_OVERWRITE_EXISTING=true` re-resolves already-resolved identities. |
+| `GET /admin/sync-frames` | `fundamentals-load`, daily. Syncs XBRL frames into `Quarter` rows over a recent year window (`FUNDAMENTALS_LOAD_YEARS_BACK`); set `FUNDAMENTALS_LOAD_START_YEAR=2009` for a full-history backfill. |
+| `GET /admin/load-hist` | `hist-load`, daily. Downloads IEX HIST TOPS PCAPs and inserts raw OHLCV. `HIST_LOAD_DAYS` sets the window. |
+| `GET /admin/adjust-prices` | `hist-load`'s adjustment phase, which runs after every price load (`HIST_LOAD_ADJUST_ENABLED`). No separate job: it already recomputes the full adjusted series for every ticker it touches. See "Corporate-action detection and price adjustment" below. |
+| `GET /admin/validate-adjusted-prices` | `validate-prices`, weekly. Index-scoped and read-only; emails a report. See below. |
+| `GET /admin/summarize-filings` | **No replacement.** The 10-K summarization generator is retired; stored summaries keep serving through `GET /filing-summaries`, and no new ones are written. |
+| `GET /admin/test` | **No replacement.** A hardcoded AAPL smoke test with no caller. |
+| `POST /admin/indexes/*` (all five) | `index-load`, daily. Rebuilds all three cap-ranked indexes together; `INDEX_LOAD_TICKER=X` refreshes a single ticker. |
 
-When batch mode is used, response may include:
-- `etfDiagnosticsSummary`: aggregate ETF diagnostics across scanned fund tickers with the same fields plus `fundTickersScanned`.
-- `equityDiagnosticsSummary`: aggregate equity parser-path counters and reconciliation activity across scanned equity tickers.
-- `validationSummary` (only when `validateWithYfinance=true`): aggregate mismatch totals and sample mismatch rows.
-- `priceValidationSummary` (only when `validateWithYfinance=true`): aggregate adjusted-price comparison (`tickersOverThreshold`, `worstTickers`, `sampleBreaks`).
-- `failedTickers`, `totalSnappedActions`, `scheduledDetections`, `jumpTriggeredDetections`: per-run adjustment/re-detection counters.
-| `GET` | `/admin/summarize-filings?ticker=X` | Fetch 10-K filings from SEC EDGAR, extract MD&A, and generate LLM summaries. Omit `ticker` for all equities. Requires llama.cpp server running. |
-| `GET` | `/admin/test` | Debug: fetch raw financial facts for Apple Inc. (CIK 320193). |
+**Known reductions in capability**, recorded deliberately: on-demand forced SEC re-detection for one
+ticker (`force=true`), single-ticker adjusted-price validation, single-index rebuild, and ETF/fund
+corporate actions and adjusted prices (deferred -- funds freeze at their current adjusted values).
+
+### Corporate-action detection and price adjustment
+
+Runs nightly inside `hist-load`, never from an HTTP request. Detects splits/dividends from SEC and
+applies adjustment factors to OHLCV prices.
+
+ETF actions are extracted from ETF filing forms (`497`, `485*`, `N-CSR/N-CSRS`): detection scans the
+primary filing plus a capped set of likely exhibit/attachment documents, applies scored identity
+matching (ticker + class/series signals), and ranks amount/date candidates from sentence and
+table-like layouts. ETF date extraction normalizes HTML/text blocks, supports several formats
+(`MM-DD-YYYY`, `MM/DD/YY`, `YYYY/MM/DD`, abbreviated month labels), and can fall back to
+low-confidence pay-date/filing-date signals when explicit ex/record dates are missing. (ETF
+adjustment is currently deferred -- the nightly job runs with `HIST_LOAD_EQUITY_ONLY=true`.)
+
+Dividend facts are normalized to quarterly payouts (including guarded fiscal-Q4 derivation from
+annual 10-K totals), and ex-dividend dates are mapped from SEC 8-K record dates (T+3 before
+2017-09-05, T+2 through 2024-05-27, T+1 after) using filing metadata and exhibit fallback parsing.
+When record dates cannot be reliably recovered, SEC-only fallback infers ex-dates from cadence/lag
+(with diagnostics) instead of quarter-end placeholders.
+
+Split factors are snapped to canonical ratios before dividend back-adjustment, and split effective
+dates are resolved price-break-first: the raw IEX close series is searched for the overnight break
+matching the split multiplier (price break > SEC filing text > shares-fact date), XBRL split
+candidates with full price coverage but no matching break are rejected, same-ratio splits within
+±90 days are re-dated in place, and unexplained persistent split-like price breaks are persisted as
+`SEC_PRICE_CORROBORATED` when a filing split-date candidate confirms them (or on price evidence
+alone for ≥5x moves).
+
+Equity dividend ex-dates are anchored to amount-matched 8-K declaration tuples (record/payable/ex
+dates stated next to the per-share amount) before falling back to direct ex-date extraction and DP
+record-date assignment; each row records its `ex_date_source` provenance and a matching confidence
+score, weaker-grounded re-detections never move dates set by stronger paths, and
+declaration-anchored rows are excluded from orphan pruning. Recent high-confidence declaration
+tuples that no XBRL event claims are promoted to provisional dividend events (closing the
+8-K-to-10-Q blind window); per-accession extraction results are persisted in `filing_extractions`
+so re-scans only fetch documents for new accessions; and when too many filing fetches fail, the run
+suppresses synthetic inserts and pruning instead of degrading stored data. Persisted dividend rows
+keep both `rawValue` and `adjustedValue`; adjusted prices use `adjustedValue`.
+
+**Detection scope.** Automatic SEC detection is scoped to members of one index (`FAT1000` by
+default, property `app.price-adjustment.detection-index-code`, env
+`PRICE_ADJUSTMENT_DETECTION_INDEX`); the price universe is the full IEX HIST symbol set (~24k
+tickers, about two thirds with no SEC counterpart), which takes days to re-scan at the SEC rate
+limit. Within that scope, detection refreshes on a rolling cadence: each run re-detects the stalest
+~1/7 of in-scope tickers (tracked via `listings.last_sec_detection_at`, so every in-scope ticker is
+re-scanned about weekly) plus any in-scope ticker with a >25% overnight move among its most recent
+closes (split signature); a failed SEC fetch does not refresh the staleness stamp, so the ticker
+retries next run. Price adjustment itself still covers every ticker with unadjusted rows:
+out-of-scope tickers get adjusted columns filled from raw prices or already-stored actions, so they
+drain out of the backlog. A configured index with no members skips automatic detection rather than
+falling back to the full universe. Actions dated on non-trading days are snapped forward to the next
+trade date; per-ticker failures leave adjusted columns NULL so the next run retries. SEC fetches use
+bounded retries and configurable timeouts to avoid indefinite hangs during long scans.
+
+Diagnostics are logged rather than returned: per-run ETF extraction counters (`filingsConsidered`,
+`filingsFetched`, `candidateDocumentsScanned`, `identityMatched`, `amountExtracted`,
+`dateExtracted`, `belowConfidence`, `duplicates`, `saved`, `identityScoreBuckets`,
+`amountSourceCounts`, `dateResolutionPathCounts`, `dateSourceCounts`, `skipReasons`), equity
+parser-path counters, `snappedActions`, `failedTickers`, `scheduledDetections` and
+`jumpTriggeredDetections`. The nightly job never enables yfinance validation.
+
+### Weekly adjusted-price validation (`validate-prices`)
+
+Compares stored `adjustedClose` against the yfinance adjusted-close reference served by Django
+(`/portfolio/api/asset-prices/`) for the members of `VALIDATE_PRICES_INDEX_CODE` (default
+`FAT1000`), from `VALIDATE_PRICES_MIN_DATE` (default `2016-01-01`) onwards. Ratios are normalized at
+the latest common date; the report carries `tickersChecked`, `tickersSkipped`,
+`tickersOutOfTolerance` (0.5% level threshold), the ten worst tickers by deviation, and up to twenty
+ratio breaks (dates where the ratio steps day-over-day by more than 1%, each annotated with the
+nearest stored corporate action within ±7 days -- every break localizes one missing, extra or
+misdated event).
+
+The report is published as plain text to a dedicated SNS topic; a blank
+`VALIDATE_PRICES_SNS_TOPIC_ARN` logs it instead. **The job writes nothing** -- yfinance reference
+data is diagnostics-only and may never be persisted, returned from an API, or rendered in the UI, so
+the runner has no database write path at all and its test asserts that.
 
 ## 📝 Filing Summaries
 

@@ -9,7 +9,6 @@ import AccountView from "../src/pages/AccountView";
 import Register from "../src/pages/Register";
 import IexPricesView from "../src/pages/IexPricesView";
 import User from "../src/pages/User";
-import Admin from "../src/pages/Admin";
 import AdminSuccessBar from "../src/pages/AdminSuccessBar";
 import Indexes from "../src/pages/Indexes";
 import Blog from "../src/pages/Blog";
@@ -129,52 +128,6 @@ describe("User", () => {
     renderWithProviders(<User />, { preloadedState: authenticatedState });
     expect(screen.getByText("Feedback Tickets")).toBeInTheDocument();
     expect(screen.getByText("Submit Product Feedback")).toBeInTheDocument();
-  });
-});
-
-describe("Admin", () => {
-  it("renders success bar jump button for spike user", () => {
-    renderWithProviders(<Admin />, {
-      preloadedState: {
-        user: {
-          access: "fake-token",
-          refresh: "fake-refresh",
-          username: "spike",
-        },
-      },
-    });
-
-    expect(
-      screen.getByText("Open Corporate Action Success Bar"),
-    ).toBeInTheDocument();
-  });
-
-  it("renders index admin actions and model hints for spike user", () => {
-    renderWithProviders(<Admin />, {
-      preloadedState: {
-        user: {
-          access: "fake-token",
-          refresh: "fake-refresh",
-          username: "spike",
-        },
-      },
-    });
-
-    expect(
-      screen.getByRole("button", { name: /Refresh index metrics/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Rebuild index\(es\)/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: /Refresh index stock metrics/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: /Rebuild cap-ranked indexes/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getAllByText(/ListingIndexMetrics/i).length,
-    ).toBeGreaterThanOrEqual(1);
   });
 });
 

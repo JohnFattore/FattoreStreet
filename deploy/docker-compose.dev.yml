@@ -52,7 +52,8 @@ services:
   springboot:
     build: ../springboot
     environment:
-      SECRET_KEY: dev-only-secret-key-do-not-use-in-production  # pragma: allowlist secret
+      # No SECRET_KEY: it is Django's. Spring Boot's only consumer was the JWT
+      # verification for the /admin routes, which have been retired.
       DB_URL: jdbc:postgresql://postgres:5432/springboot
       DB_USERNAME: postgres
       POSTGRES_PASSWORD: postgres  # pragma: allowlist secret

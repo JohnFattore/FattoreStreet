@@ -16,7 +16,6 @@ springboot/src/main/java/com/fattorestreet/sec_api/
   corporateaction/support/  # parsers, extractors, persisters (non-@Service helpers)
   fundamentals/         # EdgarService, quarters, financial metrics
   listing/              # assets, listings, ETF identity enrichment
-  filing/               # 10-K MD&A fetch / LLM summary
   marketdata/           # daily prices, IEX HIST ingest
   repository/           # Spring Data JPA
   model/                # @Entity JPA entities

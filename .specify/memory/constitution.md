@@ -1,50 +1,117 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: (unfilled template) → 1.0.0
+- Modified principles: none prior; all five principles newly ratified:
+    I. Commercially-Free Data Only
+    II. Tests Ride Every Change
+    III. Docs Describe What Exists
+    IV. No Secrets in the Repo
+    V. Merge Is the Deploy; `terraform apply` Is Not
+- Added sections: Additional Constraints, Development Workflow & Quality Gates, Governance
+- Removed sections: none (template placeholders replaced)
+- Deferred TODOs: none
+- Source of authority: principles codify the pre-existing enforced rules in `.claude/rules/`
+  (data-licensing-commercial-free, auto-update-tests, auto-update-docs, secrets-check,
+  infrastructure) so Spec Kit gates and the repo rules cannot drift apart.
+-->
+
+# FattoreStreet Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Commercially-Free Data Only (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Only data that is commercially free to use may be persisted in any database table or shown
+to end users. Preferred sources: SEC EDGAR, FRED, IEX raw price series. If licensing is
+unclear, the data is NOT allowed until verified. yfinance is permitted solely for
+development-time verification and diagnostics: ephemeral, in-memory, never stored, never
+returned from an API, never rendered in the UI. Derived values (ratios, adjustments,
+aggregates) are permitted only when every stored input is commercially free.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Rationale: the platform is public; a single non-free datum persisted or displayed creates
+licensing exposure that cannot be cleaned up by deleting code later.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Tests Ride Every Change
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Every change to application logic lands with its tests in the same PR: Django views get
+`BaseAPITestCase` integration tests, Spring Boot services and controllers get JUnit 5 +
+Mockito coverage, React components get Vitest + Testing Library + MSW tests. Deleting code
+deletes its tests; the JaCoCo bundle line-coverage floor in `springboot/pom.xml` MUST NOT
+be lowered to make a build pass. If coverage drops below the floor, add tests.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Rationale: the CI gate is only as honest as the floor; lowering it converts a regression
+into a policy change nobody reviewed.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Docs Describe What Exists
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+No document in the repo may describe a route, command, flag, or behavior that no longer
+exists, and user-facing changes update their docs (`docs/`, app READMEs, `CLAUDE.md`,
+affected `.claude/rules/` files) in the same PR that changes the behavior. Historical
+journal entries under `django/blog/` are records, not documentation, and are exempt.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Rationale: stale operational docs cause real incidents here (a stale runbook invoking a
+deleted admin route, a stale tfvars example masking live schedule drift).
+
+### IV. No Secrets in the Repo
+
+Real credentials never land in git, and `.secrets.baseline` stays empty: false positives
+are marked at the source with `# pragma: allowlist secret`, never baselined. Runtime
+secrets live in the single AWS Secrets Manager blob `fattorestreet/env`; services receive
+them via `SECRETS_ARN` (EC2) or task-definition `secrets` blocks (Fargate). A service is
+granted only the keys it actually reads. Local AWS work runs under the scoped
+`fattorestreet` profile; on `AccessDenied` the fix is widening the versioned policy in
+`deploy/iam/`, never reaching for another credential.
+
+Rationale: least privilege only works if every exception is visible in review; an empty
+baseline makes any new finding meaningful.
+
+### V. Merge Is the Deploy; `terraform apply` Is Not
+
+CI on merge to `main` is the only build-and-publish path: images go to GHCR (and ECR for
+springboot), and the web tier converges via SSM. For scheduled Fargate jobs the order is
+fixed: merge the code so the image exists, then `terraform apply`, then run the task once
+by hand and verify exit code 0 before trusting its schedule. A task definition referencing
+a runner the image lacks silently degrades to `server` mode and bills forever; a healthy
+cluster has zero running tasks between scheduled runs. EventBridge schedules MUST be
+placed clear of each other's observed runtimes (not nominal crons), because the SEC rate
+limiter is per-process and overlapping tasks earn 403s for both.
+
+Rationale: with `:latest` tags, local Terraform state, and a gitignored tfvars, ordering
+discipline is the only thing standing between a merge and an invisible half-deploy.
+
+## Additional Constraints
+
+- Stack: React 18 + TypeScript (Vite, RTK Query), Django 5 + DRF, Spring Boot + Java,
+  PostgreSQL, Redis, Nginx, Docker Compose on one ARM64 EC2 instance plus ephemeral
+  Fargate one-shots. Region is `us-east-1` everywhere.
+- Per-language conventions live in `.claude/rules/` (path-scoped) and are binding; this
+  constitution defers to them for operational detail rather than duplicating it.
+- Configuration comes from environment variables (service URLs, credentials, API keys);
+  infrastructure is declarative and version-controlled.
+- Naming: camelCase in the frontend, snake_case in Django, with RTK Query
+  `transformResponse` converting at the boundary. No Hungarian notation.
+
+## Development Workflow & Quality Gates
+
+- The full CI gate MUST pass before merge to `main`: React ESLint (zero warnings),
+  Stylelint, Prettier check, Sass compile, build, Vitest; Django tests; Spring Boot
+  Spotless + Checkstyle + `mvn verify` (tests, JaCoCo floor, SpotBugs/FindSecBugs, PMD,
+  Error Prone as errors); detect-secrets scan.
+- Features of consequence flow through Spec Kit (`/speckit-specify` → `/speckit-plan` →
+  `/speckit-tasks` → `/speckit-implement`), with plan artifacts committed in the PR.
+- Work that changes deployed behavior states its deploy ordering explicitly when ordering
+  matters (Principle V), including rollback affordances such as schedule enable flags.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes ad-hoc practice. The `.claude/rules/` files are its
+operational implementations; a change that weakens a rule enforcing a principle above is a
+constitutional amendment and MUST be treated as one. Amendments are made by editing this
+file via `/speckit-constitution` in a reviewed PR, with the version bumped semantically:
+MAJOR for removing or redefining a principle, MINOR for adding a principle or materially
+expanding guidance, PATCH for clarifications. Every `/speckit-plan` Constitution Check
+gates against this document; violations require changing the spec, plan, or tasks, not
+reinterpreting the principle. Complexity that appears to conflict with a principle must be
+justified in the plan's Complexity Tracking table or removed.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-08-01 | **Last Amended**: 2026-08-01

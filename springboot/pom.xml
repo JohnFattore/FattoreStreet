@@ -95,8 +95,31 @@
 		    -Xep:UnusedVariable:ERROR \
 		    -Xep:UnusedNestedClass:ERROR</errorprone.checks.main>
 		<errorprone.checks.test>${errorprone.checks.common}</errorprone.checks.test>
+
+		<!-- AWS SDK v2, used only to publish the weekly adjusted-price validation report to
+		     SNS. Managed by the SDK BOM below so the single sns artifact and its transitive
+		     core stay on one version. -->
+		<awssdk.version>2.50.2</awssdk.version>
 	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>${awssdk.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
+		<!-- Report delivery for the weekly validate-prices task. The task role carries an
+		     sns:Publish policy scoped to the report topic; credentials come from the Fargate
+		     container role, so no keys are configured anywhere. -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>sns</artifactId>
+		</dependency>
 		<!-- @SuppressFBWarnings only; provided+optional so it never ships in the jar -->
 		<dependency>
 			<groupId>com.github.spotbugs</groupId>
@@ -158,13 +181,12 @@
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Retained for the filter chain itself (CORS, CSRF-disable, stateless sessions).
+		     spring-boot-starter-oauth2-resource-server was dropped alongside the /admin
+		     routes: no route is authenticated any more, so nothing verifies a JWT. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 	</dependencies>
 

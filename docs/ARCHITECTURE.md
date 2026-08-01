@@ -59,7 +59,7 @@ graph TD
     - **`src/components/`**: Reusable UI components.
     - **`src/pages/`**: Main application views.
     - **`src/reducers/`**: Redux state slices (store setup in `src/store.ts`).
-- **`springboot/`**: Spring Boot `sec-api` service (SEC EDGAR data, IEX-derived daily prices, and market index membership under `/index-members` and `/admin/indexes/*`).
+- **`springboot/`**: Spring Boot `sec-api` service (SEC EDGAR data, IEX-derived daily prices, and market index membership under `/index-members`). Every route is public; the service authenticates nothing and holds no shared secret with Django. The data-loading jobs that used to sit behind `/admin/**` run as scheduled Fargate one-shots instead (see `springboot/deploy/terraform/`).
 - **`deploy/`**: Docker Compose stacks and build/deploy scripts (see [Deployment](DEPLOYMENT.md)).
 - **`nginx/`**: Reverse proxy configuration.
 
@@ -70,7 +70,7 @@ graph TD
     - User adds an asset (e.g., "AAPL").
     - Django requests metadata from external APIs (yfinance/Finnhub).
     - Data is stored in Postgres.
-    - External API responses are cached in Redis on first request; daily prices are ingested by a scheduled Fargate run of the Spring Boot service (see `springboot/deploy/terraform/`).
+    - External API responses are cached in Redis on first request; daily prices are ingested by a scheduled Fargate run of the Spring Boot service. Five such one-shot tasks exist, selected by `APP_RUN_MODE` on the shared image: `hist-load` (daily prices + corporate-action adjustment), `index-load` (index metrics + rebuilds), `fundamentals-load` (SEC XBRL frames), `asset-load` (SEC ticker universe, monthly) and `validate-prices` (weekly read-only accuracy report). Terraform is the source of truth: `springboot/deploy/terraform/`.
 3.  **Deployment**:
     - Build scripts create Docker images.
     - Images are pushed to container registry.

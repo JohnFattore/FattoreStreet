@@ -22,6 +22,16 @@ public interface IndexMemberRepository extends JpaRepository<IndexMember, Long> 
     @Query("SELECT DISTINCT im.listing.ticker FROM IndexMember im WHERE im.marketIndex.code = :code")
     List<String> findTickersByIndexCode(@Param("code") String code);
 
+    /**
+     * Tickers of one index, heaviest weight first. A projection rather than
+     * {@link #findByMarketIndex_CodeOrderByPercentDesc}, because callers outside a transaction
+     * cannot walk the lazy {@code listing} association -- and ordering matters wherever a caller
+     * takes only the first N names.
+     */
+    @Query("SELECT im.listing.ticker FROM IndexMember im WHERE im.marketIndex.code = :code "
+            + "ORDER BY im.percent DESC")
+    List<String> findTickersByIndexCodeOrderByPercentDesc(@Param("code") String code);
+
     void deleteByMarketIndex_Code(String code);
 
     Optional<IndexMember> findByMarketIndex_CodeAndListing_Ticker(String code, String ticker);

@@ -17,7 +17,6 @@ import { useEffect } from "react";
 import Chatbot from "./pages/Chatbot";
 import AssetView from "./pages/AssetView";
 import AccountView from "./pages/AccountView";
-import Admin from "./pages/Admin";
 import SECData from "./pages/SECData";
 import IexPricesView from "./pages/IexPricesView";
 import Indexes from "./pages/Indexes";
@@ -100,7 +99,6 @@ export default function App() {
         <Route path="/blog/llm-notebook" element={<LlmNotebook />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/user" element={<User />} />
-        <Route path="/react-admin" element={<Admin />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
       <p>

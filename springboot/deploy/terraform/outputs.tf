@@ -62,3 +62,38 @@ output "task_failures_sns_topic_arn" {
   description = "SNS topic notified on task failures (empty when notification_email is unset)."
   value       = var.notification_email != "" ? aws_sns_topic.task_failures[0].arn : ""
 }
+
+output "validate_prices_task_definition_family" {
+  description = "Task definition family for the weekly adjusted-price validation."
+  value       = aws_ecs_task_definition.validate_prices.family
+}
+
+output "validate_prices_log_group_name" {
+  description = "CloudWatch log group for the validate-prices task."
+  value       = aws_cloudwatch_log_group.validate_prices.name
+}
+
+output "validate_prices_schedule_name" {
+  description = "EventBridge schedule name for the validate-prices task."
+  value       = aws_scheduler_schedule.validate_prices.name
+}
+
+output "validation_reports_sns_topic_arn" {
+  description = "SNS topic the weekly validation report is published to (empty when notification_email is unset)."
+  value       = try(aws_sns_topic.validation_reports[0].arn, "")
+}
+
+output "asset_load_task_definition_family" {
+  description = "Task definition family for the monthly SEC ticker universe load."
+  value       = aws_ecs_task_definition.asset_load.family
+}
+
+output "asset_load_log_group_name" {
+  description = "CloudWatch log group for the asset-load task."
+  value       = aws_cloudwatch_log_group.asset_load.name
+}
+
+output "asset_load_schedule_name" {
+  description = "EventBridge schedule name for the asset-load task."
+  value       = aws_scheduler_schedule.asset_load.name
+}

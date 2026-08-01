@@ -13,7 +13,7 @@ db_name     = "springboot"
 db_username = "postgres"
 
 # Secrets Manager ARN of the single app-config secret (fattorestreet/env, a JSON
-# object). The task reads POSTGRES_PASSWORD and SECRET_KEY out of it by key.
+# object). The tasks read POSTGRES_PASSWORD and SEC_CONTACT_EMAIL out of it by key.
 env_secret_arn = "arn:aws:secretsmanager:us-east-1:111122223333:secret:fattorestreet/env-AbCdEf" # pragma: allowlist secret
 
 # Image + sizing.
@@ -26,9 +26,9 @@ schedule_expression = "cron(0 2 * * ? *)"
 schedule_timezone   = "America/New_York"
 schedule_enabled    = true
 
-# Index load: 05:00 America/New_York daily (3h after the hist load so fresh
-# DailyPrice rows exist, still pre-market). Shares schedule_timezone above.
-index_load_schedule_expression = "cron(0 5 * * ? *)"
+# Index load: 09:30 America/New_York daily, after the hist load so fresh
+# DailyPrice rows exist. Shares schedule_timezone above.
+index_load_schedule_expression = "cron(30 9 * * ? *)"
 index_load_schedule_enabled    = true
 index_load_task_memory         = 2048 # SEC-rate-limit bound; tune after profiling a real run
 
@@ -39,6 +39,23 @@ fundamentals_load_schedule_expression = "cron(30 13 * * ? *)"
 fundamentals_load_schedule_enabled    = true
 fundamentals_load_years_back          = 1 # current + prior year; raising this multiplies SEC requests
 
-# Email alerted when a nightly task exits non-zero or fails to start (confirm
-# the SNS subscription once after apply). Leave "" to disable alerting.
+# Adjusted-price validation report: Sundays at 20:00 America/New_York. Evening,
+# clear of every observed load tail (hist-load has run to 17:32 from a 02:00
+# start). Read-only, and makes no SEC calls. Publishes to its own SNS topic,
+# created only when notification_email below is set.
+validate_prices_schedule_expression = "cron(0 20 ? * SUN *)"
+validate_prices_schedule_enabled    = true
+validate_prices_index_code          = "FAT1000"
+validate_prices_max_tickers         = 0 # 0 = no cap; set small in a run-task override for a smoke test
+
+# Asset load (SEC ticker universe + ETF identity enrichment): the 1st of each
+# month at 22:00 America/New_York, staggered off the validation slot for months
+# whose 1st falls on a Sunday.
+asset_load_schedule_expression = "cron(0 22 1 * ? *)"
+asset_load_schedule_enabled    = true
+asset_load_overwrite_existing  = false # true re-resolves already-resolved ETF identities
+
+# Email alerted when a scheduled task exits non-zero or fails to start, and the
+# destination for the weekly validation report (confirm both SNS subscriptions
+# once after apply). Leave "" to disable alerting and the report topic.
 notification_email = "you@example.com"
