@@ -30,7 +30,7 @@ dependencies = [
     "pandas==3.0.5",
     "numpy==2.5.1",
     # Google Gemini SDK
-    "google-genai==2.15.0",
+    "google-genai==2.16.0",
     "django-redis==7.0.0",
     "pandas-market-calendars==5.4.0",
 ]
