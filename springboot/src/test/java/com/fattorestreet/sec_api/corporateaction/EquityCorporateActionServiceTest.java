@@ -60,6 +60,7 @@ class EquityCorporateActionServiceTest {
                 candidates.size(), 0);
     }
 
+    // @spec EQUITY-SPLIT-002, EQUITY-SPLIT-017
     @Test
     void detectsSplitFrom4to1SharesJump() throws Exception {
         String json = """
@@ -94,6 +95,7 @@ class EquityCorporateActionServiceTest {
         assertEquals(0.25, action.getRatio(), 0.01);
     }
 
+    // @spec EQUITY-SPLIT-007
     @Test
     void detectsSplitUsesSecDerivedEffectiveDateWhenCandidateExists() throws Exception {
         String json = """
@@ -134,6 +136,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.25) < 0.0001));
     }
 
+    // @spec EQUITY-SPLIT-010
     @Test
     void detectsSplitUsesNearestSecCandidateWhenMultipleDatesExist() throws Exception {
         String json = """
@@ -179,6 +182,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.25) < 0.0001));
     }
 
+    // @spec EQUITY-SPLIT-008
     @Test
     void detectsSplitFallsBackToDetectedDateWhenAllCandidatesFilteredOut() throws Exception {
         String json = """
@@ -219,6 +223,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.25) < 0.0001));
     }
 
+    // @spec EQUITY-001, EQUITY-DIV-030
     @Test
     void detectsDividendEntries() throws Exception {
         String json = """
@@ -252,6 +257,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getAdjustedDividend() - 0.25) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-002
     @Test
     void collectsDividendFactsFromMultipleUsGaapConcepts() throws Exception {
         String json = """
@@ -295,6 +301,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.31) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-049, EQUITY-DIV-051
     @Test
     void keepsLargeSpecialDividendAlongsideRegularQuarterlyDividend() throws Exception {
         String json = """
@@ -330,6 +337,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 15.00) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-026
     @Test
     void allowsTwoDividendRowsOnSameExDateWhenAmountsDiffer() throws Exception {
         String json = """
@@ -368,6 +376,7 @@ class EquityCorporateActionServiceTest {
         assertTrue(saved.stream().anyMatch(a -> Math.abs(a.getRatio() - 15.00) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-026
     @Test
     void skipsExactDuplicateDividendEventBeforeInsert() throws Exception {
         String json = """
@@ -401,6 +410,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.24) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-031
     @Test
     void continuesWhenDividendInsertHitsUniqueConstraint() throws Exception {
         String json = """
@@ -435,6 +445,7 @@ class EquityCorporateActionServiceTest {
         verify(corporateActionRepository, times(2)).save(any());
     }
 
+    // @spec EQUITY-DIV-042, EQUITY-DIV-047
     @Test
     void normalizesCumulativeDividendFactsToQuarterly() throws Exception {
         String json = """
@@ -476,6 +487,7 @@ class EquityCorporateActionServiceTest {
         assertEquals(List.of(0.24, 0.25, 0.26, 0.26), ratios);
     }
 
+    // @spec EQUITY-DIV-005
     @Test
     void prefersQuarterlyRowWhenSameEndHasCumulativeAndQuarterly() throws Exception {
         String json = """
@@ -509,6 +521,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.25) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-043, EQUITY-DIV-046
     @Test
     void derivesQ4FromAnnualWhenMissingQuarterFact() throws Exception {
         String json = """
@@ -544,6 +557,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.25) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-045
     @Test
     void skipsImplausibleDerivedQ4FromAnnualTotal() throws Exception {
         String json = """
@@ -580,6 +594,7 @@ class EquityCorporateActionServiceTest {
                 .allMatch(a -> a.getRatio() < 1.0));
     }
 
+    // @spec EQUITY-DIV-054
     @Test
     void snapsSplitRatioBeforeHistoricalDividendAdjustment() throws Exception {
         String json = """
@@ -621,6 +636,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.1925) < 0.0001));
     }
 
+    // @spec FILING-049, FILING-050
     @Test
     void computesExDateAcrossSettlementTransition() throws Exception {
         String json = """
@@ -667,6 +683,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.26) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-017
     @Test
     void fallsBackToPeriodEndWhenNoCredibleRecordDateCandidate() throws Exception {
         String json = """
@@ -708,6 +725,7 @@ class EquityCorporateActionServiceTest {
         verify(corporateActionFilingDateService).computeExDividendDate(LocalDate.of(2024, 5, 12));
     }
 
+    // @spec EQUITY-DIV-007
     @Test
     void resolvesAapl2020AugustToExpectedExDate() throws Exception {
         String json = """
@@ -746,6 +764,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.82) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-014
     @Test
     void usesGlobalAssignmentWhenGreedyChoiceWouldStarveLaterQuarter() throws Exception {
         String json = """
@@ -792,6 +811,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.26) < 0.0001));
     }
 
+    // @spec EQUITY-DIV-042
     @Test
     void filtersOutAnnual10KDividends() throws Exception {
         String json = """
@@ -827,6 +847,7 @@ class EquityCorporateActionServiceTest {
                 a.getActionType() == ActionType.DIVIDEND && a.getRatio() == 0.25));
     }
 
+    // @spec EQUITY-DIV-026
     @Test
     void skipsDuplicateActions() throws Exception {
         String json = """
@@ -862,6 +883,7 @@ class EquityCorporateActionServiceTest {
         verify(corporateActionRepository, never()).save(any());
     }
 
+    // @spec EQUITY-DIV-026
     @Test
     void upsertsExistingDividendRowsByYearAndInsertsMissing() throws Exception {
         String json = """
@@ -912,6 +934,7 @@ class EquityCorporateActionServiceTest {
         verify(corporateActionRepository, times(4)).save(any(CorporateAction.class));
     }
 
+    // @spec EQUITY-DIV-026, EQUITY-DIV-032
     @Test
     void reconcilesChronologicallyWhenExDatesCrossYearBoundary() throws Exception {
         String json = """
@@ -970,6 +993,7 @@ class EquityCorporateActionServiceTest {
                         && Math.abs(a.getRatio() - 0.26) < 0.0001));
     }
 
+    // @spec EQUITY-004
     @Test
     void handlesSecFetchFailureGracefully() throws Exception {
         when(webService.fetchFinancials(999L)).thenThrow(new RuntimeException("404"));
@@ -979,6 +1003,7 @@ class EquityCorporateActionServiceTest {
         assertEquals(0, created);
     }
 
+    // @spec EQUITY-SPLIT-002
     @Test
     void ignoresNonSplitRatioChanges() throws Exception {
         String json = """

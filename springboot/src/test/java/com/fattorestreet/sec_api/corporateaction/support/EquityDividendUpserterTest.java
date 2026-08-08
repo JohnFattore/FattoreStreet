@@ -44,6 +44,7 @@ class EquityDividendUpserterTest {
                 exDate.minusDays(40), exDate, raw, adjusted, year, false);
     }
 
+    // @spec EQUITY-DIV-030
     @Test
     void upsertDividendEvents_newEvent_isInserted() {
         LocalDate exDate = LocalDate.of(2024, 3, 14);
@@ -63,6 +64,7 @@ class EquityDividendUpserterTest {
                 a.getEffectiveDate().equals(exDate) && Math.abs(a.getRatio() - 0.22) < 1e-9));
     }
 
+    // @spec EQUITY-DIV-026
     @Test
     void upsertDividendEvents_exactDuplicate_skipped() {
         LocalDate exDate = LocalDate.of(2024, 3, 14);
@@ -77,6 +79,7 @@ class EquityDividendUpserterTest {
         verify(corporateActionRepository, never()).save(any());
     }
 
+    // @spec EQUITY-DIV-026
     @Test
     void upsertDividendEvents_exactMatchDateChanged_isUpdated() {
         LocalDate oldDate = LocalDate.of(2024, 1, 15);
@@ -95,6 +98,7 @@ class EquityDividendUpserterTest {
         assertEquals(newDate, existing.getEffectiveDate());
     }
 
+    // @spec EQUITY-DIV-026
     @Test
     void upsertDividendEvents_yearScopedFuzzyMatch_updatesExisting() {
         // Record date differs slightly (same year, 3 days, same amount) → year-scoped match → update
@@ -111,6 +115,7 @@ class EquityDividendUpserterTest {
         assertEquals(newDate, existing.getEffectiveDate());
     }
 
+    // @spec EQUITY-DIV-030
     @Test
     void upsertDividendEvents_multipleNewEvents_allInserted() {
         when(corporateActionRepository.findByTicker("T")).thenReturn(List.of());
@@ -129,6 +134,7 @@ class EquityDividendUpserterTest {
         assertEquals(3, stats.inserted());
     }
 
+    // @spec EQUITY-DIV-026
     @Test
     void upsertDividendEvents_duplicateEffectiveDateDifferentAmount_bothKept() {
         // Same ex-date but different amounts (regular + special on same day) → both should be inserted
@@ -151,6 +157,7 @@ class EquityDividendUpserterTest {
         assertEquals(2, stats.inserted());
     }
 
+    // @spec EQUITY-DIV-032
     @Test
     void upsertDividendEvents_orphanedSecXbrlRecord_isPruned() {
         // Existing DB has 3 SEC_EQUITY_XBRL dividends in 2024; new normalization only produces 2.
@@ -179,6 +186,7 @@ class EquityDividendUpserterTest {
         verify(corporateActionRepository).delete(existOrphan);
     }
 
+    // @spec EQUITY-DIV-032
     @Test
     void upsertDividendEvents_orphanOutsideYearRange_notPruned() {
         // Orphan in year 2020, but detected events only span 2024 → should not be pruned.
@@ -207,6 +215,7 @@ class EquityDividendUpserterTest {
                 recordDate, payDate, exDateSource);
     }
 
+    // @spec EQUITY-DIV-030
     @Test
     void insertPersistsProvenanceFields() {
         LocalDate exDate = LocalDate.of(2024, 3, 14);
@@ -227,6 +236,7 @@ class EquityDividendUpserterTest {
                         && Double.valueOf(95.0).equals(a.getConfidenceScore())));
     }
 
+    // @spec EQUITY-DIV-027, EQUITY-DIV-028
     @Test
     void syntheticEventDoesNotMoveTupleAnchoredDate() {
         LocalDate tupleDate = LocalDate.of(2024, 3, 14);
@@ -246,6 +256,7 @@ class EquityDividendUpserterTest {
         verify(corporateActionRepository, never()).save(any());
     }
 
+    // @spec EQUITY-DIV-027, EQUITY-DIV-028
     @Test
     void tupleMatchedEventMovesSyntheticDate() {
         LocalDate syntheticDate = LocalDate.of(2024, 3, 22);
@@ -267,6 +278,7 @@ class EquityDividendUpserterTest {
         assertEquals(95.0, existing.getConfidenceScore());
     }
 
+    // @spec EQUITY-DIV-033
     @Test
     void orphanedTupleAnchoredRecordIsNotPruned() {
         // A declaration-anchored row must never be deleted by the pruner: delete + re-insert
@@ -287,6 +299,7 @@ class EquityDividendUpserterTest {
         verify(corporateActionRepository, never()).delete(any());
     }
 
+    // @spec EQUITY-DIV-034, EQUITY-DIV-035
     @Test
     void degradedScanSkipsPruningAndSyntheticInserts() {
         // Filing scan failures mean missing declarations are not evidence of absence: no orphan

@@ -59,6 +59,7 @@ class HistLoadRunnerTest {
                         "jumpTriggeredDetections", 0, "totalPricesUpdated", 100, "totalSnappedActions", 0));
     }
 
+    // @spec HIST-023, HIST-027, HIST-031
     @Test
     void returnsZeroWhenDaysAreProcessed() throws Exception {
         stubSuccessfulLoad();
@@ -68,6 +69,7 @@ class HistLoadRunnerTest {
         verify(priceAdjustmentService).adjustAllTickers(ALL_TICKERS);
     }
 
+    // @spec HIST-024
     @Test
     void returnsZeroWhenEverythingSkipped() throws Exception {
         when(iexHistService.loadHistData(20)).thenReturn(
@@ -77,6 +79,7 @@ class HistLoadRunnerTest {
         assertEquals(0, runner.runLoad());
     }
 
+    // @spec HIST-029
     @Test
     void returnsZeroOnPartialErrorsWhenSomethingProcessed() throws Exception {
         // Idempotent load: a partial failure should not fail the task, the next run retries.
@@ -87,6 +90,7 @@ class HistLoadRunnerTest {
         assertEquals(0, runner.runLoad());
     }
 
+    // @spec HIST-023, HIST-028
     @Test
     void returnsOneWhenEveryDayFailedAndSkipsAdjustment() throws Exception {
         when(iexHistService.loadHistData(20)).thenReturn(
@@ -96,6 +100,7 @@ class HistLoadRunnerTest {
         verify(priceAdjustmentService, never()).adjustAllTickers(any());
     }
 
+    // @spec HIST-028
     @Test
     void returnsOneWhenLoadThrowsAndSkipsAdjustment() throws Exception {
         when(iexHistService.loadHistData(20)).thenThrow(new RuntimeException("boom"));
@@ -104,6 +109,7 @@ class HistLoadRunnerTest {
         verify(priceAdjustmentService, never()).adjustAllTickers(any());
     }
 
+    // @spec HIST-028
     @Test
     void returnsOneWhenAdjustmentThrows() throws Exception {
         stubSuccessfulLoad();
@@ -112,6 +118,7 @@ class HistLoadRunnerTest {
         assertEquals(1, runner.runLoad());
     }
 
+    // @spec HIST-026, HIST-027
     @Test
     void passesEquityOnlyWhenConfigured() throws Exception {
         stubSuccessfulLoad();
@@ -124,6 +131,7 @@ class HistLoadRunnerTest {
         verify(priceAdjustmentService).adjustAllTickers(EQUITY_ONLY);
     }
 
+    // @spec HIST-025
     @Test
     void skipsAdjustmentWhenDisabled() throws Exception {
         stubSuccessfulLoad();

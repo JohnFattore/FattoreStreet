@@ -48,6 +48,7 @@ class EdgarFilingDiscoveryServiceTest {
                 """.formatted(filesArray);
     }
 
+    // @spec FILING-001, FILING-005
     @Test
     void discoversRecentFilingsSortedByDateDescWithNormalizedForms() {
         when(webService.fetchSubmissions(CIK)).thenReturn(recentSubmissions("[]"));
@@ -62,6 +63,7 @@ class EdgarFilingDiscoveryServiceTest {
         assertEquals("8-K", filings.get(1).formType());
     }
 
+    // @spec FILING-002, FILING-003
     @Test
     void mergesArchiveBundlesAndDeduplicatesByAccession() {
         when(webService.fetchSubmissions(CIK)).thenReturn(
@@ -91,6 +93,7 @@ class EdgarFilingDiscoveryServiceTest {
         assertEquals("0000320193-20-000050", filings.get(2).accessionNumber());
     }
 
+    // @spec FILING-002
     @Test
     void honorsMaxSubmissionFilesToScan() {
         when(webService.fetchSubmissions(CIK)).thenReturn(recentSubmissions(
@@ -104,6 +107,7 @@ class EdgarFilingDiscoveryServiceTest {
         verify(webService, never()).fetchSubmissionsFile(CIK, "c.json");
     }
 
+    // @spec FILING-002
     @Test
     void blankArchiveNamesAreSkippedWithoutConsumingScanBudget() {
         when(webService.fetchSubmissions(CIK)).thenReturn(recentSubmissions(
@@ -115,6 +119,7 @@ class EdgarFilingDiscoveryServiceTest {
         verify(webService).fetchSubmissionsFile(CIK, "real.json");
     }
 
+    // @spec FILING-006
     @Test
     void archiveFetchFailureKeepsOtherFilings() {
         when(webService.fetchSubmissions(CIK)).thenReturn(recentSubmissions(
@@ -127,6 +132,7 @@ class EdgarFilingDiscoveryServiceTest {
         assertEquals(2, filings.size());
     }
 
+    // @spec FILING-006
     @Test
     void malformedRecentPayloadYieldsEmptyList() {
         when(webService.fetchSubmissions(CIK)).thenReturn("this is not json{{");
@@ -134,6 +140,7 @@ class EdgarFilingDiscoveryServiceTest {
         assertTrue(service.discoverFilings(CIK).isEmpty());
     }
 
+    // @spec FILING-006
     @Test
     void nullRecentPayloadYieldsEmptyList() {
         when(webService.fetchSubmissions(CIK)).thenReturn(null);
@@ -141,6 +148,7 @@ class EdgarFilingDiscoveryServiceTest {
         assertTrue(service.discoverFilings(CIK).isEmpty());
     }
 
+    // @spec FILING-004
     @Test
     void rowsMissingAccessionOrPrimaryDocumentAreSkipped() {
         when(webService.fetchSubmissions(CIK)).thenReturn("""
@@ -162,6 +170,7 @@ class EdgarFilingDiscoveryServiceTest {
         assertEquals("0000320193-24-000300", filings.get(0).accessionNumber());
     }
 
+    // @spec FILING-005
     @Test
     void unparseableFilingDatesSortLast() {
         when(webService.fetchSubmissions(CIK)).thenReturn("""
@@ -183,6 +192,7 @@ class EdgarFilingDiscoveryServiceTest {
         assertNull(filings.get(1).filingDate());
     }
 
+    // @spec FILING-001
     @Test
     void parsesFilingsArrayShape() {
         when(webService.fetchSubmissions(CIK)).thenReturn("""

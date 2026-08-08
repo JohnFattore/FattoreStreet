@@ -8,6 +8,7 @@ class EtfAmountExtractorTest {
 
     private final EtfAmountExtractor extractor = new EtfAmountExtractor();
 
+    // @spec ETF-023
     @Test
     void extractDividendAmount_dividendDollarPattern_returns90Score() {
         EtfAmountExtractor.AmountCandidate result =
@@ -19,6 +20,7 @@ class EtfAmountExtractorTest {
         assertEquals("dividend_amount_pattern", result.source());
     }
 
+    // @spec ETF-023
     @Test
     void extractDividendAmount_perSharePattern_returns85Score() {
         // Text without "dividend" or "distribution" before the amount so only PER_SHARE_AMOUNT_PATTERN matches
@@ -31,6 +33,7 @@ class EtfAmountExtractorTest {
         assertEquals("per_share_pattern", result.source());
     }
 
+    // @spec ETF-023
     @Test
     void extractDividendAmount_tableLinePattern_returns75Score() {
         EtfAmountExtractor.AmountCandidate result =
@@ -46,6 +49,7 @@ class EtfAmountExtractorTest {
         assertTrue(result.score() >= 75);
     }
 
+    // @spec ETF-025
     @Test
     void extractDividendAmount_directPatternBeatsPerShare_whenBothMatch() {
         // Text that matches both dividend_amount_pattern (90) and per_share_pattern (85)
@@ -57,12 +61,14 @@ class EtfAmountExtractorTest {
         assertEquals(90, result.score());
     }
 
+    // @spec ETF-026
     @Test
     void extractDividendAmount_noMatch_returnsNull() {
         assertNull(extractor.extractDividendAmount("No financial information here."));
         assertNull(extractor.extractDividendAmount(""));
     }
 
+    // @spec ETF-024
     @Test
     void extractDividendAmount_amountOver50_excluded() {
         // $100 per share is implausibly large for a typical ETF dividend; should be filtered
@@ -73,6 +79,7 @@ class EtfAmountExtractorTest {
         assertNull(result);
     }
 
+    // @spec ETF-023
     @Test
     void extractDividendAmount_distributionKeyword_alsoMatches() {
         EtfAmountExtractor.AmountCandidate result =

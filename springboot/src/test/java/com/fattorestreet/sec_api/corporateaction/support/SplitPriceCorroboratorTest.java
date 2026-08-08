@@ -37,6 +37,7 @@ class SplitPriceCorroboratorTest {
         return new SplitPriceCorroborator.PriceSeries(dates, closes);
     }
 
+    // @spec EQUITY-SPLIT-011
     @Test
     void corroboratesForwardFourForOneSplit() {
         // 400 -> 100 overnight with a bit of same-day drift
@@ -49,6 +50,7 @@ class SplitPriceCorroboratorTest {
         assertEquals(4.0, result.get().snappedMultiplier());
     }
 
+    // @spec EQUITY-SPLIT-011
     @Test
     void corroboratesReverseOneForTenSplit() {
         SplitPriceCorroborator.PriceSeries s =
@@ -59,6 +61,7 @@ class SplitPriceCorroboratorTest {
         assertEquals(START.plusDays(3), result.get().breakDate());
     }
 
+    // @spec EQUITY-SPLIT-011
     @Test
     void extendedRatioInsideTightBandMatches() {
         // 3:2 split (multiplier 1.5) with ~4% same-day move: inside ln(1.06)
@@ -67,6 +70,7 @@ class SplitPriceCorroboratorTest {
         assertTrue(corroborator().corroborate(s, 1.5, START, START.plusDays(4)).isPresent());
     }
 
+    // @spec EQUITY-SPLIT-011
     @Test
     void extendedRatioOutsideTightBandRejected() {
         // observed move 150 -> 92 is ~8.7% past 1.5: outside ln(1.06)
@@ -75,6 +79,7 @@ class SplitPriceCorroboratorTest {
         assertTrue(corroborator().corroborate(s, 1.5, START, START.plusDays(4)).isEmpty());
     }
 
+    // @spec EQUITY-SPLIT-027
     @Test
     void picksClosestWhenTwoCandidatesInWindow() {
         // two ~2x drops; second is the cleaner match to 2.0
@@ -86,6 +91,7 @@ class SplitPriceCorroboratorTest {
         assertEquals(START.plusDays(3), result.get().breakDate());
     }
 
+    // @spec EQUITY-SPLIT-009
     @Test
     void corroborateOutsideWindowReturnsEmpty() {
         SplitPriceCorroborator.PriceSeries s =
@@ -94,6 +100,7 @@ class SplitPriceCorroboratorTest {
                 .corroborate(s, 4.0, START.plusDays(3), START.plusDays(4)).isEmpty());
     }
 
+    // @spec EQUITY-SPLIT-014, EQUITY-SPLIT-015
     @Test
     void windowCoverageDetection() {
         SplitPriceCorroborator.PriceSeries s = series(100, 100, 100);
@@ -105,6 +112,7 @@ class SplitPriceCorroboratorTest {
                 new SplitPriceCorroborator.PriceSeries(List.of(), new double[0]), START, START));
     }
 
+    // @spec EQUITY-SPLIT-018
     @Test
     void scanFindsPersistedSplitBreak() {
         SplitPriceCorroborator.PriceSeries s =
@@ -116,6 +124,7 @@ class SplitPriceCorroboratorTest {
         assertEquals(2.0, breaks.get(0).snappedMultiplier());
     }
 
+    // @spec EQUITY-SPLIT-019
     @Test
     void scanRejectsCrashThatRecovers() {
         // -50% day that V-shapes back up: snaps to 2.0 but fails the median persistence check
@@ -124,6 +133,7 @@ class SplitPriceCorroboratorTest {
         assertTrue(corroborator().scanForSplitLikeBreaks(s, null).isEmpty());
     }
 
+    // @spec EQUITY-SPLIT-019
     @Test
     void scanRejectsSingleDayGlitch() {
         SplitPriceCorroborator.PriceSeries s =
@@ -139,6 +149,7 @@ class SplitPriceCorroboratorTest {
         assertEquals(1, corroborator().scanForSplitLikeBreaks(s, START.plusDays(5)).size());
     }
 
+    // @spec EQUITY-SPLIT-018
     @Test
     void scanIgnoresOrdinaryDailyMoves() {
         SplitPriceCorroborator.PriceSeries s =
@@ -146,6 +157,7 @@ class SplitPriceCorroboratorTest {
         assertTrue(corroborator().scanForSplitLikeBreaks(s, null).isEmpty());
     }
 
+    // @spec EQUITY-SPLIT-012
     @Test
     void loadDropsRowsWithoutPositiveClose() {
         DailyPrice good = price("AAPL", START, 100.0);

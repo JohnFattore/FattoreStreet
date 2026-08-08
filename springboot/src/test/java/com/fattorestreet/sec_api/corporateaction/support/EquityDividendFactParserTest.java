@@ -17,6 +17,7 @@ class EquityDividendFactParserTest {
     private final EquityDividendFactParser parser = new EquityDividendFactParser();
     private final ObjectMapper mapper = new ObjectMapper();
 
+    // @spec EQUITY-DIV-001, EQUITY-DIV-002
     @Test
     void parseDividendFacts_validQuarterlyFact_parsed() throws Exception {
         JsonNode root = mapper.readTree("""
@@ -44,6 +45,7 @@ class EquityDividendFactParserTest {
         assertEquals("CommonStockDividendsPerShareDeclared", facts.get(0).concept());
     }
 
+    // @spec EQUITY-DIV-037
     @Test
     void parseDividendFacts_irrelevantForm_skipped() throws Exception {
         JsonNode root = mapper.readTree("""
@@ -66,6 +68,7 @@ class EquityDividendFactParserTest {
         assertTrue(facts.isEmpty());
     }
 
+    // @spec EQUITY-DIV-001
     @Test
     void parseDividendFacts_nonUsdPerShareUnit_skipped() throws Exception {
         JsonNode root = mapper.readTree("""
@@ -88,6 +91,7 @@ class EquityDividendFactParserTest {
         assertTrue(facts.isEmpty());
     }
 
+    // @spec EQUITY-DIV-038
     @Test
     void parseDividendFacts_negativeOrZeroValue_skipped() throws Exception {
         JsonNode root = mapper.readTree("""
@@ -111,6 +115,7 @@ class EquityDividendFactParserTest {
         assertTrue(facts.isEmpty());
     }
 
+    // @spec EQUITY-DIV-039
     @Test
     void parseDividendFacts_deduplicatesIdenticalRows() throws Exception {
         JsonNode root = mapper.readTree("""
@@ -134,6 +139,7 @@ class EquityDividendFactParserTest {
         assertEquals(1, facts.size());
     }
 
+    // @spec EQUITY-DIV-001
     @Test
     void parseDividendFacts_emptyOrMissingUsGaap_returnsEmpty() throws Exception {
         JsonNode emptyRoot = mapper.readTree("{}");
@@ -144,6 +150,7 @@ class EquityDividendFactParserTest {
         assertTrue(parser.parseDividendFacts(noUsGaap, "AAPL").isEmpty());
     }
 
+    // @spec EQUITY-DIV-002
     @Test
     void parseDividendFacts_nonPreferredDividendConcept_alsoAccepted() throws Exception {
         JsonNode root = mapper.readTree("""

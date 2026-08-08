@@ -82,6 +82,7 @@ class ValidatePricesRunnerTest {
                 .thenReturn(List.of(tickers));
     }
 
+    // @spec PRICE-VAL-031
     @Test
     void publishesReportAndReturnsZeroOnSuccess() {
         withMembers("AAPL", "MSFT", "GOOG");
@@ -101,6 +102,7 @@ class ValidatePricesRunnerTest {
         assertEquals(3, report.totalBreaks());
     }
 
+    // @spec PRICE-VAL-025
     @Test
     void returnsOneWhenIndexHasNoMembers() {
         // A silent "0 tickers checked, all healthy" report would be worse than a failed task.
@@ -111,6 +113,7 @@ class ValidatePricesRunnerTest {
         verifyNoInteractions(validationReportPublisher);
     }
 
+    // @spec PRICE-VAL-030
     @Test
     void returnsOneWhenPublishFails() {
         withMembers("AAPL");
@@ -121,6 +124,7 @@ class ValidatePricesRunnerTest {
         assertEquals(1, runner.runValidation());
     }
 
+    // @spec PRICE-VAL-039
     @Test
     void returnsOneWhenValidationThrows() {
         withMembers("AAPL");
@@ -131,6 +135,7 @@ class ValidatePricesRunnerTest {
         verifyNoInteractions(validationReportPublisher);
     }
 
+    // @spec PRICE-VAL-026
     @Test
     void returnsOneWhenMinDateIsNotAnIsoDate() {
         ReflectionTestUtils.setField(runner, "minDate", "last tuesday");
@@ -139,6 +144,7 @@ class ValidatePricesRunnerTest {
         verifyNoInteractions(indexMemberRepository, adjustedPriceValidationService, validationReportPublisher);
     }
 
+    // @spec PRICE-VAL-029
     @Test
     void blankTopicLogsInsteadOfPublishingAndStillSucceeds() {
         ReflectionTestUtils.setField(runner, "snsTopicArn", "  ");
@@ -151,6 +157,7 @@ class ValidatePricesRunnerTest {
         verify(validationReportPublisher).render(any());
     }
 
+    // @spec PRICE-VAL-027, PRICE-VAL-028
     @Test
     void maxTickersCapsTheScopeToTheHeaviestMembers() {
         ReflectionTestUtils.setField(runner, "maxTickers", 2);
@@ -165,6 +172,7 @@ class ValidatePricesRunnerTest {
         assertEquals(List.of("AAPL", "MSFT"), captor.getValue());
     }
 
+    // @spec PRICE-VAL-028
     @Test
     void maxTickersLargerThanScopeValidatesEverything() {
         ReflectionTestUtils.setField(runner, "maxTickers", 50);
@@ -194,6 +202,7 @@ class ValidatePricesRunnerTest {
      * write from this runner would be a licensing violation, not just a bug. Asserted rather than
      * left to convention.
      */
+    // @spec PRICE-VAL-001, PRICE-VAL-004
     @Test
     void neverWritesToTheDatabase() {
         withMembers("AAPL", "MSFT");
@@ -212,6 +221,7 @@ class ValidatePricesRunnerTest {
         org.mockito.Mockito.verifyNoMoreInteractions(indexMemberRepository);
     }
 
+    // @spec PRICE-VAL-031
     @Test
     void perTickerFailuresAreTheServicesConcernNotAFatalError() {
         // tickersSkipped > 0 still exits 0: a partial report beats no report.
@@ -224,6 +234,7 @@ class ValidatePricesRunnerTest {
         verify(validationReportPublisher).publish(anyString(), any());
     }
 
+    // @spec PRICE-VAL-002
     @Test
     void reportCarriesOnlyDerivedStatistics() {
         withMembers("AAPL");

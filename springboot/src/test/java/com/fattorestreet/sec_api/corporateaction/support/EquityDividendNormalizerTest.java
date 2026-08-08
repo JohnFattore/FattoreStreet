@@ -17,11 +17,13 @@ class EquityDividendNormalizerTest {
 
     // ---- normalizeDividendFacts ----
 
+    // @spec EQUITY-DIV-003
     @Test
     void normalizeDividendFacts_emptyInput_returnsEmpty() {
         assertTrue(normalizer.normalizeDividendFacts(List.of()).isEmpty());
     }
 
+    // @spec EQUITY-DIV-003, EQUITY-DIV-005
     @Test
     void normalizeDividendFacts_singleQuarterlyFact_returnsOneEvent() {
         List<EquityCorporateActionService.DividendFact> facts = List.of(
@@ -35,6 +37,7 @@ class EquityDividendNormalizerTest {
         assertFalse(out.get(0).specialEvent());
     }
 
+    // @spec EQUITY-DIV-043, EQUITY-DIV-046
     @Test
     void normalizeDividendFacts_annualFactDerivesQ4_whenThreeQuartersKnown() {
         List<EquityCorporateActionService.DividendFact> facts = List.of(
@@ -53,6 +56,7 @@ class EquityDividendNormalizerTest {
         assertFalse(q4.specialEvent());
     }
 
+    // @spec EQUITY-DIV-045
     @Test
     void normalizeDividendFacts_derivedQ4Rejected_whenTooLargeRelativeToMedian() {
         List<EquityCorporateActionService.DividendFact> facts = List.of(
@@ -68,6 +72,7 @@ class EquityDividendNormalizerTest {
         assertTrue(out.stream().noneMatch(e -> e.fiscalPeriodEnd().equals(LocalDate.of(2024, 12, 31))));
     }
 
+    // @spec EQUITY-DIV-047
     @Test
     void normalizeDividendFacts_cumulativeAtFyEnd_replacedByDerivedQ4() {
         // A point-in-time fact at FY-end (no startDate) with value = annual cumulative total is
@@ -89,6 +94,7 @@ class EquityDividendNormalizerTest {
         assertEquals(0.22, q4.rawAmount(), 1e-4);
     }
 
+    // @spec EQUITY-DIV-049
     @Test
     void normalizeDividendFacts_8kSpecialDividend_detectedAlongsideRegular() {
         List<EquityCorporateActionService.DividendFact> facts = List.of(
@@ -102,6 +108,7 @@ class EquityDividendNormalizerTest {
         assertTrue(out.stream().anyMatch(e -> !e.specialEvent() && e.rawAmount() == 0.22));
     }
 
+    // @spec EQUITY-DIV-005
     @Test
     void normalizeDividendFacts_prefersTenQOverTenK_forSameEndDate() {
         List<EquityCorporateActionService.DividendFact> facts = List.of(
@@ -114,6 +121,7 @@ class EquityDividendNormalizerTest {
         assertEquals(0.22, out.get(0).rawAmount(), 1e-6);
     }
 
+    // @spec EQUITY-DIV-042
     @Test
     void normalizeDividendFacts_intermediatePeriodFact_excluded() {
         // A 180-day (6-month) period fact is neither quarterly (<=120) nor annual (>=250).
@@ -128,6 +136,7 @@ class EquityDividendNormalizerTest {
         assertTrue(out.isEmpty(), "intermediate-period (181-day) fact should be excluded");
     }
 
+    // @spec EQUITY-DIV-041
     @Test
     void normalizeDividendFacts_nullStartDate8kMatchingIntermediateAmount_excluded() {
         // An 8-K with no startDate and the same amount as a filtered intermediate-period fact
@@ -142,6 +151,7 @@ class EquityDividendNormalizerTest {
         assertTrue(out.isEmpty(), "null-startDate 8-K matching intermediate amount should be excluded");
     }
 
+    // @spec EQUITY-DIV-040, EQUITY-DIV-041
     @Test
     void normalizeDividendFacts_nullStartDate8kWithDifferentAmount_kept() {
         // Null-startDate 8-K with a different amount from any intermediate fact is kept normally.
@@ -156,6 +166,7 @@ class EquityDividendNormalizerTest {
         assertEquals(0.205, out.get(0).rawAmount(), 1e-6);
     }
 
+    // @spec EQUITY-DIV-042
     @Test
     void normalizeDividendFacts_intermediatePeriodFact_doesNotMaskQuarterlyFacts() {
         // Even when an intermediate fact exists alongside quarterly facts, the intermediate
@@ -172,6 +183,7 @@ class EquityDividendNormalizerTest {
         assertEquals(0.205, out.get(0).rawAmount(), 1e-6);
     }
 
+    // @spec EQUITY-DIV-053
     @Test
     void adjustDividendsForFutureSplits_usesExDividendDateForSplitOrdering() {
         LocalDate fiscal = LocalDate.of(2020, 3, 31);
@@ -189,6 +201,7 @@ class EquityDividendNormalizerTest {
         assertEquals(0.205, out.get(0).adjustedAmount(), 1e-4);
     }
 
+    // @spec EQUITY-DIV-053
     @Test
     void adjustDividendsForFutureSplits_skipsSplitWhenExDateOnOrAfterSplit() {
         LocalDate fiscal = LocalDate.of(2020, 6, 30);
@@ -203,6 +216,7 @@ class EquityDividendNormalizerTest {
         assertEquals(0.82, out.get(0).adjustedAmount(), 1e-6);
     }
 
+    // @spec EQUITY-DIV-055, EQUITY-DIV-056
     @Test
     void adjustDividendsForFutureSplits_unRestatesRawForAlreadyAdjustedPreSplitEvents() {
         // Pre-split events whose reported amounts already sit at the post-split scale (issuer

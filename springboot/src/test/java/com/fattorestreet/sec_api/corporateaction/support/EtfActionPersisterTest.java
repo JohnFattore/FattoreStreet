@@ -53,6 +53,7 @@ class EtfActionPersisterTest {
                 "explicit");
     }
 
+    // @spec ETF-040, ETF-041, ETF-043
     @Test
     void savesNewDividendWithAllFields() {
         when(corporateActionRepository.findByTickerAndActionTypeAndEffectiveDateAndRatioAndSourceType(
@@ -82,6 +83,7 @@ class EtfActionPersisterTest {
         assertEquals("C000005780", saved.getSecClassContractId());
     }
 
+    // @spec ETF-042
     @Test
     void duplicateDividendIsNotSavedAgain() {
         when(corporateActionRepository.findByTickerAndActionTypeAndEffectiveDateAndRatioAndSourceType(

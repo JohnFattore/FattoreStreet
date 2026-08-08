@@ -41,6 +41,7 @@ class EquityExDateAssignerTest {
         return assigner().assignExDividendDates(normalized, records, exDirect, List.of(), List.of());
     }
 
+    // @spec EQUITY-DIV-013
     @Test
     void assignExDividendDates_prefersDirectExFromFilingWhenPlausible() {
         LocalDate fiscal = LocalDate.of(2021, 3, 31);
@@ -64,6 +65,7 @@ class EquityExDateAssignerTest {
         assertEquals(1, result.directExAssignments());
     }
 
+    // @spec EQUITY-DIV-014, EQUITY-DIV-015
     @Test
     void assignExDividendDates_recordDatePath_assignsExDate() {
         LocalDate fiscal = LocalDate.of(2021, 3, 31);
@@ -89,6 +91,7 @@ class EquityExDateAssignerTest {
         assertEquals(0, result.fallbackAssignments());
     }
 
+    // @spec EQUITY-DIV-017, EQUITY-DIV-018
     @Test
     void assignExDividendDates_noCandidate_usesFallback() {
         LocalDate fiscal = LocalDate.of(2021, 3, 31);
@@ -110,6 +113,7 @@ class EquityExDateAssignerTest {
         assertEquals(1, result.syntheticAssignments());
     }
 
+    // @spec EQUITY-DIV-019
     @Test
     void assignExDividendDates_specialDividend_mappedSeparately() {
         LocalDate fiscal = LocalDate.of(2021, 3, 31);
@@ -132,6 +136,7 @@ class EquityExDateAssignerTest {
         assertTrue(result.events().stream().anyMatch(e -> e.rawAmount() == 0.22 && !e.specialEvent()));
     }
 
+    // @spec EQUITY-DIV-007, EQUITY-DIV-012
     @Test
     void tupleMatchWinsOverDpAndCarriesProvenance() {
         LocalDate fiscal = LocalDate.of(2021, 3, 31);
@@ -162,6 +167,7 @@ class EquityExDateAssignerTest {
         assertEquals(0, result.dpAssignments());
     }
 
+    // @spec EQUITY-DIV-012
     @Test
     void tupleWithExplicitExDateUsesItDirectly() {
         LocalDate fiscal = LocalDate.of(2021, 3, 31);
@@ -179,6 +185,7 @@ class EquityExDateAssignerTest {
         assertEquals(1, result.tupleMatchedAssignments());
     }
 
+    // @spec EQUITY-DIV-010
     @Test
     void tupleAmountMismatchFallsThrough() {
         LocalDate fiscal = LocalDate.of(2021, 3, 31);
@@ -197,6 +204,7 @@ class EquityExDateAssignerTest {
         assertEquals(1, result.syntheticAssignments());
     }
 
+    // @spec EQUITY-DIV-009
     @Test
     void tupleMatchesSplitRestatedAmount() {
         // XBRL restated the 2019 dividend to $0.205 after a 4:1 split; the 8-K declared $0.82.
@@ -221,6 +229,7 @@ class EquityExDateAssignerTest {
         assertEquals(1, result.tupleMatchedAssignments());
     }
 
+    // @spec EQUITY-DIV-009, EQUITY-DIV-019
     @Test
     void specialDividendMatchesTupleByAmount() {
         LocalDate fiscal = LocalDate.of(2021, 3, 31);
@@ -242,6 +251,7 @@ class EquityExDateAssignerTest {
         assertEquals(CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED, result.events().get(0).exDateSource());
     }
 
+    // @spec EQUITY-DIV-008
     @Test
     void eachTupleAssignedOnlyOnce() {
         LocalDate q1 = LocalDate.of(2021, 3, 31);
@@ -264,6 +274,7 @@ class EquityExDateAssignerTest {
         assertEquals(1, result.syntheticAssignments());
     }
 
+    // @spec EQUITY-DIV-020, EQUITY-DIV-021
     @Test
     void promotesRecentUnmatchedDeclarationToProvisionalEvent() {
         // A declared-but-not-yet-reported dividend (8-K before the next 10-Q) becomes a
@@ -294,6 +305,7 @@ class EquityExDateAssignerTest {
         assertEquals(CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED, promoted.exDateSource());
     }
 
+    // @spec EQUITY-DIV-021, EQUITY-DIV-022, EQUITY-DIV-023
     @Test
     void doesNotPromoteLowConfidenceOrStaleOrOutOfBandDeclarations() {
         LocalDate newestPeriodEnd = LocalDate.now(MarketTime.MARKET).minusDays(300);

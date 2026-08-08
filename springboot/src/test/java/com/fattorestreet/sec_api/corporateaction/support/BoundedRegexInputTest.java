@@ -16,6 +16,7 @@ class BoundedRegexInputTest {
     private static final Pattern LAZY_GAP =
             Pattern.compile("(?is)record\\s+date.{0,900}?((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?)\\s+\\d{1,2},?\\s+\\d{4})");
 
+    // @spec FILING-046
     @Test
     void matchesIdenticallyToUnguardedInputWhenWithinBudget() {
         String text = "The record date is January 15, 2025 for holders.";
@@ -29,6 +30,7 @@ class BoundedRegexInputTest {
         assertEquals("January 15, 2025", guarded.group(1));
     }
 
+    // @spec FILING-046
     @Test
     void reportsNoMatchIdenticallyWhenWithinBudget() {
         String text = "This filing mentions no record date at all.";
@@ -37,6 +39,7 @@ class BoundedRegexInputTest {
         assertFalse(LAZY_GAP.matcher(BoundedRegexInput.of(text, 2_000L)).find());
     }
 
+    // @spec FILING-043
     @Test
     void throwsOnceBudgetIsExhausted() throws InterruptedException {
         BoundedRegexInput guarded = BoundedRegexInput.of("a".repeat(8192), 1L);
@@ -50,6 +53,7 @@ class BoundedRegexInputTest {
         });
     }
 
+    // @spec FILING-042, FILING-043
     @Test
     void abortsSlowMatchOverLargeInputWithinBudget() {
         // The production shape fed text that maximises backtracking: a "record date" anchor every
@@ -69,6 +73,7 @@ class BoundedRegexInputTest {
         assertTrue(elapsedMillis < 5_000L, "expected abort well under 5s, took " + elapsedMillis + "ms");
     }
 
+    // @spec FILING-046
     @Test
     void exposesUnguardedViewsSoGroupsAreOrdinaryStrings() {
         String text = "record date March 3, 2024";

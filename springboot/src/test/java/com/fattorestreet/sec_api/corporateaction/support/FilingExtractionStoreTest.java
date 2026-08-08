@@ -39,6 +39,7 @@ class FilingExtractionStoreTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
+    // @spec FILING-018, FILING-022
     @Test
     void dividendSectionRoundTripsThroughPersistedRow() {
         FilingExtractionStore.DividendExtraction section = new FilingExtractionStore.DividendExtraction(
@@ -70,6 +71,7 @@ class FilingExtractionStoreTest {
         assertEquals(95, declaration.confidenceScore());
     }
 
+    // @spec FILING-022
     @Test
     void emptyDividendSectionRoundTripsAsPresentButEmpty() {
         // "Scanned and found nothing" must persist as a present section so the accession is
@@ -85,6 +87,7 @@ class FilingExtractionStoreTest {
         assertTrue(loaded.get().declarations().isEmpty());
     }
 
+    // @spec FILING-018
     @Test
     void splitSectionRoundTripsAndSharesRowWithDividendSection() {
         FilingExtraction row = store.saveDividendSection(
@@ -103,6 +106,7 @@ class FilingExtractionStoreTest {
         verify(repository, org.mockito.Mockito.times(2)).save(any(FilingExtraction.class));
     }
 
+    // @spec FILING-019
     @Test
     void versionMismatchReturnsEmptySection() {
         FilingExtraction row = new FilingExtraction();
@@ -116,6 +120,7 @@ class FilingExtractionStoreTest {
         assertTrue(store.splitSection(null).isEmpty());
     }
 
+    // @spec FILING-018
     @Test
     void loadByCikKeysRowsByAccession() {
         FilingExtraction row = new FilingExtraction();

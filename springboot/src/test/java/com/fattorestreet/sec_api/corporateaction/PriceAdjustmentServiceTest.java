@@ -124,6 +124,7 @@ class PriceAdjustmentServiceTest {
         return EquityCorporateActionService.EquityDetectionReport.failed(ticker, cik, "sec_fetch_failed");
     }
 
+    // @spec PRICE-ADJ-APPLY-001
     @Test
     void adjustTicker_noActions_setsAdjustedEqualToRaw() {
         Asset asset = buildAsset(320193L);
@@ -145,6 +146,7 @@ class PriceAdjustmentServiceTest {
         verify(dailyPriceRepository).saveAll(anyList());
     }
 
+    // @spec PRICE-ADJ-APPLY-006, PRICE-ADJ-APPLY-007
     @Test
     void adjustTicker_withSplit_appliesFactor() {
         Asset asset = buildAsset(320193L);
@@ -172,6 +174,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(48.75, preSplit.getAdjustedClose());
     }
 
+    // @spec PRICE-ADJ-SCOPE-029
     @Test
     void adjustTicker_noAsset_returnsNoAssetStatus() {
         when(assetRepository.findByListings_Ticker("FAKE")).thenReturn(null);
@@ -182,6 +185,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(0, result.get("pricesUpdated"));
     }
 
+    // @spec PRICE-ADJ-SCOPE-030
     @Test
     void adjustTicker_fundTicker_usesEtfDetector() {
         Asset asset = buildAsset(111111L);
@@ -204,6 +208,7 @@ class PriceAdjustmentServiceTest {
         assertNotNull(result.get("etfDiagnostics"));
     }
 
+    // @spec ETF-038
     @Test
     void adjustTicker_fundTicker_respectsConfidenceThreshold() {
         Asset asset = buildAsset(111111L);
@@ -225,6 +230,7 @@ class PriceAdjustmentServiceTest {
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
     }
 
+    // @spec PRICE-ADJ-APPLY-008
     @Test
     void adjustTicker_withDividend_appliesDividendFactor() {
         Asset asset = buildAsset(320193L);
@@ -256,6 +262,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(154.9375, beforeDiv.getAdjustedClose());
     }
 
+    // @spec PRICE-ADJ-APPLY-009
     @Test
     void adjustTicker_withDividend_prefersRawOverAdjustedForFactor() {
         Asset asset = buildAsset(320193L);
@@ -283,6 +290,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(155.0 * (1.0 - 1.0 / 155.0), beforeDiv.getAdjustedClose(), 1e-9);
     }
 
+    // @spec PRICE-ADJ-APPLY-008
     @Test
     void adjustTicker_withDividend_usesPriorTradingCloseAsDenominator() {
         Asset asset = buildAsset(320193L);
@@ -312,6 +320,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(110.0, priorTradingDay.getAdjustedClose());
     }
 
+    // @spec PRICE-ADJ-APPLY-005
     @Test
     void adjustTicker_withTwoSameDayDividends_appliesBothFactors() {
         Asset asset = buildAsset(320193L);
@@ -349,6 +358,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(118.0063, priorTradingDay.getAdjustedClose(), 0.0001);
     }
 
+    // @spec PRICE-ADJ-APPLY-002
     @Test
     void adjustTicker_actionOnNonTradingDay_snapsToNextTradeDate() {
         Asset asset = buildAsset(320193L);
@@ -376,6 +386,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(1, result.get("snappedActions"));
     }
 
+    // @spec PRICE-ADJ-APPLY-003
     @Test
     void adjustTicker_actionAfterNewestPrice_isIgnoredForNow() {
         Asset asset = buildAsset(320193L);
@@ -400,6 +411,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(0, result.get("snappedActions"));
     }
 
+    // @spec PRICE-ADJ-SCOPE-026
     @Test
     void adjustTicker_validateWithYfinance_includesValidationReport() {
         Asset asset = buildAsset(320193L);
@@ -429,6 +441,7 @@ class PriceAdjustmentServiceTest {
         verify(adjustedPriceValidationService).validateTicker("AAPL", LocalDate.of(2016, 1, 1));
     }
 
+    // @spec PRICE-ADJ-SCOPE-001
     @Test
     void adjustAllTickers_processesMultiple() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
@@ -452,6 +465,7 @@ class PriceAdjustmentServiceTest {
         assertNotNull(result.get("etfDiagnosticsSummary"));
     }
 
+    // @spec PRICE-ADJ-SCOPE-010
     @Test
     void adjustAllTickers_skipsSecFetchWhenActionsExistAndDetectionFresh() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
@@ -472,6 +486,7 @@ class PriceAdjustmentServiceTest {
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
     }
 
+    // @spec PRICE-ADJ-SCOPE-002
     @Test
     void adjustAllTickers_forceTrue_refetchesSec() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
@@ -493,6 +508,7 @@ class PriceAdjustmentServiceTest {
         verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
     }
 
+    // @spec PRICE-ADJ-SCOPE-010, PRICE-ADJ-SCOPE-019
     @Test
     void adjustAllTickers_staleDetectionIsRescheduledAndStamped() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
@@ -520,6 +536,7 @@ class PriceAdjustmentServiceTest {
         assertTrue(listing.getLastSecDetectionAt().isAfter(LocalDateTime.now(MarketTime.STORAGE).minusMinutes(1)));
     }
 
+    // @spec PRICE-ADJ-SCOPE-011
     @Test
     void adjustAllTickers_capLimitsScheduledDetectionsPerRun() {
         // 3 tickers all never detected: cap = ceil(3/7) = 1, so only one is re-detected
@@ -546,6 +563,7 @@ class PriceAdjustmentServiceTest {
         verify(listingRepository, times(1)).save(any(Listing.class));
     }
 
+    // @spec PRICE-ADJ-SCOPE-006, PRICE-ADJ-SCOPE-009
     @Test
     void adjustAllTickers_detectionScopedToIndexSkipsNonMembers() {
         // ZZZ is never-detected with unadjusted prices, which would otherwise trigger a SEC
@@ -574,6 +592,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(2, result.get("tickersProcessed"));
     }
 
+    // @spec PRICE-ADJ-SCOPE-013
     @Test
     void adjustAllTickers_capIsSizedFromDetectionScopeNotPriceUniverse() {
         // 14 index members inside a 700-ticker price universe: the nightly cap must be
@@ -608,6 +627,7 @@ class PriceAdjustmentServiceTest {
         verify(equityCorporateActionService, times(2)).detectAndPersistWithDiagnostics(anyString(), anyLong());
     }
 
+    // @spec PRICE-ADJ-SCOPE-012
     @Test
     void adjustAllTickers_capBindsWhenInScopeTickersHaveNoActionsAndNoDetectionStamp() {
         // The real nightly shape, and the one the cap used to miss: every in-scope ticker has
@@ -645,6 +665,7 @@ class PriceAdjustmentServiceTest {
         assertEquals(14, result.get("tickersProcessed"));
     }
 
+    // @spec PRICE-ADJ-SCOPE-007
     @Test
     void adjustAllTickers_emptyDetectionIndexFailsClosed() {
         // An unbuilt index must not silently fall back to the full price universe; that is the
@@ -669,6 +690,7 @@ class PriceAdjustmentServiceTest {
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
     }
 
+    // @spec PRICE-ADJ-SCOPE-008
     @Test
     void adjustAllTickers_blankDetectionIndexScansFullPriceUniverse() {
         // The documented escape hatch: blank config disables scoping, so the index is never queried.
@@ -692,6 +714,7 @@ class PriceAdjustmentServiceTest {
         verify(indexMemberRepository, never()).findTickersByIndexCode(anyString());
     }
 
+    // @spec PRICE-ADJ-SCOPE-015
     @Test
     void adjustAllTickers_priceJumpTriggersImmediateRedetection() {
         // Fresh stamp and existing actions would normally skip the SEC fetch, but the
@@ -723,6 +746,7 @@ class PriceAdjustmentServiceTest {
         verify(equityCorporateActionService).detectAndPersistWithDiagnostics("AAPL", 320193L);
     }
 
+    // @spec PRICE-ADJ-SCOPE-015
     @Test
     void adjustAllTickers_normalMoveDoesNotTriggerRedetection() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
@@ -746,6 +770,7 @@ class PriceAdjustmentServiceTest {
         verify(equityCorporateActionService, never()).detectAndPersistWithDiagnostics(anyString(), anyLong());
     }
 
+    // @spec PRICE-ADJ-SCOPE-020
     @Test
     void adjustAllTickers_failedDetectionDoesNotStampListing() {
         // A swallowed SEC fetch failure must leave the listing stale so the ticker is
@@ -768,6 +793,7 @@ class PriceAdjustmentServiceTest {
         verify(listingRepository, never()).save(any(Listing.class));
     }
 
+    // @spec PRICE-ADJ-SCOPE-020
     @Test
     void adjustTicker_failedDetectionDoesNotStampListing() {
         Asset asset = buildAsset(320193L);
@@ -789,6 +815,7 @@ class PriceAdjustmentServiceTest {
         assertNull(listing.getLastSecDetectionAt());
     }
 
+    // @spec PRICE-ADJ-APPLY-016
     @Test
     void adjustTicker_alreadyAdjustedRows_areNotRewritten() {
         Asset asset = buildAsset(320193L);
@@ -812,6 +839,7 @@ class PriceAdjustmentServiceTest {
         verify(dailyPriceRepository, never()).saveAll(anyList());
     }
 
+    // @spec PRICE-ADJ-SCOPE-022, PRICE-ADJ-APPLY-017
     @Test
     void adjustAllTickers_errorLeavesAdjustedNullForRetry() {
         Asset aapl = buildAssetWithListing("AAPL", 320193L);
@@ -831,6 +859,7 @@ class PriceAdjustmentServiceTest {
         verify(dailyPriceRepository, never()).saveAll(anyList());
     }
 
+    // @spec PRICE-ADJ-SCOPE-003
     @Test
     void adjustAllTickers_skipsNoAssetAndSetsRawAsAdjusted() {
         when(dailyPriceRepository.findTickersWithUnadjustedPrices()).thenReturn(List.of("FAKE"));
