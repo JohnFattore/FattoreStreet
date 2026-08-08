@@ -121,6 +121,18 @@ resolution is at least as well grounded. Inserting at the new date instead would
 and the adjustment pass would apply both, halving or doubling the whole prior series. Correcting a date
 must never be able to produce two splits where the company had one.
 
+Re-dating alone cannot retract a split that should never have existed, so weakly evidenced splits are
+also prunable: a stored split that is no longer detected and carries confidence below 70 is deleted.
+The threshold is set so that a share-fact date (40) and a price-only detection (60) can be retracted
+while filing text (70), price corroboration (90) and a price break (100) cannot. The asymmetry is the
+same one that governs the rest of the segment: a weakly grounded split is more likely to be a false
+positive than a real event a run failed to re-derive, and a strongly grounded one is the reverse.
+
+Pruning infers from absence, so it is suppressed while the split scan reports itself degraded, on the
+same terms as dividend pruning. The XBRL and price paths do not depend on filing fetches, which limits
+the exposure, but a split dated from filing text during a healthy run must not be retracted by a run
+that could not read filings at all.
+
 ### Price-first detection
 
 After the XBRL pass, the raw series is scanned for overnight moves that snap within 10% to a plausible
@@ -147,13 +159,62 @@ happens.
 Per-share dividend concepts are read from `us-gaap` facts, preferring
 `CommonStockDividendsPerShareDeclared`, `CommonStockDividendsPerShareCashPaid`,
 `CommonStockDividendsPerShareDeclaredAndPaid`, and `DividendsPaidPerShare`, restricted to USD per-share
-units. Facts are grouped by fiscal period end, and one event is selected per period, preferring
-quarter-length periods (up to 120 days), then form priority, then the earliest filing.
+units.
 
-Classification into regular and special matters because they are matched to dates differently: regular
-events carry a quarterly cadence prior that the DP path uses, special events do not. An annual-length
-period (250 days or more) is not a quarterly event, and a Q4 amount jumping more than 2.5x the running
-regular amount is treated as containing something other than the regular dividend.
+**The core difficulty is that XBRL dividend facts are not one-per-quarter.** A filer reports the same
+cash under several period shapes: the quarter itself, a year-to-date cumulative figure, the full fiscal
+year, and sometimes an 8-K fact with no period at all. Turning that into one event per quarter is the
+normalizer's entire job, and every rule below exists to stop the same dollar being counted twice or the
+wrong shape being read as a quarter.
+
+Facts are classified by the length of their reporting period:
+
+| Class | Period length | Role |
+|---|---|---|
+| Quarter-length | 1 to 120 days | The event, when present |
+| Intermediate | 121 to 249 days | Year-to-date cumulative; never an event |
+| Annual | 250 days or more | Used only to derive a missing Q4 |
+| No start date | (unclassifiable) | Usable, but only under the guard below |
+
+Within one fiscal period end, a quarter-length fact wins, chosen by shortest period, then form priority
+(10-Q, then 8-K, then 10-K, then anything else), then earliest filing.
+
+When no quarter-length fact exists, the fallback considers only facts that are neither annual nor
+intermediate, and applies one further guard: **a fact with no start date whose amount equals an
+intermediate fact's amount is discarded.** An 8-K carrying no period that reports the same number as the
+year-to-date cumulative figure *is* that cumulative figure, and admitting it would book three quarters of
+dividends as one. Remaining candidates are ordered by having a start date at all, then preferred concept,
+then form, then filing date.
+
+### Derived Q4
+
+A filer that reports Q1 to Q3 quarterly and then only an annual total leaves Q4 with no fact of its own.
+Rather than lose the quarter, it is derived: `annual total - sum of the quarters already known inside
+that fiscal year`.
+
+Two guards keep the subtraction from inventing a dividend. A non-positive result is discarded, which is
+what happens when the quarters already sum to the annual total. And the result must not exceed 2.5 times
+the median of the known prior quarters, which catches the case where the "annual" fact was not actually
+annual, or where a quarter is missing from the sum and the remainder absorbs two quarters of cash.
+
+A derived Q4 fills an empty fiscal-year end outright. When a value is already present there, it is
+replaced only when the stored value exceeds the derived one by more than 0.02, because that is the
+signature of a cumulative figure having been mistaken for a quarter: the year-end "quarter" reads far
+larger than the derived remainder. Otherwise the existing value stands.
+
+### Regular and special
+
+Classification matters because the two are matched to dates differently: regular events carry the
+quarterly cadence prior the DP path uses, special events do not.
+
+Against the selected regular amount for a period, another fact at the same period end is flagged special
+when it is at least 2.8 times the regular amount *and* at least 0.75 higher in absolute terms, or when it
+comes from an 8-K and exceeds the regular amount by more than 0.25. The absolute floor on the first rule
+stops a penny-dividend issuer from generating specials out of rounding, and the 8-K rule is looser
+because a special dividend is normally announced in exactly that form.
+
+Specials are deduplicated by period end and amount, and any that collide with a regular event on both are
+dropped as the same cash seen twice.
 
 If normalization yields no events, the segment stops before scanning any filings. There is nothing to
 assign dates to, and the filing scan is by far the most expensive step.
@@ -211,11 +272,32 @@ Three guards keep promotion from inventing dividends:
 
 ### Split restatement of amounts
 
-Every detected event's amount is restated onto the current share basis by dividing by the product of
-split ratios effective after it. Both figures are kept: `rawDividend` as the company declared it and
-`adjustedDividend` on today's basis. Keeping both is what lets a newly detected split trigger a
-recomputation instead of a lossy in-place rewrite, and it is why the adjustment pass can use the raw
-amount against the raw prior close.
+Every detected event's amount is restated onto the current share basis by the product of the ratios of
+splits effective after it. Both figures are kept: `rawDividend` on the price scale that applied when the
+dividend was paid, and `adjustedDividend` on today's basis. Keeping both is what lets a newly detected
+split trigger a recomputation instead of a lossy in-place rewrite, and it is why the adjustment pass can
+divide the raw amount by the raw prior close.
+
+The split an event is measured against is anchored on its ex-date when one has been assigned, and on its
+fiscal period end otherwise. Split ratios are snapped to the same common-ratio set the detector uses
+before being applied, so a slightly-off stored ratio does not leak a rounding error into every historical
+dividend.
+
+**Filers restate their own history, and that has to be undone.** After a split, a company commonly
+refiles prior per-share dividends on the post-split basis, so the "raw" XBRL amount for an old quarter is
+already scaled and is *not* on the price scale of its own ex-date. Feeding that to the adjustment pass
+would divide a post-split cash amount by a pre-split close and produce a dividend factor wrong by the
+split ratio.
+
+There is no flag in the data saying which facts were restated, so it is inferred from the amounts. For
+each split, the first event at or after it sets a scale anchor, and pre-split events are walked backwards
+while they stay within 30% of that anchor. That contiguous run is the set the issuer already restated,
+and its earliest member becomes the cutoff. Events at or after the cutoff have the split's ratio removed
+from their raw amount rather than applied to it; events before the cutoff are treated as genuinely
+pre-split and are scaled normally.
+
+The inference is a heuristic over reported amounts, which is a real weakness: a company that changed its
+dividend by more than 30% in the quarter spanning a split will have its cutoff placed wrongly.
 
 ### Persistence
 
@@ -257,12 +339,15 @@ declaration for this event" and "no event for this row" have both stopped being 
 | No break in a covered window | Reject the candidate | Persist at low confidence | Share-count jumps also come from buybacks and issuance. A false split is multiplicative and corrupts everything before it, so a covered window with no break is treated as proof of absence. |
 | Coverage requirement on the veto | Veto only applies when prices span the whole window | Always veto on a missing break | Outside the price history, absence of a break is absence of data. A veto that cannot tell those apart would delete real old splits. |
 | Existing split at a corrected date | Re-date in place when at least as well grounded | Insert the new date and leave the old row | Two live rows for one event double-adjust the entire prior series. A date correction must never be able to produce that. |
+| Retracting a wrong split | Prune when no longer detected and confidence is below 70, suppressed on a degraded scan | Never delete, correct only by re-dating; tombstone rows instead of deleting | Re-dating cannot retract a split that should not exist, so a false price-only detection would adjust the series permanently. A confidence floor keeps well-grounded splits safe, and a tombstone would require every reader (adjustment, both validators) to learn to filter it. |
 | Extended ratios (3:2, 4:3) | Require filing or price confirmation | Treat like primary ratios | A 33% move is inside the range of ordinary gaps and share-count drift, so the ratio alone is not evidence. |
 | Price-first split detection | Scan for unexplained breaks, persist with graded confidence | Rely on XBRL share counts only | Share counts arrive with the next quarterly cover page, so an XBRL-only pipeline is months late. This makes same-day detection possible. |
 | Price-only split without filing support | Persist only at 5x or beyond | Persist any snapped break; persist none | At 5x no ordinary market move is a plausible alternative explanation. Below it, the risk of adjusting on a crash outweighs the missed event. |
 | Undatable dividend | Persist with a synthetic date at confidence 10 | Skip the event | A missing dividend is a permanent hole in yield and total-return history. A bounded date error is recoverable, and the low rank invites correction. |
 | Ex-date assignment strategy | Tuple, then direct text, then global DP, then synthetic | Cadence inference only; greedy matching only | Amount-anchored declarations are read rather than inferred. DP exists because quarterly events are a sequence where one greedy mistake cascades. |
 | Amount storage | Persist raw and split-adjusted amounts side by side | Store only the adjusted amount | The raw amount is what pairs with the raw prior close during adjustment, and keeping it makes a newly detected split a recomputation rather than a lossy rewrite. |
+| Missing Q4 when only an annual total is filed | Derive it by subtraction, guarded by positivity and a 2.5x median ceiling | Skip the quarter; treat the annual fact as an event | Skipping loses a real dividend, and treating a year as a quarter overstates it fourfold. Subtraction recovers the quarter, and the guards catch the cases where the inputs were not what they appeared. |
+| Filer-restated historical amounts | Infer the restated run from amount continuity and un-restate it | Trust the raw fact; add a manual override list | Nothing in XBRL marks a restated fact, so there is no exact signal to read. Trusting the raw fact yields a dividend factor wrong by the split ratio for every pre-split quarter the filer refiled. |
 | Date overwrite policy | A weaker-ranked re-detection may not move a stored date | Latest detection always wins | Self-healing on recency means one night of SEC failures degrades every anchored date to a guess, irreversibly. |
 | Pruning scope | Detected year range, own source type, rank below 3 | Prune every unmatched row | Narrow scope keeps detection from deleting other sources' rows or history it did not examine. The rank exclusion closes the delete-and-reinsert bypass around the date-move guard. |
 | Degraded scan | Suppress synthetic inserts and all pruning | Proceed normally; abort the ticker | Both suppressed behaviors infer from absence, and a degraded scan is exactly when absence is uninformative. Updates are still safe because they are matched, not inferred. |
@@ -280,6 +365,15 @@ declaration for this event" and "no event for this row" have both stopped being 
    low-confidence.
 4. ✅ Whether a later run may overwrite a better-grounded date: no, and the pruning path is closed
    against the same move by deletion.
+5. ✅ Whether a wrongly persisted split can be retracted: yes, below a confidence floor of 70, and not
+   while the split scan is degraded. Deletion was chosen over a tombstone because a tombstone obliges
+   every downstream reader to filter it.
+6. ✅ Where the effective-date convention is defined: in the adjustment segment
+   (`PRICE-ADJ-APPLY-006`), because the apply loop is what gives the date its meaning. Detection
+   conforms to it.
+7. ✅ Whether split corroboration should keep its own non-positive-close filter once the ingest segment
+   rejects such prints: yes, as defense in depth. It is cheap and it keeps the corroborator correct
+   against any price history loaded before that gate existed.
 
 ### Deferred
 
@@ -297,7 +391,14 @@ declaration for this event" and "no event for this row" have both stopped being 
 5. Promotion creates provisional events that no later step demotes or reconciles when the 10-Q arrives
    with a different amount. The year-scoped match is expected to absorb them, but nothing asserts that
    a promoted event and its eventual XBRL fact converge to one row.
-6. Reverse splits are handled by the same reciprocal ratios and log-space tolerances as forward splits,
+6. Detecting which pre-split dividends a filer already restated is inferred from amount continuity (a
+   contiguous backwards run within 30% of the first post-split amount) because nothing in XBRL marks a
+   restated fact. An issuer that changed its dividend by more than 30% across the split will have its
+   cutoff placed wrongly, and the resulting raw amount will be off by the split ratio for the events on
+   the wrong side of it. No signal currently detects that case.
+7. The derived-Q4 plausibility ceiling (2.5 times the median prior quarter) and the cumulative-detection
+   margin (0.02) are unexplained constants, like the DP costs above.
+8. Reverse splits are handled by the same reciprocal ratios and log-space tolerances as forward splits,
    and no test data distinguishes them. Whether reverse splits carry different filing language or
    different price-break characteristics is unexamined.
 

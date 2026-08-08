@@ -34,7 +34,8 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 ## Scan Reliability Signal
 
 - [x] **FILING-066**: When a dividend record-date scan completes, the system shall report the scan as degraded if more than three filings failed and the failed count exceeds one quarter of the processed count, so that consumers can distinguish an incomplete candidate list from a genuinely empty one.
-- [x] **FILING-067**: When a filing scan completes, the system shall report its processed and failed filing counts alongside the candidates, so a consumer can judge the result's completeness without re-running the scan.
+- [x] **FILING-067**: When a dividend record-date scan completes, the system shall report its processed and failed filing counts alongside the candidates, so a consumer can judge the result's completeness without re-running the scan.
+- [ ] **FILING-068**: When a split effective-date scan completes, the system shall report its processed and failed filing counts and whether it was degraded, on the same terms as FILING-066, so that split persistence decisions which infer from absence can be suppressed during an unhealthy scan.
 
 ## Extraction Cache
 

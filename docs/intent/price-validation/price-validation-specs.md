@@ -51,11 +51,13 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 
 - [x] **PRICE-VAL-025**: If the configured validation index resolves to zero members, then the system shall log the condition at error level and exit with code 1, rather than reporting a healthy run over an empty scope.
 - [x] **PRICE-VAL-026**: If the configured validation minimum date is not an ISO date, then the system shall exit with code 1.
+- [ ] **PRICE-VAL-038**: The system shall take the validation comparison window start from a single source, so that the weekly task and the opt-in diagnostics in the adjustment pass cannot silently disagree about which window was compared.
 - [x] **PRICE-VAL-027**: When selecting tickers for the weekly validation run, the system shall order the configured index's members by index weight descending.
 - [x] **PRICE-VAL-028**: Where a maximum ticker count is configured for the weekly validation run, the system shall validate only the heaviest that many members, and shall log that the run was capped.
 - [x] **PRICE-VAL-029**: Where no SNS topic is configured for the weekly validation run, the system shall log the rendered report instead of publishing it, and shall treat that as success.
 - [x] **PRICE-VAL-030**: If publishing the weekly validation report fails, then the system shall exit with code 1, because a report nobody receives is indistinguishable from a run that never happened.
 - [x] **PRICE-VAL-031**: When the weekly validation run completes and its report is delivered, the system shall exit with code 0 even when individual tickers were skipped.
+- [x] **PRICE-VAL-039**: If the weekly validation batch throws, then the system shall log the failure and exit with code 1.
 - [x] **PRICE-VAL-032**: Where `app.run-mode` is not `validate-prices`, the system shall create neither the validation runner nor the report publisher, so that other deployments construct no SNS client and require no AWS credentials.
 - [x] **PRICE-VAL-033**: When the weekly validation run finishes, the system shall terminate the JVM with the computed exit code after running shutdown hooks.
 

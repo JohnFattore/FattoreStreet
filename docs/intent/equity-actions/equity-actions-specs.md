@@ -27,7 +27,7 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 
 ## Split Detection: Dating
 
-- [x] **EQUITY-SPLIT-006**: The system shall define an equity split's effective date as the first trade date at the new price basis, matching the date the price-adjustment pass assigns the pre-action factor to.
+- [x] **EQUITY-SPLIT-006**: When dating an equity split, the system shall produce a date conforming to the effective-date convention defined by PRICE-ADJ-APPLY-006 (the first trade date at the new price basis, which the adjustment pass writes with the pre-action factor).
 - [x] **EQUITY-SPLIT-007**: When dating an equity split candidate, the system shall prefer a corroborating overnight price break, then a filing split-date candidate, then the date of the later shares-outstanding fact.
 - [x] **EQUITY-SPLIT-008**: When an equity split is dated from a corroborating price break, the system shall record its ex-date source as `PRICE_BREAK` with confidence 100; from filing text, `FILING_TEXT` with confidence 70; from the shares-outstanding fact date, `SHARE_FACT` with confidence 40.
 - [x] **EQUITY-SPLIT-009**: When searching for an equity split's corroborating price break, the system shall search the bracket between the two shares-outstanding facts padded by 10 days, widened to include a matched filing split-date candidate.
@@ -35,6 +35,8 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 - [x] **EQUITY-SPLIT-011**: When corroborating an equity split multiplier against the raw close series, the system shall compare overnight moves in log space, accepting a deviation up to 15% for multipliers at or above 2 (or at or below 0.5), and up to 6% for extended ratios.
 - [x] **EQUITY-SPLIT-012**: When corroborating an equity split multiplier, the system shall exclude price rows without a positive close from the series.
 - [x] **EQUITY-SPLIT-013**: When a corroborating price break and a filing split-date candidate for the same equity split disagree by more than 7 days, the system shall log the disagreement.
+- [x] **EQUITY-SPLIT-027**: When more than one overnight move inside an equity split candidate's search window falls within tolerance of its multiplier, the system shall select the move closest to the multiplier in log space.
+- [x] **EQUITY-SPLIT-028**: When two shares-outstanding facts report the same date, the system shall keep the larger share count, so that a superseded cover-page figure cannot manufacture a ratio change.
 
 ## Split Detection: False-Positive Veto
 
@@ -45,6 +47,9 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 
 - [x] **EQUITY-SPLIT-016**: When an equity split candidate matches a stored split within 90 days whose ratio agrees within 1%, and the new resolution is at least as well grounded as the stored one, the system shall re-date the stored row in place rather than inserting a new row.
 - [x] **EQUITY-SPLIT-017**: When persisting a newly detected equity split from XBRL share counts, the system shall set the action type to SPLIT, the ratio to the reciprocal of the snapped share multiplier, and the source type to `SEC_EQUITY_XBRL`.
+- [ ] **EQUITY-SPLIT-024**: When a stored equity split is no longer detected, its confidence is below 70, and its source type is one this segment writes, the system shall delete it, so that a split persisted on weak evidence (a share-count fact date at 40, or price evidence alone at 60) does not adjust the series permanently.
+- [ ] **EQUITY-SPLIT-025**: When a stored equity split is no longer detected and its confidence is 70 or above, the system shall retain it, so that a price-break, filing-text, or price-corroborated split is never removed by a run that merely failed to re-derive it.
+- [ ] **EQUITY-SPLIT-026**: While the split effective-date scan for a ticker is reported degraded (see FILING-068), the system shall not delete any stored equity split, because absence of a re-detection is uninformative when the evidence source was unhealthy.
 
 ## Split Detection: Price-First Detection
 
@@ -59,10 +64,32 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 
 - [x] **EQUITY-DIV-001**: When parsing equity dividend facts, the system shall read per-share dividend concepts from SEC XBRL `us-gaap` facts, restricted to USD per-share units.
 - [x] **EQUITY-DIV-002**: When parsing equity dividend facts, the system shall prefer the concepts `CommonStockDividendsPerShareDeclared`, `CommonStockDividendsPerShareCashPaid`, `CommonStockDividendsPerShareDeclaredAndPaid`, and `DividendsPaidPerShare`.
-- [x] **EQUITY-DIV-003**: When normalizing equity dividend facts, the system shall group them by fiscal period end and select one event per period, preferring quarter-length periods of at most 120 days, then form priority, then the earliest filing date.
-- [x] **EQUITY-DIV-004**: When a normalized equity dividend event covers a period of 250 days or more, the system shall classify it as a special event rather than a regular quarterly one.
-- [x] **EQUITY-DIV-005**: When a fourth-quarter equity dividend amount exceeds 2.5 times the running regular amount, the system shall classify the event as special.
+- [x] **EQUITY-DIV-003**: When normalizing equity dividend facts, the system shall group them by fiscal period end and produce at most one regular event per period end.
+- [x] **EQUITY-DIV-004**: When normalizing equity dividend facts, the system shall classify a fact's reporting period as quarter-length at 120 days or fewer, intermediate above 120 and below 250 days, and annual at 250 days or more, and shall treat a fact with no start date as belonging to none of these classes.
+- [x] **EQUITY-DIV-005**: When a fiscal period end has one or more quarter-length equity dividend facts, the system shall select among them by shortest reporting period, then by form priority (10-Q, then 8-K, then 10-K, then any other form), then by earliest filing date.
 - [x] **EQUITY-DIV-006**: When equity dividend normalization yields no events, the system shall skip the filing record-date scan entirely.
+- [x] **EQUITY-DIV-040**: When a fiscal period end has no quarter-length equity dividend fact, the system shall select among that period's facts excluding annual and intermediate ones, ordering by whether the fact has a start date, then by preferred concept, then by form priority, then by earliest filing date.
+- [x] **EQUITY-DIV-041**: When selecting a fallback equity dividend fact for a period end, the system shall discard a fact that has no start date and whose amount equals that of an intermediate-length fact at the same period end, because such a fact is the year-to-date cumulative figure rather than a quarterly dividend.
+- [x] **EQUITY-DIV-042**: When normalizing equity dividend facts, the system shall never emit an intermediate-length or annual-length fact as a dividend event.
+
+## Dividend Detection: Derived Fourth Quarter
+
+- [x] **EQUITY-DIV-043**: When an annual equity dividend fact covers a fiscal year, the system shall derive the missing fourth-quarter amount as the annual total less the sum of the quarterly amounts already known for period ends inside that fiscal year.
+- [x] **EQUITY-DIV-044**: When a derived fourth-quarter equity dividend amount is not positive, the system shall discard it.
+- [x] **EQUITY-DIV-045**: When a derived fourth-quarter equity dividend amount exceeds 2.5 times the median of the known prior quarterly amounts in that fiscal year, the system shall discard it as implausible.
+- [x] **EQUITY-DIV-046**: When a derived fourth-quarter equity dividend amount is accepted and no amount is yet recorded at the fiscal year end, the system shall record the derived amount there.
+- [x] **EQUITY-DIV-047**: When a derived fourth-quarter equity dividend amount is accepted and an amount is already recorded at the fiscal year end, the system shall replace it only when the recorded amount exceeds the derived amount by more than 0.02, which is the signature of a cumulative figure having been read as a quarter.
+- [x] **EQUITY-DIV-048**: When more than one annual equity dividend fact shares a fiscal year end, the system shall derive a fourth quarter from at most one of them.
+
+## Dividend Detection: Special Classification
+
+- [x] **EQUITY-DIV-049**: When an equity dividend fact at a period end differs from that period's selected regular amount, the system shall classify it as a special event when it is at least 2.8 times the regular amount and at least 0.75 greater in absolute terms, or when it comes from an 8-K and exceeds the regular amount by more than 0.25.
+- [x] **EQUITY-DIV-050**: When classifying special equity dividends, the system shall consider neither annual nor intermediate-length facts.
+- [x] **EQUITY-DIV-051**: When a special equity dividend candidate shares both period end and amount with a regular event, the system shall discard the candidate as the same cash counted twice, and shall deduplicate remaining candidates by period end and amount.
+- [x] **EQUITY-DIV-052**: When emitting normalized equity dividend amounts, the system shall round them to four decimal places.
+- [x] **EQUITY-DIV-037**: When parsing equity dividend facts, the system shall accept facts only from the reporting forms that carry reliable per-share dividend disclosure, and shall skip facts from other forms.
+- [x] **EQUITY-DIV-038**: When parsing equity dividend facts, the system shall skip any fact whose per-share value is not positive.
+- [x] **EQUITY-DIV-039**: When parsing equity dividend facts, the system shall deduplicate facts identical in period, value, form, and filing date.
 
 ## Dividend Detection: Ex-Date Assignment
 
@@ -89,8 +116,12 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 
 ## Dividend Detection: Amount Restatement
 
-- [x] **EQUITY-DIV-024**: When persisting an equity dividend event, the system shall restate its per-share amount onto the current share basis by dividing by the product of the ratios of splits effective after the event.
-- [x] **EQUITY-DIV-025**: When persisting an equity dividend event, the system shall store both the amount as declared and the amount restated onto the current share basis.
+- [x] **EQUITY-DIV-024**: When persisting an equity dividend event, the system shall restate its per-share amount onto the current share basis by the product of the ratios of splits effective after the event.
+- [x] **EQUITY-DIV-025**: When persisting an equity dividend event, the system shall store both the amount on the price scale that applied at its own ex-date and the amount restated onto the current share basis.
+- [x] **EQUITY-DIV-053**: When determining which splits fall after an equity dividend event, the system shall anchor on the event's assigned ex-date when it has one, and on its fiscal period end otherwise.
+- [x] **EQUITY-DIV-054**: When applying split ratios to equity dividend amounts, the system shall first snap each split's ratio to the nearest common split ratio within 2%, so that a slightly imprecise stored ratio does not propagate into every restated dividend.
+- [x] **EQUITY-DIV-055**: When a filer has already restated pre-split equity dividend amounts onto the post-split basis, the system shall remove that split's ratio from the stored raw amount rather than applying it, so that the raw amount stays on the price scale of its own ex-date (the scale PRICE-ADJ-APPLY-009 requires).
+- [x] **EQUITY-DIV-056**: When identifying which pre-split equity dividend events a filer already restated, the system shall take the first event at or after the split as a scale anchor, walk earlier events backwards while each stays within 30% of that anchor, and treat the earliest event of that contiguous run as the cutoff at or after which amounts are already restated.
 
 ## Dividend Detection: Persistence and Provenance
 

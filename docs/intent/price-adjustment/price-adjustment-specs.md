@@ -15,6 +15,8 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 - [x] **PRICE-ADJ-SCOPE-003**: When a ticker in the price adjustment working set has no matching `Asset`, the system shall write its adjusted prices equal to its raw prices and count it as skipped, so that a symbol with no SEC counterpart does not re-enter the working set on every run.
 - [x] **PRICE-ADJ-SCOPE-004**: If both the ETF-only and equity-only options are set, then the system shall reject the request as invalid arguments rather than resolving the conflict.
 - [x] **PRICE-ADJ-SCOPE-005**: Where the ETF-only option is set, the system shall process only tickers whose asset is a fund; where the equity-only option is set, only tickers whose asset is not a fund.
+- [x] **PRICE-ADJ-SCOPE-029**: When adjusting a single ticker that has no matching `Asset`, the system shall report a no-asset status and adjust no prices.
+- [x] **PRICE-ADJ-SCOPE-030**: When running SEC detection for a ticker, the system shall route to fund distribution detection when its asset is a fund and to equity corporate-action detection otherwise.
 
 ## Detection Scope
 
@@ -50,6 +52,7 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 - [x] **PRICE-ADJ-SCOPE-023**: If a full price adjustment pass is interrupted, then the system shall stop processing further tickers and re-assert the thread's interrupt flag.
 - [x] **PRICE-ADJ-SCOPE-024**: When a SEC detection completes during a full pass, the system shall pause 100 milliseconds before continuing to the next ticker.
 - [x] **PRICE-ADJ-SCOPE-025**: When a full price adjustment pass completes, the system shall report tickers processed, skipped for having no asset, failed, scheduled detections, jump-triggered detections, prices updated, snapped actions, and aggregated equity and fund detection diagnostics.
+- [x] **PRICE-ADJ-SCOPE-028**: When SEC detection runs for a ticker during a pass, the system shall re-read that ticker's corporate actions after detection completes and before applying adjustment factors, so that an action detected in this pass is applied in this pass.
 
 ## Adjustment: Effective-Date Handling
 
@@ -61,7 +64,7 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 
 ## Adjustment: Factor Arithmetic
 
-- [x] **PRICE-ADJ-APPLY-006**: When adjusting a ticker's prices, the system shall walk its price rows from newest to oldest, writing each row's adjusted values as its raw values multiplied by the cumulative factor as it stands before that row's own actions are applied.
+- [x] **PRICE-ADJ-APPLY-006**: When adjusting a ticker's prices, the system shall walk its price rows from newest to oldest, writing each row's adjusted values as its raw values multiplied by the cumulative factor as it stands before that row's own actions are applied. This spec defines the pipeline's effective-date convention: an action's apply date is the first trade date at the new basis, so that row needs no adjustment for the action while every earlier row does. Detection conforms to this convention rather than defining it (see EQUITY-SPLIT-006).
 - [x] **PRICE-ADJ-APPLY-007**: When applying a split on its apply date, the system shall multiply the cumulative factor by the split's stored ratio, and shall ignore a split whose ratio is missing or not positive.
 - [x] **PRICE-ADJ-APPLY-008**: When applying a dividend on its apply date, the system shall multiply the cumulative factor by one minus the dividend cash divided by the raw close of the previous trading day.
 - [x] **PRICE-ADJ-APPLY-009**: When resolving the cash amount for a dividend adjustment factor, the system shall prefer the raw dividend amount, falling back to the adjusted dividend amount and then to the ratio field, because the factor divides by a raw historical close and the raw amount is the only one on that scale.

@@ -75,7 +75,8 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 - [x] **ETF-045**: When fund distribution detection completes for a ticker, the system shall report counts of filings considered, filings fetched, identity matches, amounts extracted, dates extracted, below-confidence outcomes, and duplicates.
 - [x] **ETF-046**: When fund distribution detection completes for a ticker, the system shall report skip counts by reason, identity scores in buckets, amount source counts, date resolution path counts, and per-form discovered, eligible and rejected counts.
 - [x] **ETF-047**: When fund distribution detection persists rows for a ticker, the system shall retain up to 10 sample rows carrying accession number, form type, source document, effective date, amount, and identity score.
-- [ ] **ETF-048**: When fund distribution detection completes for a ticker, the system shall record when that ticker was last scanned, so that stale fund coverage is detectable.
+- [ ] **ETF-048**: When fund distribution detection completes for a ticker, the system shall record when that ticker was last scanned in the same `listings.last_sec_detection_at` field the equity path uses, rather than a fund-specific field, so that staleness is one question with one answer across both asset classes.
+- [ ] **ETF-050**: When a stored fund distribution is no longer detected and its confidence is below the persistence threshold, the system shall delete it, on the same terms as EQUITY-SPLIT-024; this depends on ETF-049, because pruning on absence is only safe once detection runs reliably rather than manually.
 
 ## Trigger
 

@@ -260,7 +260,9 @@ fund was scanned.
    whose table sits past the cut looks identical to a fund with no table.
 5. A re-detection that resolves a different date for the same distribution inserts a second row rather
    than correcting the first, and nothing detects the pair. The equity path's year-scoped match exists
-   for exactly this and has no counterpart here.
+   for exactly this and has no counterpart here. Retracting a wrong row is also unavailable: the equity
+   path can now prune weakly evidenced splits, but pruning infers from absence and is only safe once
+   detection runs reliably, so it waits on the trigger in item 6.
 6. The segment has no automated trigger since the admin routes were retired. It needs either its own
    scheduled run mode (with a fetch budget, per item 7) or an explicit decision that fund distributions
    are maintained manually.

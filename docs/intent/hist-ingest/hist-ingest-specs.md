@@ -47,4 +47,5 @@ Markers: `[x]` implemented, `[ ]` active gap, `[D]` deferred.
 - [x] **HIST-027**: When invoking price adjustment, the HIST load runner shall never enable yfinance validation.
 - [x] **HIST-028**: If the IEX HIST load throws, or every attempted day failed, or the price-adjustment phase throws, then the system shall exit with code 1.
 - [x] **HIST-029**: When some IEX HIST days failed but at least one was processed, or when individual tickers failed during the price-adjustment phase, the system shall exit with code 0.
+- [x] **HIST-031**: When the IEX HIST load and the price-adjustment phase both complete without throwing, the system shall exit with code 0.
 - [ ] **HIST-030**: If the configured IEX HIST day count is less than one, then the system shall fail rather than report success having examined no days.

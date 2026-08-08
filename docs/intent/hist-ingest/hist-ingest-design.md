@@ -178,7 +178,13 @@ non-zero rows are cases where nothing progressed, which is worth waking someone 
 1. ✅ Whether to fail the task when some days fail: no, as long as one day was processed. The load is
    idempotent and the next run retries.
 2. ✅ Whether the holiday calendar needs to be exact: no. The HIST index is authoritative for whether
-   a day traded, and the calendar is only a candidate filter.
+   a day traded, and the calendar is only a candidate filter. The complete NYSE calendar in the
+   filing-evidence segment has no counterpart here for the same reason, and the adjustment segment
+   needs neither because it snaps to observed trade dates.
+3. ✅ Where the non-positive-price guard belongs: here, at aggregation, so such a print never reaches
+   `daily_prices`. Split corroboration keeps its existing filter as defense in depth; the adjustment
+   pass adds none, since it would be unreachable. The accepted cost is that stored prices no longer
+   mirror the feed byte for byte.
 
 ### Deferred
 

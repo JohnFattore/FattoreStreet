@@ -217,6 +217,13 @@ It exists for development. Nothing it returns is persisted; see the licensing co
 2. ✅ Whether never-detected tickers should bypass the nightly cap: no, they sort to the head of it.
 3. ✅ Whether a failed detection should stamp the timestamp: no, so the ticker is retried tomorrow.
 4. ✅ Whether an action on a non-trading day should be dropped: no, snapped forward.
+5. ✅ Where the effective-date convention is defined: here, in `PRICE-ADJ-APPLY-006`. The apply loop is
+   what gives the date its meaning, so detection conforms to this segment rather than the reverse.
+6. ✅ Whether this segment needs a holiday calendar: no. Snapping to observed trade dates from the price
+   series answers "was the market open" from data instead of modelling it, which is why the two
+   calendars elsewhere in the pipeline have no counterpart here.
+7. ✅ Whether the adjustment pass needs its own non-positive-price filter: no. The ingest segment rejects
+   such prints at the boundary, so a filter here would be unreachable code that nothing exercises.
 
 ### Deferred
 

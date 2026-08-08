@@ -303,7 +303,10 @@ which prefers the original declaration over a later restatement of it.
 4. Sentence-level intent classification and its proximity boost are tuned by constants with no stated
    derivation. They work, but nothing records what evidence set they were tuned against, so it is not
    currently possible to tell whether a change improves or degrades them.
-5. Extraction is per-CIK, and a scan reports form-level diagnostics but no per-filing record of why a
+5. The split effective-date scan reports no processed or failed counts and therefore has no degraded
+   signal, unlike the dividend record-date scan. Split persistence now includes a pruning path that
+   infers from absence, so that signal has become a prerequisite rather than a symmetry nicety.
+6. Extraction is per-CIK, and a scan reports form-level diagnostics but no per-filing record of why a
    filing produced nothing. When a known dividend is missed, the scan cannot say whether the filing
    was never selected, never fetched, fetched and unmatched, or timed out.
 
