@@ -135,6 +135,58 @@ Additional conventions:
 - Skills (invocable workflows): `.claude/skills/<name>/SKILL.md` with `name`/`description` frontmatter
 - Rules (always-on or path-scoped conventions): `.claude/rules/<topic>.md`; add a `paths:` frontmatter list of globs to scope a rule to matching files, omit frontmatter for rules that apply every session
 
+## Design Workflows: Spec Kit and LID
+
+Two workflows coexist and own different things. Do not use one where the other applies.
+
+**Spec Kit** (`.specify/`, `specs/NNN-slug/`, the `speckit-*` skills) owns a **change**. It is the
+front door for "I want to build X": spec, plan, tasks, implement, gated by
+`.specify/memory/constitution.md`. Its `FR-###`/`SC-###` IDs live in markdown only and retire when
+the feature merges. This is the default workflow for all new work.
+
+**LID** (Linked-Intent Development, plugins `linked-intent-dev` and `arrow-maintenance` from the
+`jszmajda-lid` marketplace, pinned in `.claude/settings.json`) owns a **component**. It maintains
+standing design docs and EARS requirements that outlive any one change, and tests cite those
+requirement IDs so `/arrow-maintenance` can verify code still matches stated intent.
+
+| | Spec Kit | LID |
+|---|---|---|
+| Owns | a change | a component |
+| Lives in | `specs/NNN-slug/` | `docs/intent/<segment>/` |
+| Lifetime | until merge | as long as the component exists |
+| IDs | `FR-001`, `SC-001` (markdown only) | e.g. `PRICE-ADJ-001`, cited by tests |
+| Gate | constitution check | coherence audit |
+
+**LID is scoped, not repo-wide.** It currently covers only:
+
+- `springboot/src/main/java/com/fattorestreet/sec_api/corporateaction/**`
+- `springboot/src/main/java/com/fattorestreet/sec_api/marketdata/**`
+
+This is a deliberate pilot on the repo's most intent-dense code, where a wrong answer silently
+corrupts every adjusted price downstream. Everything outside those two packages has no LID specs,
+so do not invoke LID commands against it or write `@spec` annotations there.
+
+Inside the LID scope, intent flows downstream and never backwards: update the LLD, then the EARS
+specs, then the tests, then the code. A change to that code that leaves its specs untouched is
+incomplete. Tests carry `// @spec <ID>` comments linking back to the EARS requirement they cover;
+Checkstyle disables all `Javadoc*` checks and Spotless never reflows, so these comments are safe.
+
+Key commands: `/linked-intent-dev` (workflow and bootstrap), `/arrow-maintenance` (coherence
+audit), `/arrow-maintenance:map-codebase` (map a new segment), `/update-lid` (reconcile config).
+
+## LID
+- Mode: Scoped
+- Version: 1.3.0
+
+## LID Scope
+
+Paths in scope:
+- `springboot/src/main/java/com/fattorestreet/sec_api/corporateaction/**`
+- `springboot/src/main/java/com/fattorestreet/sec_api/marketdata/**`
+- `springboot/src/test/java/com/fattorestreet/sec_api/corporateaction/**`
+- `springboot/src/test/java/com/fattorestreet/sec_api/marketdata/**`
+- `docs/intent/**`
+
 ## Environment Variables
 
 ### Django (`.env` in `django/`)
