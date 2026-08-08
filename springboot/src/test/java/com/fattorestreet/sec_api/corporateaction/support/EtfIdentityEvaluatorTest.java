@@ -21,6 +21,7 @@ class EtfIdentityEvaluatorTest {
         return l;
     }
 
+    // @spec ETF-018
     @Test
     void evaluateIdentity_tickerTokenMatch_scores2() {
         Listing l = listing(null, null, null, null, null);
@@ -32,6 +33,7 @@ class EtfIdentityEvaluatorTest {
         assertTrue(signal.matchedSignals().contains("ticker"));
     }
 
+    // @spec ETF-018
     @Test
     void evaluateIdentity_secSeriesIdMatch_scores4() {
         Listing l = listing("S000007285", null, null, null, null);
@@ -43,6 +45,7 @@ class EtfIdentityEvaluatorTest {
         assertTrue(signal.score() >= 4);
     }
 
+    // @spec ETF-018
     @Test
     void evaluateIdentity_secClassContractIdMatch_scores4() {
         Listing l = listing(null, "C000022074", null, null, null);
@@ -53,6 +56,7 @@ class EtfIdentityEvaluatorTest {
         assertTrue(signal.score() >= 4);
     }
 
+    // @spec ETF-018
     @Test
     void evaluateIdentity_multipleSignals_accumulate() {
         Listing l = listing("S000007285", "C000022074", null, null, null);
@@ -65,6 +69,7 @@ class EtfIdentityEvaluatorTest {
         assertTrue(signal.matchedSignals().contains("secClassContractId"));
     }
 
+    // @spec ETF-018
     @Test
     void evaluateIdentity_noSignalsMatch_scoresZero() {
         Listing l = listing(null, null, null, null, null);
@@ -76,6 +81,7 @@ class EtfIdentityEvaluatorTest {
         assertTrue(signal.matchedSignals().isEmpty());
     }
 
+    // @spec ETF-018
     @Test
     void evaluateIdentity_documentTickerHint_scores1() {
         Listing l = listing(null, null, null, null, null);
@@ -87,6 +93,7 @@ class EtfIdentityEvaluatorTest {
         assertTrue(signal.score() >= 1);
     }
 
+    // @spec ETF-018
     @Test
     void evaluateIdentity_secClassTickerMatch_scores3() {
         Listing l = listing(null, null, "SPYX", null, null);
@@ -97,6 +104,7 @@ class EtfIdentityEvaluatorTest {
         assertTrue(signal.score() >= 3);
     }
 
+    // @spec ETF-019
     @Test
     void evaluateIdentity_nameSignal_requiresMinimumWordOverlap() {
         // seriesName "Vanguard 500 Index Fund" → two significant words match → score += 2

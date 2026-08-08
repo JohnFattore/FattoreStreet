@@ -36,6 +36,7 @@ class EtfCorporateActionServiceTest {
     @Mock
     private CorporateActionFilingDateService corporateActionFilingDateService;
 
+    // @spec ETF-004, ETF-027, ETF-040, ETF-045
     @Test
     void detectAndPersist_with497RecordDate_persistsDividendActionAndDiagnostics() {
         Listing listing = new Listing();
@@ -110,6 +111,7 @@ class EtfCorporateActionServiceTest {
         assertEquals(91.0, saved.getConfidenceScore());
     }
 
+    // @spec ETF-009, ETF-020
     @Test
     void detectAndPersist_readsExhibitDocumentWhenPrimaryDoesNotContainDividend() {
         Listing listing = new Listing();
@@ -168,6 +170,7 @@ class EtfCorporateActionServiceTest {
         assertEquals(95.0, saved.getConfidenceScore());
     }
 
+    // @spec ETF-037
     @Test
     void detectAndPersist_withNcsrMissingDate_skipsWithReason() {
         Listing listing = new Listing();
@@ -210,6 +213,7 @@ class EtfCorporateActionServiceTest {
         verify(corporateActionRepository, never()).save(org.mockito.ArgumentMatchers.any(CorporateAction.class));
     }
 
+    // @spec ETF-021
     @Test
     void detectAndPersist_withIdentityMismatch_skipsWithReason() {
         Listing listing = new Listing();
@@ -252,6 +256,7 @@ class EtfCorporateActionServiceTest {
         verify(corporateActionRepository, never()).save(org.mockito.ArgumentMatchers.any(CorporateAction.class));
     }
 
+    // @spec ETF-042
     @Test
     void detectAndPersist_duplicateExistingAction_skipsInsertWithReason() {
         Listing listing = new Listing();
@@ -301,6 +306,7 @@ class EtfCorporateActionServiceTest {
         verify(corporateActionRepository, never()).save(org.mockito.ArgumentMatchers.any(CorporateAction.class));
     }
 
+    // @spec ETF-002
     @Test
     void detectAndPersist_withoutSeriesClassIdentity_skips() {
         Listing listing = new Listing();
@@ -321,6 +327,7 @@ class EtfCorporateActionServiceTest {
         verify(corporateActionRepository, never()).save(org.mockito.ArgumentMatchers.any(CorporateAction.class));
     }
 
+    // @spec ETF-023, ETF-033
     @Test
     void detectAndPersist_withTableLikeAmountAndLabeledDates_extractsSuccessfully() {
         Listing listing = new Listing();
@@ -379,6 +386,7 @@ class EtfCorporateActionServiceTest {
         assertEquals("2025-04-01", row.get("effectiveDate"));
     }
 
+    // @spec ETF-030
     @Test
     void detectAndPersist_withAlternateDateFormats_extractsSuccessfully() {
         Listing listing = new Listing();
@@ -435,6 +443,7 @@ class EtfCorporateActionServiceTest {
         assertEquals(1, report.dateExtracted());
     }
 
+    // @spec ETF-038
     @Test
     void detectAndPersist_withPayDateFallback_canSkipByConfidence() {
         Listing listing = new Listing();

@@ -77,6 +77,7 @@ class AdjustedPriceValidationServiceTest {
         return "[" + String.join(",", parts) + "]";
     }
 
+    // @spec PRICE-VAL-005, PRICE-VAL-009
     @Test
     void identicalSeriesProducesZeroDeviation() throws Exception {
         LocalDate d1 = LocalDate.of(2024, 1, 2);
@@ -96,6 +97,7 @@ class AdjustedPriceValidationServiceTest {
         assertTrue(report.breaks().isEmpty());
     }
 
+    // @spec PRICE-VAL-007
     @Test
     void constantLevelOffsetIsNormalizedAway() throws Exception {
         // Our series is uniformly 2% above the reference: after anchoring at the latest
@@ -113,6 +115,7 @@ class AdjustedPriceValidationServiceTest {
         assertTrue(report.breaks().isEmpty());
     }
 
+    // @spec PRICE-VAL-011
     @Test
     void missingSplitShowsBreakAtSplitDate() throws Exception {
         // Reference halves historical prices for a 2:1 split on d3; our series never
@@ -134,6 +137,7 @@ class AdjustedPriceValidationServiceTest {
         assertNull(report.breaks().get(0).get("nearestAction"));
     }
 
+    // @spec PRICE-VAL-012
     @Test
     void breakReportsNearbyStoredAction() throws Exception {
         LocalDate d1 = LocalDate.of(2024, 1, 2);
@@ -157,6 +161,7 @@ class AdjustedPriceValidationServiceTest {
         assertEquals(2L, nearest.get("daysFromBreak"));
     }
 
+    // @spec PRICE-VAL-006
     @Test
     void nullAdjustedRowsAreSkipped() throws Exception {
         LocalDate d1 = LocalDate.of(2024, 1, 2);
@@ -171,6 +176,7 @@ class AdjustedPriceValidationServiceTest {
         assertEquals("insufficient_overlap", report.status());
     }
 
+    // @spec PRICE-VAL-015
     @Test
     void noAdjustedPricesShortCircuitsBeforeFetch() {
         when(dailyPriceRepository.findByTickerOrderByTradeDateAsc(TICKER)).thenReturn(List.of());
@@ -181,6 +187,7 @@ class AdjustedPriceValidationServiceTest {
         verifyNoInteractions(httpClient);
     }
 
+    // @spec PRICE-VAL-017
     @Test
     void referenceFetchFailureDegradesToNoReference() throws Exception {
         LocalDate d1 = LocalDate.of(2024, 1, 2);
@@ -199,6 +206,7 @@ class AdjustedPriceValidationServiceTest {
         assertEquals("no_reference_data", report.status());
     }
 
+    // @spec PRICE-VAL-005
     @Test
     void minDateFiltersBothSeries() throws Exception {
         LocalDate old = LocalDate.of(2015, 6, 1);
@@ -215,6 +223,7 @@ class AdjustedPriceValidationServiceTest {
         assertEquals(0.0, report.maxAbsDeviation());
     }
 
+    // @spec PRICE-VAL-003
     @Test
     void stringDecimalValuesFromDjangoAreParsed() throws Exception {
         // DRF serializes Decimal as a JSON string by default.
@@ -231,6 +240,7 @@ class AdjustedPriceValidationServiceTest {
         assertEquals(0.0, report.maxAbsDeviation());
     }
 
+    // @spec PRICE-VAL-019, PRICE-VAL-020
     @Test
     void summarizeBatchRanksWorstTickersAndCountsStatuses() {
         PriceValidationReport clean = new PriceValidationReport(
@@ -250,6 +260,7 @@ class AdjustedPriceValidationServiceTest {
         assertEquals("MSFT", ((Map<?, ?>) worst.get(0)).get("ticker"));
     }
 
+    // @spec PRICE-VAL-019
     @Test
     void summarizeExposesTheSameCountsAsTheMapShape() {
         PriceValidationReport clean = new PriceValidationReport(
@@ -265,6 +276,7 @@ class AdjustedPriceValidationServiceTest {
         assertEquals(summary.toMap(), service.summarizeBatch(List.of(clean, noRef)));
     }
 
+    // @spec PRICE-VAL-019
     @Test
     void validateBatchWalksEveryTickerAndAggregates() throws Exception {
         when(dailyPriceRepository.findByTickerOrderByTradeDateAsc(any()))
@@ -281,6 +293,7 @@ class AdjustedPriceValidationServiceTest {
         verify(dailyPriceRepository).findByTickerOrderByTradeDateAsc("MSFT");
     }
 
+    // @spec PRICE-VAL-018
     @Test
     void validateBatchCountsAFailedTickerAsSkippedAndKeepsGoing() {
         // A partial report is more useful than none, so one bad ticker must not abort the batch.
@@ -296,6 +309,7 @@ class AdjustedPriceValidationServiceTest {
         assertEquals(2, summary.tickersSkipped());
     }
 
+    // @spec PRICE-VAL-019
     @Test
     void validateBatchOverAnEmptyListIsAnEmptySummary() {
         AdjustedPriceValidationService.BatchSummary summary = service.validateBatch(List.of(), MIN_DATE);
@@ -307,6 +321,7 @@ class AdjustedPriceValidationServiceTest {
         verifyNoInteractions(dailyPriceRepository);
     }
 
+    // @spec PRICE-VAL-001
     @Test
     void validateBatchNeverWritesThroughItsRepositories() {
         when(dailyPriceRepository.findByTickerOrderByTradeDateAsc("AAPL")).thenReturn(List.of());

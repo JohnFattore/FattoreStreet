@@ -2,6 +2,8 @@
 
 The **Portfolio Manager** is a full-stack web application designed to track financial assets, provide chatbots, and manage restaurant reviews. It follows a decoupled architecture with a Django REST Framework backend and a React frontend.
 
+This document describes the product-level architecture: what the services are and how a request moves between them. For the *why* behind the price and corporate-action data pipeline (its problem statement, tenets, and load-bearing design decisions), see [High-Level Design](high-level-design.md), the root of the design tree in [`intent/`](intent/).
+
 ## 🏗 High-Level Architecture
 
 ```mermaid

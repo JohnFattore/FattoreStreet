@@ -22,6 +22,7 @@ class EtfDateExtractorTest {
     @InjectMocks
     private EtfDateExtractor extractor;
 
+    // @spec ETF-027
     @Test
     void extractEtfDateSignals_exDateSentence_gives95Confidence() {
         // Ex-dividend date found directly → confidence 95, resolution path "ex_date"
@@ -35,6 +36,7 @@ class EtfDateExtractorTest {
         assertEquals("ex_date", signals.resolutionPath());
     }
 
+    // @spec ETF-027, ETF-029
     @Test
     void extractEtfDateSignals_recordDateDerivesExDate_gives86Confidence() {
         LocalDate recordDate = LocalDate.of(2024, 3, 15);
@@ -52,6 +54,7 @@ class EtfDateExtractorTest {
         assertEquals("record_date", signals.resolutionPath());
     }
 
+    // @spec ETF-027
     @Test
     void extractEtfDateSignals_payDateFallback_gives62Confidence() {
         // No ex-date, no record date; pay-date found → lower confidence
@@ -66,6 +69,7 @@ class EtfDateExtractorTest {
         assertTrue(signals.confidenceScore() >= 62);
     }
 
+    // @spec ETF-037
     @Test
     void extractEtfDateSignals_noDateAndNoFiling_returnsNull() {
         String text = "No dates present in this filing text.";
@@ -75,6 +79,7 @@ class EtfDateExtractorTest {
         assertNull(signals);
     }
 
+    // @spec ETF-027
     @Test
     void extractEtfDateSignals_filingDateFallback_gives55Confidence() {
         // No dates anywhere; falls back to filing date itself
@@ -91,6 +96,7 @@ class EtfDateExtractorTest {
         // Null is also acceptable if no dates found and filing date fallback yields null effectiveDate
     }
 
+    // @spec ETF-028
     @Test
     void extractEtfDateSignals_exDatePresence_boostsConfidenceByPayDate() {
         // Ex-date found (confidence=95) + pay date present → confidence min(95+5,100)=100
@@ -104,6 +110,7 @@ class EtfDateExtractorTest {
         assertNotNull(signals.payDate());
     }
 
+    // @spec ETF-031
     @Test
     void extractEtfDateSignals_labeledDatePattern_highConfidence() {
         // LABELED_DATE_PATTERN gives score 92 — higher than sentence pattern 82/88
@@ -126,6 +133,7 @@ class EtfDateExtractorTest {
         return "record date pending further review ".repeat(40) + "\nEx 2024-05-09";
     }
 
+    // @spec ETF-032
     @Test
     void extractEtfDateSignals_labeledDateTimeoutIsContainedAndDropsOnlyThatPass() {
         // Control: with the production budget the guarded pass reaches the trailing date.

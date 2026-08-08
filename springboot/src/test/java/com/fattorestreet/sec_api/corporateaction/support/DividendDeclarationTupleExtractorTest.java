@@ -18,6 +18,7 @@ class DividendDeclarationTupleExtractorTest {
         return extractor.extract(text, FILING_DATE, ACCESSION);
     }
 
+    // @spec FILING-059, FILING-061, FILING-063
     @Test
     void extractsCanonicalPressReleaseParagraph() {
         String text = """
@@ -38,6 +39,7 @@ class DividendDeclarationTupleExtractorTest {
         assertTrue(d.confidenceScore() >= 85);
     }
 
+    // @spec FILING-059
     @Test
     void extractsTableLayout() {
         String text = """
@@ -59,6 +61,7 @@ class DividendDeclarationTupleExtractorTest {
         assertEquals(LocalDate.of(2025, 2, 10), d.exDate());
     }
 
+    // @spec FILING-059, FILING-064
     @Test
     void extractsTwoDividendsFromOneRelease() {
         String text = """
@@ -76,6 +79,7 @@ class DividendDeclarationTupleExtractorTest {
         assertTrue(declarations.stream().allMatch(d -> LocalDate.of(2025, 3, 31).equals(d.recordDate())));
     }
 
+    // @spec FILING-062
     @Test
     void amountWithoutRecordDateYieldsNoTuple() {
         String text = "The Company paid dividends of $0.24 per share during the quarter.";
@@ -83,6 +87,7 @@ class DividendDeclarationTupleExtractorTest {
         assertTrue(extract(text).isEmpty());
     }
 
+    // @spec FILING-054
     @Test
     void parsesNumericDateFormats() {
         String text = "Cash dividend of $0.13 per share, record date 3/10/2025, payable 3/27/2025.";
@@ -94,6 +99,7 @@ class DividendDeclarationTupleExtractorTest {
         assertEquals(LocalDate.of(2025, 3, 27), declarations.get(0).payableDate());
     }
 
+    // @spec FILING-064
     @Test
     void dedupesOverlappingAnchorPatterns() {
         // "dividend of $0.24 per share" matches both anchor patterns; one tuple results.
@@ -105,6 +111,7 @@ class DividendDeclarationTupleExtractorTest {
         assertEquals(0.24, declarations.get(0).amountPerShare());
     }
 
+    // @spec FILING-060
     @Test
     void ignoresImplausibleAmounts() {
         String text = "recorded revenue of $4500.00 per share of record on March 10, 2025";
@@ -112,6 +119,7 @@ class DividendDeclarationTupleExtractorTest {
         assertTrue(extract(text).isEmpty());
     }
 
+    // @spec FILING-059
     @Test
     void blankTextYieldsNothing() {
         assertTrue(extract("").isEmpty());
@@ -129,6 +137,7 @@ class DividendDeclarationTupleExtractorTest {
                 + "record date March 10, 2025.";
     }
 
+    // @spec FILING-045
     @Test
     void labeledDateTimeoutIsContainedAndDegradesToNoMatch() {
         // Control: with the production budget the scan completes and finds the trailing date.

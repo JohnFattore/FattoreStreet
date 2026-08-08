@@ -60,6 +60,7 @@ class ValidationReportPublisherTest {
                         "daysFromBreak", 0L));
     }
 
+    // @spec PRICE-VAL-034
     @Test
     void rendersHeadlineCountsAndScope() {
         String body = publisher.render(report(984, 16, 7, 23,
@@ -74,6 +75,7 @@ class ValidationReportPublisherTest {
         assertTrue(body.contains("12m 3s"), body);
     }
 
+    // @spec PRICE-VAL-020, PRICE-VAL-034
     @Test
     void rendersWorstTickersAndBreakDetail() {
         String body = publisher.render(report(100, 0, 1, 1,
@@ -85,6 +87,7 @@ class ValidationReportPublisherTest {
         assertTrue(body.contains("nearestAction=SPLIT"), body);
     }
 
+    // @spec PRICE-VAL-036
     @Test
     void announcesOmittedBreaksRatherThanTruncatingSilently() {
         List<Map<String, Object>> breaks = List.of(breakRow("AAPL", "2024-06-10"), breakRow("MSFT", "2024-07-01"));
@@ -95,6 +98,7 @@ class ValidationReportPublisherTest {
         assertTrue(body.contains("... 55 more omitted"), body);
     }
 
+    // @spec PRICE-VAL-036
     @Test
     void omitsTheOmittedLineWhenEverythingIsShown() {
         String body = publisher.render(report(100, 0, 1, 1,
@@ -103,6 +107,7 @@ class ValidationReportPublisherTest {
         assertFalse(body.contains("more omitted"), body);
     }
 
+    // @spec PRICE-VAL-034
     @Test
     void cleanRunRendersWithoutBreakSection() {
         String body = publisher.render(report(500, 0, 0, 0, List.of(worstRow("AAPL", 0.0001)), List.of()));
@@ -110,6 +115,7 @@ class ValidationReportPublisherTest {
         assertTrue(body.contains("No ratio breaks detected."), body);
     }
 
+    // @spec PRICE-VAL-034
     @Test
     void emptyScopeStillRendersSomethingReadable() {
         String body = publisher.render(report(0, 12, 0, 0, List.of(), List.of()));
@@ -117,6 +123,7 @@ class ValidationReportPublisherTest {
         assertTrue(body.contains("No tickers produced a comparable series."), body);
     }
 
+    // @spec PRICE-VAL-012
     @Test
     void breakWithNoNearbyActionIsLabelledNone() {
         Map<String, Object> orphan = new java.util.HashMap<>();
@@ -130,6 +137,7 @@ class ValidationReportPublisherTest {
         assertTrue(body.contains("nearestAction=none"), body);
     }
 
+    // @spec PRICE-VAL-035, PRICE-VAL-036
     @Test
     void bodyStaysUnderTheSnsSizeLimitAndSaysSoWhenTruncated() {
         // Far more rows than the service ever emits, to exercise the hard guard.
@@ -145,6 +153,7 @@ class ValidationReportPublisherTest {
                 "rendered body must fit an SNS message");
     }
 
+    // @spec PRICE-VAL-034
     @Test
     void publishSendsSubjectAndBodyToTheConfiguredTopic() {
         publisher.publish("arn:aws:sns:us-east-1:1:reports", report(984, 16, 7, 23,
@@ -159,6 +168,7 @@ class ValidationReportPublisherTest {
         assertTrue(request.message().contains("Tickers checked:    984"), request.message());
     }
 
+    // @spec PRICE-VAL-030
     @Test
     void publishPropagatesFailureSoTheTaskCanFail() {
         when(snsClient.publish(org.mockito.ArgumentMatchers.any(PublishRequest.class)))
@@ -168,6 +178,7 @@ class ValidationReportPublisherTest {
                 "arn:aws:sns:us-east-1:1:reports", report(1, 0, 0, 0, List.of(), List.of())));
     }
 
+    // @spec PRICE-VAL-037
     @Test
     void subjectIsClippedToTheSnsLimit() {
         ValidationReportPublisher.ValidationReport longScope = new ValidationReportPublisher.ValidationReport(
@@ -176,6 +187,7 @@ class ValidationReportPublisherTest {
         assertEquals(100, publisher.subject(longScope).length());
     }
 
+    // @spec PRICE-VAL-019
     @Test
     void reportFactoryCopiesEveryBatchSummaryField() {
         AdjustedPriceValidationService.BatchSummary summary =

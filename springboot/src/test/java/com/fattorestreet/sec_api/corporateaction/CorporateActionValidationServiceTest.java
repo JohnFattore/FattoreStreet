@@ -88,6 +88,7 @@ class CorporateActionValidationServiceTest {
         return a;
     }
 
+    // @spec PRICE-VAL-023
     @Test
     void matchingEventsProduceCleanReport() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(
@@ -105,6 +106,7 @@ class CorporateActionValidationServiceTest {
         assertTrue(report.mismatchSamples().isEmpty());
     }
 
+    // @spec PRICE-VAL-023
     @Test
     void djangoOnlyEventCountsAsMissingInSec() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of());
@@ -117,6 +119,7 @@ class CorporateActionValidationServiceTest {
         assertEquals("high", report.mismatchSamples().get(0).get("severity"));
     }
 
+    // @spec PRICE-VAL-023
     @Test
     void secOnlyEventCountsAsExtraInSec() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(
@@ -129,6 +132,7 @@ class CorporateActionValidationServiceTest {
         assertEquals("extra_in_sec", report.mismatchSamples().get(0).get("category"));
     }
 
+    // @spec PRICE-VAL-024
     @Test
     void amountGapBeyondToleranceIsAmountDrift() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(
@@ -142,6 +146,7 @@ class CorporateActionValidationServiceTest {
         assertEquals("amount_drift", report.mismatchSamples().get(0).get("category"));
     }
 
+    // @spec PRICE-VAL-023
     @Test
     void dateGapWithinToleranceIsDateDrift() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(
@@ -155,6 +160,7 @@ class CorporateActionValidationServiceTest {
         assertEquals(0, report.extraInSec());
     }
 
+    // @spec PRICE-VAL-023
     @Test
     void minDateFiltersOldEventsOnBothSides() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(
@@ -167,6 +173,7 @@ class CorporateActionValidationServiceTest {
         assertEquals(0, report.yfEventCount());
     }
 
+    // @spec PRICE-VAL-003
     @Test
     void djangoHttpErrorDegradesToEmptyReference() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(
@@ -179,6 +186,7 @@ class CorporateActionValidationServiceTest {
         assertEquals(1, report.extraInSec());
     }
 
+    // @spec PRICE-VAL-024
     @Test
     void yfinanceSplitMultiplierIsNormalizedToSecRatio() throws Exception {
         // SEC stores 4:1 as 0.25; yfinance reports it as 4.0 — they must match after normalization.
@@ -193,6 +201,7 @@ class CorporateActionValidationServiceTest {
         assertEquals(0, report.amountDrift());
     }
 
+    // @spec PRICE-VAL-003
     @Test
     void dividendFallsBackToValueFieldWhenAmountMissing() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of(
@@ -205,6 +214,7 @@ class CorporateActionValidationServiceTest {
         assertEquals(0, report.missingInSec());
     }
 
+    // @spec PRICE-VAL-003
     @Test
     void interruptedFetchRestoresInterruptFlagAndDegrades() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of());
@@ -217,6 +227,7 @@ class CorporateActionValidationServiceTest {
         assertTrue(Thread.interrupted(), "interrupt flag should be restored (and cleared here)");
     }
 
+    // @spec PRICE-VAL-003
     @Test
     void nonArrayDjangoPayloadIsTreatedAsFetchFailure() throws Exception {
         when(corporateActionRepository.findByTicker(TICKER)).thenReturn(List.of());
@@ -227,6 +238,7 @@ class CorporateActionValidationServiceTest {
         assertEquals(0, report.yfEventCount());
     }
 
+    // @spec PRICE-VAL-019
     @Test
     void summarizeBatchAggregatesCountsAndMismatchRate() throws Exception {
         ValidationReport clean = new ValidationReport(TICKER, 2, 2, 0, 0, 0, 0, List.of());
@@ -245,6 +257,7 @@ class CorporateActionValidationServiceTest {
         assertEquals(1, ((List<?>) summary.get("sampleMismatches")).size());
     }
 
+    // @spec PRICE-VAL-019
     @Test
     void summarizeBatchWithNoYfEventsHasZeroMismatchRate() {
         ValidationReport empty = new ValidationReport(TICKER, 1, 0, 0, 1, 0, 0, List.of());
@@ -254,6 +267,7 @@ class CorporateActionValidationServiceTest {
         assertEquals(0.0, summary.get("mismatchRate"));
     }
 
+    // @spec PRICE-VAL-003
     @Test
     void requestUrlsEncodeTickerAndTrimBaseSlash() throws Exception {
         when(corporateActionRepository.findByTicker("BRK.B")).thenReturn(List.of());

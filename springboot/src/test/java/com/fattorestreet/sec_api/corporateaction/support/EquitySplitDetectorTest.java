@@ -90,6 +90,7 @@ class EquitySplitDetectorTest {
         return new SplitPriceCorroborator.Corroboration(breakDate, multiplier, multiplier, 0.0);
     }
 
+    // @spec EQUITY-SPLIT-002, EQUITY-SPLIT-008
     @Test
     void detectsForwardSplitWithFallbackDate() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -112,6 +113,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-007, EQUITY-SPLIT-010
     @Test
     void prefersSecSplitDateCandidateInsideWindow() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -131,6 +133,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-007, EQUITY-SPLIT-008
     @Test
     void priceBreakOverridesFilingCandidateDate() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -153,6 +156,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.priceSnapped());
     }
 
+    // @spec EQUITY-SPLIT-014
     @Test
     void coveredWindowWithoutBreakRejectsSplit() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -168,6 +172,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.priceRejected());
     }
 
+    // @spec EQUITY-SPLIT-016
     @Test
     void reDatingUpdatesExistingRowInsteadOfInserting() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -191,6 +196,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.priceSnapped());
     }
 
+    // @spec EQUITY-SPLIT-016
     @Test
     void weakerResolutionDoesNotMoveWellGroundedDate() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -209,6 +215,7 @@ class EquitySplitDetectorTest {
         assertEquals(0, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-016
     @Test
     void skipsWhenSplitAlreadyPersistedWithSameGrounding() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -225,6 +232,7 @@ class EquitySplitDetectorTest {
         assertEquals(0, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-002
     @Test
     void noSplitWhenSharesStayFlat() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -240,6 +248,7 @@ class EquitySplitDetectorTest {
         assertEquals(2, stats.sharesFactsParsed());
     }
 
+    // @spec EQUITY-SPLIT-001
     @Test
     void missingSharesFactsReturnsZeroStats() {
         JsonNode root = objectMapper.readTree("{\"facts\": {}}");
@@ -251,6 +260,7 @@ class EquitySplitDetectorTest {
         verifyNoInteractions(corporateActionFilingDateService);
     }
 
+    // @spec EQUITY-SPLIT-001
     @Test
     void ignoresIrrelevantForms() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -264,6 +274,7 @@ class EquitySplitDetectorTest {
         verify(corporateActionFilingDateService, never()).fetchSplitEffectiveDates(anyLong());
     }
 
+    // @spec EQUITY-SPLIT-004
     @Test
     void extendedRatioRequiresSecDateConfirmation() {
         // 3:2 split (x1.5) is an "extended" ratio: skipped without a matching SEC candidate
@@ -279,6 +290,7 @@ class EquitySplitDetectorTest {
         assertEquals(0, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-004
     @Test
     void extendedRatioPersistedWhenSecCandidateMatches() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -296,6 +308,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-004
     @Test
     void extendedRatioPersistedWhenPriceBreakConfirms() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -314,6 +327,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-005
     @Test
     void skipsSharesPairsWithHugeGaps() {
         // > 400 days between observations: a doubling is not credible split evidence.
@@ -328,6 +342,7 @@ class EquitySplitDetectorTest {
         assertEquals(0, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-003
     @Test
     void detectsReverseSplit() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -342,6 +357,7 @@ class EquitySplitDetectorTest {
         assertEquals(4.0, captor.getValue().getRatio(), 1e-9);
     }
 
+    // @spec EQUITY-SPLIT-028
     @Test
     void duplicateDatesKeepLargestSharesValue() {
         // Two rows for the same end date (original + amendment): the larger value wins,
@@ -358,6 +374,7 @@ class EquitySplitDetectorTest {
         assertEquals(0, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-021
     @Test
     void priceOnlyBreakWithFilingCandidatePersists() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -383,6 +400,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-023
     @Test
     void priceOnlyMidSizeBreakWithoutFilingCandidateStaysUnconfirmed() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -399,6 +417,7 @@ class EquitySplitDetectorTest {
         assertEquals(0, stats.created());
     }
 
+    // @spec EQUITY-SPLIT-022
     @Test
     void priceOnlyLargeBreakPersistsWithoutFilingCandidate() {
         JsonNode root = facts("[%s, %s]".formatted(
@@ -417,6 +436,7 @@ class EquitySplitDetectorTest {
         assertEquals(1, stats.priceOnlyDetected());
     }
 
+    // @spec EQUITY-SPLIT-020
     @Test
     void priceOnlyBreakNearExistingSplitIsExplained() {
         JsonNode root = facts("[%s, %s]".formatted(

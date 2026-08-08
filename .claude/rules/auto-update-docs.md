@@ -18,6 +18,7 @@ Update docs when a change affects user-facing behavior, public APIs, setup, or a
 | Changed setup steps, env vars, or run commands | `docs/GETTING_STARTED.md` and relevant app README |
 | Spring Boot config, build, or setup change | `springboot/README.md` |
 | LLM setup, model, or script change that affects usage (commands, flags, paths, prerequisites, outputs) | `llm/README.md` |
+| Any change inside the LID scope (`springboot/.../corporateaction/**`, `springboot/.../marketdata/**`) | That segment's `docs/intent/<segment>/<segment>.md` (LLD) and `<segment>-specs.md` (EARS), before the code changes |
 
 ## How to Update
 
@@ -25,7 +26,21 @@ Update docs when a change affects user-facing behavior, public APIs, setup, or a
 - For API endpoints: include method, path, description, parameters, and response shape
 - For READMEs: keep sections concise; update version numbers if visible
 - Do NOT rewrite entire files -- only add/modify the affected sections
-- Do NOT create new doc files unless the user explicitly asks
+- Do NOT create new doc files unless the user explicitly asks. **Exception:** LID artifacts under
+  `docs/intent/` and `docs/arrows/` are expected output of the LID workflow, not new doc files in
+  the sense meant here. Create them when the LID workflow calls for them
+- No em dashes in prose. Use a comma, parentheses, or a new sentence
+
+## LID scope is different
+
+Inside `springboot/.../corporateaction/**` and `springboot/.../marketdata/**`, docs are not a
+follow-up to the code, they are upstream of it. See the "Design Workflows" section of `CLAUDE.md`.
+Two consequences override the rules above:
+
+- Update the LLD and EARS specs **before** changing the code, not after
+- The "Skip When" list below does **not** apply. A purely internal refactor still has to leave the
+  segment's specs true, and a behavior change always needs a spec change even when nothing
+  user-facing moves
 
 ## Skip When
 

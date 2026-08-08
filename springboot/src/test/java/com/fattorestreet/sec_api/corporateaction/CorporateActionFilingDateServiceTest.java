@@ -52,6 +52,7 @@ class CorporateActionFilingDateServiceTest {
         service = new CorporateActionFilingDateService(webService, filingDiscoveryService, extractionStore);
     }
 
+    // @spec FILING-054, FILING-055
     @Test
     void scanDividendRecordDates_supportsMonthNameWithoutComma() {
         String submissions = """
@@ -85,6 +86,7 @@ class CorporateActionFilingDateServiceTest {
         assertTrue(out.get(0).confidenceScore() > 0);
     }
 
+    // @spec FILING-025, FILING-026, FILING-054
     @Test
     void scanDividendRecordDates_scansExhibitsAndParsesNumericDate() {
         String submissions = """
@@ -116,6 +118,7 @@ class CorporateActionFilingDateServiceTest {
         assertEquals(LocalDate.of(2020, 8, 10), out.get(0).recordDate());
     }
 
+    // @spec FILING-049, FILING-050, FILING-051
     @Test
     void computeExDividendDate_handlesSettlementTransitionAndJuneteenthEra() {
         assertEquals(LocalDate.of(2020, 6, 18),
@@ -126,6 +129,7 @@ class CorporateActionFilingDateServiceTest {
                 service.computeExDividendDate(LocalDate.of(2024, 8, 12)));
     }
 
+    // @spec FILING-047, FILING-048
     @Test
     void computeExDividendDate_tPlusThreeEraUsesTwoBusinessDaysBeforeRecord() {
         // Before 2017-09-05 (T+3 settlement), the ex-date was two business days before record.
@@ -139,6 +143,7 @@ class CorporateActionFilingDateServiceTest {
                 service.computeExDividendDate(LocalDate.of(2017, 9, 7)));
     }
 
+    // @spec FILING-015
     @Test
     void scanDividendRecordDates_reusesPersistedExtractionWithoutFetching() {
         String submissions = """
@@ -181,6 +186,7 @@ class CorporateActionFilingDateServiceTest {
         verify(webService, times(0)).fetchFilingDocument(any(), any(), any());
     }
 
+    // @spec FILING-019
     @Test
     void scanDividendRecordDates_staleExtractorVersionTriggersRefetchAndRepersist() {
         String submissions = """
@@ -220,6 +226,7 @@ class CorporateActionFilingDateServiceTest {
         assertEquals(LocalDate.of(2020, 8, 10), stale.getBestRecordDate());
     }
 
+    // @spec FILING-034
     @Test
     void fetchSplitEffectiveDates_extractsSplitAdjustedTradingDate() {
         String submissions = """
@@ -251,6 +258,7 @@ class CorporateActionFilingDateServiceTest {
         assertTrue(out.get(0).confidenceScore() > 0);
     }
 
+    // @spec FILING-034
     @Test
     void fetchSplitEffectiveDates_prefersSplitAdjustedTradingDateOverEffectiveDate() {
         String submissions = """
@@ -282,6 +290,7 @@ class CorporateActionFilingDateServiceTest {
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
     }
 
+    // @spec FILING-034
     @Test
     void fetchSplitEffectiveDates_prefersSplitAdjustedTradingDateOverDistributionDate() {
         String submissions = """
@@ -313,6 +322,7 @@ class CorporateActionFilingDateServiceTest {
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
     }
 
+    // @spec FILING-034
     @Test
     void fetchSplitEffectiveDates_parsesStartOfTradingSplitAdjustedPhrase() {
         String submissions = """
@@ -344,6 +354,7 @@ class CorporateActionFilingDateServiceTest {
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
     }
 
+    // @spec FILING-037, FILING-039
     @Test
     void fetchSplitEffectiveDates_sentencePassPrefersTradingStartOverEffectiveDate() {
         String submissions = """
@@ -375,6 +386,7 @@ class CorporateActionFilingDateServiceTest {
         assertEquals(LocalDate.of(2020, 8, 31), out.get(0).effectiveDate());
     }
 
+    // @spec FILING-041
     @Test
     void fetchSplitEffectiveDates_keepsDeterministicWinnerWhenDateDedupesAcrossFilings() {
         String submissions = """
@@ -407,6 +419,7 @@ class CorporateActionFilingDateServiceTest {
         assertEquals("0000320193-20-000062", out.get(0).accessionNumber());
     }
 
+    // @spec FILING-002
     @Test
     void fetchSplitEffectiveDates_scansArchivedSubmissionFiles() {
         String submissions = """
@@ -450,6 +463,7 @@ class CorporateActionFilingDateServiceTest {
         assertEquals(LocalDate.of(2014, 6, 9), out.get(0).effectiveDate());
     }
 
+    // @spec FILING-002, FILING-006
     @Test
     void fetchSplitEffectiveDates_limitsArchivedSubmissionAttemptsEvenOnFailures() {
         String files = IntStream.range(0, 60)
@@ -479,6 +493,7 @@ class CorporateActionFilingDateServiceTest {
         verify(webService, times(48)).fetchSubmissionsFile(org.mockito.ArgumentMatchers.eq(320193L), org.mockito.ArgumentMatchers.anyString());
     }
 
+    // @spec FILING-033
     @Test
     void scanDividendRecordDates_collectsDirectExDividendDates() {
         String submissions = """

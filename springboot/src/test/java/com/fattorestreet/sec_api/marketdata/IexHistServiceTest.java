@@ -133,6 +133,7 @@ class IexHistServiceTest {
         return subscriber.getBody().toCompletableFuture().join();
     }
 
+    // @spec HIST-009, HIST-011, HIST-013
     @Test
     void loadHistData_aggregatesTradesIntoOhlcvAndSaves() throws Exception {
         LocalDate day = latestTradingDay();
@@ -171,6 +172,7 @@ class IexHistServiceTest {
         assertEquals(5L, msft.getVolume());
     }
 
+    // @spec HIST-008
     @Test
     void loadHistData_skipsDatesAlreadyInDatabase() throws Exception {
         LocalDate day = latestTradingDay();
@@ -186,6 +188,7 @@ class IexHistServiceTest {
         verify(httpClient, times(1)).send(any(), any());
     }
 
+    // @spec HIST-004
     @Test
     void loadHistData_reportsDatesWithoutTopsFeed() throws Exception {
         LocalDate day = latestTradingDay();
@@ -205,6 +208,7 @@ class IexHistServiceTest {
         assertEquals(1, result.get("notAvailable"));
     }
 
+    // @spec HIST-001, HIST-002
     @Test
     void loadHistData_nonTradingDaysAreNeverRequested() throws Exception {
         // Index only lists days the exchange published; an empty index means no dates qualify.
@@ -218,6 +222,7 @@ class IexHistServiceTest {
         verify(dailyPriceRepository, never()).existsByTradeDate(any());
     }
 
+    // @spec HIST-006
     @Test
     void loadHistData_indexHttpErrorThrows() throws Exception {
         HttpResponse<String> response = mock(HttpResponse.class);
@@ -228,6 +233,7 @@ class IexHistServiceTest {
         assertTrue(e.getMessage().contains("503"));
     }
 
+    // @spec HIST-020
     @Test
     void loadHistData_corruptDownloadCountsAsErrorAndContinues() throws Exception {
         LocalDate day = latestTradingDay();

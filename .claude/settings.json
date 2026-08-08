@@ -1,5 +1,18 @@
 {
   "plansDirectory": ".claude/plans",
+  "extraKnownMarketplaces": {
+    "jszmajda-lid": {
+      "source": {
+        "source": "github",
+        "repo": "jszmajda/lid",
+        "ref": "v1.3.0"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "linked-intent-dev@jszmajda-lid": true,
+    "arrow-maintenance@jszmajda-lid": true
+  },
   "statusLine": {
     "type": "command",
     "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/statusline-command.sh\""
