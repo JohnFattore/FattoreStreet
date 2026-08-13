@@ -43,7 +43,7 @@
 		<enforcer.version>3.6.3</enforcer.version>
 		<spotless.version>3.9.0</spotless.version>
 		<checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
-		<checkstyle.version>13.9.0</checkstyle.version>
+		<checkstyle.version>13.10.0</checkstyle.version>
 
 		<!-- Coverage floor enforced by jacoco:check at verify. Actual at the time
 		     CI started running verify: 81.5% line, 61.9% branch. Raise this
@@ -99,7 +99,7 @@
 		<!-- AWS SDK v2, used only to publish the weekly adjusted-price validation report to
 		     SNS. Managed by the SDK BOM below so the single sns artifact and its transitive
 		     core stay on one version. -->
-		<awssdk.version>2.50.2</awssdk.version>
+		<awssdk.version>2.51.3</awssdk.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
