@@ -9,7 +9,7 @@ dependencies = [
     # Security for communication with the react frontend
     "django-cors-headers==4.9.0",
     # API library
-    "djangorestframework==3.17.1",
+    "djangorestframework==3.18.0",
     # User authentication using tokens
     "djangorestframework-simplejwt==5.5.1",
     # Gunicorn HTTP server
@@ -23,14 +23,14 @@ dependencies = [
     # History
     "django-simple-history==3.13.0",
     # YFinance API
-    "yfinance==1.5.2",
+    "yfinance==1.6.0",
     # Redis library for the Django cache backend
     "redis==8.1.0",
     # pandas for numerical computations
     "pandas==3.0.5",
-    "numpy==2.5.1",
+    "numpy==2.5.2",
     # Google Gemini SDK
-    "google-genai==2.15.0",
+    "google-genai==2.18.1",
     "django-redis==7.0.0",
     "pandas-market-calendars==5.4.0",
 ]
