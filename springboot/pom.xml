@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-	<version>4.1.0</version>
+	<version>4.1.1</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
@@ -41,7 +41,7 @@
 		     war/resources/shade, so every quality plugin needs an explicit
 		     version here. -->
 		<enforcer.version>3.6.3</enforcer.version>
-		<spotless.version>3.9.0</spotless.version>
+		<spotless.version>3.10.0</spotless.version>
 		<checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
 		<checkstyle.version>13.9.0</checkstyle.version>
 
@@ -51,7 +51,7 @@
 		     pass. Overridable on the command line so the gate itself can be
 		     tested (-Djacoco.line.minimum=0.95 should fail). -->
 		<jacoco.line.minimum>0.76</jacoco.line.minimum>
-		<spotbugs.annotations.version>4.10.3</spotbugs.annotations.version>
+		<spotbugs.annotations.version>4.10.4</spotbugs.annotations.version>
 		<!-- 3.28.0 bundles PMD 7.17.0. Do not drop below it: 3.27.0 shipped PMD
 		     7.14.0, which rejects the targetJdk value maven-pmd-plugin derives
 		     from java.version above with "Unsupported targetJdk value '25'".
@@ -99,7 +99,7 @@
 		<!-- AWS SDK v2, used only to publish the weekly adjusted-price validation report to
 		     SNS. Managed by the SDK BOM below so the single sns artifact and its transitive
 		     core stay on one version. -->
-		<awssdk.version>2.50.2</awssdk.version>
+		<awssdk.version>2.54.2</awssdk.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -388,7 +388,7 @@
 			<plugin>
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
-				<version>4.10.3.0</version>
+				<version>4.10.4.0</version>
 				<!-- Plugin-level so `spotbugs:check` works as a standalone goal too. -->
 				<configuration>
 					<skip>${quality.skip}</skip>
