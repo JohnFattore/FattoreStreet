@@ -9,7 +9,7 @@ dependencies = [
     # Security for communication with the react frontend
     "django-cors-headers==4.9.0",
     # API library
-    "djangorestframework==3.17.1",
+    "djangorestframework==3.17.2",
     # User authentication using tokens
     "djangorestframework-simplejwt==5.5.1",
     # Gunicorn HTTP server
