@@ -50,7 +50,7 @@ FattoreStreet answers with data that is:
 | [Portfolio](portfolio/README.md) | A user's accounts, holdings and watch list |
 | [Advisor](advisor/README.md) | A conversational assistant with a passive-investing outlook |
 | [Blog](blog/README.md) | The author's writing and study notes |
-| [Restaurants](restaurants/README.md) | Restaurants and personal reviews (inferred: secondary to the finance core) |
+| [Restaurants](restaurants/README.md) | A legacy, frozen restaurant log, kept running until it moves out |
 | [Entertainment](entertainment/README.md) | The author's media recommendations (inferred: secondary to the finance core) |
 | [Feedback](feedback/README.md) | A changelog and a way for users to report problems |
 

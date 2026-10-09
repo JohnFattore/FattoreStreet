@@ -16,8 +16,9 @@ The product is a set of areas, each with its own branch in the tree:
 - **Market data, fundamentals, indexes, economic indicators.** The platform's own public data, built
   from free primary sources. Shared by everyone, changed only by scheduled jobs.
 - **Accounts, portfolio, advisor.** Things that belong to one signed-in user.
-- **Blog, restaurants, entertainment, feedback.** The author's public workspace, plus a channel back
-  to the author.
+- **Blog, entertainment, feedback.** The author's public workspace, plus a channel back to the
+  author.
+- **Restaurants.** A frozen legacy app, kept running safely until it moves out.
 
 Those areas run on a small number of services:
 
@@ -70,7 +71,7 @@ citizen of free sources* in [principles](principles.md)).
 | Google Gemini | The advisor's answers | Generated per user; nothing licensed is stored. (inferred) |
 | yfinance | Development diagnostics only, by principle | No. Still shown to users today; being removed (see [portfolio](portfolio/README.md)) |
 | Finnhub | Live quotes | No. To be removed last, replaced by the latest close (see [portfolio](portfolio/README.md)) |
-| Yelp | Restaurant data | Unverified. See open questions |
+| Yelp | Restaurant data, legacy | No. Kept under a temporary exception while the app is frozen (see [restaurants](restaurants/README.md)) |
 | A fund provider's holdings file | Development-only check of an index against the one it approximates | Unverified, so never shown or used as an input (see [benchmark comparison](indexes/benchmark-comparison.md)) |
 
 ## Who can change what
@@ -111,8 +112,6 @@ always matches the repo. See *Merging is deploying* in [principles](principles.m
 
 ## Open questions
 
-- **Unverified licenses.** Yelp restaurant data is stored and shown without a confirmed license.
-  Verify it, or remove it?
 - **Should the market-data service ever serve user data,** or stay read-only and public, with
   everything user-owned in the main API? (inferred: it stays public today)
 - **The old architecture doc.** The repo's older architecture overview predates the market-data

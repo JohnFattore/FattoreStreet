@@ -23,8 +23,3 @@ answer that hides a missing check. (inferred)
 ### Public content stays readable without signing in
 The platform's own market data, the blog and the recommendations are public by design, and putting
 them behind sign-in would defeat the vision of an open platform. (inferred)
-
-## Open questions
-
-- **Public reviews?** Restaurant reviews are currently private to their author. Are they meant to
-  be shown to other visitors as recommendations, which would make them public content?

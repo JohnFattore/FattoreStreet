@@ -2,38 +2,43 @@
 
 ## Why
 
-Part of the author's public workspace in the vision is keeping personal recommendations. Restaurants
-are one kind: places to eat, organised by where they are, with the author's own ratings and notes.
-Without it, those recommendations live in someone's head or a phone note and can't be shared.
-(inferred: secondary to the finance core)
+Restaurants is a legacy app from before the platform settled on its finance core. Any signed-in
+user can keep a private log of restaurants they've tried, rated and placed on a map. It no longer
+serves the vision, and it is frozen: kept running for now, not maintained beyond keeping it safe,
+and not added to. It may later move out to a separate repo for retired FattoreStreet apps.
 
-It runs on the main API (Django) alongside accounts, because a review belongs to a signed-in user,
-and that ownership already lives there. (inferred)
+It still runs on the main API (Django) next to accounts, because its reviews belong to signed-in
+users. While it stays, it must not weaken the rest of the platform, so the rules below are about
+safety, not features.
 
-This branch has two parts:
+## Requirements
 
-- [Directory](directory.md): restaurants, browsable by place.
-- [Reviews](reviews.md): a signed-in user's own ratings, with a map.
+### Only signed-in users can add a restaurant
+An anonymous write on a public site is an open door for spam and abuse. Adding a restaurant needs an
+account, per *Least privilege, no secrets in the repo* in [principles](../principles.md). Today
+anyone can add one, signed in or not, which has to change.
+
+### Reviews are private to their author
+Applies [data ownership](../accounts/data-ownership.md). A user sees, changes and deletes only their
+own reviews, and a signed-out visitor gets nothing. Today the review list doesn't turn signed-out
+visitors away at the door, which has to change.
+
+### Exception: Yelp data is kept for now
+This excepts *Only commercially free data is stored or shown* in [principles](../principles.md).
+Stored restaurants carry Yelp identifiers, star ratings and review counts, and the page credits
+Yelp, under terms that restrict storing and displaying its data. The owner keeps them while the app
+is frozen rather than spend effort on a retired app. The exception covers only the data already
+stored: no new Yelp data is imported, and it ends when the app is retired or moved out.
 
 ## Non-goals
 
-- **A general restaurant review site.** This is the author's list, not a public review community.
-  (inferred)
-- **Menus and favourite dishes.** Started once and never used. (inferred)
+- **New features.** The app is frozen. Fixes that keep it safe are the only changes it gets.
+- **Recommendations, for now.** A recommendation feature was switched off, and the page still calls
+  it. The dead call is removed; reviving the feature is deferred.
+- **Public reviews or a review community.** Reviews stay private to whoever wrote them.
+- **Menus and favourite dishes.** Started once and never used.
 
 ## Open questions
 
-- **Where does restaurant data come from, and may it be kept?** The page credits Yelp, and stored
-  restaurants carry Yelp identifiers, star ratings and review counts, but the code that imported
-  them is gone. Yelp's terms limit storing and displaying its data, which may conflict with *Only
-  commercially free data is stored or shown* in [principles](../principles.md). Verify the license,
-  replace the source, or remove the data?
-- **Who can add restaurants?** Anyone, signed in or not, can currently add a restaurant to the
-  directory. That conflicts with *Least privilege, no secrets in the repo* in
-  [principles](../principles.md). Should adding be author-only, or done by a job?
-- **Ownership checks don't match the rest.** Listing reviews relies on a check that doesn't stop a
-  signed-out visitor at the door, unlike the rule in
-  [data ownership](../accounts/data-ownership.md). Fix it here, or adopt one shared rule (see
-  [accounts](../accounts/README.md))?
-- **Recommendations.** The page still asks for restaurant recommendations, but that feature was
-  switched off and the request goes nowhere. Revive it or remove it?
+- **When does it move out?** It could move to a separate repo for retired apps. What would trigger
+  that: the next time it needs real maintenance, or a cleanup pass on its own schedule?
