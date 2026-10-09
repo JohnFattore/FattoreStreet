@@ -9,8 +9,9 @@ point of view, so a newcomer gets the Boglehead basics instead of the stock tips
 
 It runs on Google Gemini through the main API (Django), because a hosted model costs nothing at
 this volume and needs no hardware, which fits *Cheap to run* in [principles](../principles.md).
-Gemini is the current choice, not a fixed one: a self-hosted open-source model and other options
-are being considered as replacements, and cost is what decides it.
+Gemini is the current choice, not the final one: the advisor is meant to move to a self-hosted
+open-source model eventually, so it stops depending on a third party's free tier. Cost decides
+when.
 Conversations belong to a signed-in user.
 
 This branch has two parts:
