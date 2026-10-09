@@ -3,7 +3,8 @@
 This tree is the source of truth for why FattoreStreet exists and what each part of it must do. The
 code is derived from it. Each folder is a branch, and its README explains why that area exists in
 terms of this page. To understand any requirement, read from here down to it. Constraints that apply
-everywhere are in [principles](principles.md).
+everywhere are in [principles](principles.md), and how the product is shaped to meet them is in
+the [high-level design](design.md).
 
 ## Who it is for
 
@@ -41,19 +42,22 @@ FattoreStreet answers with data that is:
 
 | Branch | Role |
 |------|------|
-| [Market data](market-data/README.md) | Daily prices, splits, dividends and adjusted prices: the base everything else builds on |
-| Fundamentals | Quarterly financials and ratios from SEC filings (not yet written) |
-| Indexes | Self-built cap-weighted index proxies used as benchmarks and as the scope for heavy work (not yet written) |
-| Portfolio | A user's accounts, holdings and watch list (not yet written) |
-| Economic indicators | Macro series for context (not yet written) |
-| Advisor | A conversational assistant with a passive-investing outlook (not yet written) |
-| Blog | The author's writing and study notes (not yet written) |
-| Restaurants, entertainment | The author's personal recommendations (not yet written; inferred: secondary to the finance core) |
-| Feedback | A changelog and a way for users to report problems (not yet written) |
+| [Market data](market-data/README.md) | The security universe, daily prices, splits, dividends and adjusted prices: the base everything else builds on |
+| [Fundamentals](fundamentals/README.md) | Quarterly financials and ratios from SEC filings |
+| [Indexes](indexes/README.md) | Self-built cap-weighted index proxies used as benchmarks and as the scope for heavy work |
+| [Economic indicators](economic-indicators/README.md) | Macro series for context |
+| [Accounts](accounts/README.md) | Registration, sign-in, and keeping each user's data their own |
+| [Portfolio](portfolio/README.md) | A user's accounts, holdings and watch list |
+| [Advisor](advisor/README.md) | A conversational assistant with a passive-investing outlook |
+| [Blog](blog/README.md) | The author's writing and study notes |
+| [Restaurants](restaurants/README.md) | A legacy, frozen restaurant log, kept running until it moves out |
+| [Entertainment](entertainment/README.md) | The author's media recommendations |
+| [Feedback](feedback/README.md) | A way for users to report problems, and the author's work queue |
 
 ## Non-goals
 
-- **Not a trading platform.** No order placement and no broker connections. (inferred)
+- **Not a trading platform.** No order placement, ever. Reading holdings from a broker is a
+  possible future feature (see [portfolio](portfolio/README.md)); acting on a user's behalf is not.
 - **Not real-time.** End-of-day data is enough for long-term investing. Intraday quotes are out of
   scope.
 - **Not investment advice.** The advisor informs; it does not recommend specific trades. (inferred)

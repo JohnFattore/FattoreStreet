@@ -14,7 +14,7 @@ Update docs when a change affects user-facing behavior, public APIs, setup, or a
 | New Spring Boot feature or service class | `springboot/README.md` (features list, env vars table, usage section) |
 | New/modified React page, component, or RTK Query endpoint | `react-app/README.md` (pages list, key components, API layer section) |
 | New dependency added (pip, npm, maven) | The relevant app README (`django/README.md`, `react-app/README.md`, `springboot/README.md`) |
-| New app/service or major architectural change | `docs/ARCHITECTURE.md`, root `README.md`, and relevant app README |
+| New app/service or major architectural change | `intent/design.md` (via the `intent` skill's Sync mode), root `README.md`, and relevant app README |
 | Changed setup steps, env vars, or run commands | `docs/GETTING_STARTED.md` and relevant app README |
 | Spring Boot config, build, or setup change | `springboot/README.md` |
 | LLM setup, model, or script change that affects usage (commands, flags, paths, prerequisites, outputs) | `llm/README.md` |

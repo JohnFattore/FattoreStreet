@@ -16,6 +16,7 @@ It's meant to be read by people. Keep it loose: prose over process, no numbering
 ```
 intent/
   README.md                   root: vision (who, problem, success, non-goals)
+  design.md                   high-level design: how the product is shaped and why
   principles.md               constraints that apply everywhere
   <branch>/
     README.md                 branch node: why this area exists, branch-wide constraints
@@ -33,7 +34,7 @@ intent/
   narrow that but never loosen it. An exception is stated explicitly at the child, and it names what
   it is excepting.
 - **The path is the context.** To work on any node, read every `README.md` from the root down to it
-  first, plus `principles.md`. Don't load unrelated branches.
+  first, plus `design.md` and `principles.md`. Don't load unrelated branches.
 - **Split by reason, not by service.** A branch is a user-facing purpose, like market data or
   portfolio, and usually spans several services. Split a node when it holds two separate reasons to
   exist, or when it gets long enough that a reader loses the thread (roughly 10 requirements).
@@ -50,12 +51,28 @@ why. Add a sentence on how you'd know it holds only when that isn't obvious. Req
 numbered. To refer to one from elsewhere, use its name and link to its file, e.g. "see
 *Primary sources are the truth* in [principles](../principles.md)".
 
+### design.md
+
+`design.md` is the high-level design, distinct from the root's vision. It says how the product is
+shaped: the parts, the services and stores that carry them, how the parts depend on each other, the
+external sources and their license status, who can change what, and the key technical decisions,
+each with its why. It keeps the `## Why` and `## Open questions` sections and may use any other
+`##` sections it needs in between. A mermaid diagram is welcome where it helps. A change that alters
+a design decision (a new service, a different data store, moving work between services) is a
+**Sync** trigger for it.
+
 ## Writing rules
 
-- **No "how".** Leave out file paths, class, table and column names, env vars, frameworks,
-  libraries and endpoints. Numbers are fine when they *are* the requirement (a tolerance, a
-  deadline), but not when they're tuning (a retry count). If a sentence would go stale when the code
-  is refactored, it belongs in the code.
+- **How much "how" depends on altitude.** A choice of technology is a decision with a reason, so
+  `design.md` and branch READMEs may name services, major frameworks, data stores, external sources
+  and the scheduled-job model, as long as each comes with why it was chosen and the failure that
+  choice prevents. Leaves stay tech-free: a requirement is behavior that survives a rewrite. The
+  exception is an external data source (the SEC, FRED, yfinance): a leaf may name one when its
+  provenance or license status is the point of the requirement, since that survives a rewrite too.
+- **Never, at any altitude:** file paths, class, table and column names, endpoints, env vars and
+  tuning numbers. Numbers are fine when they *are* the requirement (a tolerance, a deadline), but
+  not when they're tuning (a retry count). If a sentence would go stale on a refactor that keeps the
+  same design, it belongs in the code.
 - **Checkable.** The heading states something that could be shown true or false. "Prices load fast"
   is not a requirement. "Prices are current by the next market open" is.
 - **The why names the failure it prevents.** "Because users need it" is not a why.

@@ -44,6 +44,12 @@ main index. Each member is re-checked at least weekly, and immediately after a l
 move. Securities outside that scope still get adjusted values from whatever actions are already
 stored.
 
+### Fund distributions are detected by their own slower job
+Funds report distributions in filings that aren't in structured data, and folding them into the
+nightly run would push it past a day. A separate scheduled job detects fund distributions at a
+slower cadence, so funds get adjusted prices without starving equity detection or breaking the
+SEC's rate limit. Today fund actions are frozen, which has to change.
+
 ### Each filing is read once
 Filings never change once filed, so fetching one again wastes the SEC rate budget. What's been
 extracted from a filing is kept, and later runs fetch only filings they haven't read yet. The
@@ -51,14 +57,8 @@ exception is when the extraction logic itself has changed.
 
 ## Non-goals
 
-- **Stock or non-cash dividends, spin-offs, mergers and rights issues.** Only splits and cash
-  dividends are tracked. (inferred)
-
-## Open questions
-
-- **ETFs and funds.** Fund distributions aren't in structured filing data, and detecting them nightly
-  would push the run past 17 hours, so fund actions, and with them fund adjusted prices, are
-  currently frozen. Should funds be in scope? If so, what freshness is acceptable: a separate slower
-  job, or a weekly pass?
-- **Detection scope.** Is "main index members" the right definition of the securities users care
-  about? Should a security held in any user's portfolio also be in scope?
+- **Stock or non-cash dividends, spin-offs, mergers and rights issues, for now.** Only splits and
+  cash dividends are tracked. The others are wanted eventually, spin-offs especially since they
+  distort returns; deferred, not ruled out.
+- **Detection for securities outside the main index,** including ones users hold. Keeping the scope
+  to one index keeps the work bounded and inside the SEC's rate limit.

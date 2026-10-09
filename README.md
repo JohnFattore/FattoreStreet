@@ -15,7 +15,7 @@ This repository contains the source code for a comprehensive web application fea
 We have organized the documentation to help you get started quickly:
 
 - **[🚀 Getting Started](docs/GETTING_STARTED.md)**: Setup guide for local development and staging.
-- **[🏗 Architecture](docs/ARCHITECTURE.md)**: High-level system design, tech stack, data flow, and development practices.
+- **[🏗 High-level design](intent/design.md)**: How the platform is shaped and why: services, data flow, external sources and key decisions.
 - **[📖 API Reference](docs/API_REFERENCE.md)**: Django and Spring Boot HTTP endpoints.
 - **[☁️ Deployment](docs/DEPLOYMENT.md)**: Infrastructure guide (Docker Compose on AWS EC2, GHCR images, SSM-driven deploys).
 
