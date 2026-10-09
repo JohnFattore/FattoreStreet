@@ -10,18 +10,22 @@ the user who asked it.
 
 ### The advisor remembers a user's recent conversation
 Follow-up questions only make sense with context. Each answer takes the user's most recent
-exchanges into account. (inferred)
+exchanges into account.
 
 ### A user can see their past conversation when they return
 Coming back to a blank page loses whatever the user learned last time. Their earlier questions and
-answers are shown again, oldest first. (inferred)
+answers are shown again, oldest first.
 
 ### Conversations are private to the user who had them
 Applies [data ownership](../accounts/data-ownership.md). No other user, and no signed-out visitor,
-can read them. (inferred)
+can read them.
 
-## Open questions
+### Conversations expire, and a user can delete theirs sooner
+Money questions are personal, and a record kept forever is a liability with no benefit once the
+conversation is over. Conversations are deleted automatically 90 days after they happen, and a user
+can clear their own history at any time. Today they're kept forever, which has to change.
 
-- **Retention.** Conversations are kept forever. Should they expire, or be deletable by the user?
-- **What the model provider keeps.** Every question is sent to the hosted model. Should users be
-  told that, and does the provider's data policy fit a public site?
+## Non-goals
+
+- **A notice about the model provider.** Questions are sent to a hosted model, and users aren't told
+  so beyond the page saying the advisor is automated.
