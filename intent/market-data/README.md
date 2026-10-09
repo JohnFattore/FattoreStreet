@@ -13,8 +13,9 @@ its own from two free primary sources: an exchange's historical trade records fo
 companies' SEC filings for splits and dividends. See *Only commercially free data is stored or
 shown* and *Primary sources are the truth* in [principles](../principles.md).
 
-This branch has three parts:
+This branch has four parts:
 
+- [Security universe](security-universe.md): which securities exist, who files for them, which are funds.
 - [Raw prices](raw-prices.md): what traded, stored as it happened.
 - [Corporate actions](corporate-actions.md): the splits and dividends found in filings.
 - [Adjusted prices](adjusted-prices.md): raw prices corrected for those actions, so returns are real.
