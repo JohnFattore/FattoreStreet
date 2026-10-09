@@ -66,7 +66,7 @@ citizen of free sources* in [principles](principles.md)).
 |---|---|---|
 | SEC EDGAR | Security universe, fundamentals, corporate actions, free-float shares | Yes |
 | IEX historical data | Daily raw prices | Yes |
-| FRED | Economic series | Mostly. Some series carry third-party terms. See open questions |
+| FRED | Economic series | Government series, yes. Four privately owned series are kept under a named exception (see [series](economic-indicators/series.md)) |
 | Google Gemini | The advisor's answers | Generated per user; nothing licensed is stored. (inferred) |
 | yfinance | Development diagnostics only, by principle | No. Still shown to users today; being removed (see [portfolio](portfolio/README.md)) |
 | Finnhub | Live quotes | No. To be removed last, replaced by the latest close (see [portfolio](portfolio/README.md)) |
@@ -111,8 +111,8 @@ always matches the repo. See *Merging is deploying* in [principles](principles.m
 
 ## Open questions
 
-- **Unverified licenses.** Yelp restaurant data and some FRED series (such as VIX) are stored or
-  shown without a confirmed license. Verify each, or remove it?
+- **Unverified licenses.** Yelp restaurant data is stored and shown without a confirmed license.
+  Verify it, or remove it?
 - **Should the market-data service ever serve user data,** or stay read-only and public, with
   everything user-owned in the main API? (inferred: it stays public today)
 - **The old architecture doc.** The repo's older architecture overview predates the market-data
