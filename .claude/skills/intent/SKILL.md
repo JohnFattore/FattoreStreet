@@ -66,7 +66,9 @@ a design decision (a new service, a different data store, moving work between se
 - **How much "how" depends on altitude.** A choice of technology is a decision with a reason, so
   `design.md` and branch READMEs may name services, major frameworks, data stores, external sources
   and the scheduled-job model, as long as each comes with why it was chosen and the failure that
-  choice prevents. Leaves stay tech-free: a requirement is behavior that survives a rewrite.
+  choice prevents. Leaves stay tech-free: a requirement is behavior that survives a rewrite. The
+  exception is an external data source (the SEC, FRED, yfinance): a leaf may name one when its
+  provenance or license status is the point of the requirement, since that survives a rewrite too.
 - **Never, at any altitude:** file paths, class, table and column names, endpoints, env vars and
   tuning numbers. Numbers are fine when they *are* the requirement (a tolerance, a deadline), but
   not when they're tuning (a retry count). If a sentence would go stale on a refactor that keeps the
