@@ -52,7 +52,7 @@ FattoreStreet answers with data that is:
 | [Blog](blog/README.md) | The author's writing and study notes |
 | [Restaurants](restaurants/README.md) | A legacy, frozen restaurant log, kept running until it moves out |
 | [Entertainment](entertainment/README.md) | The author's media recommendations (inferred: secondary to the finance core) |
-| [Feedback](feedback/README.md) | A changelog and a way for users to report problems |
+| [Feedback](feedback/README.md) | A way for users to report problems, and the author's work queue |
 
 ## Non-goals
 

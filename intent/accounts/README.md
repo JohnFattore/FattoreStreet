@@ -27,5 +27,6 @@ This branch has two parts:
 - **Preferences across devices.** Dark mode is remembered only in the browser, so it doesn't follow
   a user to another device. Is that fine, or should preferences be stored with the account?
 - **One ownership rule or many?** Each area enforces ownership on its own, and they don't all agree
-  (see [restaurants](../restaurants/README.md) and the open questions in
-  [feedback](../feedback/README.md)). Should there be a single shared rule every area uses?
+  (see [restaurants](../restaurants/README.md) and
+  [change requests](../feedback/change-requests.md)). Should there be a single shared rule every area
+  uses?
