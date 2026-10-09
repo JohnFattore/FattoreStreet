@@ -29,6 +29,11 @@ Fundamentals alone can't say whether a company is cheap or expensive. Price to e
 sales and similar ratios combine the latest close from [market data](../market-data/README.md) with
 trailing-twelve-month figures, and follow the same blank-when-missing rule. These aren't built yet.
 
+### Every ratio explains itself in plain language
+A ratio a newcomer can't interpret is just a number. Each ratio shown comes with a short plain-language
+definition of what it measures and how to read a high or low value. Today those definitions sit on
+a hard-coded, unlinked page instead of next to the ratios.
+
 ### Every derived number traces back to filed figures
 The vision promises auditability. Every metric is computed only from stored quarterly figures,
 with no outside inputs beyond the platform's own prices, so anyone can reproduce it from the

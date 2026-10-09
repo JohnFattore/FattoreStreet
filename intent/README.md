@@ -51,7 +51,7 @@ FattoreStreet answers with data that is:
 | [Advisor](advisor/README.md) | A conversational assistant with a passive-investing outlook |
 | [Blog](blog/README.md) | The author's writing and study notes |
 | [Restaurants](restaurants/README.md) | A legacy, frozen restaurant log, kept running until it moves out |
-| [Entertainment](entertainment/README.md) | The author's media recommendations (inferred: secondary to the finance core) |
+| [Entertainment](entertainment/README.md) | The author's media recommendations |
 | [Feedback](feedback/README.md) | A way for users to report problems, and the author's work queue |
 
 ## Non-goals
