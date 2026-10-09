@@ -56,7 +56,8 @@ FattoreStreet answers with data that is:
 
 ## Non-goals
 
-- **Not a trading platform.** No order placement and no broker connections. (inferred)
+- **Not a trading platform.** No order placement, ever. Reading holdings from a broker is a
+  possible future feature (see [portfolio](portfolio/README.md)); acting on a user's behalf is not.
 - **Not real-time.** End-of-day data is enough for long-term investing. Intraday quotes are out of
   scope.
 - **Not investment advice.** The advisor informs; it does not recommend specific trades. (inferred)

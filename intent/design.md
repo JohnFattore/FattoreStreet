@@ -68,8 +68,8 @@ citizen of free sources* in [principles](principles.md)).
 | IEX historical data | Daily raw prices | Yes |
 | FRED | Economic series | Mostly. Some series carry third-party terms. See open questions |
 | Google Gemini | The advisor's answers | Generated per user; nothing licensed is stored. (inferred) |
-| yfinance | Development diagnostics only, by principle | No. Currently also shown to users. See open questions |
-| Finnhub | Live quotes | Unverified. See open questions |
+| yfinance | Development diagnostics only, by principle | No. Still shown to users today; being removed (see [portfolio](portfolio/README.md)) |
+| Finnhub | Live quotes | No. To be removed last, replaced by the latest close (see [portfolio](portfolio/README.md)) |
 | Yelp | Restaurant data | Unverified. See open questions |
 | A fund provider's holdings file | Comparing an index with the one it approximates | Unverified. See open questions |
 
@@ -111,9 +111,6 @@ always matches the repo. See *Merging is deploying* in [principles](principles.m
 
 ## Open questions
 
-- **Non-free data on user pages.** Most portfolio, security-page and watch-list numbers come from
-  yfinance and Finnhub, which *Only commercially free data is stored or shown* forbids. Is the target
-  to move them all onto the platform's own market data, or to allow a named temporary exception?
 - **Unverified licenses.** Yelp restaurant data, the fund-provider holdings file and some FRED
   series (such as VIX) are stored or shown without a confirmed license. Verify each, or remove it? The holdings file matters most: it currently decides which securities
   are candidates for the Fattore 1000, so an official index shapes the proxy (see

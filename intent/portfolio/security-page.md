@@ -11,26 +11,24 @@ trustworthy.
 
 ### Anyone can open a page for any listed US security
 Users research before they hold, and the platform is public. The page needs no sign-in and works
-for any ticker in the [security universe](../market-data/security-universe.md). (inferred)
+for any ticker in the [security universe](../market-data/security-universe.md).
 
 ### The page shows price history, splits and dividends
 These are the facts a long-term investor checks first. They come from
-[market data](../market-data/README.md), so the page shows what the platform can audit. (inferred)
+[market data](../market-data/README.md), so the page shows what the platform can audit.
+Today they come from yfinance; see *Every number comes from the platform's own free data* in the
+[portfolio README](README.md).
 
 ### Companies and funds are each described in their own terms
 A fund's useful facts (what it holds, what it costs) differ from a company's (what it earns). The
-page shows the right kind of summary for each. (inferred)
+page shows the right kind of summary for each.
 
 ### The page links to the security's fundamentals
 Price alone doesn't explain value. Companies link to their figures in
-[fundamentals](../fundamentals/README.md). (inferred)
+[fundamentals](../fundamentals/README.md).
 
-## Open questions
-
-- **Where its numbers come from today.** Price history, splits, dividends, quotes and descriptions
-  on this page currently come from yfinance and Finnhub, not the platform's own market data. See
-  the open question in the [portfolio README](README.md).
-- **The public price comparison page.** Each security page links to a comparison of the platform's
-  prices, splits and dividends with yfinance's. *Only commercially free data is stored or shown* in
-  [principles](../principles.md) allows that comparison only in development. Should it be removed
-  from the public site, moved behind a development-only switch, or rebuilt without yfinance values?
+### Comparisons with third-party data exist only in development
+The comparison of the platform's prices, splits and dividends with yfinance's is a diagnostic. Per
+*Only commercially free data is stored or shown* in [principles](../principles.md), it's reachable
+only in development and never on the public site. Today it's public and linked from every security
+page, which has to change.

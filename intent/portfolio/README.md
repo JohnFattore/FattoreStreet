@@ -20,20 +20,27 @@ This branch has four parts:
 - [Watch list](watch-list.md): securities a user follows but doesn't hold.
 - [Security page](security-page.md): the per-security view every other page links to.
 
+## Requirements
+
+### Every number comes from the platform's own free data
+Applies *Only commercially free data is stored or shown* in [principles](../principles.md), with no
+exception for this branch. Prices, returns, dividends, splits and company details are taken from
+[market data](../market-data/README.md) and [fundamentals](../fundamentals/README.md). Today most of
+them still come from yfinance and current quotes from Finnhub. That is a known violation being worked
+off, not an allowed state, and live quotes are expected to be the last piece to move.
+
+### The current price is the latest end-of-day close
+No free source of live quotes is known, and the root's *Not real-time* says end of day is enough.
+Wherever a page shows a security's current price, it's the most recent close from
+[raw prices](../market-data/raw-prices.md), labelled with its date.
+
 ## Non-goals
 
-- **Brokerage connections or imports.** Holdings are entered by the user. See the root's *Not a
-  trading platform*. (inferred)
-- **Tax reporting.** Account types are recorded for context, not to compute tax. (inferred)
+- **Brokerage imports, for now.** Holdings are entered by hand. Importing them from a broker is
+  wanted eventually; it's deferred, not ruled out.
+- **Tax reporting, for now.** Account types are recorded for context, not to compute tax. Tax views
+  are wanted eventually; deferred, not ruled out.
+- **Transaction-level tracking.** A holding with buy and sell dates is the model. Individual lots,
+  cost-basis records and a simulated cash balance are not planned, and the unused records for them
+  should be removed.
 - **Real-time valuation.** End-of-day values are enough, per the root's *Not real-time*.
-
-## Open questions
-
-- **Non-free data on user pages (major).** Most numbers on the portfolio, security page and watch
-  list (prices at buy and sell dates, current prices, returns, dividends, splits, company details)
-  come from yfinance, and current quotes from Finnhub. *Only commercially free data is stored or
-  shown* in [principles](../principles.md) forbids this for yfinance and treats Finnhub as forbidden
-  until its license is verified. Is the target to move all of it onto the platform's own market data,
-  or is a named temporary exception allowed while that happens?
-- **Unused legacy records.** Older records for transactions, cost basis and a simulated cash balance
-  are still kept but nothing uses them. Remove them, or is transaction-level tracking planned?
