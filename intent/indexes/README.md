@@ -15,7 +15,7 @@ that gets the heavy work. See *Heavy detection is limited to securities users ca
 
 The Fattore 50, 100 and 1000 are cap-ranked, cap-weighted top-50, top-100 and top-1000 lists of US
 companies, modelled on the large-cap indexes investors already know. They are rebuilt by a daily
-scheduled one-shot job on the market-data service, after the night's prices have loaded. (inferred)
+scheduled one-shot job on the market-data service, after the night's prices have loaded.
 
 This branch has three parts:
 
@@ -23,15 +23,16 @@ This branch has three parts:
 - [Construction](construction.md): who gets in and how much each weighs.
 - [Benchmark comparison](benchmark-comparison.md): how close a proxy is to what it approximates.
 
+## Requirements
+
+### Candidates come from the platform's own security universe
+A proxy whose candidate list is the official index's membership isn't independent: the licensed
+index would still decide who can get in. Every eligible company in the
+[security universe](../market-data/security-universe.md) is a candidate. Today candidates are taken
+from a fund provider's holdings file for the official index, which has to change.
+
 ## Non-goals
 
 - **Official index products.** The Fattore indexes are never presented as, or named as, the
   indexes they approximate. Restated from the root non-goals.
-- **Investable products.** No fund or tradable product tracks them. (inferred)
-
-## Open questions
-
-- **Where the candidates come from.** The daily refresh computes market caps for the tickers in a
-  fund provider's holdings file for the official large-cap index, not for the whole market, so the
-  official index's membership decides who can enter the Fattore 1000. Should candidates come from
-  the platform's own universe instead, so the proxy is independent?
+- **Investable products.** No fund or tradable product tracks them.

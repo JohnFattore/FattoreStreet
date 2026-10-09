@@ -19,8 +19,9 @@ is shown next to a benchmark's return from the same buy date to the same sale da
 
 ### The user picks the benchmark from a small set, defaulting to the total US market
 Different investors measure against different things, but an open-ended choice invites cherry-picking.
-A short list of broad benchmarks is offered, including a Fattore index so a comparison can rest
-entirely on the platform's own data (see [indexes](../indexes/README.md)). The default is a total
+A short list of broad benchmarks is offered. A Fattore index joins the list once it has a real
+membership history (see *Past membership, for now* in [construction](../indexes/construction.md)),
+so a comparison can rest entirely on the platform's own data without flattering the index. The default is a total
 US market fund, the natural yardstick for a passive investor. Today only an S&P 500 fund is offered.
 
 ### Returns account for splits and dividends

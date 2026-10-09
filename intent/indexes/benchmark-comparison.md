@@ -2,32 +2,30 @@
 
 ## Why
 
-A proxy is only trustworthy if users can see how close it gets to what it approximates. Without a
-comparison, a construction bug could drift the Fattore 1000 away from the large-cap market and
-nobody would notice. This keeps the [indexes](README.md) honest.
+A proxy is only trustworthy if its builder can see how close it gets to what it approximates.
+Without a comparison, a construction bug could drift the Fattore 1000 away from the large-cap market
+and nobody would notice. This keeps the [indexes](README.md) honest.
+
+The comparison needs the official index's holdings, which come from a fund provider's file whose
+license is unverified. So it is a development diagnostic, like the price comparison in
+[security page](../portfolio/security-page.md), not a user feature.
 
 ## Requirements
 
-### The Fattore 1000 is shown beside the benchmark it approximates
-Users can see which members overlap with the benchmark's holdings, the share of symbols in common,
-and how far the weights differ, side by side. (inferred)
+### The comparison exists only in development
+Per *Only commercially free data is stored or shown* in [principles](../principles.md), a source with
+an unverified license is never shown to users. The comparison is reachable only in development.
+Today it's on the public indexes page, which has to change.
 
-### The comparison says why the numbers differ
-The benchmark's weights come from a different date and methodology, and without saying so users
-would read every difference as an error. The comparison explains that weights won't match exactly.
-(inferred)
+### The comparison shows overlap and weight differences
+A developer can see which members overlap with the benchmark's holdings, the share of symbols in
+common, and how far the weights differ, side by side.
 
-### The comparison never presents the proxy as the official index
-Restates the root non-goal: the benchmark is named only as the thing being compared against.
-(inferred)
+### The reference holdings never feed the indexes
+The file is evidence to check construction against, not an input to it. See *Candidates come from
+the platform's own security universe* in [indexes](README.md).
 
-## Open questions
+## Non-goals
 
-- **License of the reference holdings.** The benchmark side comes from a fund provider's published
-  holdings file, which is shown to users and also decides the candidate list (see open questions
-  in [indexes](README.md)). Its license for storage and display is unverified, which *Only
-  commercially free data is stored or shown* in [principles](../principles.md) treats as forbidden
-  until verified. Verify it, or drop the comparison?
-- **Naming.** Does naming the official index in the comparison sit too close to "never presented as
-  the indexes they approximate"?
-- **Staleness.** The holdings file is a fixed snapshot. How often must it be refreshed, and by what?
+- **A schedule for the reference holdings.** The file is replaced by hand when a construction check
+  needs a fresher comparison. A stale snapshot is acceptable for a diagnostic.

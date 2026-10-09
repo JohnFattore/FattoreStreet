@@ -71,7 +71,7 @@ citizen of free sources* in [principles](principles.md)).
 | yfinance | Development diagnostics only, by principle | No. Still shown to users today; being removed (see [portfolio](portfolio/README.md)) |
 | Finnhub | Live quotes | No. To be removed last, replaced by the latest close (see [portfolio](portfolio/README.md)) |
 | Yelp | Restaurant data | Unverified. See open questions |
-| A fund provider's holdings file | Comparing an index with the one it approximates | Unverified. See open questions |
+| A fund provider's holdings file | Development-only check of an index against the one it approximates | Unverified, so never shown or used as an input (see [benchmark comparison](indexes/benchmark-comparison.md)) |
 
 ## Who can change what
 
@@ -111,10 +111,8 @@ always matches the repo. See *Merging is deploying* in [principles](principles.m
 
 ## Open questions
 
-- **Unverified licenses.** Yelp restaurant data, the fund-provider holdings file and some FRED
-  series (such as VIX) are stored or shown without a confirmed license. Verify each, or remove it? The holdings file matters most: it currently decides which securities
-  are candidates for the Fattore 1000, so an official index shapes the proxy (see
-  [indexes](indexes/README.md)).
+- **Unverified licenses.** Yelp restaurant data and some FRED series (such as VIX) are stored or
+  shown without a confirmed license. Verify each, or remove it?
 - **Should the market-data service ever serve user data,** or stay read-only and public, with
   everything user-owned in the main API? (inferred: it stays public today)
 - **The old architecture doc.** The repo's older architecture overview predates the market-data
