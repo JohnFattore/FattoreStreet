@@ -7,7 +7,7 @@ paths:
 
 ## Project Layout
 
-- App-based structure: `portfolio/`, `users/`, `chatbot/`, `restaurants/`, `changeflow/`
+- One Django app per feature (see the app list in CLAUDE.md)
 - Shared helper utilities live in `django/portfolio/helper.py`
 - No task queue: external-data helpers fetch lazily and cache in Redis (django-redis) when `DEBUG=False`
 
@@ -24,8 +24,3 @@ paths:
 - API responses use snake_case keys (the React frontend converts to camelCase)
 - Cache expensive external API calls (yfinance, FRED) using Django's cache framework with `cache.get` / `cache.set`
 - Use the `_partition_cached` helper pattern for batch lookups: split tickers into cached hits and uncached misses, fetch only the misses
-
-## Auth
-
-- JWT authentication via `djangorestframework-simplejwt`
-- Protected endpoints require `Authorization: Bearer <token>` header

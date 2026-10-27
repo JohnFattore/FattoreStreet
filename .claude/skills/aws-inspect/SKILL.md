@@ -28,10 +28,10 @@ into the transcript. Use `describe-secret` to inspect metadata instead.
 | Local identity | `AWS_PROFILE=fattorestreet`, which assumes role `FattoreStreetDeveloper`. Read-heavy and non-admin: no IAM write, no `GetSecretValue`, `us-east-1` only. See `deploy/iam/` |
 | ECS cluster | `fattorestreet-hist-load` (the only one) |
 | ECS services | none, ever. Only one-shot scheduled tasks |
-| Task families | `fattorestreet-hist-load`, `fattorestreet-index-load` |
-| Schedules | EventBridge Scheduler `fattorestreet-hist-load`, `fattorestreet-index-load` |
-| Log groups | `/ecs/fattorestreet-hist-load`, `/ecs/fattorestreet-index-load` (30-day retention) |
-| ECR repo | `fattorestreet-hist-load` (one image, shared by both task families) |
+| Task families | `fattorestreet-{hist-load,index-load,fundamentals-load,validate-prices,asset-load}` |
+| Schedules | EventBridge Scheduler, one per task family, same names |
+| Log groups | `/ecs/<task family>`, e.g. `/ecs/fattorestreet-index-load` (30-day retention) |
+| ECR repo | `fattorestreet-hist-load` (one image, shared by all five task families) |
 | Secret | `fattorestreet/env`, one flat JSON shared by every service |
 | EC2 | one Graviton instance, tag `App=fattorestreet`, runs the compose stack |
 
@@ -41,9 +41,8 @@ is correct.
 ## Mental model that makes findings obvious
 
 The cluster runs **one-shot tasks only**. A healthy steady state is **zero running
-tasks**. The container image runs four modes off `APP_RUN_MODE` (`server`,
-`hist-load`, `index-load`, `fundamentals-load`); the load modes are `ApplicationRunner`
-beans that call `System.exit` when done, and `server` mode boots Tomcat and stays up
+tasks**. The container image runs six modes off `APP_RUN_MODE` (`server` plus the five
+task family suffixes); the job modes are `ApplicationRunner` beans that call `System.exit` when done, and `server` mode boots Tomcat and stays up
 forever.
 
 So: **any task alive for more than an hour or two is a bug, not activity.** The usual
@@ -71,9 +70,8 @@ Read `startedAt` first. Age is the signal.
 aws logs tail /ecs/fattorestreet-index-load --since 24h --format short | tail -40
 ```
 
-Look for the runner's own first line (`Starting one-shot index load`,
-`Starting one-shot IEX HIST load`, `Starting one-shot fundamentals load`). The log
-groups are `/ecs/fattorestreet-{hist,index,fundamentals}-load`. If the app logged
+Look for the runner's own first line, which starts `Starting one-shot` (`IEX HIST load`,
+`index load`, `fundamentals load`, `adjusted-price validation`, `asset load`). If the app logged
 `Started SecApiApplication` and
 that runner line never appears, the runner bean was never created: the deployed image
 predates the runner, or `APP_RUN_MODE` is wrong. Confirm with the two commands below.
@@ -102,7 +100,7 @@ aws scheduler get-schedule --name fattorestreet-index-load \
 **Cost**
 
 ```bash
-aws ce get-cost-and-usage --time-period Start=$(date -v-30d +%F),End=$(date +%F) \
+aws ce get-cost-and-usage --time-period Start=$(date -d '30 days ago' +%F),End=$(date +%F) \
   --granularity MONTHLY --metrics UnblendedCost --group-by Type=DIMENSION,Key=SERVICE \
   --query 'ResultsByTime[].Groups[].{svc:Keys[0],amt:Metrics.UnblendedCost.Amount}' --output table
 ```

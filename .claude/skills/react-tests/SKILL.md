@@ -25,32 +25,40 @@ import { renderWithProviders, createTestStore } from "./testutils";
 ```
 
 - `renderWithProviders(ui, { preloadedState })` -- wraps component in Redux Provider + MemoryRouter
+- `renderWithRoute(...)` -- same, for components that read route params
 - `createTestStore(preloadedState)` -- creates a store with RTK Query middleware
 
 Authenticated state for protected components:
 
 ```tsx
 const authenticatedState = {
-  user: { access: "fake-token", refresh: "fake-refresh", username: "testuser" },
+  user: {
+    access: "fake-token",
+    refresh: "fake-refresh",
+    username: "testuser",
+    darkMode: false,
+  },
 };
 ```
 
 ## MSW Mocking
 
-Default handlers in `__tests__/mocks/handlers.ts` cover common endpoints (accounts, assets, asset-info, quote, fred-data, token, restaurants). For component-specific endpoints not already mocked, add per-test overrides:
+Default handlers in `__tests__/mocks/handlers.ts` cover most Django and Spring Boot endpoints the app calls. For a component-specific endpoint or an error case, add a per-test override. Build Django URLs from `VITE_APP_DJANGO_URL` plus the app prefix (`<app>/api/`), and Spring Boot URLs from `VITE_APP_SPRINGBOOT_URL`:
 
 ```tsx
 import { server } from "./mocks/server";
 import { http } from "msw";
 
+const djangoBaseUrl = (import.meta.env.VITE_APP_DJANGO_URL || "").endsWith("/")
+  ? import.meta.env.VITE_APP_DJANGO_URL
+  : `${import.meta.env.VITE_APP_DJANGO_URL}/`;
+
 server.use(
-  http.get("http://localhost:8000/api/my-endpoint/", () => {
+  http.get(djangoBaseUrl + "portfolio/api/my-endpoint/", () => {
     return Response.json({ key: "value" }, { status: 200 });
   })
 );
 ```
-
-Use `import.meta.env.VITE_APP_DJANGO_PORTFOLIO_URL` (and similar) for base URLs in handlers.
 
 ## Test Structure
 
@@ -59,7 +67,7 @@ import { describe, it, expect } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "./testutils";
-import MyComponent from "../src/components/MyComponent";
+import { MyComponent } from "../src/components/MyComponent";
 
 describe("MyComponent", () => {
   it("renders data after loading", async () => {
@@ -70,10 +78,10 @@ describe("MyComponent", () => {
   });
 
   it("handles user interaction", async () => {
-    const user = userEvent.setup();
     renderWithProviders(<MyComponent />);
 
-    await user.click(screen.getByRole("button", { name: /submit/i }));
+    // Direct userEvent API, no .setup(), matching the existing tests
+    await userEvent.click(screen.getByRole("button", { name: /submit/i }));
     await waitFor(() => {
       expect(screen.getByText("Success")).toBeInTheDocument();
     });
@@ -89,6 +97,6 @@ describe("MyComponent", () => {
    - Render with `renderWithProviders` and appropriate `preloadedState`
    - Assert loading state (spinner/text) appears first
    - Use `findByText` / `waitFor` for async data assertions
-   - Use `userEvent` for interactions (clicks, typing, form submission)
+   - Use `userEvent` directly for interactions (clicks, typing, form submission)
    - Test error states by overriding MSW handlers to return error responses
 4. **Run** -- `cd react-app && npx vitest --run` to execute once, or `npx vitest` for watch mode

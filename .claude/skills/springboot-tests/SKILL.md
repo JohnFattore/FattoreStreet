@@ -134,7 +134,6 @@ class EdgarRepositoryTest {
 
 ## Shared Test Helpers (`testsupport/`)
 
-- `TestJwtTokens` — mints HS256 JWTs for controller auth tests (`accessToken(secret, userId)`, plus an expiry-aware overload); pair with `@Import(SecurityConfig.class)` and `@TestPropertySource(properties = "SECRET_KEY=...")`
 - `PcapTestData` — builds IEX TOPS pcap byte streams programmatically (no committed binaries) for `PcapParser`/`IexHistService` tests
 
 ## Coverage

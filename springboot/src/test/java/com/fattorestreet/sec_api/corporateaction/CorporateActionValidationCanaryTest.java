@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(MockitoExtension.class)
 class CorporateActionValidationCanaryTest {
 
-    /** Representative US equities for SEC vs Yahoo validation runs (see sec-equity-dividend-accuracy-pass skill). */
+    /** Representative US equities for SEC vs Yahoo validation runs (see sec-dividend-accuracy-pass skill). */
     public static final List<String> CANARY_EQUITY_TICKERS = List.of(
             "AAPL", "MSFT", "JPM", "KO", "PG", "XOM", "WMT", "DIS", "JNJ", "V",
             "UNH", "HD", "BAC", "PFE", "INTC", "CSCO", "VZ", "T", "MRK", "CVX");
