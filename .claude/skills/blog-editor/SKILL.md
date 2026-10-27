@@ -94,7 +94,7 @@ Rules:
 
 ### 5. Open a PR — learning topic only
 
-A learning topic ships as a pull request, never as a commit straight to `main`. Use the `create-pr` skill, which branches, commits, pushes, and opens the PR. The PR should contain the topic file and nothing unrelated. Title it after the topic; in the body, say what it covers and link the source issue.
+A learning topic ships as a pull request, never as a commit straight to `main`. Branch off `main`, commit, push, and open the PR with `gh pr create`; never merge it. The PR should contain the topic file and nothing unrelated. Title it after the topic; in the body, say what it covers and link the source issue.
 
 Journal posts skip this step — leave the edited file uncommitted for the author.
 
