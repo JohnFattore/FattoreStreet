@@ -46,7 +46,7 @@ Test views directly without full HTTP stack:
 from myapp.views import MyViewSet
 
 def test_list_returns_data(self):
-    request = self.factory.get("/api/endpoint/")
+    request = self.factory.get("/portfolio/api/endpoint/")
     force_authenticate(request, user=self.user)
     view = MyViewSet.as_view({"get": "list"})
     response = view(request)
@@ -60,25 +60,25 @@ Test the full request cycle through URL routing:
 ```python
 def test_list_endpoint(self):
     self.authenticate_client()
-    response = self.client.get("/api/endpoint/")
+    response = self.client.get("/portfolio/api/endpoint/")
     self.assertEqual(response.status_code, 200)
     self.assertIsInstance(response.json(), list)
 ```
 
 ### Mocking External APIs
 
-Use `@patch()` for yfinance, FRED, Google AI, or any external service:
+Use `@patch()` for yfinance, FRED, Google AI, or any external service. Patch where the name is looked up (`portfolio.helper.yf`, `chatbot.views.genai`), not where it is defined:
 
 ```python
 from unittest.mock import patch, MagicMock
 
-@patch("myapp.views.yf.download")
-def test_with_mocked_yfinance(self, mock_download):
-    mock_download.return_value = MagicMock()
+@patch("portfolio.helper.yf.Tickers")
+def test_with_mocked_yfinance(self, mock_tickers):
+    mock_tickers.return_value = MagicMock()
     self.authenticate_client()
-    response = self.client.get("/api/market-data/")
+    response = self.client.get("/portfolio/api/market-data/")
     self.assertEqual(response.status_code, 200)
-    mock_download.assert_called_once()
+    mock_tickers.assert_called_once()
 ```
 
 ### Auth Testing
@@ -88,12 +88,12 @@ Always test both authenticated and unauthenticated paths:
 ```python
 def test_requires_auth(self):
     self.unauthenticate_client()
-    response = self.client.get("/api/protected/")
+    response = self.client.get("/portfolio/api/protected/")
     self.assertIn(response.status_code, [401, 403])
 
 def test_authenticated_access(self):
     self.authenticate_client()
-    response = self.client.get("/api/protected/")
+    response = self.client.get("/portfolio/api/protected/")
     self.assertEqual(response.status_code, 200)
 ```
 

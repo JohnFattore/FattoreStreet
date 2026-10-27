@@ -24,12 +24,12 @@ paths:
 - The project uses Bootstrap 5 via `react-bootstrap`. Use Bootstrap component props (`variant`, `size`, etc.) rather than custom CSS classes.
 - Bootstrap utility classes (`text-center`, `mb-3`, `d-flex`, `fw-bold`, etc.) are acceptable when they avoid the need for custom CSS. Prefer them over adding new rules to `custom.scss` for one-off spacing or layout tweaks.
 - If a new style is needed that utilities cannot express, add it to `custom.scss` targeting the Bootstrap class or HTML element directly.
-- Theme colors use CSS custom properties: `--primary`, `--secondary`, `--tertiary`, `--quaternary` (with `.dark-mode` overrides).
+- Theme colors use CSS custom properties: `--primary`, `--secondary`, `--tertiary`, `--quaternary`. Dark mode toggles `dark-mode` on `<body>` and the tokens flip under `.dark-mode`, so use the tokens and never hardcode a color (`#fff`, `rgb(...)`) in TSX. Check new UI in both modes.
 - Only use a custom `className` or `style` prop as a last resort when global styling is truly impossible.
 
 ## State & Data Fetching
 
-- Use **RTK Query** (defined in `react-app/src/functions/api.ts`) for all API calls
+- Use **RTK Query** (`react-app/src/functions/api/`: `djangoApi.ts`, `springbootApi.ts`, shared `baseQuery.ts`) for all API calls
 - Custom Axios base query handles JWT auth automatically from Redux state
 - Django responses are snake_case; use `transformResponse` to convert to camelCase interfaces
 - Spring Boot URLs use the `baseUrl` override in the query config

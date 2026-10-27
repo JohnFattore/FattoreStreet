@@ -5,25 +5,6 @@ paths:
 
 # Spring Boot / Java Conventions
 
-## Project Layout
-
-```
-springboot/src/main/java/com/fattorestreet/sec_api/
-  controller/           # @RestController endpoints
-  client/               # SEC HTTP client (WebService)
-  index/                # index membership, metrics refresh
-  corporateaction/      # dividends/splits, validation, price adjustment, filing discovery
-  corporateaction/support/  # parsers, extractors, persisters (non-@Service helpers)
-  fundamentals/         # EdgarService, quarters, financial metrics
-  listing/              # assets, listings, ETF identity enrichment
-  marketdata/           # daily prices, IEX HIST ingest
-  repository/           # Spring Data JPA
-  model/                # @Entity JPA entities
-  config/, util/          # shared helpers
-```
-
-Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
-
 ## Code Style
 
 - Java 25 features are available: records, sealed classes, text blocks, pattern matching
@@ -77,9 +58,3 @@ Mirror the same package names under `src/test/java/.../sec_api/` for unit tests.
 - JPA + Hibernate with PostgreSQL
 - Use Spring Data repository interfaces; avoid raw SQL unless performance requires it
 - `WebService` in `client` uses `RestTemplate` for external HTTP calls to SEC APIs
-
-## External Data Licensing
-
-- Only add external data sources that are permitted for free commercial use.
-- Before integrating a new source, verify Terms of Use or license coverage for commercial use, storage, and redistribution.
-- If terms are unclear or restrictive, do not integrate the source.

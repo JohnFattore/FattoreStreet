@@ -38,8 +38,8 @@ sudo docker network create --driver bridge pgadminNet
 #   }'
 #
 # Requires: EC2 instance role with secretsmanager:GetSecretValue on the secret,
-# and IMDSv2 hop limit >= 2 (see springboot/deploy/terraform README / the
-# secrets-from-arn skill). Substitute the secret's real ARN below.
+# and IMDSv2 hop limit >= 2 (see springboot/deploy/terraform README).
+# Substitute the secret's real ARN below.
 SECRETS_ARN=arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:fattorestreet/env-XXXXXX
 # ---------------------------------------------------------------------------
 
