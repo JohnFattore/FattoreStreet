@@ -115,7 +115,7 @@ class PriceAdjustmentServiceTest {
                 cik,
                 new EquityCorporateActionService.SplitDetectionStats(0, 0, savedActions, 0, 0, 0, 0, 0, 0, 0),
                 new EquityCorporateActionService.DividendDetectionStats(
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false,
                         Map.of(), Map.of(), Map.of()),
                 null);
     }

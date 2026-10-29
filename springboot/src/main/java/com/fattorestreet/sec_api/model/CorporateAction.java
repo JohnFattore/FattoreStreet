@@ -28,6 +28,8 @@ public class CorporateAction {
     public static final String EX_DATE_SOURCE_DIRECT_EX_TEXT = "DIRECT_EX_TEXT";
     public static final String EX_DATE_SOURCE_RECORD_DP = "RECORD_DP";
     public static final String EX_DATE_SOURCE_SYNTHETIC = "SYNTHETIC";
+    /** Synthetic date re-placed by fitting a per-ticker record-date offset to raw overnight price drops. */
+    public static final String EX_DATE_SOURCE_PRICE_INFERRED = "PRICE_INFERRED";
     /** {@link #exDateSource} values for SPLIT rows. */
     public static final String EX_DATE_SOURCE_PRICE_BREAK = "PRICE_BREAK";
     public static final String EX_DATE_SOURCE_FILING_TEXT = "FILING_TEXT";

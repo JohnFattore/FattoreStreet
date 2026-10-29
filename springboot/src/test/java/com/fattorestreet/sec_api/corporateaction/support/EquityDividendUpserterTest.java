@@ -268,6 +268,29 @@ class EquityDividendUpserterTest {
     }
 
     @Test
+    void priceInferredEventMovesSyntheticDateButNotRecordAnchoredDate() {
+        LocalDate syntheticDate = LocalDate.of(2024, 2, 9);
+        LocalDate recordAnchoredDate = LocalDate.of(2024, 4, 9);
+        CorporateAction synthetic = existingDividend("T", syntheticDate, 0.2775, 0.2775);
+        synthetic.setExDateSource(CorporateAction.EX_DATE_SOURCE_SYNTHETIC);
+        CorporateAction anchored = existingDividend("T", recordAnchoredDate, 0.2775, 0.2775);
+        anchored.setExDateSource(CorporateAction.EX_DATE_SOURCE_RECORD_DP);
+        when(corporateActionRepository.findByTicker("T")).thenReturn(List.of(synthetic, anchored));
+        when(corporateActionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EquityCorporateActionService.UpsertStats stats = upserter.upsertDividendEvents("T", List.of(
+                eventWithProvenance(LocalDate.of(2024, 1, 10), 0.2775, CorporateAction.EX_DATE_SOURCE_PRICE_INFERRED, null, null),
+                eventWithProvenance(LocalDate.of(2024, 4, 12), 0.2775, CorporateAction.EX_DATE_SOURCE_PRICE_INFERRED, null, null)));
+
+        assertEquals(1, stats.updated());
+        assertEquals(LocalDate.of(2024, 1, 10), synthetic.getEffectiveDate());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_PRICE_INFERRED, synthetic.getExDateSource());
+        assertEquals(35.0, synthetic.getConfidenceScore());
+        assertEquals(recordAnchoredDate, anchored.getEffectiveDate());
+        assertEquals(CorporateAction.EX_DATE_SOURCE_RECORD_DP, anchored.getExDateSource());
+    }
+
+    @Test
     void orphanedTupleAnchoredRecordIsNotPruned() {
         // A declaration-anchored row must never be deleted by the pruner: delete + re-insert
         // would bypass the rank guard that protects anchored dates from synthetic re-detections.

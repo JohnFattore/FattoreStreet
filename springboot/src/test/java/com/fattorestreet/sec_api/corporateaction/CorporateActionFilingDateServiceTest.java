@@ -140,6 +140,16 @@ class CorporateActionFilingDateServiceTest {
     }
 
     @Test
+    void businessDayOnOrBefore_rollsBackOverWeekendsAndHolidays() {
+        // Business day: unchanged.
+        assertEquals(LocalDate.of(2024, 1, 10), service.businessDayOnOrBefore(LocalDate.of(2024, 1, 10)));
+        // Sunday 2021-01-10 -> Friday 2021-01-08.
+        assertEquals(LocalDate.of(2021, 1, 8), service.businessDayOnOrBefore(LocalDate.of(2021, 1, 10)));
+        // Monday 2024-07-15 is not a holiday; Thursday 2024-07-04 is -> Wednesday 2024-07-03.
+        assertEquals(LocalDate.of(2024, 7, 3), service.businessDayOnOrBefore(LocalDate.of(2024, 7, 4)));
+    }
+
+    @Test
     void scanDividendRecordDates_reusesPersistedExtractionWithoutFetching() {
         String submissions = """
         {

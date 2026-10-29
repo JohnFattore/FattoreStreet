@@ -153,7 +153,7 @@ public class EquityDividendUpserter {
                 if (year < minYear || year > maxYear) {
                     continue;
                 }
-                if (exDateSourceRank(action.getExDateSource()) >= 3) {
+                if (exDateSourceRank(action.getExDateSource()) >= 4) {
                     // Deleting a declaration-anchored row and re-inserting a synthetic-dated one
                     // would bypass the rank guard above; anchored orphans need manual review.
                     log.warn("[{}] Not pruning declaration-anchored dividend record: {} raw={} source={}",
@@ -293,9 +293,10 @@ public class EquityDividendUpserter {
             return 0;
         }
         return switch (exDateSource) {
-            case CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED -> 4;
-            case CorporateAction.EX_DATE_SOURCE_DIRECT_EX_TEXT -> 3;
-            case CorporateAction.EX_DATE_SOURCE_RECORD_DP -> 2;
+            case CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED -> 5;
+            case CorporateAction.EX_DATE_SOURCE_DIRECT_EX_TEXT -> 4;
+            case CorporateAction.EX_DATE_SOURCE_RECORD_DP -> 3;
+            case CorporateAction.EX_DATE_SOURCE_PRICE_INFERRED -> 2;
             case CorporateAction.EX_DATE_SOURCE_SYNTHETIC -> 1;
             default -> 0;
         };
@@ -309,6 +310,7 @@ public class EquityDividendUpserter {
             case CorporateAction.EX_DATE_SOURCE_TUPLE_MATCHED -> 95.0;
             case CorporateAction.EX_DATE_SOURCE_DIRECT_EX_TEXT -> 90.0;
             case CorporateAction.EX_DATE_SOURCE_RECORD_DP -> 60.0;
+            case CorporateAction.EX_DATE_SOURCE_PRICE_INFERRED -> 35.0;
             case CorporateAction.EX_DATE_SOURCE_SYNTHETIC -> 10.0;
             default -> null;
         };

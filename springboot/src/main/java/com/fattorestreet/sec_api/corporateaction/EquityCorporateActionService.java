@@ -16,6 +16,7 @@ import com.fattorestreet.sec_api.corporateaction.support.EquityDividendNormalize
 import com.fattorestreet.sec_api.corporateaction.support.EquityDividendUpserter;
 import com.fattorestreet.sec_api.corporateaction.support.EquityExDateAssigner;
 import com.fattorestreet.sec_api.corporateaction.support.EquitySplitDetector;
+import com.fattorestreet.sec_api.corporateaction.support.PriceInferredExDateEstimator;
 import com.fattorestreet.sec_api.corporateaction.support.SplitPriceCorroborator;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.repository.CorporateActionRepository;
@@ -37,6 +38,7 @@ public class EquityCorporateActionService {
     private final EquityDividendFactParser equityDividendFactParser;
     private final EquityDividendNormalizer equityDividendNormalizer;
     private final EquityExDateAssigner equityExDateAssigner;
+    private final PriceInferredExDateEstimator priceInferredExDateEstimator;
     private final EquityDividendUpserter equityDividendUpserter;
 
     public EquityCorporateActionService(WebService webService,
@@ -53,6 +55,7 @@ public class EquityCorporateActionService {
         this.equityDividendFactParser = new EquityDividendFactParser();
         this.equityDividendNormalizer = new EquityDividendNormalizer();
         this.equityExDateAssigner = new EquityExDateAssigner(corporateActionFilingDateService);
+        this.priceInferredExDateEstimator = new PriceInferredExDateEstimator(dailyPriceRepository, corporateActionFilingDateService);
         this.equityDividendUpserter = new EquityDividendUpserter(corporateActionRepository);
     }
 
@@ -101,7 +104,10 @@ public class EquityCorporateActionService {
         List<CorporateAction> corporateActions = corporateActionRepository.findByTicker(ticker);
         AssignmentResult assignmentResult = equityExDateAssigner.assignExDividendDates(
                 normalized, recordDates, exDividendDirect, declarations, corporateActions);
-        List<DividendEvent> detectedEvents = assignmentResult.events();
+        List<DividendEvent> detectedEvents = priceInferredExDateEstimator.redateSyntheticEvents(ticker, assignmentResult.events());
+        int priceInferredAssignments = (int) detectedEvents.stream()
+                .filter(e -> CorporateAction.EX_DATE_SOURCE_PRICE_INFERRED.equals(e.exDateSource()))
+                .count();
         List<DividendEvent> splitAdjustedEvents = equityDividendNormalizer.adjustDividendsForFutureSplits(detectedEvents, corporateActions);
 
         boolean degradedScan = recordDateScan.degraded();
@@ -124,7 +130,8 @@ public class EquityCorporateActionService {
                 assignmentResult.tupleMatchedAssignments(),
                 assignmentResult.directExAssignments(),
                 assignmentResult.dpAssignments(),
-                assignmentResult.syntheticAssignments(),
+                assignmentResult.syntheticAssignments() - priceInferredAssignments,
+                priceInferredAssignments,
                 assignmentResult.promotedTupleEvents(),
                 upsertStats.changed(),
                 upsertStats.inserted(),
@@ -210,6 +217,7 @@ public class EquityCorporateActionService {
             int directExAssignments,
             int dpAssignments,
             int syntheticAssignments,
+            int priceInferredAssignments,
             int promotedTupleEvents,
             int changed,
             int inserted,
@@ -221,7 +229,7 @@ public class EquityCorporateActionService {
             Map<String, Integer> recordDateFormsRejected) {
         private static DividendDetectionStats empty(int factsParsed) {
             return new DividendDetectionStats(
-                    factsParsed, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false,
+                    factsParsed, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false,
                     Map.of(), Map.of(), Map.of());
         }
 
@@ -237,6 +245,7 @@ public class EquityCorporateActionService {
             out.put("directExAssignments", directExAssignments);
             out.put("dpAssignments", dpAssignments);
             out.put("syntheticAssignments", syntheticAssignments);
+            out.put("priceInferredAssignments", priceInferredAssignments);
             out.put("promotedTupleEvents", promotedTupleEvents);
             out.put("changed", changed);
             out.put("inserted", inserted);
