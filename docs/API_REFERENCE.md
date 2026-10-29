@@ -314,7 +314,9 @@ score, weaker-grounded re-detections never move dates set by stronger paths, and
 declaration-anchored rows are excluded from orphan pruning. Recent high-confidence declaration
 tuples that no XBRL event claims are promoted to provisional dividend events (closing the
 8-K-to-10-Q blind window); per-accession extraction results are persisted in `filing_extractions`
-so re-scans only fetch documents for new accessions; and when too many filing fetches fail, the run
+so re-scans only fetch documents for new accessions; issuers with no record dates on EDGAR get their
+otherwise-synthetic ex-dates re-placed by a per-ticker record-date offset fitted to raw IEX price drops
+(`ex_date_source = PRICE_INFERRED`); and when too many filing fetches fail, the run
 suppresses synthetic inserts and pruning instead of degrading stored data. Persisted dividend rows
 keep both `rawValue` and `adjustedValue`; adjusted prices use `adjustedValue`.
 

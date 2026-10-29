@@ -422,6 +422,15 @@ public class CorporateActionFilingDateService {
         return normalizedRecordDate;
     }
 
+    /** Last NYSE business day on or before {@code date}. */
+    public LocalDate businessDayOnOrBefore(LocalDate date) {
+        LocalDate d = date;
+        while (!isBusinessDay(d)) {
+            d = d.minusDays(1);
+        }
+        return d;
+    }
+
     private List<ExtractedRecordDate> extractRecordDateCandidates(String text, String source) {
         String searchable = toSearchableText(text);
         if (searchable.isBlank()) {

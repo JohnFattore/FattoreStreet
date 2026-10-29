@@ -734,6 +734,7 @@ public class PriceAdjustmentService {
         int directExAssignments = 0;
         int dpAssignments = 0;
         int syntheticAssignments = 0;
+        int priceInferredAssignments = 0;
         int promotedTupleEvents = 0;
         int dividendChanged = 0;
         int dividendInserted = 0;
@@ -766,6 +767,7 @@ public class PriceAdjustmentService {
             directExAssignments += dividend.directExAssignments();
             dpAssignments += dividend.dpAssignments();
             syntheticAssignments += dividend.syntheticAssignments();
+            priceInferredAssignments += dividend.priceInferredAssignments();
             promotedTupleEvents += dividend.promotedTupleEvents();
             dividendChanged += dividend.changed();
             dividendInserted += dividend.inserted();
@@ -798,6 +800,7 @@ public class PriceAdjustmentService {
         out.put("directExAssignments", directExAssignments);
         out.put("dpAssignments", dpAssignments);
         out.put("syntheticAssignments", syntheticAssignments);
+        out.put("priceInferredAssignments", priceInferredAssignments);
         out.put("promotedTupleEvents", promotedTupleEvents);
         out.put("dividendChanged", dividendChanged);
         out.put("dividendInserted", dividendInserted);
