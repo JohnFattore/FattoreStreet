@@ -4,6 +4,17 @@ export interface IChatMessage {
   timestamp?: string;
 }
 
+export interface IConversation {
+  id: number;
+  title: string;
+  createdAt: string;
+  lastMessageAt: string;
+}
+
+export interface IConversationDetail extends IConversation {
+  messages: IChatMessage[];
+}
+
 export interface IAllocation {
   ticker: string;
   shares: number;

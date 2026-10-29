@@ -3,15 +3,30 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { getApiErrorMessages } from "../functions/helperFunctions";
-import { usePostChatbotMutation } from "../functions/api";
+import {
+  NEW_CONVERSATION_CACHE_KEY,
+  useCreateConversationMutation,
+  usePostConversationMessageMutation,
+} from "../functions/api";
 import LoadingButton from "./LoadingButton";
 
 interface IFormInput {
   message: string;
 }
 
-export default function ChatbotForm() {
-  const [postChatbot, { error, isLoading }] = usePostChatbotMutation();
+export default function ChatbotForm({
+  conversationId,
+  onConversationCreated,
+}: {
+  conversationId: number | null;
+  onConversationCreated: (id: number) => void;
+}) {
+  const [createConversation, createState] = useCreateConversationMutation({
+    fixedCacheKey: NEW_CONVERSATION_CACHE_KEY,
+  });
+  const [postMessage, postState] = usePostConversationMessageMutation();
+  const isLoading = createState.isLoading || postState.isLoading;
+  const error = conversationId === null ? createState.error : postState.error;
 
   const schema = yup.object().shape({
     message: yup.string().required(),
@@ -28,7 +43,16 @@ export default function ChatbotForm() {
   });
 
   const onSubmit: SubmitHandler<IFormInput> = (data) => {
-    postChatbot(data.message);
+    if (conversationId === null) {
+      createConversation(data.message)
+        .unwrap()
+        .then((conversation) => onConversationCreated(conversation.id))
+        .catch(() => {
+          // createState.error is shown below
+        });
+    } else {
+      postMessage({ conversationId, message: data.message });
+    }
     reset();
   };
 

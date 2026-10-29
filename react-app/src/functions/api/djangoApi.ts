@@ -2,6 +2,8 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
   IAsset,
   IChatMessage,
+  IConversation,
+  IConversationDetail,
   IDividendRow,
   IEquityInfo,
   IETFInfo,
@@ -138,6 +140,46 @@ interface IRawChatInteraction {
   timestamp: string;
 }
 
+/** Raw snake_case shape returned by Django for a chatbot conversation */
+interface IRawConversation {
+  id: number;
+  title: string;
+  created_at: string;
+  last_message_at: string;
+}
+
+interface IRawConversationDetail extends IRawConversation {
+  interactions: IRawChatInteraction[];
+}
+
+const toConversation = (row: IRawConversation): IConversation => ({
+  id: row.id,
+  title: row.title,
+  createdAt: row.created_at,
+  lastMessageAt: row.last_message_at,
+});
+
+const toConversationDetail = (
+  row: IRawConversationDetail,
+): IConversationDetail => ({
+  ...toConversation(row),
+  messages: row.interactions.flatMap((interaction): IChatMessage[] => [
+    {
+      role: "user",
+      text: interaction.input_text,
+      timestamp: interaction.timestamp,
+    },
+    {
+      role: "model",
+      text: interaction.output_text,
+      timestamp: interaction.timestamp,
+    },
+  ]),
+});
+
+/** Shared by the form and the message list so a new conversation's first question shows while it's asked */
+export const NEW_CONVERSATION_CACHE_KEY = "newConversation";
+
 const toRestaurant = (row: IRawRestaurantRow): IRestaurant => ({
   yelp_id: row.yelp_id,
   name: row.name,
@@ -163,7 +205,7 @@ export const djangoApi = createApi({
     "Restaurants",
     "RestaurantRecommendations",
     "Reviews",
-    "Chatbot",
+    "Conversations",
   ],
   endpoints: (builder) => ({
     login: builder.mutation<
@@ -265,29 +307,50 @@ export const djangoApi = createApi({
       }),
       invalidatesTags: [{ type: "Reviews", id: "LIST" }],
     }),
-    getChatbot: builder.query<IChatMessage[], void>({
+    getConversations: builder.query<IConversation[], void>({
       query: () => ({
-        url: "chatbot/api/chatbot/",
+        url: "chatbot/api/conversations/",
         method: "GET",
       }),
-      transformResponse: (response: IRawChatInteraction[]): IChatMessage[] =>
-        response.flatMap((interaction) => [
-          {
-            role: "user",
-            text: interaction.input_text,
-            timestamp: interaction.timestamp,
-          },
-          {
-            role: "model",
-            text: interaction.output_text,
-            timestamp: interaction.timestamp,
-          },
-        ]),
-      providesTags: ["Chatbot"],
+      transformResponse: (response: IRawConversation[]): IConversation[] =>
+        response.map(toConversation),
+      providesTags: [{ type: "Conversations", id: "LIST" }],
     }),
-    postChatbot: builder.mutation<IChatMessage, string>({
+    getConversation: builder.query<IConversationDetail, number>({
+      query: (id) => ({
+        url: `chatbot/api/conversations/${id}/`,
+        method: "GET",
+      }),
+      transformResponse: toConversationDetail,
+      providesTags: (_result, _error, id) => [{ type: "Conversations", id }],
+    }),
+    // Starting a conversation asks its first question in the same request
+    createConversation: builder.mutation<IConversationDetail, string>({
       query: (message) => ({
-        url: "chatbot/api/chatbot/",
+        url: "chatbot/api/conversations/",
+        method: "POST",
+        data: { message },
+      }),
+      transformResponse: toConversationDetail,
+      async onQueryStarted(_message, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          // Seed the detail cache so opening the new conversation needs no refetch
+          dispatch(
+            djangoApi.util.upsertQueryData("getConversation", data.id, data),
+          );
+        } catch {
+          // The form shows the error
+        }
+      },
+      invalidatesTags: [{ type: "Conversations", id: "LIST" }],
+    }),
+    postConversationMessage: builder.mutation<
+      IChatMessage,
+      { conversationId: number; message: string }
+    >({
+      query: ({ conversationId, message }) => ({
+        url: `chatbot/api/conversations/${conversationId}/messages/`,
         method: "POST",
         data: { message },
       }),
@@ -295,24 +358,55 @@ export const djangoApi = createApi({
         role: "model",
         text: response.message,
       }),
-      async onQueryStarted(message, { dispatch, queryFulfilled }) {
+      async onQueryStarted(
+        { conversationId, message },
+        { dispatch, queryFulfilled },
+      ) {
         // Optimistically show the user's message; roll it back if the request fails
         const patchResult = dispatch(
-          djangoApi.util.updateQueryData("getChatbot", undefined, (draft) => {
-            draft.push({ role: "user", text: message });
-          }),
+          djangoApi.util.updateQueryData(
+            "getConversation",
+            conversationId,
+            (draft) => {
+              draft.messages.push({ role: "user", text: message });
+            },
+          ),
         );
         try {
           const { data } = await queryFulfilled;
           dispatch(
-            djangoApi.util.updateQueryData("getChatbot", undefined, (draft) => {
-              draft.push(data);
-            }),
+            djangoApi.util.updateQueryData(
+              "getConversation",
+              conversationId,
+              (draft) => {
+                draft.messages.push(data);
+              },
+            ),
           );
         } catch {
           patchResult.undo();
         }
       },
+      // A new message moves the conversation to the top of the list
+      invalidatesTags: [{ type: "Conversations", id: "LIST" }],
+    }),
+    renameConversation: builder.mutation<void, { id: number; title: string }>({
+      query: ({ id, title }) => ({
+        url: `chatbot/api/conversations/${id}/`,
+        method: "PATCH",
+        data: { title },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Conversations", id: "LIST" },
+        { type: "Conversations", id },
+      ],
+    }),
+    deleteConversation: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `chatbot/api/conversations/${id}/`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Conversations", id: "LIST" }],
     }),
     getAssets: builder.query<IAsset[], number | void>({
       query: (accountId) => ({
@@ -568,6 +662,10 @@ export const {
   useGetReviewsQuery,
   usePostReviewMutation,
   useDeleteReviewMutation,
-  useGetChatbotQuery,
-  usePostChatbotMutation,
+  useGetConversationsQuery,
+  useGetConversationQuery,
+  useCreateConversationMutation,
+  usePostConversationMessageMutation,
+  useRenameConversationMutation,
+  useDeleteConversationMutation,
 } = djangoApi;

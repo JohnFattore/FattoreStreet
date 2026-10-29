@@ -1,4 +1,4 @@
-export { djangoApi } from "./djangoApi";
+export { djangoApi, NEW_CONVERSATION_CACHE_KEY } from "./djangoApi";
 export { springbootApi } from "./springbootApi";
 
 export {
@@ -27,8 +27,12 @@ export {
   useGetReviewsQuery,
   usePostReviewMutation,
   useDeleteReviewMutation,
-  useGetChatbotQuery,
-  usePostChatbotMutation,
+  useGetConversationsQuery,
+  useGetConversationQuery,
+  useCreateConversationMutation,
+  usePostConversationMessageMutation,
+  useRenameConversationMutation,
+  useDeleteConversationMutation,
 } from "./djangoApi";
 
 export {

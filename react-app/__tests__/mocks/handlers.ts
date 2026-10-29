@@ -474,25 +474,73 @@ export const handlers = [
 
   // --- Chatbot (Django) ---
 
-  http.get(chatbotApiBaseUrl.concat("chatbot/"), () => {
+  http.get(chatbotApiBaseUrl.concat("conversations/"), () => {
     return Response.json(
       [
         {
-          input_text: "Should I buy index funds?",
-          output_text:
-            "**Yes** — low-cost index funds are a great core holding.",
-          timestamp: "2026-03-01T00:00:00Z",
+          id: 1,
+          title: "Should I buy index funds?",
+          created_at: "2026-03-01T00:00:00Z",
+          last_message_at: "2026-03-01T00:00:00Z",
         },
       ],
       { status: 200 },
     );
   }),
 
-  http.post(chatbotApiBaseUrl.concat("chatbot/"), () => {
+  http.get(chatbotApiBaseUrl.concat("conversations/:id/"), ({ params }) => {
+    return Response.json(
+      {
+        id: Number(params.id),
+        title: "Should I buy index funds?",
+        created_at: "2026-03-01T00:00:00Z",
+        last_message_at: "2026-03-01T00:00:00Z",
+        interactions: [
+          {
+            input_text: "Should I buy index funds?",
+            output_text:
+              "**Yes** — low-cost index funds are a great core holding.",
+            timestamp: "2026-03-01T00:00:00Z",
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.post(chatbotApiBaseUrl.concat("conversations/"), async ({ request }) => {
+    const { message } = (await request.json()) as { message: string };
+    return Response.json(
+      {
+        id: 2,
+        title: message,
+        created_at: "2026-03-02T00:00:00Z",
+        last_message_at: "2026-03-02T00:00:00Z",
+        interactions: [
+          {
+            input_text: message,
+            output_text: "Start with a total market fund.",
+            timestamp: "2026-03-02T00:00:00Z",
+          },
+        ],
+      },
+      { status: 201 },
+    );
+  }),
+
+  http.post(chatbotApiBaseUrl.concat("conversations/:id/messages/"), () => {
     return Response.json(
       { message: "Stay the course and keep costs low." },
       { status: 200 },
     );
+  }),
+
+  http.patch(chatbotApiBaseUrl.concat("conversations/:id/"), () => {
+    return Response.json({}, { status: 200 });
+  }),
+
+  http.delete(chatbotApiBaseUrl.concat("conversations/:id/"), () => {
+    return new Response(null, { status: 204 });
   }),
 
   http.get(restaurantsApiBaseUrl.concat("restaurant-list-create/"), () => {

@@ -1,7 +1,11 @@
 from django.contrib import admin
-from simple_history.admin import SimpleHistoryAdmin
-from .models import Interaction
+from .models import Conversation, Interaction
 
-@admin.register(Interaction)
-class InteractionAdmin(SimpleHistoryAdmin):
-    list_display = ('user', 'timestamp', 'input_text')
+class InteractionInline(admin.TabularInline):
+    model = Interaction
+    extra = 0
+
+@admin.register(Conversation)
+class ConversationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'title', 'last_message_at')
+    inlines = [InteractionInline]
