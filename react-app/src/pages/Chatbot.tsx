@@ -1,5 +1,8 @@
+import { useState } from "react";
+import { Col, Row } from "react-bootstrap";
 import ChatbotForm from "../components/ChatbotForm";
 import ChatbotOutput from "../components/ChatbotOutput";
+import ConversationList from "../components/ConversationList";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import Principles from "../components/Principles";
@@ -7,6 +10,8 @@ import LoginRequired from "../components/LoginRequired";
 
 export default function Chatbot() {
   const { access } = useSelector((state: RootState) => state.user);
+  // null means a new conversation that hasn't been asked anything yet
+  const [conversationId, setConversationId] = useState<number | null>(null);
 
   const renderChatbot = () => {
     if (!access) {
@@ -21,10 +26,21 @@ export default function Chatbot() {
       );
     }
     return (
-      <>
-        <ChatbotOutput />
-        <ChatbotForm />
-      </>
+      <Row>
+        <Col md={3}>
+          <ConversationList
+            selectedId={conversationId}
+            onSelect={setConversationId}
+          />
+        </Col>
+        <Col md={9}>
+          <ChatbotOutput conversationId={conversationId} />
+          <ChatbotForm
+            conversationId={conversationId}
+            onConversationCreated={setConversationId}
+          />
+        </Col>
+      </Row>
     );
   };
 

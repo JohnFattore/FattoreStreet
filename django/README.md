@@ -17,7 +17,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 |-----|---------|
 | `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/splits/info, quarterly financials |
 | `users` | User registration, JWT token management |
-| `chatbot` | Boglehead AI financial advisor (Google Gemini) |
+| `chatbot` | Boglehead AI financial advisor (Google Gemini), with separate per-user conversations |
 | `restaurants` | Restaurant reviews and recommendations |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
 | `blog` | Public blog posts (Markdown body) via `/blog/api/posts/`; content lives as Markdown in `blog/journal/` and `blog/learning-topics/` (see [Blog posts](#blog-posts)) |

@@ -35,7 +35,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/react-admin/success-bar` | AdminSuccessBar    | Per-ticker corporate-action success overview comparing Spring Boot vs YFinance price/dividend alignment using persisted manual ticker list |
 | `/visualizer`              | Visualizer         | Chart comparison tool                                                                                                                      |
 | `/economic-indicators`     | EconomicIndicators | FRED macroeconomic data charts (served by Spring Boot `POST /fred-data`) with chart-level latest readings (date + value)                   |
-| `/chatbot`                 | Chatbot            | Boglehead AI financial advisor                                                                                                             |
+| `/chatbot`                 | Chatbot            | Boglehead AI financial advisor: conversation list (new, rename, delete) beside the chat                                                    |
 | `/restaurants`             | Restaurants        | Restaurant reviews and map                                                                                                                 |
 | `/entertainment`           | Entertainment      | Music and media                                                                                                                            |
 | `/blog`                    | Blog               | The author's own posts, with the `LLM Notebook` category excluded and a link out to it                                                     |
@@ -61,6 +61,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `WatchListTable`                     | WatchList              | Live-updating price grid                                                                                               |
 | `TicketForm`                         | User                   | Authenticated feedback ticket submission form                                                                          |
 | `BlogPostList`                       | Blog, LlmNotebook      | Post cards for one category filter (`category` / `excludeCategory`)                                                    |
+| `ConversationList`                   | Chatbot                | The user's advisor conversations: new chat, select, rename inline, delete with confirmation                            |
 
 ## API Layer (RTK Query)
 

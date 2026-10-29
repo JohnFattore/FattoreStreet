@@ -50,9 +50,16 @@ Social feature for reviewing and sharing restaurant experiences.
 
 ## 🤖 Chatbot
 
+All chatbot endpoints require authentication and only ever touch the caller's own conversations; another user's conversation returns `404`.
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/chatbot/api/chatbot/` | Send a message to the AI investing assistant. |
+| `GET` | `/chatbot/api/conversations/` | List the user's conversations, most recently active first: `[{id, title, created_at, last_message_at}]`. |
+| `POST` | `/chatbot/api/conversations/` | Start a conversation by asking its first question. Body `{message}` (max 500 chars). Returns `201` with the conversation detail; the title is taken from the start of the question. |
+| `GET` | `/chatbot/api/conversations/<id>/` | One conversation with its exchanges oldest first: `{id, title, created_at, last_message_at, interactions: [{input_text, output_text, timestamp}]}`. |
+| `PATCH` | `/chatbot/api/conversations/<id>/` | Rename a conversation. Body `{title}` (max 100 chars, not blank). Renaming doesn't change its place in the list. |
+| `DELETE` | `/chatbot/api/conversations/<id>/` | Delete a conversation and all its messages. Returns `204`. |
+| `POST` | `/chatbot/api/conversations/<id>/messages/` | Ask a follow-up. Body `{message}`. Only this conversation's recent exchanges are sent as context. Returns `{message}` with the advisor's reply. |
 
 ## 🧭 Changeflow (Tickets)
 
