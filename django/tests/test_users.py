@@ -29,6 +29,13 @@ class UserTests(BaseAPITestCase):
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+    def test_create_user_with_invalid_bearer_token(self):
+        # A stale token left in the browser must not block sign-up.
+        self.send_invalid_token()
+        data = {'username': 'StaleTokenUser', 'password': 'password', 'email': 'stale@test.com'}  # pragma: allowlist secret
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
     def test_create_duplicate_username(self):
         """BaseAPITestCase already creates 'testuser'; duplicating should fail."""
         data = {'username': 'testuser', 'password': 'password', 'email': 'dup@test.com'}  # pragma: allowlist secret

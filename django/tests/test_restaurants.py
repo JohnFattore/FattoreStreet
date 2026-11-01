@@ -31,6 +31,26 @@ class RestaurantListTest(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
 
+    def test_list_ignores_an_invalid_bearer_token(self):
+        self.send_invalid_token()
+        response = self.client.get(self.url, {'state': 'TN', 'city': 'Nashville'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_create_is_not_allowed(self):
+        data = {
+            'yelp_id': 'new1', 'name': 'Injected', 'address': '1 Elm St',
+            'state': 'TN', 'city': 'Nashville', 'categories': 'Food',
+            'stars': 5.0, 'review_count': 1,
+        }
+        for authenticated in (False, True):
+            with self.subTest(authenticated=authenticated):
+                if authenticated:
+                    self.authenticate_client()
+                response = self.client.post(self.url, data, format='json')
+                self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertFalse(Restaurant.objects.filter(yelp_id='new1').exists())
+
 
 class ReviewCreateTest(BaseAPITestCase):
     """Tests for creating reviews."""

@@ -3,10 +3,12 @@ from .serializers import RestaurantSerializer, ReviewSerializer
 from .models import Restaurant, Review
 from .permissions import IsOwner
 
-# API endpoint for 'get' Restaurants and 'post' Restaurant
-class RestaurantListCreateView(generics.ListCreateAPIView):
+# API endpoint for 'get' Restaurants. Read-only: restaurants are loaded from
+# data, not created through the API.
+class RestaurantListView(generics.ListAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     def get_queryset(self):
         return Restaurant.objects.filter(state=self.request.GET.get("state"), city=self.request.GET.get("city"))
