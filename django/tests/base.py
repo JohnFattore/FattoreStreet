@@ -17,6 +17,13 @@ class BaseAPITestCase(APITestCase):
     def unauthenticate_client(self):
         self.client.force_authenticate(user=None)
 
+    def send_invalid_token(self):
+        # A malformed bearer token, as a logged-in browser sends once its access
+        # token expires. JWTAuthentication rejects it with a 401 before
+        # permission checks run, so a public view has to skip authentication
+        # entirely (authentication_classes = []), not just declare AllowAny.
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer not-a-real-token")
+
 
 class MarketDataPatchMixin:
     """Patches serializer-level market data lookups for asset endpoint tests.

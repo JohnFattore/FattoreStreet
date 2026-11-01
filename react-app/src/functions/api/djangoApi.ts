@@ -252,7 +252,7 @@ export const djangoApi = createApi({
       { state: string; city: string }
     >({
       query: ({ state, city }) => ({
-        url: "restaurants/api/restaurant-list-create/",
+        url: "restaurants/api/restaurant-list/",
         method: "GET",
         params: { state, city },
         withAuth: false,

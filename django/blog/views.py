@@ -19,6 +19,7 @@ class BlogPagination(PageNumberPagination):
 
 
 class PostListView(generics.ListAPIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     serializer_class = PostListSerializer
     pagination_class = BlogPagination
@@ -50,6 +51,7 @@ class PostListView(generics.ListAPIView):
 
 
 class PostDetailView(generics.RetrieveAPIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     serializer_class = PostDetailSerializer
     lookup_field = "slug"
@@ -64,12 +66,14 @@ class PostDetailView(generics.RetrieveAPIView):
 
 
 class CategoryListView(generics.ListAPIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     serializer_class = CategorySerializer
     queryset = Category.objects.all()
 
 
 class TagListView(generics.ListAPIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     serializer_class = TagSerializer
     queryset = Tag.objects.all()

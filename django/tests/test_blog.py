@@ -114,6 +114,18 @@ class BlogPublicApiTests(BaseAPITestCase):
         slugs = [item["slug"] for item in resp.data["results"]]
         self.assertEqual(slugs, [topic.slug])
 
+    def test_public_endpoints_ignore_an_invalid_bearer_token(self):
+        self.send_invalid_token()
+        for url in (
+            "/blog/api/posts/",
+            f"/blog/api/posts/{self.public_post.slug}/",
+            "/blog/api/categories/",
+            "/blog/api/tags/",
+        ):
+            with self.subTest(url=url):
+                resp = self.client.get(url)
+                self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
 
 class SyncBlogPostsCommandTests(TestCase):
     def setUp(self):

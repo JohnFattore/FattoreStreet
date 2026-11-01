@@ -543,7 +543,7 @@ export const handlers = [
     return new Response(null, { status: 204 });
   }),
 
-  http.get(restaurantsApiBaseUrl.concat("restaurant-list-create/"), () => {
+  http.get(restaurantsApiBaseUrl.concat("restaurant-list/"), () => {
     return Response.json(
       [
         {
