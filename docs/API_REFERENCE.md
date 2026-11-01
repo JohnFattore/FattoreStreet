@@ -41,7 +41,7 @@ Social feature for reviewing and sharing restaurant experiences.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/restaurants/api/restaurant-list-create/` | List restaurants filtered by `state` and `city`. Public and read-only. |
+| `GET` | `/restaurants/api/restaurant-list/` | List restaurants filtered by `state` and `city`. Public and read-only. |
 | `GET` | `/restaurants/api/review-list/` | List all reviews. |
 | `POST` | `/restaurants/api/review-create/` | Submit a new review. |
 | `GET` | `/restaurants/api/review/<id>/` | View a specific review. |

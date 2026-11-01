@@ -59,7 +59,7 @@ describe("RestaurantTable", () => {
 
   it("sorts rows when a column header is clicked", async () => {
     server.use(
-      http.get(restaurantsApiBaseUrl.concat("restaurant-list-create/"), () =>
+      http.get(restaurantsApiBaseUrl.concat("restaurant-list/"), () =>
         Response.json(
           [
             { ...sonic, id: 1, name: "Burger Barn", stars: "3.0" },

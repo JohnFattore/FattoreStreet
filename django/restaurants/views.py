@@ -6,7 +6,6 @@ from .permissions import IsOwner
 # API endpoint for 'get' Restaurants. Read-only: restaurants are loaded from
 # data, not created through the API.
 class RestaurantListView(generics.ListAPIView):
-    queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
