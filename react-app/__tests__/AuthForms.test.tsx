@@ -70,7 +70,8 @@ describe("LoginForm", () => {
 });
 
 describe("RegisterForm", () => {
-  const fillForm = async (password2: string) => {
+  const validPassword = "tulip-orbit-42"; // pragma: allowlist secret
+  const fillForm = async (password2: string, password = validPassword) => {
     await userEvent.type(
       screen.getByPlaceholderText("Enter username"),
       "newUser",
@@ -81,7 +82,7 @@ describe("RegisterForm", () => {
     );
     await userEvent.type(
       screen.getByPlaceholderText("Enter password"),
-      "hunter2",
+      password,
     );
     await userEvent.type(
       screen.getByPlaceholderText("Confirm password"),
@@ -103,10 +104,31 @@ describe("RegisterForm", () => {
     expect(store.getState().user.access).toBe("");
   });
 
+  it("rejects a password shorter than 8 characters", async () => {
+    const { store } = renderWithProviders(<RegisterForm />);
+
+    await fillForm("hunter2", "hunter2");
+
+    expect(await screen.findByRole("passwordError")).toHaveTextContent(
+      "Password must be at least 8 characters",
+    );
+    expect(store.getState().user.access).toBe("");
+  });
+
+  it("accepts a password of exactly 8 characters", async () => {
+    const { store } = renderWithProviders(<RegisterForm />);
+
+    await fillForm("tulip-42", "tulip-42"); // pragma: allowlist secret
+
+    await waitFor(() => {
+      expect(store.getState().user.access).not.toBe("");
+    });
+  });
+
   it("registers and logs in on success", async () => {
     const { store } = renderWithProviders(<RegisterForm />);
 
-    await fillForm("hunter2");
+    await fillForm(validPassword);
 
     await waitFor(() => {
       expect(store.getState().user.access).not.toBe("");
@@ -130,7 +152,7 @@ describe("RegisterForm", () => {
 
     const { store } = renderWithProviders(<RegisterForm />);
 
-    await fillForm("hunter2");
+    await fillForm(validPassword);
 
     expect(
       await screen.findByText(/A user with that username already exists/),

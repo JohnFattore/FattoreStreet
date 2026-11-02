@@ -15,7 +15,7 @@ All protected endpoints require a valid JWT Access Token in the header:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/users/api/users/` | Register a new user. |
+| `POST` | `/users/api/users/` | Register a new user. The password must be at least 8 characters and not on Django's common-password list; otherwise `400` with messages under `password`. |
 | `POST` | `/users/api/token/` | Login - Obtain Access and Refresh tokens. |
 | `POST` | `/users/api/token/refresh/` | Refresh an expired Access token. |
 
