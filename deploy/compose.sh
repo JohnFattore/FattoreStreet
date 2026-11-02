@@ -47,8 +47,9 @@ sudo docker compose -f docker-compose.infra.yml up -d
 # 4. App services
 sudo docker compose up -d
 
-# 5. SSL cert: run the certbot certonly command from run.sh (nginx must be up
-# to serve the webroot challenge; rerun to renew)
+# 5. SSL cert: first issuance only -- see "TLS certificate renewal" in
+# DEPLOY.md (nginx must be up to serve the webroot challenge). Renewal is
+# automatic: deploy.sh installs a systemd timer that runs renew-cert.sh.
 
 # ---------------------------------------------------------------------------
 # One-time cutover from the old docker-run/watchtower setup (run.sh)

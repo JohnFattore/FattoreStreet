@@ -73,6 +73,15 @@ docker compose run --rm django python manage.py sync_blog_posts
 # Reclaim disk from superseded image layers (watchtower's cleanup is retired)
 docker image prune -f
 
+# TLS certificate renewal: (re)install the systemd timer that runs
+# renew-cert.sh twice a day, so changes to it ship like any other deploy.
+# The unit's ExecStart points at this clone, wherever it lives on the host.
+sed "s|@DEPLOY_DIR@|$(pwd)|g" systemd/fattorestreet-cert-renew.service \
+  > /etc/systemd/system/fattorestreet-cert-renew.service
+cp systemd/fattorestreet-cert-renew.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now fattorestreet-cert-renew.timer
+
 # Health check: nginx must answer over HTTPS or the deploy (and the GitHub
 # Action behind it) fails
 echo "=== Health check ==="

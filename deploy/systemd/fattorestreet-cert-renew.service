@@ -1,0 +1,11 @@
+# Installed by deploy/deploy.sh, which replaces @DEPLOY_DIR@ with the host
+# clone's deploy/ directory. Started by fattorestreet-cert-renew.timer.
+[Unit]
+Description=Renew the fattorestreet.com TLS certificate and reload nginx
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=@DEPLOY_DIR@/renew-cert.sh

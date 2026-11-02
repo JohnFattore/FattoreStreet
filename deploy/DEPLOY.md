@@ -215,6 +215,48 @@ click-path that creates the user, the role, and the key is
 The role has **no IAM write** and cannot read secret values, so IAM changes in
 `springboot/deploy/terraform/` must be applied by an admin from CloudShell.
 
+## TLS certificate renewal
+
+The Let's Encrypt certificate (90-day lifetime) is renewed by
+[`renew-cert.sh`](renew-cert.sh), run twice a day by the systemd timer
+`fattorestreet-cert-renew.timer` ([`systemd/`](systemd/)). `deploy.sh`
+installs and enables the timer on every deploy, so there is nothing to set up
+by hand and changes to either file ship with the next merge.
+
+Each run:
+
+1. Runs certbot (webroot challenge through nginx's
+   `/.well-known/acme-challenge/` location) for `fattorestreet.com` and
+   `www.fattorestreet.com`. It's a no-op until the certificate is within 30 days
+   of expiry. `--expand` grows the existing `fattorestreet.com` lineage in
+   place, so nginx's certificate paths never change. If the two-name request
+   fails, the script falls back to renewing the existing certificate unchanged
+   and marks the run failed.
+2. Reloads nginx (`nginx -t`, then `nginx -s reload`) only when a certificate
+   was actually issued. nginx reads certificates only at start/reload.
+3. Fails the run if the certificate nginx is serving expires within 14 days.
+
+There is no alerting on failure yet (it needs `sns:Publish` on the instance
+role), so check it occasionally:
+
+```sh
+systemctl list-timers fattorestreet-cert-renew.timer   # next/last run
+systemctl status fattorestreet-cert-renew              # last result
+journalctl -u fattorestreet-cert-renew                 # certbot output
+sudo /home/ec2-user/FattoreStreet/deploy/renew-cert.sh # run now
+```
+
+`www.fattorestreet.com` needs a DNS record pointing at this host, or its
+challenge fails. Until it does, every run renews the apex-only certificate and
+reports failure.
+
+**First issuance on a new host** is still manual: nginx won't start while its
+443 block references certificate files that don't exist yet, and the webroot
+challenge needs nginx running. Bootstrap with a temporary port-80-only config
+(or a throwaway self-signed certificate at the `live/` paths), run the
+`certbot certonly` command from `run.sh` (with an extra
+`-d www.fattorestreet.com`), then restore the real config.
+
 ## Notes & limits
 
 - Images are **linux/arm64 only** — the EC2 host is a t4g (Graviton), and CI

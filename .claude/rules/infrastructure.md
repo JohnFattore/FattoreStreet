@@ -60,6 +60,10 @@ instance, plus five one-shot Fargate tasks managed by Terraform.
 
 - Config in `nginx/nginx.conf` (`nginx.dev.conf` for local)
 - Reverse proxy routing to the three services; serves the static frontend assets directly
+- TLS certificate renewal is the one scheduled job on the EC2 host rather than Fargate:
+  the webroot challenge and the nginx reload are both local to the box.
+  `deploy/renew-cert.sh` runs from a systemd timer (`deploy/systemd/`) that `deploy.sh`
+  installs on every deploy; see "TLS certificate renewal" in `deploy/DEPLOY.md`
 
 ## Secrets
 
