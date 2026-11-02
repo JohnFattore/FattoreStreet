@@ -26,7 +26,10 @@ export default function RegisterForm() {
 
   const schema = yup.object().shape({
     username: yup.string().required(),
-    password: yup.string().required(),
+    password: yup
+      .string()
+      .required("Password is required")
+      .min(8, "Password must be at least 8 characters"),
     password2: yup
       .string()
       .oneOf([yup.ref("password")], "Passwords must match")
@@ -110,7 +113,7 @@ export default function RegisterForm() {
           />
           {errors.password && (
             <Alert variant="danger" role="passwordError">
-              Password is required
+              {errors.password.message}
             </Alert>
           )}
         </Form.Group>

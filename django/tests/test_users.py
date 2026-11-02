@@ -19,26 +19,26 @@ class UserTests(BaseAPITestCase):
         self.view = UserCreateView.as_view()
 
     def test_create_user(self):
-        data = {'username': 'UnitTest', 'password': 'password', 'email': 'test@test.com'}  # pragma: allowlist secret
+        data = {'username': 'UnitTest', 'password': 'tulip-orbit-42', 'email': 'test@test.com'}  # pragma: allowlist secret
         request = self.factory.post(self.url, data, format='json')
         response = self.view(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_user_client(self):
-        data = {'username': 'UnitTest', 'password': 'password', 'email': 'test@test.com'}  # pragma: allowlist secret
+        data = {'username': 'UnitTest', 'password': 'tulip-orbit-42', 'email': 'test@test.com'}  # pragma: allowlist secret
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_user_with_invalid_bearer_token(self):
         # A stale token left in the browser must not block sign-up.
         self.send_invalid_token()
-        data = {'username': 'StaleTokenUser', 'password': 'password', 'email': 'stale@test.com'}  # pragma: allowlist secret
+        data = {'username': 'StaleTokenUser', 'password': 'tulip-orbit-42', 'email': 'stale@test.com'}  # pragma: allowlist secret
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_duplicate_username(self):
         """BaseAPITestCase already creates 'testuser'; duplicating should fail."""
-        data = {'username': 'testuser', 'password': 'password', 'email': 'dup@test.com'}  # pragma: allowlist secret
+        data = {'username': 'testuser', 'password': 'tulip-orbit-42', 'email': 'dup@test.com'}  # pragma: allowlist secret
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -47,12 +47,26 @@ class UserTests(BaseAPITestCase):
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_create_user_rejects_short_password(self):
+        data = {'username': 'ShortPassword', 'password': 'a1b2c3', 'email': 'short@test.com'}  # pragma: allowlist secret
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('at least 8 characters', response.data['password'][0])
+        self.assertFalse(User.objects.filter(username='ShortPassword').exists())
+
+    def test_create_user_rejects_common_password(self):
+        data = {'username': 'CommonPassword', 'password': 'password', 'email': 'common@test.com'}  # pragma: allowlist secret
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('too common', response.data['password'][0])
+        self.assertFalse(User.objects.filter(username='CommonPassword').exists())
+
     def test_register_login_integration(self):
-        register_data = {'username': 'IntegrationTestUser', 'password': 'password', 'email': 'test@test.com'}  # pragma: allowlist secret
+        register_data = {'username': 'IntegrationTestUser', 'password': 'tulip-orbit-42', 'email': 'test@test.com'}  # pragma: allowlist secret
         response = self.client.post(reverse('users'), register_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        login_data = {'username': 'IntegrationTestUser', 'password': 'password'}  # pragma: allowlist secret
+        login_data = {'username': 'IntegrationTestUser', 'password': 'tulip-orbit-42'}  # pragma: allowlist secret
         response = self.client.post(reverse('token_obtain_pair'), login_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('access', response.data)
