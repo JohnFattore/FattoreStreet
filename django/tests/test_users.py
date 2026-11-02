@@ -48,11 +48,16 @@ class UserTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_user_rejects_short_password(self):
-        data = {'username': 'ShortPassword', 'password': 'a1b2c3', 'email': 'short@test.com'}  # pragma: allowlist secret
+        data = {'username': 'ShortPassword', 'password': 'tulip-4', 'email': 'short@test.com'}  # pragma: allowlist secret
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('at least 8 characters', response.data['password'][0])
         self.assertFalse(User.objects.filter(username='ShortPassword').exists())
+
+    def test_create_user_accepts_eight_character_password(self):
+        data = {'username': 'EightChars', 'password': 'tulip-42', 'email': 'eight@test.com'}  # pragma: allowlist secret
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_user_rejects_common_password(self):
         data = {'username': 'CommonPassword', 'password': 'password', 'email': 'common@test.com'}  # pragma: allowlist secret

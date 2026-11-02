@@ -115,6 +115,16 @@ describe("RegisterForm", () => {
     expect(store.getState().user.access).toBe("");
   });
 
+  it("accepts a password of exactly 8 characters", async () => {
+    const { store } = renderWithProviders(<RegisterForm />);
+
+    await fillForm("tulip-42", "tulip-42"); // pragma: allowlist secret
+
+    await waitFor(() => {
+      expect(store.getState().user.access).not.toBe("");
+    });
+  });
+
   it("registers and logs in on success", async () => {
     const { store } = renderWithProviders(<RegisterForm />);
 
