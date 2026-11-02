@@ -50,4 +50,4 @@ Watchtower-based auto-updates are retired: deploys are an explicit, ordered, hea
 - **Network**: Docker Bridge network (172.x.x.x), same as production.
 
 ### Production
-- **Config**: Uses production `nginx.conf`; SSL terminates at Nginx with Let's Encrypt certificates renewed via certbot (webroot challenge).
+- **Config**: Uses production `nginx.conf`; SSL terminates at Nginx with a Let's Encrypt certificate for `fattorestreet.com` and `www.fattorestreet.com`, renewed via certbot (webroot challenge) by a twice-daily systemd timer on the host (`deploy/renew-cert.sh`; see "TLS certificate renewal" in `deploy/DEPLOY.md`).
