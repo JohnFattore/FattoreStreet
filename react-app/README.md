@@ -45,23 +45,23 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 
 ## Key Components
 
-| Component                            | Used on                | Purpose                                                                                                                |
-| ------------------------------------ | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `FilingSummaries`                    | SECData                | Expandable table of 10-K MD&A summaries from LLM                                                                       |
-| `QuarterlyComparison`                | SECData                | Side-by-side SEC vs YFinance quarterly data                                                                            |
-| `YFinanceQuartersTable`              | SECData                | YFinance quarterly financials table                                                                                    |
-| `PriceComparison`                    | IexPricesView          | IEX vs YFinance daily adjusted-close comparison                                                                        |
-| `DividendComparison`                 | IexPricesView          | Internal corporate-action dividends vs YFinance dividends (nearest-date matching)                                      |
-| `SplitComparison`                    | IexPricesView          | Internal SEC split events vs YFinance split events (date-window matching with normalized split ratios)                 |
-| `AdminSuccessBar`                    | AdminSuccessBar        | Aggregated per-ticker success bars for Spring Boot vs YFinance price/dividend parity                                   |
-| `SortableTable`                      | Multiple               | Reusable sortable table with column config                                                                             |
-| `IndexMembersTable`                  | Indexes                | Constituent weights with `countryHQ` / `countryIncorp` and `stateHQ` / `stateIncorp` from Spring `ListingIndexMetrics` |
-| `Fattore1000Russell1000CompareTable` | Indexes (FAT1000 only) | Ticker-level weights vs bundled IWB file; overlap % and mean absolute weight gap (`GET /iwb-reference-holdings`)       |
-| `AccountList`                        | Portfolio              | Accounts with calculated balances                                                                                      |
-| `WatchListTable`                     | WatchList              | Live-updating price grid                                                                                               |
-| `TicketForm`                         | User                   | Authenticated feedback ticket submission form                                                                          |
-| `BlogPostList`                       | Blog, LlmNotebook      | Post cards for one category filter (`category` / `excludeCategory`)                                                    |
-| `ConversationList`                   | Chatbot                | The user's advisor conversations: new chat, select, rename inline, delete with confirmation                            |
+| Component                            | Used on                | Purpose                                                                                                                                                  |
+| ------------------------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FilingSummaries`                    | SECData                | Expandable table of 10-K MD&A summaries from LLM                                                                                                         |
+| `QuarterlyComparison`                | SECData                | Side-by-side SEC vs YFinance quarterly data                                                                                                              |
+| `YFinanceQuartersTable`              | SECData                | YFinance quarterly financials table                                                                                                                      |
+| `PriceComparison`                    | IexPricesView          | IEX vs YFinance daily adjusted-close comparison                                                                                                          |
+| `DividendComparison`                 | IexPricesView          | Internal corporate-action dividends vs YFinance dividends (nearest-date matching)                                                                        |
+| `SplitComparison`                    | IexPricesView          | Internal SEC split events vs YFinance split events (date-window matching with normalized split ratios)                                                   |
+| `AdminSuccessBar`                    | AdminSuccessBar        | Aggregated per-ticker success bars for Spring Boot vs YFinance price/dividend parity                                                                     |
+| `SortableTable`                      | Multiple               | Reusable sortable table with column config                                                                                                               |
+| `IndexMembersTable`                  | Indexes                | Constituent weights with `countryHQ` / `countryIncorp` and `stateHQ` / `stateIncorp` from Spring `ListingIndexMetrics`                                   |
+| `Fattore1000Russell1000CompareTable` | Indexes (FAT1000 only) | Ticker-level weights vs bundled IWB file (labelled with its holdings as-of date); overlap % and mean absolute weight gap (`GET /iwb-reference-holdings`) |
+| `AccountList`                        | Portfolio              | Accounts with calculated balances                                                                                                                        |
+| `WatchListTable`                     | WatchList              | Live-updating price grid                                                                                                                                 |
+| `TicketForm`                         | User                   | Authenticated feedback ticket submission form                                                                                                            |
+| `BlogPostList`                       | Blog, LlmNotebook      | Post cards for one category filter (`category` / `excludeCategory`)                                                                                      |
+| `ConversationList`                   | Chatbot                | The user's advisor conversations: new chat, select, rename inline, delete with confirmation                                                              |
 
 ## API Layer (RTK Query)
 

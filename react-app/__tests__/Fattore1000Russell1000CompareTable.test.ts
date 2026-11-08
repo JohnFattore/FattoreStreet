@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildFattore1000IwbCompareRows,
   buildIwbWeightMap,
+  formatIwbAsOfDate,
   summarizeFattore1000IwbOverlap,
 } from "../src/functions/fattore1000IwbCompare";
 import type { IIndexMemberRow } from "../src/interfaces";
@@ -46,5 +47,17 @@ describe("Fattore1000Russell1000CompareTable helpers", () => {
     expect(s.matchedCount).toBe(2);
     expect(s.overlapPercent).toBeCloseTo((2 / 3) * 100, 5);
     expect(s.meanAbsDiffPp).toBeCloseTo((2 + 2) / 2, 5);
+  });
+});
+
+describe("formatIwbAsOfDate", () => {
+  it("formats an ISO date without shifting the day", () => {
+    expect(formatIwbAsOfDate("2026-11-06")).toBe("Nov 6, 2026");
+  });
+
+  it("returns null for missing or invalid dates", () => {
+    expect(formatIwbAsOfDate(null)).toBeNull();
+    expect(formatIwbAsOfDate(undefined)).toBeNull();
+    expect(formatIwbAsOfDate("not-a-date")).toBeNull();
   });
 });

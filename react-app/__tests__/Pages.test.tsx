@@ -150,6 +150,10 @@ describe("Indexes", () => {
       }),
     ).toBeInTheDocument();
     expect(await screen.findByText(/Symbol overlap:/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/holdings as of Nov 6, 2026/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText("IWB (Nov 6, 2026)")).toBeInTheDocument();
   });
 });
 

@@ -225,6 +225,12 @@ export interface IIwbReferenceHolding {
   weightPercent: number;
 }
 
+export interface IIwbReferenceHoldings {
+  /** Fund holdings date of the bundled IWB file (ISO yyyy-mm-dd), or null if unknown */
+  asOf: string | null;
+  holdings: IIwbReferenceHolding[];
+}
+
 export interface IIndexMemberStock {
   ticker: string;
   name: string;

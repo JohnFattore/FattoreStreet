@@ -7,6 +7,7 @@ import { formatPercent } from "../functions/helperFunctions";
 import {
   buildIwbWeightMap,
   buildFattore1000IwbCompareRows,
+  formatIwbAsOfDate,
   summarizeFattore1000IwbOverlap,
 } from "../functions/fattore1000IwbCompare";
 import type { Fattore1000IwbCompareRow } from "../functions/fattore1000IwbCompare";
@@ -29,9 +30,11 @@ export function Fattore1000Russell1000CompareTable({
   } = useGetIwbReferenceHoldingsQuery();
 
   const iwbByTicker = useMemo(
-    () => buildIwbWeightMap(iwbHoldings ?? []),
+    () => buildIwbWeightMap(iwbHoldings?.holdings ?? []),
     [iwbHoldings],
   );
+
+  const asOfLabel = formatIwbAsOfDate(iwbHoldings?.asOf);
 
   const rows = useMemo(
     () => buildFattore1000IwbCompareRows(members, iwbByTicker),
@@ -49,7 +52,8 @@ export function Fattore1000Russell1000CompareTable({
       <p className="text-muted small mb-3">
         Side-by-side weights: Fattore 1000 uses cap weights from this app’s
         metrics; the IWB column is the fund-reported weight (% of NAV) from the
-        bundled iShares IWB holdings file (Russell 1000 ETF proxy). Dates and
+        bundled iShares IWB holdings file (Russell 1000 ETF proxy)
+        {asOfLabel ? `, holdings as of ${asOfLabel}` : ""}. Dates and
         methodologies differ, so weights will not match exactly.
       </p>
 
@@ -91,7 +95,7 @@ export function Fattore1000Russell1000CompareTable({
             render: (r) => formatPercent(r.fattoreWeight),
           },
           {
-            label: "IWB (ETF file)",
+            label: asOfLabel ? `IWB (${asOfLabel})` : "IWB (ETF file)",
             sortKey: "iwbWeight",
             render: (r) =>
               r.iwbWeight === null ? "—" : formatPercent(r.iwbWeight),
