@@ -28,7 +28,6 @@ COPY django/ ./
 RUN SECRET_KEY=build-only-dummy-secret-key \
     DATABASE=sqlite \
     REDIS_URL=redis://127.0.0.1:6379/0 \
-    GOOGLE_API_KEY=build-only-dummy-google-api-key \
     uv run python manage.py collectstatic --noinput
 
 # Stage 3: nginx serving the artifacts from the stages above
