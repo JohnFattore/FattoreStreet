@@ -51,14 +51,17 @@ class BoundedRegexInputTest {
     }
 
     @Test
-    void abortsSlowMatchOverLargeInputWithinBudget() {
+    void abortsSlowMatchOverLargeInputWithinBudget() throws InterruptedException {
         // The production shape fed text that maximises backtracking: a "record date" anchor every
         // ~900 characters, never followed by a parsable date inside the bounded gap, so each
         // anchor drives the lazy quantifier through its full range against the month alternation.
         String block = "record date " + "x".repeat(900) + " ";
         String input = block.repeat(4000);
 
-        Matcher matcher = LAZY_GAP.matcher(BoundedRegexInput.of(input, 100L));
+        // Spend the budget before matching: an unguarded find() over this input takes ~100ms, so a
+        // live budget of that size raced the runner's speed and could finish without aborting.
+        Matcher matcher = LAZY_GAP.matcher(BoundedRegexInput.of(input, 1L));
+        Thread.sleep(20L);
 
         long startNanos = System.nanoTime();
         assertThrows(BoundedRegexInput.RegexTimeoutException.class, matcher::find);
