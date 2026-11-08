@@ -29,4 +29,7 @@ RUN chmod +x /django/docker-entrypoint.sh
 # Entrypoint loads SECRETS_ARN from Secrets Manager (if set), then runs the CMD.
 ENTRYPOINT ["/django/docker-entrypoint.sh"]
 # CMD ["gunicorn", "-b", "0.0.0.0:8000", "mysite.wsgi"]
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "--workers", "1", "--threads", "2", "mysite.wsgi"]
+# One worker keeps memory low on the t4g host. Requests mostly wait on I/O (the advisor's model
+# call, Postgres, Redis, Finnhub), which releases the GIL, so extra threads add concurrency cheaply
+# and a slow advisor call no longer stalls the rest of the API.
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "--workers", "1", "--threads", "8", "mysite.wsgi"]
