@@ -7,7 +7,7 @@ import type {
   IIexSplitsResponse,
   IIndexMemberRow,
   IMarketIndex,
-  IIwbReferenceHolding,
+  IIwbReferenceHoldings,
   ISECData,
   ISECQuartersResponse,
 } from "../../interfaces";
@@ -88,7 +88,7 @@ export const springbootApi = createApi({
         params: { code },
       }),
     }),
-    getIwbReferenceHoldings: builder.query<IIwbReferenceHolding[], void>({
+    getIwbReferenceHoldings: builder.query<IIwbReferenceHoldings, void>({
       query: () => ({
         url: "iwb-reference-holdings",
         method: "GET",

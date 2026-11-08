@@ -92,7 +92,7 @@ Public blog posts (no authentication required).
 |--------|----------|------|-------------|
 | `GET` | `/indexes` | None | List available market indexes (`code`, `displayName`). |
 | `GET` | `/index-members` | None | List index members with nested `stock` payload (listing + metrics). Optional query param `code` filters to a single index (e.g. `?code=FAT50`, `?code=FAT100`, or `?code=FAT1000`). Each `stock` includes `countryIncorp`, `countryHQ`, `stateIncorp`, `stateHQ` (US state/territory codes or SEC opaque codes when country is unknown), plus float/mkt cap fields — see `IndexMemberApiService.StockRow` in Spring Boot. |
-| `GET` | `/iwb-reference-holdings` | None | Bundled iShares **IWB** (Russell 1000 ETF) equity rows from `classpath:/data/IWB_holdings.csv` (`springboot/src/main/resources/data/IWB_holdings.csv`): JSON array of `{ "ticker", "weightPercent" }` (fund-reported weight % of NAV). Used by the Indexes page to compare **FAT1000** vs the reference file. |
+| `GET` | `/iwb-reference-holdings` | None | Bundled iShares **IWB** (Russell 1000 ETF) equity rows from `classpath:/data/IWB_holdings.csv` (`springboot/src/main/resources/data/IWB_holdings.csv`): JSON object `{ "asOf", "holdings" }`: `asOf` is the fund's holdings date from the file's `Fund Holdings as of` line (ISO `yyyy-MM-dd`, `null` if absent), `holdings` an array of `{ "ticker", "weightPercent" }` (fund-reported weight % of NAV). Used by the Indexes page to compare **FAT1000** vs the reference file. |
 
 Index metrics refresh and cap-ranked rebuilds have no HTTP surface. They run as the nightly
 `index-load` Fargate task (`APP_RUN_MODE=index-load`), which refreshes `ListingIndexMetrics` for

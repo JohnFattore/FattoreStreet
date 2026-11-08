@@ -2,6 +2,7 @@ package com.fattorestreet.sec_api.index;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,6 +27,7 @@ public class IwbHoldingsTickerSet {
 
     private final Set<String> tickers;
     private final List<IwbHoldingsCsv.IwbEquityRow> equityRows;
+    private final LocalDate asOfDate;
 
     public IwbHoldingsTickerSet(ResourceLoader resourceLoader) throws IOException {
         Resource resource = resourceLoader.getResource(LOCATION);
@@ -33,17 +35,20 @@ public class IwbHoldingsTickerSet {
             log.warn("Missing resource {}; IWB ticker set will be empty", LOCATION);
             this.tickers = Collections.emptySet();
             this.equityRows = List.of();
+            this.asOfDate = null;
             return;
         }
         try (InputStream in = resource.getInputStream()) {
-            List<IwbHoldingsCsv.IwbEquityRow> rows = IwbHoldingsCsv.parseEquityRows(in);
-            this.equityRows = List.copyOf(rows);
+            IwbHoldingsCsv.IwbHoldings holdings = IwbHoldingsCsv.parse(in);
+            List<IwbHoldingsCsv.IwbEquityRow> rows = holdings.equityRows();
+            this.equityRows = rows;
+            this.asOfDate = holdings.asOfDate();
             LinkedHashSet<String> tickerSet = rows.stream()
                     .map(IwbHoldingsCsv.IwbEquityRow::ticker)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
             this.tickers = Collections.unmodifiableSet(tickerSet);
         }
-        log.info("Loaded {} IWB equity tickers from {}", tickers.size(), LOCATION);
+        log.info("Loaded {} IWB equity tickers (holdings as of {}) from {}", tickers.size(), asOfDate, LOCATION);
     }
 
     public Set<String> tickers() {
@@ -55,5 +60,10 @@ public class IwbHoldingsTickerSet {
      */
     public List<IwbHoldingsCsv.IwbEquityRow> equityRows() {
         return equityRows;
+    }
+
+    /** Fund holdings date from the file preamble; {@code null} when absent or unparseable. */
+    public LocalDate asOfDate() {
+        return asOfDate;
     }
 }

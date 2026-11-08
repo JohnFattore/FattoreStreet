@@ -21,6 +21,7 @@ class IwbHoldingsTickerSetTest {
                 "rows and deduplicated ticker set should agree");
         assertTrue(tickers.stream().allMatch(t -> t.equals(t.toUpperCase(Locale.US))),
                 "tickers are uppercase symbols");
+        assertNotNull(tickerSet.asOfDate(), "bundled file preamble should carry a holdings date");
     }
 
     @Test
@@ -44,5 +45,6 @@ class IwbHoldingsTickerSetTest {
 
         assertTrue(tickerSet.tickers().isEmpty());
         assertTrue(tickerSet.equityRows().isEmpty());
+        assertNull(tickerSet.asOfDate());
     }
 }

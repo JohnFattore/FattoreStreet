@@ -8,6 +8,21 @@ export type Fattore1000IwbCompareRow = {
   diffPp: number | null;
 };
 
+/** Formats an ISO date (yyyy-mm-dd) as e.g. "Nov 6, 2026" without a timezone shift. */
+export function formatIwbAsOfDate(
+  asOf: string | null | undefined,
+): string | null {
+  if (!asOf) return null;
+  const d = new Date(`${asOf}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function buildIwbWeightMap(
   holdings: IIwbReferenceHolding[],
 ): Map<string, number> {

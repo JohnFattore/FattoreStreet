@@ -223,10 +223,13 @@ export const handlers = [
     import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("iwb-reference-holdings"),
     () => {
       return Response.json(
-        [
-          { ticker: "AAPL", weightPercent: 5.0 },
-          { ticker: "MSFT", weightPercent: 4.25 },
-        ],
+        {
+          asOf: "2026-11-06",
+          holdings: [
+            { ticker: "AAPL", weightPercent: 5.0 },
+            { ticker: "MSFT", weightPercent: 4.25 },
+          ],
+        },
         { status: 200 },
       );
     },

@@ -1,6 +1,7 @@
 package com.fattorestreet.sec_api.controller;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -36,13 +37,26 @@ class IwbReferenceHoldingsControllerTest {
         when(iwbHoldingsTickerSet.equityRows()).thenReturn(List.of(
                 new IwbHoldingsCsv.IwbEquityRow("NVDA", new BigDecimal("6.71")),
                 new IwbHoldingsCsv.IwbEquityRow("AAPL", new BigDecimal("6.13"))));
+        when(iwbHoldingsTickerSet.asOfDate()).thenReturn(LocalDate.of(2026, 11, 6));
 
         mockMvc.perform(get("/iwb-reference-holdings"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].ticker").value("NVDA"))
-                .andExpect(jsonPath("$[0].weightPercent").value(6.71))
-                .andExpect(jsonPath("$[1].ticker").value("AAPL"))
-                .andExpect(jsonPath("$[1].weightPercent").value(6.13));
+                .andExpect(jsonPath("$.asOf").value("2026-11-06"))
+                .andExpect(jsonPath("$.holdings.length()").value(2))
+                .andExpect(jsonPath("$.holdings[0].ticker").value("NVDA"))
+                .andExpect(jsonPath("$.holdings[0].weightPercent").value(6.71))
+                .andExpect(jsonPath("$.holdings[1].ticker").value("AAPL"))
+                .andExpect(jsonPath("$.holdings[1].weightPercent").value(6.13));
+    }
+
+    @Test
+    void listIwbReferenceHoldings_unknownDateSerializesNull() throws Exception {
+        when(iwbHoldingsTickerSet.equityRows()).thenReturn(List.of());
+        when(iwbHoldingsTickerSet.asOfDate()).thenReturn(null);
+
+        mockMvc.perform(get("/iwb-reference-holdings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.asOf").isEmpty())
+                .andExpect(jsonPath("$.holdings.length()").value(0));
     }
 }

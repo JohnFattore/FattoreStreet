@@ -3,6 +3,7 @@ package com.fattorestreet.sec_api.index;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IwbHoldingsCsvTest {
@@ -38,6 +40,33 @@ class IwbHoldingsCsvTest {
         assertEquals(1, rows.size());
         assertEquals("AAA", rows.get(0).ticker());
         assertEquals(new BigDecimal("3.25"), rows.get(0).weightPercent());
+    }
+
+    @Test
+    void parse_readsAsOfDateFromPreamble() throws Exception {
+        String csv = """
+                iShares Russell 1000 ETF
+                Fund Holdings as of,"Nov 06, 2026"
+                Ticker,Name,Sector,Asset Class,x
+                "AAA","A INC","Tech","Equity","1,000.00","3.25","1,000.00"
+                """;
+        IwbHoldingsCsv.IwbHoldings holdings = IwbHoldingsCsv.parse(
+                new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)));
+        assertEquals(LocalDate.of(2026, 11, 6), holdings.asOfDate());
+        assertEquals(1, holdings.equityRows().size());
+    }
+
+    @Test
+    void parse_missingOrMalformedAsOfDateIsNull() throws Exception {
+        String missing = """
+                Ticker,Name,Sector,Asset Class,x
+                "AAA","A INC","Tech","Equity","1,000.00","3.25","1,000.00"
+                """;
+        String malformed = "Fund Holdings as of,\"sometime soon\"\n" + missing;
+        assertNull(IwbHoldingsCsv.parse(
+                new ByteArrayInputStream(missing.getBytes(StandardCharsets.UTF_8))).asOfDate());
+        assertNull(IwbHoldingsCsv.parse(
+                new ByteArrayInputStream(malformed.getBytes(StandardCharsets.UTF_8))).asOfDate());
     }
 
     @Test
