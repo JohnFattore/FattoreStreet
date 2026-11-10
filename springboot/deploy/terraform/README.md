@@ -234,6 +234,7 @@ Only after a clean plan, retire the local `terraform.tfstate*` files.
 
 ```bash
 cd springboot/deploy/terraform
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 terraform init -backend-config="bucket=fattorestreet-tfstate-$ACCOUNT_ID"   # see Remote state
 terraform apply        # creates ECR repo, cluster, task def, IAM, SG rule, schedule
 ```
