@@ -242,6 +242,18 @@
         "events:UntagResource"
       ],
       "Resource": "arn:aws:events:us-east-1:<ACCOUNT_ID>:rule/fattorestreet-*"
+    },
+    {
+      "Sid": "TerraformStateBucket",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::fattorestreet-tfstate-<ACCOUNT_ID>"
+    },
+    {
+      "Sid": "TerraformStateObjects",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::fattorestreet-tfstate-<ACCOUNT_ID>/hist-load/*"
     }
   ]
 }

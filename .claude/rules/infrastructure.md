@@ -44,7 +44,9 @@ instance, plus five one-shot Fargate tasks managed by Terraform.
 - Keep the schedules from overlapping. The SEC rate limiter (`sec.http.min-interval-ms`)
   is per-process, so two tasks calling data.sec.gov at once double the effective request
   rate toward SEC's ceiling and earn 403s for both
-- Local state, no remote backend. `terraform apply` from `springboot/deploy/terraform/`
+- State is remote in S3 (`fattorestreet-tfstate-<ACCOUNT_ID>`, key `hist-load/terraform.tfstate`,
+  S3 lockfile). `terraform apply` from `springboot/deploy/terraform/`; init and bootstrap steps
+  are under "Remote state" in its README
 - Run mode is selected purely by the `APP_RUN_MODE` env var (`server` or one of the five
   job names above) on the shared image. Adding a mode means a new `ApplicationRunner` gated
   by `@ConditionalOnProperty(name = "app.run-mode", ...)` that calls `System.exit`

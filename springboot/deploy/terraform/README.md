@@ -112,7 +112,8 @@ Cost shape: you pay for ~4 GB only for the minutes the task runs each night, not
    needs nothing extra.)
 
 2. **tfvars** — `cp terraform.tfvars.example terraform.tfvars` and fill in VPC, subnets, the EC2
-   instance's security group id, and its private IP/DNS for `db_host`.
+   instance's security group id, and its private IP/DNS for `db_host`. The live copy is kept in
+   the state bucket; on a fresh machine pull it instead (see Remote state).
 
 ## Credentials
 
@@ -166,13 +167,9 @@ That property starts one apply from now. The change that removed the pinned
 revision ARNs rewrites `aws_iam_role_policy.scheduler_run_task` itself, and
 `iam:Put*` is an explicit deny, so that one update cannot come from here.
 
-**CloudShell is not the way to do it.** State is local and gitignored, so a
-CloudShell clone has the config but neither `terraform.tfstate` nor
-`terraform.tfvars`. Uploading both, applying, and downloading the state back
-works, but it puts the only copy of state on a round trip, and forgetting the
-return leg leaves this directory silently stale.
-
-Do the single IAM write in the console instead, then apply from here:
+State now lives in S3 (see Remote state), so a CloudShell apply no longer
+round-trips the only copy of it. The console route below is still the smaller
+blast radius: one IAM write by hand, everything else under the scoped role.
 
 1. IAM → Roles → `fattorestreet-hist-load-sched-*` → inline policy `run-task` → edit.
 2. Replace the document with the one `terraform console -plan` renders:
@@ -188,11 +185,56 @@ Were it still derived from the task definition resources, it would read as
 unknown at plan time, Terraform would plan the update regardless of what is
 already in AWS, and the apply would fail on the deny.
 
+## Remote state
+
+State is in S3, bucket `fattorestreet-tfstate-<ACCOUNT_ID>`, key `hist-load/terraform.tfstate`,
+locked with an S3 lockfile (`use_lockfile`, Terraform >= 1.10, no DynamoDB table). Bucket
+versioning is on, so a bad apply is recoverable by restoring the previous object version. The
+bucket name carries the account ID, which stays out of committed files, so it goes in at init:
+
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+terraform init -backend-config="bucket=fattorestreet-tfstate-$ACCOUNT_ID"
+```
+
+`terraform.tfvars` is gitignored and lives next to the state as a plain object:
+
+```bash
+aws s3 cp "s3://fattorestreet-tfstate-$ACCOUNT_ID/hist-load/terraform.tfvars" .   # pull
+aws s3 cp terraform.tfvars "s3://fattorestreet-tfstate-$ACCOUNT_ID/hist-load/"     # push after editing
+```
+
+### One-time bootstrap (done once, by an admin)
+
+The scoped role can read and write objects under `hist-load/` but cannot create buckets, so
+the bucket comes from CloudShell as an admin:
+
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+B=fattorestreet-tfstate-$ACCOUNT_ID
+aws s3api create-bucket --bucket "$B" --region us-east-1
+aws s3api put-bucket-versioning --bucket "$B" --versioning-configuration Status=Enabled
+aws s3api put-public-access-block --bucket "$B" --public-access-block-configuration \
+  BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+```
+
+Then push a new default version of `FattoreStreetDeveloper-infra` (the `TerraformState*`
+statements in `deploy/iam/`), same render + `create-policy-version` steps as in Credentials.
+Then, locally, migrate and confirm nothing moved:
+
+```bash
+terraform init -migrate-state -backend-config="bucket=fattorestreet-tfstate-$ACCOUNT_ID"
+terraform plan          # expect: No changes
+aws s3 cp terraform.tfvars "s3://fattorestreet-tfstate-$ACCOUNT_ID/hist-load/"
+```
+
+Only after a clean plan, retire the local `terraform.tfstate*` files.
+
 ## Deploy
 
 ```bash
 cd springboot/deploy/terraform
-terraform init
+terraform init -backend-config="bucket=fattorestreet-tfstate-$ACCOUNT_ID"   # see Remote state
 terraform apply        # creates ECR repo, cluster, task def, IAM, SG rule, schedule
 ```
 
