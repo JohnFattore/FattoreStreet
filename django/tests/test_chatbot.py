@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -10,7 +11,7 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from chatbot.models import AdvisorUsage, Conversation, Interaction
-from chatbot.prompt import CONTEXT_DIR, build_system_prompt, reference_text
+from chatbot.prompt import CONTEXT_DIR, USER_TIME_ZONE, build_system_prompt, reference_text
 from chatbot.views import AdvisorThrottle, bedrock_client, current_month, title_from
 from tests.base import BaseAPITestCase
 
@@ -58,6 +59,13 @@ class SystemPromptTest(BaseAPITestCase):
         self.assertIn("Never tell the user to buy or sell a specific security", prompt)
         self.assertTrue(prompt.endswith("Today's date is 2026-11-10."))
 
+    @patch("chatbot.prompt.datetime")
+    def test_date_is_us_eastern_not_utc(self, mock_datetime):
+        # 03:00 UTC on Jan 1 is still Dec 31 in New York
+        mock_datetime.now.side_effect = lambda tz: datetime(2027, 1, 1, 3, tzinfo=timezone.utc).astimezone(tz)
+        self.assertTrue(build_system_prompt().endswith("Today's date is 2026-12-31."))
+        mock_datetime.now.assert_called_once_with(USER_TIME_ZONE)
+
     def test_bond_rule_matches_its_examples(self):
         self.assertIn("age minus 20 as a percent in bonds", reference_text())
 
@@ -67,16 +75,18 @@ class SystemPromptTest(BaseAPITestCase):
         if not react_json.exists():
             self.skipTest("react-app not checked out")
         principles = json.loads(react_json.read_text())["principles"]
+        # Every fund cell is a ticker; skip the brokerage name and N/A placeholders
         tickers = {
             value
             for principle in principles
             for row in principle.get("table", {}).get("data", [])
             for key, value in row.items()
-            if key != "Brokerage Company" and value != "N/A" and value.isupper() and " " not in value
+            if key.endswith("Fund") and re.fullmatch(r"[A-Z]{2,6}", value)
         }
         self.assertTrue(tickers)
         advisor_text = (CONTEXT_DIR / "10_principles.md").read_text()
-        self.assertEqual({t for t in tickers if t not in advisor_text}, set())
+        missing = {t for t in tickers if not re.search(rf"\b{t}\b", advisor_text)}
+        self.assertEqual(missing, set())
 
 
 class ConversationListTest(BaseAPITestCase):

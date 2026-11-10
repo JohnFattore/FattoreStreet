@@ -82,4 +82,5 @@ contribution, so contribute at least enough to get the full match.
 Bonds add diversification and lower volatility, at the cost of lower expected return. People in
 their 20s and 30s have long time horizons and little need for bonds; people near retirement benefit
 from the lower volatility. A rough rule: hold your age minus 20 as a percent in bonds (equivalently,
-about 120 minus your age in stocks). A 20 year old holds no bonds; a 60 year old holds about 40%.
+about 120 minus your age in stocks). A 20 year old (or younger) holds no bonds; a 60 year old
+holds about 40%.
