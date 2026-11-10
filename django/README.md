@@ -76,6 +76,8 @@ The IEX HIST daily price ingest is scheduled outside Django: an EventBridge Sche
 | `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
 | `REDIS_URL` | (required when `DEBUG=False`) | Redis connection URL for the cache backend (e.g. `redis://localhost:6379`) |
 | `ADVISOR_MODEL_ID` | `us.meta.llama3-3-70b-instruct-v1:0` | Bedrock model or inference-profile ID the chatbot calls. Changing models is this env var plus the matching IAM grant (`deploy/iam/ec2-fattorestreet-role-bedrock.json`). |
+| `ADVISOR_MONTHLY_TOKEN_CAP` | `20000000` | Bedrock tokens (input + output, all users) the chatbot may spend per UTC month. Past it the chatbot answers `503 advisor_budget_exhausted` without calling Bedrock. `0` turns the advisor off. Usage is in Django admin under *Advisor usage*. |
+| `ADVISOR_THROTTLE_RATE` | `50/day` | Per-user limit on chatbot questions (DRF rate format); past it the user gets `429`. Counted in the Django cache, so it only applies when `DEBUG=False` (Redis). |
 | `AWS_REGION` | `us-east-1` | Region for the Bedrock client. Credentials come from the default AWS chain: the EC2 instance role in production, `AWS_PROFILE` in development. No API key. |
 | `DJANGO_FORCE_SCRIPT_NAME` | (empty) | Public URL prefix where nginx serves Django (e.g. `/django`). Set in production so admin login redirects and `{% url %}` resolve under `/django/...`. Omit or leave empty for local `runserver` at `/admin/`. |
 

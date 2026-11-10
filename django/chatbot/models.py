@@ -29,3 +29,25 @@ class Interaction(models.Model):
 
     def __str__(self):
         return f"{self.conversation} - {self.timestamp}"
+
+
+class AdvisorUsage(models.Model):
+    """Bedrock tokens spent per calendar month (UTC), summed over every user.
+
+    This is the spend cap's ledger. It is kept apart from Interaction, so deleting a
+    conversation cannot reset it, and it also counts calls whose reply was then discarded.
+    """
+    month = models.DateField(unique=True, help_text="First day of the month")
+    input_tokens = models.BigIntegerField(default=0)
+    output_tokens = models.BigIntegerField(default=0)
+
+    class Meta:
+        ordering = ['-month']
+        verbose_name_plural = 'advisor usage'
+
+    @property
+    def total_tokens(self) -> int:
+        return self.input_tokens + self.output_tokens
+
+    def __str__(self):
+        return f"{self.month:%Y-%m}: {self.total_tokens:,} tokens"

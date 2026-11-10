@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AttachOnlyTheKillSwitchToOnlyTheEc2Role",
+      "Effect": "Allow",
+      "Action": ["iam:AttachRolePolicy", "iam:DetachRolePolicy"],
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/EC2FattoreStreetRole",
+      "Condition": {
+        "ArnEquals": {
+          "iam:PolicyARN": "arn:aws:iam::<ACCOUNT_ID>:policy/FattoreStreetBedrockKillSwitch"
+        }
+      }
+    }
+  ]
+}

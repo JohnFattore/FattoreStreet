@@ -245,6 +245,55 @@ edit with the new IDs and region. Skip the IAM edit and every call fails with
 `AccessDenied`, which users see as `503`. Until both steps are
 done the chatbot answers `503` and the rest of the site is unaffected.
 
+### 7. Spend cap for the advisor
+
+Two layers keep a runaway (a script that signs up and loops on the chatbot, a
+bug, leaked instance credentials) from turning into a large Bedrock bill.
+
+**Layer 1, in Django (immediate, no setup).** Every Converse response's token
+count goes into the `AdvisorUsage` table, one row per UTC month. Once the month
+reaches `ADVISOR_MONTHLY_TOKEN_CAP` (default 20M tokens, roughly $15), the
+chatbot answers `503 advisor_budget_exhausted` without calling Bedrock. Each
+user is also limited to `ADVISOR_THROTTLE_RATE` questions (default `50/day`) and
+gets `429` past it. Both are env vars in `fattorestreet/env`:
+
+- `ADVISOR_MONTHLY_TOKEN_CAP=0` is the manual off switch.
+- To lift the cap early, raise the env var, or lower the month's totals in
+  Django admin → *Advisor usage*.
+
+**Layer 2, AWS Budgets action (backstop, slow).** It catches spend that Django
+never sees. Billing data updates only a few times a day, so this fires hours
+after the line is crossed: it limits the damage, it does not stop it in real
+time. When it fires, it attaches a `Deny bedrock:InvokeModel*` policy to
+`EC2FattoreStreetRole`. All of these steps need an admin login. Render the JSON
+first: `deploy/iam/render.sh` fills in `<ACCOUNT_ID>`.
+
+1. **Kill-switch policy.** IAM → *Policies* → *Create policy* → JSON → paste
+   [`iam/ec2-fattorestreet-role-bedrock-deny.json`](iam/ec2-fattorestreet-role-bedrock-deny.json)
+   → name it `FattoreStreetBedrockKillSwitch`. Don't attach it to anything:
+   Budgets does that when it fires.
+2. **Execution role for Budgets.** IAM → *Roles* → *Create role* → *Custom
+   trust policy* → paste [`iam/budgets-action-trust.json`](iam/budgets-action-trust.json)
+   → skip adding permissions → name it `FattoreStreetBudgetsAction`. Then on
+   the new role, *Add permissions* → *Create inline policy* → JSON → paste
+   [`iam/budgets-action-permissions.json`](iam/budgets-action-permissions.json)
+   → name it `attach-bedrock-kill-switch`. It can attach that one policy to that
+   one role and nothing else.
+3. **Budget.** Billing and Cost Management → *Budgets* → *Create budget* →
+   *Customize* → *Cost budget*. Monthly, recurring, fixed amount (say `$20`).
+   Under *Budget scope*, filter **Service = Amazon Bedrock**. Add alert
+   thresholds that email you at 50% and 80% of actual cost.
+4. **Action.** Same wizard, on the 100% actual-cost threshold → *Add action* →
+   *IAM policy* → policy `FattoreStreetBedrockKillSwitch` → roles
+   `EC2FattoreStreetRole` → execution role `FattoreStreetBudgetsAction` → run
+   **automatically** (no approval) → email notification.
+
+**To recover after it fires**, find out what happened first: look at
+`AdvisorUsage` in admin and the `chatbot.views` logs. Then reverse the action
+in Budgets, or detach `FattoreStreetBedrockKillSwitch` from the role yourself.
+While the policy is attached, the chatbot answers `503 advisor_unavailable` and
+the logs show `AccessDeniedException`.
+
 ## TLS certificate renewal
 
 The Let's Encrypt certificate (90-day lifetime) is renewed by

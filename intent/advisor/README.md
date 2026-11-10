@@ -30,6 +30,13 @@ This branch has two parts:
 Every question costs a hosted-model call, and an open chat box on a public site invites abuse that
 could run up a per-token bill. Requiring an account caps that exposure.
 
+### Spend has a hard ceiling
+Accounts are free to create, so sign-in alone doesn't bound the bill. Each user gets a daily
+question limit, and once the month's tokens across all users reach a set cap, the advisor stops
+calling the model and says it's back next month. An AWS Budgets action that cuts off the host's
+model access is the backstop for anything the app doesn't count. Running out early is the
+accepted trade: a paused advisor costs nothing, a runaway one could cost hundreds a day.
+
 ## Non-goals
 
 - **Investment advice.** The advisor informs; it doesn't recommend specific trades. See the root's

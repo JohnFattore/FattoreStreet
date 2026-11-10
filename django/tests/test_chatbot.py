@@ -2,15 +2,22 @@ from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError, EndpointConnectionError
 from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.db import DatabaseError
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
-from chatbot.models import Conversation, Interaction
-from chatbot.views import bedrock_client, title_from
+from chatbot.models import AdvisorUsage, Conversation, Interaction
+from chatbot.views import AdvisorThrottle, bedrock_client, current_month, title_from
 from tests.base import BaseAPITestCase
 
 
-def converse_reply(text: str) -> dict:
-    return {"output": {"message": {"role": "assistant", "content": [{"text": text}]}}, "stopReason": "end_turn"}
+def converse_reply(text: str, input_tokens: int = 100, output_tokens: int = 50) -> dict:
+    return {
+        "output": {"message": {"role": "assistant", "content": [{"text": text}]}},
+        "stopReason": "end_turn",
+        "usage": {"inputTokens": input_tokens, "outputTokens": output_tokens, "totalTokens": input_tokens + output_tokens},
+    }
 
 
 class BedrockPatchMixin:
@@ -288,3 +295,101 @@ class BedrockClientConfigTest(BaseAPITestCase):
             config = bedrock_client().meta.config
         attempts = config.retries["total_max_attempts"]
         self.assertLess(attempts * (config.read_timeout + config.connect_timeout), 60)
+
+
+class AdvisorSpendCapTest(BedrockPatchMixin, BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+        self.url = reverse('conversation-list')
+        self.authenticate_client()
+
+    def test_successful_call_records_tokens_for_the_month(self):
+        self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.client.post(self.url, {"message": "Again"}, format='json')
+        usage = AdvisorUsage.objects.get(month=current_month())
+        self.assertEqual((usage.input_tokens, usage.output_tokens), (200, 100))
+
+    def test_discarded_reply_still_counts_tokens(self):
+        """Bedrock bills an empty reply, so the ledger must too."""
+        self.mock_client.converse.return_value = converse_reply("  ", input_tokens=300, output_tokens=0)
+        with self.assertLogs("chatbot.views", level="ERROR"):
+            self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(AdvisorUsage.objects.get().input_tokens, 300)
+
+    def test_cap_reached_refuses_without_calling_bedrock(self):
+        AdvisorUsage.objects.create(month=current_month(), input_tokens=900, output_tokens=100)
+        with patch.dict("os.environ", {"ADVISOR_MONTHLY_TOKEN_CAP": "1000"}), \
+                self.assertLogs("chatbot.views", level="WARNING"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.data['detail'].code, 'advisor_budget_exhausted')
+        self.mock_client.converse.assert_not_called()
+        self.assertFalse(Conversation.objects.exists())
+
+    def test_cap_blocks_follow_up_messages_too(self):
+        conversation = Conversation.objects.create(user=self.user, title='Chat')
+        with patch.dict("os.environ", {"ADVISOR_MONTHLY_TOKEN_CAP": "0"}), \
+                self.assertLogs("chatbot.views", level="WARNING"):
+            response = self.client.post(
+                reverse('conversation-messages', kwargs={'pk': conversation.pk}), {"message": "More"}, format='json'
+            )
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.mock_client.converse.assert_not_called()
+
+    def test_last_months_usage_does_not_count(self):
+        AdvisorUsage.objects.create(month=datetime(2020, 1, 1).date(), input_tokens=10**9)
+        response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_failed_usage_write_still_returns_the_reply(self):
+        with patch("chatbot.views.AdvisorUsage.objects.get_or_create", side_effect=DatabaseError("db down")), \
+                self.assertLogs("chatbot.views", level="ERROR"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_deleting_conversations_does_not_reset_usage(self):
+        self.client.post(self.url, {"message": "Hello"}, format='json')
+        Conversation.objects.all().delete()
+        self.assertEqual(AdvisorUsage.objects.get().total_tokens, 150)
+
+
+@override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}})
+class AdvisorThrottleTest(BedrockPatchMixin, BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+        self.addCleanup(cache.clear)
+        patch.object(AdvisorThrottle, "rate", "2/day").start()
+        self.url = reverse('conversation-list')
+        self.authenticate_client()
+
+    def test_questions_past_the_rate_are_throttled(self):
+        for _ in range(2):
+            self.assertEqual(self.client.post(self.url, {"message": "Hi"}, format='json').status_code, 201)
+        response = self.client.post(self.url, {"message": "Hi"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(self.mock_client.converse.call_count, 2)
+        self.assertEqual(
+            response.data['detail'], "You've reached the advisor's question limit for now. Please try again later."
+        )
+        self.assertGreater(int(response['Retry-After']), 0)
+
+    def test_follow_ups_share_the_same_limit(self):
+        conversation = Conversation.objects.create(user=self.user, title='Chat')
+        message_url = reverse('conversation-messages', kwargs={'pk': conversation.pk})
+        self.client.post(self.url, {"message": "Hi"}, format='json')
+        self.client.post(message_url, {"message": "More"}, format='json')
+        response = self.client.post(message_url, {"message": "Even more"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_reading_conversations_is_not_throttled(self):
+        for _ in range(5):
+            self.assertEqual(self.client.get(self.url).status_code, status.HTTP_200_OK)
+
+    def test_limit_is_per_user(self):
+        for _ in range(2):
+            self.client.post(self.url, {"message": "Hi"}, format='json')
+        other = User.objects.create_user(username='otheruser', password='pass')
+        self.client.force_authenticate(user=other)
+        response = self.client.post(self.url, {"message": "Hi"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

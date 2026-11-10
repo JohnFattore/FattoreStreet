@@ -9,7 +9,7 @@ FattoreStreet is a full-stack financial portfolio and social platform. It's a mo
 | Component | Directory | Technology |
 |-----------|-----------|------------|
 | Frontend | `react-app/` | React 18, TypeScript, Vite, Redux Toolkit (RTK Query) |
-| Backend API | `django/` | Django 5, DRF, Redis cache, SimpleJWT |
+| Backend API | `django/` | Django 6, DRF, Redis cache, SimpleJWT |
 | SEC Microservice | `springboot/` | Spring Boot 4.1, Java 25, Spring Data JPA |
 | Local AI | `llm/` | llama.cpp (Qwen2.5-7B), stable-diffusion.cpp, Kokoro TTS |
 
@@ -144,6 +144,8 @@ Additional conventions:
 - `POSTGRES_PASSWORD` — required when `DATABASE=postgresDocker`
 - `REDIS_URL` — cache backend, required when `DEBUG=False`
 - `ADVISOR_MODEL_ID` — Bedrock model or inference-profile ID for the chatbot, default `us.meta.llama3-3-70b-instruct-v1:0`; changing models is only this env var (plus the IAM grant)
+- `ADVISOR_MONTHLY_TOKEN_CAP` — Bedrock tokens per UTC month across all users, default 20M; past it the chatbot answers 503 without calling Bedrock, `0` turns it off
+- `ADVISOR_THROTTLE_RATE` — per-user chatbot question limit, default `50/day` (Redis-backed, so production only)
 - `AWS_REGION` — Bedrock region, default `us-east-1`. No API key: production uses the EC2 instance role, dev uses `AWS_PROFILE`
 - `FINNHUB_API_KEY` — portfolio quotes
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
