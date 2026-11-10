@@ -11,7 +11,7 @@ import environ
 from botocore.client import BaseClient
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -131,11 +131,16 @@ def record_usage(response: dict) -> None:
         logger.warning("Bedrock advisor response reported no token usage")
         return
     month = current_month()
-    AdvisorUsage.objects.get_or_create(month=month)
-    AdvisorUsage.objects.filter(month=month).update(
-        input_tokens=F("input_tokens") + input_tokens,
-        output_tokens=F("output_tokens") + output_tokens,
-    )
+    try:
+        AdvisorUsage.objects.get_or_create(month=month)
+        AdvisorUsage.objects.filter(month=month).update(
+            input_tokens=F("input_tokens") + input_tokens,
+            output_tokens=F("output_tokens") + output_tokens,
+        )
+    except DatabaseError:
+        # Bedrock has already billed this reply, so failing the request would waste it. The cap
+        # undercounts by one call; the log line is how that shows up.
+        logger.exception("Could not record advisor token usage (%d in, %d out)", input_tokens, output_tokens)
 
 
 def title_from(message: str) -> str:
@@ -192,7 +197,7 @@ def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> s
     record_usage(response)
 
     try:
-        reply ="".join(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
+        reply = "".join(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
     except (KeyError, TypeError) as exc:
         logger.exception("Bedrock advisor returned an unexpected response shape")
         raise AdvisorUnavailable() from exc

@@ -9,7 +9,7 @@ FattoreStreet is a full-stack financial portfolio and social platform. It's a mo
 | Component | Directory | Technology |
 |-----------|-----------|------------|
 | Frontend | `react-app/` | React 18, TypeScript, Vite, Redux Toolkit (RTK Query) |
-| Backend API | `django/` | Django 5, DRF, Redis cache, SimpleJWT |
+| Backend API | `django/` | Django 6, DRF, Redis cache, SimpleJWT |
 | SEC Microservice | `springboot/` | Spring Boot 4.1, Java 25, Spring Data JPA |
 | Local AI | `llm/` | llama.cpp (Qwen2.5-7B), stable-diffusion.cpp, Kokoro TTS |
 

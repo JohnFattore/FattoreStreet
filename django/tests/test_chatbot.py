@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError, EndpointConnectionError
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.db import DatabaseError
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -338,6 +339,12 @@ class AdvisorSpendCapTest(BedrockPatchMixin, BaseAPITestCase):
     def test_last_months_usage_does_not_count(self):
         AdvisorUsage.objects.create(month=datetime(2020, 1, 1).date(), input_tokens=10**9)
         response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_failed_usage_write_still_returns_the_reply(self):
+        with patch("chatbot.views.AdvisorUsage.objects.get_or_create", side_effect=DatabaseError("db down")), \
+                self.assertLogs("chatbot.views", level="ERROR"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_deleting_conversations_does_not_reset_usage(self):
