@@ -1,7 +1,9 @@
 from collections.abc import Iterable
+from datetime import date
 from functools import cache
 import json
 import logging
+import math
 import os
 
 import boto3
@@ -10,15 +12,17 @@ from botocore.client import BaseClient
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from django.db import transaction
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, Throttled
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
-from .models import Conversation, Interaction
+from .models import AdvisorUsage, Conversation, Interaction
 from .serializer import ChatMessageSerializer, ConversationSerializer, ConversationDetailSerializer
 
 logger = logging.getLogger(__name__)
@@ -49,11 +53,89 @@ HISTORY_TURNS = 10
 TITLE_LENGTH = 60
 MAX_REPLY_TOKENS = 2048
 
+# Spend cap: Bedrock tokens (input + output, all users) allowed per UTC calendar month. Expected use
+# is about 5M tokens a month; 20M is roughly $15 at Llama 3.3 70B prices. 0 turns the advisor off.
+DEFAULT_MONTHLY_TOKEN_CAP = 20_000_000
+
 
 class AdvisorUnavailable(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "The advisor is unavailable right now. Please try again in a moment."
     default_code = "advisor_unavailable"
+
+
+class AdvisorBudgetExhausted(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The advisor has reached its monthly usage limit and will be back next month."
+    default_code = "advisor_budget_exhausted"
+
+
+class AdvisorRateLimited(Throttled):
+    """A 429 whose message reads well in the chat box; DRF's default counts down in seconds."""
+
+    def __init__(self, wait: float | None):
+        super().__init__(detail="You've reached the advisor's question limit for now. Please try again later.")
+        # Set after super(), which would otherwise append "Expected available in N seconds" to the
+        # message; the Retry-After header still carries the wait
+        self.wait = math.ceil(wait) if wait is not None else None
+
+
+class AdvisorThrottle(UserRateThrottle):
+    """Per-user limit on questions, so one account cannot spend the whole monthly budget.
+
+    Only POST asks the model; reading conversations is never throttled. Counts live in the
+    Django cache, which is Redis in production and a no-op DummyCache in development, so
+    the limit does not apply locally. The monthly token cap still does.
+    """
+    scope = "advisor"
+    rate = env("ADVISOR_THROTTLE_RATE", default="50/day")
+
+    def allow_request(self, request, view) -> bool:
+        if request.method != "POST":
+            return True
+        return super().allow_request(request, view)
+
+
+class AdvisorThrottledMixin:
+    throttle_classes = [AdvisorThrottle]
+
+    def throttled(self, request, wait):
+        raise AdvisorRateLimited(wait)
+
+
+def current_month() -> date:
+    return timezone.now().date().replace(day=1)
+
+
+def check_budget() -> None:
+    """Refuse before calling Bedrock once this month's tokens reach ADVISOR_MONTHLY_TOKEN_CAP.
+
+    Concurrent requests can each pass this check, so a month can overshoot the cap by a
+    few replies. That is a few thousand tokens, which is fine for a cost guard.
+    """
+    cap = env.int("ADVISOR_MONTHLY_TOKEN_CAP", default=DEFAULT_MONTHLY_TOKEN_CAP)
+    usage = AdvisorUsage.objects.filter(month=current_month()).first()
+    spent = usage.total_tokens if usage else 0
+    if spent >= cap:
+        logger.warning("Advisor monthly token cap reached (%d of %d); refusing to call Bedrock", spent, cap)
+        raise AdvisorBudgetExhausted()
+
+
+def record_usage(response: dict) -> None:
+    """Add a Converse response's token usage to this month's ledger, with an atomic increment."""
+    usage = response.get("usage") or {}
+    input_tokens = int(usage.get("inputTokens", 0))
+    output_tokens = int(usage.get("outputTokens", 0))
+    if not input_tokens and not output_tokens:
+        # Converse always reports usage, so this means the cap is blind to this call
+        logger.warning("Bedrock advisor response reported no token usage")
+        return
+    month = current_month()
+    AdvisorUsage.objects.get_or_create(month=month)
+    AdvisorUsage.objects.filter(month=month).update(
+        input_tokens=F("input_tokens") + input_tokens,
+        output_tokens=F("output_tokens") + output_tokens,
+    )
 
 
 def title_from(message: str) -> str:
@@ -83,7 +165,12 @@ def bedrock_client() -> BaseClient:
 
 
 def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> str:
-    """Ask the advisor through the Bedrock Converse API. Raises AdvisorUnavailable on any model error."""
+    """Ask the advisor through the Bedrock Converse API.
+
+    Raises AdvisorBudgetExhausted past the monthly token cap, and AdvisorUnavailable on any model error.
+    """
+    check_budget()
+
     messages = []
     for interaction in previous_interactions:
         messages.append({"role": "user", "content": [{"text": interaction.input_text}]})
@@ -101,8 +188,11 @@ def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> s
         logger.exception("Bedrock advisor call failed")
         raise AdvisorUnavailable() from exc
 
+    # Count the tokens before anything can discard the reply: Bedrock bills them either way
+    record_usage(response)
+
     try:
-        reply = "".join(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
+        reply ="".join(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
     except (KeyError, TypeError) as exc:
         logger.exception("Bedrock advisor returned an unexpected response shape")
         raise AdvisorUnavailable() from exc
@@ -116,7 +206,7 @@ def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> s
     return reply
 
 
-class ConversationListCreateView(generics.ListAPIView):
+class ConversationListCreateView(AdvisorThrottledMixin, generics.ListAPIView):
     serializer_class = ConversationSerializer
     permission_classes = [IsAuthenticated]
 
@@ -149,7 +239,7 @@ class ConversationDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Conversation.objects.filter(user=self.request.user).prefetch_related('interactions')
 
 
-class ConversationMessageView(APIView):
+class ConversationMessageView(AdvisorThrottledMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):

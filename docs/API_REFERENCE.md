@@ -50,7 +50,7 @@ Social feature for reviewing and sharing restaurant experiences.
 
 ## 🤖 Chatbot
 
-All chatbot endpoints require authentication and only ever touch the caller's own conversations; another user's conversation returns `404`. The advisor answers through AWS Bedrock; if the model call fails (throttling, model error, unreachable) the two asking endpoints return `503` with `{detail}` and save nothing.
+All chatbot endpoints require authentication and only ever touch the caller's own conversations; another user's conversation returns `404`. The advisor answers through AWS Bedrock; if the model call fails (throttling, model error, unreachable) the two asking endpoints return `503` with `{detail}` (code `advisor_unavailable`) and save nothing. They also return `503` with code `advisor_budget_exhausted`, without calling the model, once the month's token usage reaches `ADVISOR_MONTHLY_TOKEN_CAP`, and `429` once the user passes `ADVISOR_THROTTLE_RATE` questions (default 50 a day). Reading conversations is never throttled.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
