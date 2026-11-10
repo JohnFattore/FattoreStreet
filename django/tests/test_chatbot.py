@@ -1,4 +1,6 @@
-from datetime import datetime, timezone
+import json
+from datetime import date, datetime, timezone
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError, EndpointConnectionError
 from django.contrib.auth.models import User
@@ -8,6 +10,7 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from chatbot.models import AdvisorUsage, Conversation, Interaction
+from chatbot.prompt import CONTEXT_DIR, build_system_prompt, reference_text
 from chatbot.views import AdvisorThrottle, bedrock_client, current_month, title_from
 from tests.base import BaseAPITestCase
 
@@ -44,6 +47,36 @@ class TitleFromTest(BaseAPITestCase):
         self.assertTrue(title.endswith("…"))
         self.assertLessEqual(len(title), 61)
         self.assertNotIn("internati…", title)
+
+
+class SystemPromptTest(BaseAPITestCase):
+    def test_includes_every_context_file_in_order(self):
+        prompt = build_system_prompt(date(2026, 11, 10))
+        headings = ["# Who you are", "# Fattore Street principles", "# IRAs", "# 401(k)"]
+        positions = [prompt.index(heading) for heading in headings]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("Never tell the user to buy or sell a specific security", prompt)
+        self.assertTrue(prompt.endswith("Today's date is 2026-11-10."))
+
+    def test_bond_rule_matches_its_examples(self):
+        self.assertIn("age minus 20 as a percent in bonds", reference_text())
+
+    def test_covers_every_fund_on_the_home_page(self):
+        """The home page and the advisor keep separate copies of the principles; catch drift."""
+        react_json = Path(__file__).resolve().parents[2] / "react-app/src/data/principles.json"
+        if not react_json.exists():
+            self.skipTest("react-app not checked out")
+        principles = json.loads(react_json.read_text())["principles"]
+        tickers = {
+            value
+            for principle in principles
+            for row in principle.get("table", {}).get("data", [])
+            for key, value in row.items()
+            if key != "Brokerage Company" and value != "N/A" and value.isupper() and " " not in value
+        }
+        self.assertTrue(tickers)
+        advisor_text = (CONTEXT_DIR / "10_principles.md").read_text()
+        self.assertEqual({t for t in tickers if t not in advisor_text}, set())
 
 
 class ConversationListTest(BaseAPITestCase):
@@ -105,7 +138,7 @@ class ConversationCreateTest(BedrockPatchMixin, BaseAPITestCase):
             self.client.post(self.url, {"message": "Hello"}, format='json')
         kwargs = self.mock_client.converse.call_args.kwargs
         self.assertEqual(kwargs['modelId'], "qwen.test-model")
-        self.assertIn("Boglehead", kwargs['system'][0]['text'])
+        self.assertEqual(kwargs['system'][0]['text'], build_system_prompt())
 
     def test_throttled_model_call_returns_503_and_creates_nothing(self):
         self.mock_client.converse.side_effect = ClientError(

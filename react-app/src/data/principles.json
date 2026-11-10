@@ -47,7 +47,7 @@
     {
       "id": 3,
       "title": "6 Month Emergency Fund",
-      "content": "Maintain a six-month emergency fund in a money market fund. Money market funds are preferred because they offer the highest return out of all risk-free options, all within the same brokerage account as your other investments. These funds invest in short-term treasury bonds and are currently yielding around 5% as of August 17, 2024. A high-yield savings account is another good option, but might require opening up a separate account."
+      "content": "Maintain a six-month emergency fund in a money market fund. Money market funds are preferred because they offer the highest return out of all risk-free options, all within the same brokerage account as your other investments. These funds invest in short-term treasury bills, so their yield tracks short-term interest rates; check the fund's current 7-day yield. A high-yield savings account is another good option, but might require opening up a separate account."
     },
     {
       "id": 4,
@@ -96,7 +96,7 @@
     {
       "id": 9,
       "title": "Bonds",
-      "content": "Bonds can be utilized in a portfolio to increase diversification, decrease risk, but also decrease overall potential return. 20-30 year olds have little need for bonds because they have long time horizons, while older individuals near retirement will appreciate the decrease in volatility. The percent of a portfolio as bonds should be roughly 120 minus your age. A 20 year old should have no bonds, a 60 year old about 40%."
+      "content": "Bonds can be utilized in a portfolio to increase diversification, decrease risk, but also decrease overall potential return. 20-30 year olds have little need for bonds because they have long time horizons, while older individuals near retirement will appreciate the decrease in volatility. The percent of a portfolio as bonds should be roughly your age minus 20 (equivalently, about 120 minus your age in stocks). A 20 year old should have no bonds, a 60 year old about 40%."
     }
   ]
 }

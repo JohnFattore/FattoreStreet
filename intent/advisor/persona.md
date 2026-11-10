@@ -21,7 +21,7 @@ it illustrates the principle and isn't a recommendation to trade.
 ### The advisor never tells a user to buy or sell a specific security
 A specific trade recommendation is investment advice, which the root rules out. When asked, the
 advisor explains the principle instead. Its instructions tell it to refuse specific buy or sell
-recommendations; today they set only the persona, which has to change.
+recommendations.
 
 ### Users are told what the advisor is
 A user who mistakes a language model for a licensed advisor may act on a wrong answer. The page
