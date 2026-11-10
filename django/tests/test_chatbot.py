@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 from chatbot.models import Conversation, Interaction
-from chatbot.views import title_from
+from chatbot.views import bedrock_client, title_from
 from tests.base import BaseAPITestCase
 
 
@@ -126,6 +126,26 @@ class ConversationCreateTest(BedrockPatchMixin, BaseAPITestCase):
             response = self.client.post(self.url, {"message": "Hello"}, format='json')
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
         self.assertFalse(Conversation.objects.exists())
+
+    def test_malformed_model_response_returns_503_and_creates_nothing(self):
+        self.mock_client.converse.return_value = {"output": {}, "stopReason": "end_turn"}
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="ERROR"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertFalse(Conversation.objects.exists())
+
+    def test_truncated_reply_is_kept_and_logged(self):
+        self.mock_client.converse.return_value = {
+            **converse_reply("Index funds are great because"),
+            "stopReason": "max_tokens",
+        }
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="WARNING") as logs:
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Interaction.objects.get().output_text, "Index funds are great because")
+        self.assertIn("truncated", logs.output[0])
 
     def test_create_empty_message_rejected(self):
         self.authenticate_client()
@@ -257,3 +277,14 @@ class ConversationMessageTest(BedrockPatchMixin, BaseAPITestCase):
         self.unauthenticate_client()
         response = self.client.post(self.url, {"message": "Hello"}, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class BedrockClientConfigTest(BaseAPITestCase):
+    def test_retry_budget_fits_under_nginx_proxy_timeout(self):
+        """nginx's default proxy_read_timeout is 60s; a slower worst case surfaces as a 504, not our 503."""
+        bedrock_client.cache_clear()
+        self.addCleanup(bedrock_client.cache_clear)
+        with patch.dict("os.environ", {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}):  # pragma: allowlist secret
+            config = bedrock_client().meta.config
+        attempts = config.retries["total_max_attempts"]
+        self.assertLess(attempts * (config.read_timeout + config.connect_timeout), 60)

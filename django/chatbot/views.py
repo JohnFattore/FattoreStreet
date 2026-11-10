@@ -6,6 +6,7 @@ import os
 
 import boto3
 import environ
+from botocore.client import BaseClient
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from django.db import transaction
@@ -38,13 +39,15 @@ SYSTEM_PROMPT = (
     f"everyone to invest in low-cost, highly diverse index funds. {data}"
 )
 
-# Any Bedrock Converse model works; switching models is an env change only. The default is a
-# cross-region inference profile, so the IAM grant in deploy/iam/ must cover it and its regions.
+# Any Bedrock Converse model works, but ADVISOR_MODEL_ID and AWS_REGION are both pinned by the IAM
+# grant in deploy/iam/ec2-fattorestreet-role-bedrock.json (profile ARN, its region, and the regions
+# it routes to). Changing either without editing that policy turns every call into a 503.
 DEFAULT_MODEL_ID = "us.meta.llama3-3-70b-instruct-v1:0"
 
 # How many earlier exchanges of the same conversation are sent as context
 HISTORY_TURNS = 10
 TITLE_LENGTH = 60
+MAX_REPLY_TOKENS = 2048
 
 
 class AdvisorUnavailable(APIException):
@@ -62,7 +65,7 @@ def title_from(message: str) -> str:
 
 
 @cache
-def bedrock_client():
+def bedrock_client() -> BaseClient:
     """One shared client per process; boto3 clients are thread-safe, so gunicorn threads share it.
 
     Credentials come from the default chain: the EC2 instance role in production,
@@ -71,8 +74,11 @@ def bedrock_client():
     return boto3.client(
         "bedrock-runtime",
         region_name=env("AWS_REGION", default="us-east-1"),
-        # Fail fast rather than hold a worker thread; adaptive retries absorb brief throttling
-        config=Config(read_timeout=60, connect_timeout=5, retries={"max_attempts": 3, "mode": "adaptive"}),
+        # nginx gives up after its default 60s proxy_read_timeout, so the whole retry budget must fit
+        # under it: 2 attempts x (20s read + 5s connect) = 50s worst case, leaving room for backoff.
+        # Throttling errors return in milliseconds, so the retry only costs real time when Bedrock is
+        # slow. An answer that needs more than 20s to generate fails; streaming is the fix for that.
+        config=Config(read_timeout=20, connect_timeout=5, retries={"total_max_attempts": 2, "mode": "adaptive"}),
     )
 
 
@@ -89,13 +95,21 @@ def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> s
             modelId=env("ADVISOR_MODEL_ID", default=DEFAULT_MODEL_ID),
             system=[{"text": SYSTEM_PROMPT}],
             messages=messages,
-            inferenceConfig={"temperature": 0.5, "topP": 0.95, "maxTokens": 2048},
+            inferenceConfig={"temperature": 0.5, "topP": 0.95, "maxTokens": MAX_REPLY_TOKENS},
         )
     except (ClientError, BotoCoreError) as exc:
         logger.exception("Bedrock advisor call failed")
         raise AdvisorUnavailable() from exc
 
-    reply = "".join(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
+    try:
+        reply = "".join(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
+    except (KeyError, TypeError) as exc:
+        logger.exception("Bedrock advisor returned an unexpected response shape")
+        raise AdvisorUnavailable() from exc
+
+    if response.get("stopReason") == "max_tokens":
+        # A cut-off answer still beats none; the log shows whether MAX_REPLY_TOKENS needs raising
+        logger.warning("Bedrock advisor reply hit maxTokens=%d and was truncated", MAX_REPLY_TOKENS)
     if not reply.strip():
         logger.error("Bedrock advisor returned no text (stopReason=%s)", response.get("stopReason"))
         raise AdvisorUnavailable()

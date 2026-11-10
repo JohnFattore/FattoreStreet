@@ -237,8 +237,12 @@ API key in `fattorestreet/env`. Two admin steps, once per model:
    the foundation model in every region the profile routes to, hence both
    statements.
 
-Changing models means a new `ADVISOR_MODEL_ID` in `fattorestreet/env`, model
-access for it, and the same IAM edit with the new IDs. Until both steps are
+The policy pins both the model and the region: the inference-profile ARN is
+in `us-east-1`, and the foundation-model ARNs list the regions that profile
+routes to. So changing `ADVISOR_MODEL_ID` **or** `AWS_REGION` in
+`fattorestreet/env` also needs model access in that region and the same IAM
+edit with the new IDs and region. Skip the IAM edit and every call fails with
+`AccessDenied`, which users see as `503`. Until both steps are
 done the chatbot answers `503` and the rest of the site is unaffected.
 
 ## TLS certificate renewal
