@@ -9,7 +9,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 - django-redis (caching layer, Redis-backed in production)
 - SimpleJWT (authentication)
 - yfinance (market data)
-- Google Generative AI (chatbot)
+- boto3 (AWS Bedrock, chatbot)
 
 ## Apps
 
@@ -17,7 +17,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 |-----|---------|
 | `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/splits/info, quarterly financials |
 | `users` | User registration, JWT token management |
-| `chatbot` | Boglehead AI financial advisor (Google Gemini), with separate per-user conversations |
+| `chatbot` | Boglehead AI financial advisor (open-weight model on AWS Bedrock via the Converse API), with separate per-user conversations |
 | `restaurants` | Restaurant reviews and recommendations |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
 | `blog` | Public blog posts (Markdown body) via `/blog/api/posts/`; content lives as Markdown in `blog/journal/` and `blog/learning-topics/` (see [Blog posts](#blog-posts)) |
@@ -75,6 +75,8 @@ The IEX HIST daily price ingest is scheduled outside Django: an EventBridge Sche
 | `DATABASE` | (required) | `postgresLocal` or `postgresDocker` |
 | `POSTGRES_PASSWORD` | (required) | PostgreSQL password |
 | `REDIS_URL` | (required when `DEBUG=False`) | Redis connection URL for the cache backend (e.g. `redis://localhost:6379`) |
+| `ADVISOR_MODEL_ID` | `us.meta.llama3-3-70b-instruct-v1:0` | Bedrock model or inference-profile ID the chatbot calls. Changing models is this env var plus the matching IAM grant (`deploy/iam/ec2-fattorestreet-role-bedrock.json`). |
+| `AWS_REGION` | `us-east-1` | Region for the Bedrock client. Credentials come from the default AWS chain: the EC2 instance role in production, `AWS_PROFILE` in development. No API key. |
 | `DJANGO_FORCE_SCRIPT_NAME` | (empty) | Public URL prefix where nginx serves Django (e.g. `/django`). Set in production so admin login redirects and `{% url %}` resolve under `/django/...`. Omit or leave empty for local `runserver` at `/admin/`. |
 
 ## Getting Started

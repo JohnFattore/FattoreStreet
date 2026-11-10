@@ -31,7 +31,7 @@ Those areas run on a small number of services:
 | PostgreSQL | All stored data, for both backends | One database keeps backups, access and cost in one place. |
 | Redis | Cache for the main API | Repeated lookups stay fast without re-asking outside sources. Nothing in it is the only copy of anything. |
 | Nginx | One public entry point in front of everything | One domain, one certificate, and the backends never face the internet directly. |
-| Local AI tooling (llama.cpp and friends) | Experiments on the author's own machine | Not part of the running site today. A self-hosted open-source model is meant to replace the advisor's hosted one (see [advisor](advisor/README.md)). |
+| Local AI tooling (llama.cpp and friends) | Experiments on the author's own machine | Not part of the running site. The advisor uses an open-weight model on AWS Bedrock instead, which costs less than owning a GPU (see [advisor](advisor/README.md)). |
 
 The main API, market-data service and Nginx run as containers on one small EC2 host.
 
@@ -68,7 +68,7 @@ citizen of free sources* in [principles](principles.md)).
 | SEC EDGAR | Security universe, fundamentals, corporate actions, free-float shares | Yes |
 | IEX historical data | Daily raw prices | Yes |
 | FRED | Economic series | Government series, yes. Four privately owned series are kept under a named exception (see [series](economic-indicators/series.md)) |
-| Google Gemini | The advisor's answers, for now | Generated per user; nothing licensed is stored. To be replaced by a self-hosted open-source model (see [advisor](advisor/README.md)) |
+| AWS Bedrock (open-weight model) | The advisor's answers | Generated per user; nothing licensed is stored. Prompts aren't used for training (see [advisor](advisor/README.md)) |
 | yfinance | Development diagnostics only, by principle | No. Still shown to users today; being removed (see [portfolio](portfolio/README.md)) |
 | Finnhub | Live quotes | No. To be removed last, replaced by the latest close (see [portfolio](portfolio/README.md)) |
 | Yelp | Restaurant data, legacy | No. Kept under a temporary exception while the app is frozen (see [restaurants](restaurants/README.md)) |

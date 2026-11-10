@@ -1,29 +1,31 @@
 from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
+from botocore.exceptions import ClientError, EndpointConnectionError
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 from chatbot.models import Conversation, Interaction
-from chatbot.views import title_from
+from chatbot.views import bedrock_client, title_from
 from tests.base import BaseAPITestCase
 
 
-class GeminiPatchMixin:
-    """Mocks the Gemini client; the reply text is in `self.mock_chat.send_message`."""
+def converse_reply(text: str) -> dict:
+    return {"output": {"message": {"role": "assistant", "content": [{"text": text}]}}, "stopReason": "end_turn"}
+
+
+class BedrockPatchMixin:
+    """Mocks the Bedrock client; the reply is what `self.mock_client.converse` returns."""
 
     def setUp(self):
         super().setUp()
-        self.mock_genai = patch("chatbot.views.genai").start()
-        patch("chatbot.views.env", return_value="fake-api-key").start()
-        self.addCleanup(patch.stopall)
-
         self.mock_client = MagicMock()
-        self.mock_genai.Client.return_value = self.mock_client
-        self.mock_chat = MagicMock()
-        self.mock_client.chats.create.return_value = self.mock_chat
-        mock_response = MagicMock()
-        mock_response.text = "You should invest in low-cost index funds!"
-        self.mock_chat.send_message.return_value = mock_response
+        patch("chatbot.views.bedrock_client", return_value=self.mock_client).start()
+        self.addCleanup(patch.stopall)
+        self.mock_client.converse.return_value = converse_reply("You should invest in low-cost index funds!")
+
+    def sent_messages(self) -> list[tuple[str, str]]:
+        messages = self.mock_client.converse.call_args.kwargs["messages"]
+        return [(m["role"], m["content"][0]["text"]) for m in messages]
 
 
 class TitleFromTest(BaseAPITestCase):
@@ -67,7 +69,7 @@ class ConversationListTest(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class ConversationCreateTest(GeminiPatchMixin, BaseAPITestCase):
+class ConversationCreateTest(BedrockPatchMixin, BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.url = reverse('conversation-list')
@@ -88,14 +90,62 @@ class ConversationCreateTest(GeminiPatchMixin, BaseAPITestCase):
         Interaction.objects.create(conversation=earlier, input_text='Old', output_text='Old answer')
         self.authenticate_client()
         self.client.post(self.url, {"message": "Fresh topic"}, format='json')
-        self.assertEqual(self.mock_client.chats.create.call_args.kwargs['history'], [])
+        self.assertEqual(self.sent_messages(), [('user', 'Fresh topic')])
 
-    def test_failed_model_call_creates_nothing(self):
-        self.mock_chat.send_message.side_effect = RuntimeError("Gemini down")
+    def test_sends_system_prompt_and_configured_model(self):
         self.authenticate_client()
-        with self.assertRaises(RuntimeError):
+        with patch.dict("os.environ", {"ADVISOR_MODEL_ID": "qwen.test-model"}):
             self.client.post(self.url, {"message": "Hello"}, format='json')
+        kwargs = self.mock_client.converse.call_args.kwargs
+        self.assertEqual(kwargs['modelId'], "qwen.test-model")
+        self.assertIn("Boglehead", kwargs['system'][0]['text'])
+
+    def test_throttled_model_call_returns_503_and_creates_nothing(self):
+        self.mock_client.converse.side_effect = ClientError(
+            {"Error": {"Code": "ThrottlingException", "Message": "Too many requests"}}, "Converse"
+        )
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="ERROR"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.data['detail'].code, 'advisor_unavailable')
         self.assertFalse(Conversation.objects.exists())
+
+    def test_unreachable_model_returns_503_and_creates_nothing(self):
+        self.mock_client.converse.side_effect = EndpointConnectionError(endpoint_url="https://bedrock")
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="ERROR"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertFalse(Conversation.objects.exists())
+
+    def test_empty_model_reply_returns_503_and_creates_nothing(self):
+        self.mock_client.converse.return_value = converse_reply("  ")
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="ERROR"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertFalse(Conversation.objects.exists())
+
+    def test_malformed_model_response_returns_503_and_creates_nothing(self):
+        self.mock_client.converse.return_value = {"output": {}, "stopReason": "end_turn"}
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="ERROR"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertFalse(Conversation.objects.exists())
+
+    def test_truncated_reply_is_kept_and_logged(self):
+        self.mock_client.converse.return_value = {
+            **converse_reply("Index funds are great because"),
+            "stopReason": "max_tokens",
+        }
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="WARNING") as logs:
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Interaction.objects.get().output_text, "Index funds are great because")
+        self.assertIn("truncated", logs.output[0])
 
     def test_create_empty_message_rejected(self):
         self.authenticate_client()
@@ -169,7 +219,7 @@ class ConversationDetailTest(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class ConversationMessageTest(GeminiPatchMixin, BaseAPITestCase):
+class ConversationMessageTest(BedrockPatchMixin, BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.conversation = Conversation.objects.create(user=self.user, title='Index funds')
@@ -192,9 +242,22 @@ class ConversationMessageTest(GeminiPatchMixin, BaseAPITestCase):
         Interaction.objects.create(conversation=other, input_text='Unrelated', output_text='Nope')
         self.authenticate_client()
         self.client.post(self.url, {"message": "Follow-up"}, format='json')
-        history = self.mock_client.chats.create.call_args.kwargs['history']
-        texts = [content.parts[0].text for content in history]
-        self.assertEqual(texts, ['Earlier', 'Earlier answer'])
+        self.assertEqual(
+            self.sent_messages(),
+            [('user', 'Earlier'), ('assistant', 'Earlier answer'), ('user', 'Follow-up')],
+        )
+
+    def test_failed_model_call_adds_no_message(self):
+        self.mock_client.converse.side_effect = ClientError(
+            {"Error": {"Code": "ModelErrorException", "Message": "boom"}}, "Converse"
+        )
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="ERROR"):
+            response = self.client.post(self.url, {"message": "Follow-up"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(self.conversation.interactions.count(), 1)
+        self.conversation.refresh_from_db()
+        self.assertEqual(self.conversation.last_message_at, datetime(2026, 1, 1, tzinfo=timezone.utc))
 
     def test_post_to_other_users_conversation_is_not_found(self):
         other_user = User.objects.create_user(username='otheruser', password='pass')
@@ -203,7 +266,7 @@ class ConversationMessageTest(GeminiPatchMixin, BaseAPITestCase):
         url = reverse('conversation-messages', args=[other.pk])
         response = self.client.post(url, {"message": "Hello"}, format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.mock_chat.send_message.assert_not_called()
+        self.mock_client.converse.assert_not_called()
 
     def test_post_empty_message_rejected(self):
         self.authenticate_client()
@@ -214,3 +277,14 @@ class ConversationMessageTest(GeminiPatchMixin, BaseAPITestCase):
         self.unauthenticate_client()
         response = self.client.post(self.url, {"message": "Hello"}, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class BedrockClientConfigTest(BaseAPITestCase):
+    def test_retry_budget_fits_under_nginx_proxy_timeout(self):
+        """nginx's default proxy_read_timeout is 60s; a slower worst case surfaces as a 504, not our 503."""
+        bedrock_client.cache_clear()
+        self.addCleanup(bedrock_client.cache_clear)
+        with patch.dict("os.environ", {"AWS_ACCESS_KEY_ID": "test", "AWS_SECRET_ACCESS_KEY": "test"}):  # pragma: allowlist secret
+            config = bedrock_client().meta.config
+        attempts = config.retries["total_max_attempts"]
+        self.assertLess(attempts * (config.read_timeout + config.connect_timeout), 60)

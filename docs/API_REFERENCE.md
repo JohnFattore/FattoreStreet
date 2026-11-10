@@ -50,7 +50,7 @@ Social feature for reviewing and sharing restaurant experiences.
 
 ## 🤖 Chatbot
 
-All chatbot endpoints require authentication and only ever touch the caller's own conversations; another user's conversation returns `404`.
+All chatbot endpoints require authentication and only ever touch the caller's own conversations; another user's conversation returns `404`. The advisor answers through AWS Bedrock; if the model call fails (throttling, model error, unreachable) the two asking endpoints return `503` with `{detail}` and save nothing.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|

@@ -48,6 +48,9 @@ The backend handles the API, database, and business logic.
     ```
     The API will be available at `http://localhost:8000`.
 
+5.  **Chatbot (optional):**
+    The advisor calls AWS Bedrock with your local AWS credentials; there is no API key. Run the server with a profile allowed to call `bedrock:InvokeModel` on the advisor's model (e.g. `AWS_PROFILE=fattorestreet uv run python manage.py runserver`). Without credentials everything else works and the chatbot answers `503`. `ADVISOR_MODEL_ID` picks the model.
+
 ### 3. Frontend Setup (React + Vite)
 
 The frontend is a React application built with Vite.

@@ -215,6 +215,36 @@ click-path that creates the user, the role, and the key is
 The role has **no IAM write** and cannot read secret values, so IAM changes in
 `springboot/deploy/terraform/` must be applied by an admin from CloudShell.
 
+### 6. Bedrock access for the advisor chatbot
+
+Django calls AWS Bedrock (Converse API) with the instance role, so there is no
+API key in `fattorestreet/env`. Two admin steps, once per model:
+
+1. **Model access.** Bedrock console → *Model access* → enable the model named
+   by `ADVISOR_MODEL_ID` (default Meta Llama 3.3 70B Instruct, called through
+   the `us.` cross-region inference profile).
+2. **IAM.** Render [`iam/ec2-fattorestreet-role-bedrock.json`](iam/ec2-fattorestreet-role-bedrock.json)
+   with `iam/render.sh` and add it to `EC2FattoreStreetRole` as an inline
+   policy named `bedrock-advisor`:
+
+   ```sh
+   aws iam put-role-policy --role-name EC2FattoreStreetRole \
+     --policy-name bedrock-advisor \
+     --policy-document file://<RENDER_DIR>/ec2-fattorestreet-role-bedrock.json
+   ```
+
+   An inference profile is invoked on the profile ARN, but Bedrock also checks
+   the foundation model in every region the profile routes to, hence both
+   statements.
+
+The policy pins both the model and the region: the inference-profile ARN is
+in `us-east-1`, and the foundation-model ARNs list the regions that profile
+routes to. So changing `ADVISOR_MODEL_ID` **or** `AWS_REGION` in
+`fattorestreet/env` also needs model access in that region and the same IAM
+edit with the new IDs and region. Skip the IAM edit and every call fails with
+`AccessDenied`, which users see as `503`. Until both steps are
+done the chatbot answers `503` and the rest of the site is unaffected.
+
 ## TLS certificate renewal
 
 The Let's Encrypt certificate (90-day lifetime) is renewed by

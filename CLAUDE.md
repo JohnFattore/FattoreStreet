@@ -78,7 +78,7 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 ### Django Apps
 - `portfolio/` — Asset & account CRUD, yfinance price data, quarterly financials
 - `users/` — Registration, JWT tokens
-- `chatbot/` — Boglehead AI advisor (Google Gemini)
+- `chatbot/` — Boglehead AI advisor (open-weight model on AWS Bedrock, Converse API)
 - `restaurants/` — Restaurant reviews/recommendations
 - `changeflow/` — Changelog + feedback tickets
 - `blog/` — Blog posts with categories and tags. Content is Markdown in `blog/journal/` (the author's posts) and `blog/learning-topics/` (daily study topics, filenames prefixed with their GitHub issue number, filed under the `LLM Notebook` category). The files ship in the image and are the source of truth; `deploy/deploy.sh` runs `manage.py sync_blog_posts` on every deploy, so merging to `main` publishes. Posts match on slug derived from the filename — see `django/README.md`, and the `blog-editor` skill for the file format
@@ -143,7 +143,8 @@ Additional conventions:
 - `DATABASE` — required: `postgresLocal`, `postgresDocker`, or any other value (e.g. `sqlite`) for SQLite; unset raises at startup
 - `POSTGRES_PASSWORD` — required when `DATABASE=postgresDocker`
 - `REDIS_URL` — cache backend, required when `DEBUG=False`
-- `GOOGLE_API_KEY` — Gemini key for the chatbot app
+- `ADVISOR_MODEL_ID` — Bedrock model or inference-profile ID for the chatbot, default `us.meta.llama3-3-70b-instruct-v1:0`; changing models is only this env var (plus the IAM grant)
+- `AWS_REGION` — Bedrock region, default `us-east-1`. No API key: production uses the EC2 instance role, dev uses `AWS_PROFILE`
 - `FINNHUB_API_KEY` — portfolio quotes
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 - `DJANGO_FORCE_SCRIPT_NAME` — set to `/django` when served behind the nginx prefix

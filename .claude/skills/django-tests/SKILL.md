@@ -67,7 +67,7 @@ def test_list_endpoint(self):
 
 ### Mocking External APIs
 
-Use `@patch()` for yfinance, FRED, Google AI, or any external service. Patch where the name is looked up (`portfolio.helper.yf`, `chatbot.views.genai`), not where it is defined:
+Use `@patch()` for yfinance, FRED, AWS Bedrock, or any external service. Patch where the name is looked up (`portfolio.helper.yf`, `chatbot.views.bedrock_client`), not where it is defined:
 
 ```python
 from unittest.mock import patch, MagicMock
@@ -102,7 +102,7 @@ def test_authenticated_access(self):
 1. **Identify the target** -- view, serializer, or model to test
 2. **Pick test type** -- unit (RequestFactory for isolated view logic) vs integration (APIClient for full routing)
 3. **Set up data** -- create model instances directly in `setUp()` (no factories)
-4. **Mock externals** -- `@patch()` any calls to yfinance, FRED, Google AI, or third-party APIs
+4. **Mock externals** -- `@patch()` any calls to yfinance, FRED, AWS Bedrock, or third-party APIs
 5. **Test auth** -- every protected endpoint needs both authenticated and unauthenticated assertions
 6. **Assert** -- check status codes, JSON structure, expected values, and side effects
 7. **Run** -- `cd django && uv run python manage.py test tests.test_<module>`

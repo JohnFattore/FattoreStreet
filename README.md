@@ -6,7 +6,7 @@ This repository contains the source code for a comprehensive web application fea
 
 - **Finance**: Stock tracking, historical data, and market indexes—Django for the main portfolio API, plus a **Spring Boot** service for SEC EDGAR filings, quarterly fundamentals, corporate actions, FRED economic data, and daily prices.
 - **Social**: Restaurant reviews and recommendations, a blog, and media recommendations (books, movies, shows, music, podcasts, games, websites).
-- **AI**: An investing chatbot assistant (Google Gemini) and LLM-summarized 10-K filings; optional **local AI** tooling lives under `llm/` (see [llm/README.md](llm/README.md)).
+- **AI**: An investing chatbot assistant (open-weight model on AWS Bedrock) and LLM-summarized 10-K filings; optional **local AI** tooling lives under `llm/` (see [llm/README.md](llm/README.md)).
 
 ---
 

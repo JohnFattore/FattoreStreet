@@ -1,18 +1,27 @@
 from collections.abc import Iterable
+from functools import cache
+import json
+import logging
+import os
+
+import boto3
 import environ
-from google import genai
-from google.genai import types
+from botocore.client import BaseClient
+from botocore.config import Config
+from botocore.exceptions import BotoCoreError, ClientError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
-from rest_framework.views import APIView
-from .serializer import ChatMessageSerializer, ConversationSerializer, ConversationDetailSerializer
-from rest_framework.response import Response
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated
-import json
-import os
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from .models import Conversation, Interaction
+from .serializer import ChatMessageSerializer, ConversationSerializer, ConversationDetailSerializer
+
+logger = logging.getLogger(__name__)
 
 env = environ.Env()
 environ.Env.read_env()
@@ -25,9 +34,26 @@ json_path = os.path.join(current_dir, 'principles.json')
 with open(json_path, 'r') as f:
     data = json.load(f)
 
+SYSTEM_PROMPT = (
+    "Imagine you are a financial advisor obsessed with index funds. You are a Boglehead who wants "
+    f"everyone to invest in low-cost, highly diverse index funds. {data}"
+)
+
+# Any Bedrock Converse model works, but ADVISOR_MODEL_ID and AWS_REGION are both pinned by the IAM
+# grant in deploy/iam/ec2-fattorestreet-role-bedrock.json (profile ARN, its region, and the regions
+# it routes to). Changing either without editing that policy turns every call into a 503.
+DEFAULT_MODEL_ID = "us.meta.llama3-3-70b-instruct-v1:0"
+
 # How many earlier exchanges of the same conversation are sent as context
 HISTORY_TURNS = 10
 TITLE_LENGTH = 60
+MAX_REPLY_TOKENS = 2048
+
+
+class AdvisorUnavailable(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The advisor is unavailable right now. Please try again in a moment."
+    default_code = "advisor_unavailable"
 
 
 def title_from(message: str) -> str:
@@ -38,31 +64,56 @@ def title_from(message: str) -> str:
     return text[:TITLE_LENGTH].rsplit(" ", 1)[0] + "…"
 
 
-# gemini chatbot
+@cache
+def bedrock_client() -> BaseClient:
+    """One shared client per process; boto3 clients are thread-safe, so gunicorn threads share it.
+
+    Credentials come from the default chain: the EC2 instance role in production,
+    AWS_PROFILE (or env keys) in development. No API key is stored anywhere.
+    """
+    return boto3.client(
+        "bedrock-runtime",
+        region_name=env("AWS_REGION", default="us-east-1"),
+        # nginx gives up after its default 60s proxy_read_timeout, so the whole retry budget must fit
+        # under it: 2 attempts x (20s read + 5s connect) = 50s worst case, leaving room for backoff.
+        # Throttling errors return in milliseconds, so the retry only costs real time when Bedrock is
+        # slow. An answer that needs more than 20s to generate fails; streaming is the fix for that.
+        config=Config(read_timeout=20, connect_timeout=5, retries={"total_max_attempts": 2, "mode": "adaptive"}),
+    )
+
+
 def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> str:
-    api_key = env("GOOGLE_API_KEY")
-    client = genai.Client(api_key=api_key)
-
-    config = types.GenerateContentConfig(
-        temperature=0.5,
-        top_p=0.95,
-        top_k=40,
-        max_output_tokens=8192,
-        response_mime_type="text/plain",
-        system_instruction=f"Imagine you are a financial advisor obsessed with index funds. You are a Boglehead who wants everyone to invest in low-cost, highly diverse index funds. {data}",
-    )
-
-    history = []
+    """Ask the advisor through the Bedrock Converse API. Raises AdvisorUnavailable on any model error."""
+    messages = []
     for interaction in previous_interactions:
-        history.append(types.Content(role="user", parts=[types.Part(text=interaction.input_text)]))
-        history.append(types.Content(role="model", parts=[types.Part(text=interaction.output_text)]))
+        messages.append({"role": "user", "content": [{"text": interaction.input_text}]})
+        messages.append({"role": "assistant", "content": [{"text": interaction.output_text}]})
+    messages.append({"role": "user", "content": [{"text": message}]})
 
-    chat_session = client.chats.create(
-        model="gemini-flash-latest",
-        config=config,
-        history=history,
-    )
-    return chat_session.send_message(message).text
+    try:
+        response = bedrock_client().converse(
+            modelId=env("ADVISOR_MODEL_ID", default=DEFAULT_MODEL_ID),
+            system=[{"text": SYSTEM_PROMPT}],
+            messages=messages,
+            inferenceConfig={"temperature": 0.5, "topP": 0.95, "maxTokens": MAX_REPLY_TOKENS},
+        )
+    except (ClientError, BotoCoreError) as exc:
+        logger.exception("Bedrock advisor call failed")
+        raise AdvisorUnavailable() from exc
+
+    try:
+        reply = "".join(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
+    except (KeyError, TypeError) as exc:
+        logger.exception("Bedrock advisor returned an unexpected response shape")
+        raise AdvisorUnavailable() from exc
+
+    if response.get("stopReason") == "max_tokens":
+        # A cut-off answer still beats none; the log shows whether MAX_REPLY_TOKENS needs raising
+        logger.warning("Bedrock advisor reply hit maxTokens=%d and was truncated", MAX_REPLY_TOKENS)
+    if not reply.strip():
+        logger.error("Bedrock advisor returned no text (stopReason=%s)", response.get("stopReason"))
+        raise AdvisorUnavailable()
+    return reply
 
 
 class ConversationListCreateView(generics.ListAPIView):

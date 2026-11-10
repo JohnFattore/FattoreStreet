@@ -24,8 +24,9 @@ x-django-env: &django-env
   REDIS_URL: redis://redis:6379
   DJANGO_FORCE_SCRIPT_NAME: /django
   HOME_URL: http://localhost/
-  # chatbot views read this at request time; a dummy breaks only the chatbot
-  GOOGLE_API_KEY: dev-dummy-google-api-key  # pragma: allowlist secret
+  # The chatbot calls AWS Bedrock with the default credential chain; with no AWS
+  # credentials in the container only the chatbot fails (it answers 503)
+  AWS_REGION: us-east-1
 
 services:
   postgres:
