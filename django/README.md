@@ -17,7 +17,7 @@ Django 5 + Django REST Framework backend providing portfolio management, market 
 |-----|---------|
 | `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/splits/info, quarterly financials |
 | `users` | User registration, JWT token management |
-| `chatbot` | Boglehead AI financial advisor (open-weight model on AWS Bedrock via the Converse API), with separate per-user conversations |
+| `chatbot` | Boglehead AI financial advisor (open-weight model on AWS Bedrock via the Converse API), with separate per-user conversations; its system prompt is built from `chatbot/context/*.md` (see [Advisor context](#advisor-context)) |
 | `restaurants` | Restaurant reviews and recommendations |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
 | `blog` | Public blog posts (Markdown body) via `/blog/api/posts/`; content lives as Markdown in `blog/journal/` and `blog/learning-topics/` (see [Blog posts](#blog-posts)) |
@@ -59,6 +59,16 @@ Publication date comes from the version stamp under the title (`_FattoreStreet @
 Front matter is optional and fenced by `---`. Supported keys: `title`, `slug`, `excerpt`, `categories`, `tags`, `published_at`, `cover_image_url`; anything else is an error. Without it, the title comes from the first `#` heading and the excerpt from the first real paragraph (the version stamp and source lines are skipped). Use `slug:` to pin a post whose filename does not match the slug it is already published under.
 
 The format itself is owned by the `blog-editor` skill (`.claude/skills/blog-editor/`).
+
+## Advisor context
+
+The advisor's system instruction is every Markdown file in `chatbot/context/`, joined in filename order, plus today's date (`chatbot/prompt.py`). The files ship in the image and are read once per process. The whole prompt is about 4.5k tokens and is sent as input on every question, so it counts against `ADVISOR_MONTHLY_TOKEN_CAP`; keep files to distilled summaries rather than whole publications.
+
+- `00_persona.md`: who the advisor is and its rules (index-fund outlook, no specific buy/sell calls, say which tax year a figure applies to).
+- `10_principles.md`: the site's principles and fund tables. The home page renders its own copy from `react-app/src/data/principles.json`; `tests/test_chatbot.py` fails if a fund on the home page is missing here, so update both together.
+- `30_ira.md`, `40_401k.md`: traditional/Roth IRA and workplace-plan rules (5-year rules, backdoor Roth, early-withdrawal exceptions, RMDs, rollovers), summarized from IRS publications. Rules only, no yearly dollar limits.
+
+To add a reference document, drop a numbered file in, e.g. `20_limits_2027.md` for the year's dollar limits, and state the tax year in it. Only include material that is free to reuse, such as IRS publications.
 
 ## Background Jobs & Caching
 

@@ -1,10 +1,8 @@
 from collections.abc import Iterable
 from datetime import date
 from functools import cache
-import json
 import logging
 import math
-import os
 
 import boto3
 import environ
@@ -23,25 +21,13 @@ from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from .models import AdvisorUsage, Conversation, Interaction
+from .prompt import build_system_prompt
 from .serializer import ChatMessageSerializer, ConversationSerializer, ConversationDetailSerializer
 
 logger = logging.getLogger(__name__)
 
 env = environ.Env()
 environ.Env.read_env()
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Build the path to the JSON file in the same folder
-json_path = os.path.join(current_dir, 'principles.json')
-
-with open(json_path, 'r') as f:
-    data = json.load(f)
-
-SYSTEM_PROMPT = (
-    "Imagine you are a financial advisor obsessed with index funds. You are a Boglehead who wants "
-    f"everyone to invest in low-cost, highly diverse index funds. {data}"
-)
 
 # Any Bedrock Converse model works, but ADVISOR_MODEL_ID and AWS_REGION are both pinned by the IAM
 # grant in deploy/iam/ec2-fattorestreet-role-bedrock.json (profile ARN, its region, and the regions
@@ -185,7 +171,7 @@ def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> s
     try:
         response = bedrock_client().converse(
             modelId=env("ADVISOR_MODEL_ID", default=DEFAULT_MODEL_ID),
-            system=[{"text": SYSTEM_PROMPT}],
+            system=[{"text": build_system_prompt()}],
             messages=messages,
             inferenceConfig={"temperature": 0.5, "topP": 0.95, "maxTokens": MAX_REPLY_TOKENS},
         )
