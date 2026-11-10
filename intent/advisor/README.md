@@ -27,15 +27,15 @@ This branch has two parts:
 ## Requirements
 
 ### Only signed-in users can use the advisor
-Every question costs a hosted-model call, and an open chat box on a public site invites abuse that
-could run up a per-token bill. Requiring an account caps that exposure.
+Every question costs a hosted-model call. Tying each one to an account is what lets usage be limited
+per person, and it keeps drive-by anonymous traffic off a per-token bill. Accounts are free, so this
+raises the bar rather than bounding the cost; the ceiling below does that.
 
 ### Spend has a hard ceiling
-Accounts are free to create, so sign-in alone doesn't bound the bill. Each user gets a daily
-question limit, and once the month's tokens across all users reach a set cap, the advisor stops
-calling the model and says it's back next month. An AWS Budgets action that cuts off the host's
-model access is the backstop for anything the app doesn't count. Running out early is the
-accepted trade: a paused advisor costs nothing, a runaway one could cost hundreds a day.
+Each user has a daily question limit, so one account can't use up the budget. Once the month's model
+usage across all users reaches a set cap, the advisor stops calling the model and says it's back next
+month. Running out early is the accepted trade: a paused advisor costs nothing, while a runaway one
+could cost hundreds of dollars a day.
 
 ## Non-goals
 
