@@ -1,6 +1,11 @@
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
+// "/copy" makes Google prompt the visitor to save their own copy instead of
+// opening the shared template (which must stay "Anyone with the link: Viewer").
+const PORTFOLIO_SHEET_COPY_URL =
+  "https://docs.google.com/spreadsheets/d/1gTdUHR769WEa58gfhRSP76oVkD_UiX766xkiaohZCRc/copy";
+
 export default function Home() {
   return (
     <div className="home-page">
@@ -181,6 +186,30 @@ export default function Home() {
             </Card>
           </Col>
         </Row>
+      </Container>
+
+      {/* Spreadsheet Tracker */}
+      <Container className="mb-5">
+        <Card className="text-center">
+          <Card.Body className="py-4">
+            <div className="fs-1 mb-3 text-primary">📋</div>
+            <Card.Title as="h2" className="fw-bold">
+              Prefer a Spreadsheet?
+            </Card.Title>
+            <Card.Text className="mx-auto w-75">
+              Grab a free Google Sheets portfolio tracker. One click saves your
+              own editable copy to your Google Drive, no account here required.
+            </Card.Text>
+            <a
+              href={PORTFOLIO_SHEET_COPY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+            >
+              Copy the Tracker &rarr;
+            </a>
+          </Card.Body>
+        </Card>
       </Container>
 
       {/* Footer Note */}
