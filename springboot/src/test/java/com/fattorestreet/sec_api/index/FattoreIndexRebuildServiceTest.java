@@ -1,6 +1,7 @@
 package com.fattorestreet.sec_api.index;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -172,6 +173,37 @@ class FattoreIndexRebuildServiceTest {
 
         assertTrue(result.partial());
         assertEquals(2, result.memberCount());
+    }
+
+    @Test
+    void rebuild_skipsRowsPricedMoreThanAWeekBeforeTheNewest() {
+        LocalDate newest = LocalDate.of(2026, 11, 10);
+        ListingIndexMetrics fresh = metrics(listing("BNY", equityAsset(false)), bd("100"));
+        fresh.setPriceDate(newest);
+        ListingIndexMetrics edge = metrics(listing("EDGE", equityAsset(false)), bd("50"));
+        edge.setPriceDate(newest.minusDays(FattoreIndexRebuildService.MAX_PRICE_AGE_DAYS));
+        ListingIndexMetrics renamed = metrics(listing("BK", equityAsset(false)), bd("90"));
+        renamed.setPriceDate(newest.minusDays(FattoreIndexRebuildService.MAX_PRICE_AGE_DAYS + 1));
+        ListingIndexMetrics legacy = metrics(listing("OLD", equityAsset(false)), bd("80"));
+
+        when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR))
+                .thenReturn(List.of(fresh, edge, renamed, legacy));
+        MarketIndex mi = new MarketIndex();
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.of(mi));
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertEquals(List.of("BNY", "EDGE"), result.tickers());
+        assertTrue(result.partial());
+    }
+
+    @Test
+    void withFreshPrices_keepsEveryRowWhenNoneHasAPriceDate() {
+        List<ListingIndexMetrics> rows = List.of(
+                metrics(listing("A", equityAsset(false)), bd("1")),
+                metrics(listing("B", equityAsset(false)), bd("2")));
+
+        assertEquals(rows, FattoreIndexRebuildService.withFreshPrices(rows));
     }
 
     private static BigDecimal bd(String s) {

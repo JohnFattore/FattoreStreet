@@ -48,6 +48,16 @@ describe("Fattore1000Russell1000CompareTable helpers", () => {
     expect(s.overlapPercent).toBeCloseTo((2 / 3) * 100, 5);
     expect(s.meanAbsDiffPp).toBeCloseTo((2 + 2) / 2, 5);
   });
+
+  it("matches a separated member ticker to the compact iShares ticker", () => {
+    const rows = buildFattore1000IwbCompareRows(
+      [member("BRK-B", 1.5)],
+      buildIwbWeightMap([{ ticker: "BRKB", weightPercent: 1.6 }]),
+    );
+    expect(rows[0].ticker).toBe("BRK-B");
+    expect(rows[0].iwbWeight).toBe(1.6);
+    expect(rows[0].diffPp).toBeCloseTo(-0.1, 5);
+  });
 });
 
 describe("formatIwbAsOfDate", () => {

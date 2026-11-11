@@ -2,9 +2,11 @@ package com.fattorestreet.sec_api.index;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,13 @@ import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 public class FattoreIndexRebuildService {
 
     private static final int PERCENT_SCALE = 5;
+
+    /**
+     * A row priced more than this many days before the newest row is stale: its ticker has stopped
+     * printing on IEX (delisted, acquired, renamed) or has left the refresh scope. A week covers a
+     * long holiday weekend plus one failed nightly refresh.
+     */
+    static final int MAX_PRICE_AGE_DAYS = 7;
 
     private final ListingIndexMetricsRepository metricsRepository;
     private final MarketIndexRepository marketIndexRepository;
@@ -64,7 +73,7 @@ public class FattoreIndexRebuildService {
 
     @Transactional
     public RebuildResult rebuild(int year) {
-        List<ListingIndexMetrics> rows = metricsRepository.findAllWithListingAndAssetByYear(year);
+        List<ListingIndexMetrics> rows = withFreshPrices(metricsRepository.findAllWithListingAndAssetByYear(year));
         List<ListingIndexMetrics> eligible = rows.stream()
                 .filter(this::isEligible)
                 .sorted(Comparator
@@ -107,6 +116,27 @@ public class FattoreIndexRebuildService {
 
         boolean partial = eligible.size() < topN;
         return new RebuildResult(indexCode, year, take, partial, totalFf, List.copyOf(tickers));
+    }
+
+    /**
+     * Drops rows whose price is more than {@link #MAX_PRICE_AGE_DAYS} older than the newest row's.
+     * Measured against the data rather than the clock, so a failed price load ages nothing out. Rows
+     * with no price date predate its tracking and count as stale once any row has one; when none
+     * do (before the first refresh that records it), every row is kept.
+     */
+    static List<ListingIndexMetrics> withFreshPrices(List<ListingIndexMetrics> rows) {
+        LocalDate newest = rows.stream()
+                .map(ListingIndexMetrics::getPriceDate)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        if (newest == null) {
+            return rows;
+        }
+        LocalDate cutoff = newest.minusDays(MAX_PRICE_AGE_DAYS);
+        return rows.stream()
+                .filter(m -> m.getPriceDate() != null && !m.getPriceDate().isBefore(cutoff))
+                .toList();
     }
 
     private boolean isEligible(ListingIndexMetrics m) {

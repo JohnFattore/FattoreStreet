@@ -23,6 +23,11 @@ A split between the float reporting date and the latest share count would make t
 wildly wrong, such as a tenth of its true value after a 10-for-1 split. The price used to turn the
 reported float into shares is split-adjusted to the current basis.
 
+### A share class is the same security whatever the source calls it
+Sources spell share-class tickers differently: SEC writes Berkshire Class B as `BRK-B`, the exchange
+feed `BRK.B` and the fund file `BRKB`. A company missing from the index because two sources
+disagree on punctuation is a silent hole, so the forms are treated as one ticker.
+
 ### Share classes of one company don't double count
 Some companies list several share classes but report one combined share count. Multiplying that
 full count by each class's price overstates the company. Known cases split the company's size

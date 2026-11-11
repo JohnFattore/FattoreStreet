@@ -353,6 +353,7 @@ UQ `(asset_id, year, quarter)`.
 | `year` | integer | NN |
 | `market_cap`, `free_float`, `free_float_market_cap`, `volume`, `volume_usd` | numeric(38,5) | |
 | `year_ipo` | integer | |
+| `price_date` | date | Trade date of the close behind `market_cap`. The rebuild skips rows priced more than 7 days before the newest row (V5) |
 | `security_type`, `country_hq`, `country_incorp`, `state_hq`, `state_incorp` | varchar(1000) | |
 
 UQ `(listing_id, year)`.

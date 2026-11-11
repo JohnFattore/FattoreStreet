@@ -2,10 +2,12 @@ package com.fattorestreet.sec_api.index;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,7 @@ import com.fattorestreet.sec_api.model.ListingIndexMetrics;
 import com.fattorestreet.sec_api.repository.DailyPriceRepository;
 import com.fattorestreet.sec_api.repository.ListingIndexMetricsRepository;
 import com.fattorestreet.sec_api.repository.ListingRepository;
+import com.fattorestreet.sec_api.util.TickerFormats;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -80,11 +83,27 @@ public class IndexMetricsRefreshService {
      * Listings must have a CIK (SEC), not be funds, and have at least one daily price row (IEX).
      */
     public RefreshResult refreshRussell1000Listings(int year) {
-        Set<String> iwb = iwbHoldingsTickerSet.tickers();
-        List<Listing> listings = listingRepository.findAll().stream()
-                .filter(l -> iwb.contains(l.getTicker()))
-                .toList();
+        List<Listing> listings = matchIwbListings(listingRepository.findAll(), iwbHoldingsTickerSet.tickers());
         return refreshListings(year, listings);
+    }
+
+    /**
+     * Listings named by the IWB file. iShares drops the share-class separator ({@code BRKB}) that SEC
+     * listings keep ({@code BRK-B}), so an IWB ticker with no exact listing matches a separated
+     * listing ticker on its compact form. Only separated listing tickers match that way, so an
+     * unrelated plain ticker that happens to spell the compact form is never pulled in.
+     */
+    static List<Listing> matchIwbListings(List<Listing> listings, Set<String> iwbTickers) {
+        Set<String> listingTickers = listings.stream().map(Listing::getTicker).collect(Collectors.toSet());
+        Set<String> unmatchedCompact = iwbTickers.stream()
+                .filter(t -> !listingTickers.contains(t))
+                .map(TickerFormats::compact)
+                .collect(Collectors.toSet());
+        return listings.stream()
+                .filter(l -> iwbTickers.contains(l.getTicker())
+                        || (TickerFormats.hasClassSeparator(l.getTicker())
+                                && unmatchedCompact.contains(TickerFormats.compact(l.getTicker()))))
+                .toList();
     }
 
     /**
@@ -165,7 +184,9 @@ public class IndexMetricsRefreshService {
                 return RefreshOutcome.skipped(listing.getTicker() + ":no_cik");
             }
 
-            Optional<DailyPrice> priceOpt = dailyPriceRepository.findTopByTickerOrderByTradeDateDesc(listing.getTicker());
+            // daily_prices is keyed by IEX symbol (BRK.B), listings by SEC ticker (BRK-B).
+            String iexSymbol = TickerFormats.iexSymbol(listing.getTicker());
+            Optional<DailyPrice> priceOpt = dailyPriceRepository.findTopByTickerOrderByTradeDateDesc(iexSymbol);
             if (priceOpt.isEmpty()) {
                 return RefreshOutcome.skipped(listing.getTicker() + ":no_iex_daily_price");
             }
@@ -198,7 +219,7 @@ public class IndexMetricsRefreshService {
 
             // Free-float lookup also reads daily prices; safe to do before the write txn.
             BigDecimal sharesBd = BigDecimal.valueOf(sf.sharesOutstanding());
-            BigDecimal freeFloat = computeFreeFloat(sf, listing.getTicker(), sharesBd);
+            BigDecimal freeFloat = computeFreeFloat(sf, iexSymbol, sharesBd);
 
             // Compute write-time values now so the txn body is pure DB read+write.
             BigDecimal priceBd = BigDecimal.valueOf(price);
@@ -215,8 +236,9 @@ public class IndexMetricsRefreshService {
 
             BigDecimal finalMarketCap = marketCap;
             BigDecimal finalFfMc = ffMc;
+            LocalDate priceDate = dp.getTradeDate();
             RefreshOutcome outcome = transactionTemplate.execute(status -> persistMetrics(
-                    listing, year, finalMarketCap, vol, volumeUsd, freeFloat, finalFfMc, loc));
+                    listing, year, finalMarketCap, vol, volumeUsd, freeFloat, finalFfMc, priceDate, loc));
             if (outcome == null) {
                 return RefreshOutcome.skipped(listing.getTicker() + ":txn_null");
             }
@@ -239,6 +261,7 @@ public class IndexMetricsRefreshService {
             BigDecimal volumeUsd,
             BigDecimal freeFloat,
             BigDecimal ffMc,
+            LocalDate priceDate,
             SecIndexFactsParser.SubmissionsLocation loc) {
         String ticker = listing.getTicker();
         boolean[] isInsert = new boolean[1];
@@ -254,6 +277,7 @@ public class IndexMetricsRefreshService {
         m.setVolumeUsd(volumeUsd);
         m.setFreeFloat(freeFloat);
         m.setFreeFloatMarketCap(ffMc);
+        m.setPriceDate(priceDate);
         m.setCountryIncorp(SecIndexFactsParser.normalizeCountry(loc.countryIncorp()));
         m.setCountryHq(SecIndexFactsParser.normalizeCountry(loc.countryHq()));
         m.setStateIncorp(loc.stateIncorp());
@@ -311,12 +335,12 @@ public class IndexMetricsRefreshService {
      * (~10x too small); using adjustedClose yields ~1.0. Falls back to closePrice only if
      * adjustedClose is missing.
      */
-    private BigDecimal computeFreeFloat(SecIndexFactsParser.SecShareFacts sf, String ticker, BigDecimal sharesOutstanding) {
+    private BigDecimal computeFreeFloat(SecIndexFactsParser.SecShareFacts sf, String iexSymbol, BigDecimal sharesOutstanding) {
         if (sf.publicFloatUsd() == null || sf.publicFloatUsd() <= 0 || sf.publicFloatDate() == null) {
             return BigDecimal.ONE;
         }
         Optional<DailyPrice> floatDatePrice = dailyPriceRepository
-                .findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(ticker, sf.publicFloatDate());
+                .findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(iexSymbol, sf.publicFloatDate());
         if (floatDatePrice.isEmpty()) {
             return BigDecimal.ONE;
         }

@@ -27,6 +27,13 @@ Membership and weights reflect the latest prices by the next morning without any
 Applies *The data stays current without a human* from [principles](../principles.md). Membership
 and weights both move daily; there is no separate reconstitution schedule.
 
+### Only currently priced companies are ranked
+A company that was delisted, acquired or renamed keeps its last computed size, and ranking it would
+leave a dead or duplicate entry in the index. Only companies whose size was computed from a price
+within a week of the latest one are ranked. The window is measured against the latest price, not
+the calendar, so a failed price load doesn't empty the index, and a few missed refreshes keep
+yesterday's size.
+
 ### A bad refresh never shrinks or wipes an index
 Rebuilding replaces the whole membership, so rebuilding on top of a mostly failed size refresh
 would leave an index with a fraction of its members. When too few companies were sized, the
