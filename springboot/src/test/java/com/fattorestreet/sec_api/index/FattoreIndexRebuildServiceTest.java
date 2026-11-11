@@ -73,7 +73,8 @@ class FattoreIndexRebuildServiceTest {
 
         assertEquals(FattoreIndexCodes.FAT50, result.indexCode());
         assertEquals(TEST_YEAR, result.year());
-        assertEquals(3, result.memberCount());
+        assertEquals(3, result.companyCount());
+        assertEquals(3, result.listingCount());
         assertFalse(result.partial());
         assertEquals(List.of("BBB", "CCC", "AAA"), result.tickers());
 
@@ -116,7 +117,7 @@ class FattoreIndexRebuildServiceTest {
 
         FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
 
-        assertEquals(0, result.memberCount());
+        assertEquals(0, result.companyCount());
         assertTrue(result.partial());
         verify(marketIndexRepository).save(any(MarketIndex.class));
         verify(indexMemberRepository).deleteByMarketIndex_Code(FattoreIndexCodes.FAT50);
@@ -140,7 +141,7 @@ class FattoreIndexRebuildServiceTest {
         FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
 
         assertTrue(result.tickers().contains("AVGO"));
-        assertEquals(2, result.memberCount());
+        assertEquals(2, result.companyCount());
     }
 
     @Test
@@ -156,7 +157,7 @@ class FattoreIndexRebuildServiceTest {
 
         FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
 
-        assertEquals(0, result.memberCount());
+        assertEquals(0, result.companyCount());
         assertTrue(result.partial());
     }
 
@@ -175,7 +176,7 @@ class FattoreIndexRebuildServiceTest {
         FattoreIndexRebuildService.RebuildResult result = svc.rebuild(TEST_YEAR);
 
         assertTrue(result.partial());
-        assertEquals(2, result.memberCount());
+        assertEquals(2, result.companyCount());
     }
 
     @Test
@@ -247,14 +248,121 @@ class FattoreIndexRebuildServiceTest {
         assertEquals(List.of("AAA", "BBB"), result.tickers());
     }
 
+    @Test
+    void rebuild_usHqIsEligibleWhereverIncorporated() {
+        ListingIndexMetrics lin = metrics(listing("LIN", equityAsset(false)), bd("200"));
+        lin.setCountryIncorp("Ireland");
+        ListingIndexMetrics lulu = metrics(listing("LULU", equityAsset(false)), bd("150"));
+        lulu.setCountryHq("British Columbia, Canada");
+        ListingIndexMetrics foreign = metrics(listing("SPOT", equityAsset(false)), bd("300"));
+        foreign.setCountryIncorp("Luxembourg");
+        foreign.setCountryHq("Sweden");
+        givenRows(lin, lulu, foreign, metrics(listing("AAPL", equityAsset(false)), bd("100")));
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertEquals(List.of("LIN", "AAPL"), result.tickers());
+    }
+
+    @Test
+    void rebuild_unknownHqFallsBackToIncorporation() {
+        ListingIndexMetrics usIncorp = metrics(listing("USI", equityAsset(false)), bd("200"));
+        usIncorp.setCountryHq("Unknown");
+        ListingIndexMetrics foreignIncorp = metrics(listing("BMU", equityAsset(false)), bd("300"));
+        foreignIncorp.setCountryHq("Unknown");
+        foreignIncorp.setCountryIncorp("Bermuda");
+        givenRows(usIncorp, foreignIncorp);
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertEquals(List.of("USI"), result.tickers());
+    }
+
+    @Test
+    void rebuild_excludesPartnershipsAndPreferredStock() {
+        ListingIndexMetrics mlp = metrics(listing("EPD", equityAsset(false)), bd("500"));
+        mlp.setSecurityType("MLP");
+        ListingIndexMetrics pref = metrics(listing("AGNCN", equityAsset(false)), bd("400"));
+        pref.setSecurityType("Preferred Stock");
+        ListingIndexMetrics legacy = metrics(listing("OLD", equityAsset(false)), bd("50"));
+        legacy.setSecurityType(null);
+        givenRows(mlp, pref, legacy, metrics(listing("AAPL", equityAsset(false)), bd("100")));
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertEquals(List.of("AAPL", "OLD"), result.tickers());
+    }
+
+    @Test
+    void rebuild_ranksByTotalMarketCapButWeightsByFreeFloat() {
+        // Closely held: largest company by total cap, smallest by float. Ranking by float would drop it.
+        ListingIndexMetrics held = metrics(listing("HELD", equityAsset(false)), bd("10"));
+        held.setMarketCap(bd("1000"));
+        ListingIndexMetrics a = metrics(listing("AAA", equityAsset(false)), bd("300"));
+        ListingIndexMetrics b = metrics(listing("BBB", equityAsset(false)), bd("200"));
+        ListingIndexMetrics c = metrics(listing("CCC", equityAsset(false)), bd("100"));
+        givenRows(a, b, c, held);
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertEquals(List.of("HELD", "AAA", "BBB"), result.tickers());
+        List<IndexMember> saved = savedMembers(3);
+        assertEquals(0, bd("1.96078").compareTo(saved.get(0).getPercent()));
+        assertEquals(0, bd("58.82353").compareTo(saved.get(1).getPercent()));
+        assertEquals(0, bd("39.21569").compareTo(saved.get(2).getPercent()));
+    }
+
+    @Test
+    void rebuild_multiClassCompanyRanksOnCombinedCapAndKeepsEveryClass() {
+        // GOOGL and GOOG are each smaller than BIG, but together the company is the largest.
+        Asset alphabet = equityAsset(false);
+        ListingIndexMetrics googl = metrics(listing("GOOGL", alphabet), bd("150"));
+        ListingIndexMetrics goog = metrics(listing("GOOG", alphabet), bd("140"));
+        ListingIndexMetrics big = metrics(listing("BIG", equityAsset(false)), bd("200"));
+        ListingIndexMetrics mid = metrics(listing("MID", equityAsset(false)), bd("100"));
+        ListingIndexMetrics out = metrics(listing("OUT", equityAsset(false)), bd("90"));
+        givenRows(big, goog, mid, googl, out);
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertEquals(List.of("GOOGL", "GOOG", "BIG", "MID"), result.tickers());
+        assertEquals(3, result.companyCount());
+        assertEquals(4, result.listingCount());
+        assertFalse(result.partial());
+        List<IndexMember> saved = savedMembers(4);
+        BigDecimal sum = saved.stream().map(IndexMember::getPercent).reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertEquals(0, new BigDecimal("100.00000").compareTo(sum));
+        // Each class keeps its own float weight: 150 / 590.
+        assertEquals(0, bd("25.42373").compareTo(saved.get(0).getPercent()));
+    }
+
+    @Test
+    void rebuild_partialCountsCompaniesNotListings() {
+        Asset dual = equityAsset(false);
+        givenRows(
+                metrics(listing("A1", dual), bd("50")),
+                metrics(listing("A2", dual), bd("40")),
+                metrics(listing("B", equityAsset(false)), bd("30")));
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertTrue(result.partial());
+        assertEquals(2, result.companyCount());
+        assertEquals(3, result.listingCount());
+    }
+
     private static BigDecimal bd(String s) {
         return new BigDecimal(s);
     }
 
+    private static long nextCik = 1;
+
+    /** Each call is a distinct company; pass the same asset to two listings for a multi-class company. */
     private static Asset equityAsset(boolean fund) {
         Asset a = new Asset();
-        a.setId(1L);
-        a.setCik(1L);
+        long cik = nextCik++;
+        a.setId(cik);
+        a.setCik(cik);
         a.setIsFund(fund);
         return a;
     }
@@ -268,12 +376,28 @@ class FattoreIndexRebuildServiceTest {
         return l;
     }
 
+    /** A fully floating US common stock: market cap equals free-float cap unless a test overrides it. */
     private static ListingIndexMetrics metrics(Listing listing, BigDecimal ffMc) {
         ListingIndexMetrics m = new ListingIndexMetrics();
         m.setListing(listing);
         m.setYear(TEST_YEAR);
+        m.setMarketCap(ffMc);
         m.setFreeFloatMarketCap(ffMc);
         m.setPriceDate(PRICE_DATE);
+        m.setCountryIncorp("United States");
+        m.setCountryHq("United States");
+        m.setSecurityType("Common Stock");
         return m;
+    }
+
+    private void givenRows(ListingIndexMetrics... rows) {
+        when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(List.of(rows));
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.of(new MarketIndex()));
+    }
+
+    private List<IndexMember> savedMembers(int count) {
+        ArgumentCaptor<IndexMember> cap = ArgumentCaptor.forClass(IndexMember.class);
+        verify(indexMemberRepository, org.mockito.Mockito.times(count)).save(cap.capture());
+        return cap.getAllValues();
     }
 }
