@@ -6,7 +6,7 @@ Lately I have been building a portfolio tracker in Google Sheets with Claude. It
 
 ## What does it do?
 
-The tracker has twelve tabs. The Portfolio tab lists every holding with its price, market value, gain or loss and change today, with totals at the top. Allocation splits the portfolio by asset class. Account allocation shows that split for each account side by side. Targets compares your mix against the one you want and shows how many dollars to buy or sell to get back on target. Buy plan turns regular contributions into a buy list that steers new money toward whatever is underweight. That way you can rebalance without selling. Forecast projects the portfolio 30 years out from a growth rate and what you add each year. Some funds hold several asset classes, like a target-date fund in a 401(k). The Fund mix tab splits one of those by its actual mix.
+The tracker has twelve tabs, and the Explainer tab describes what each one does. The Portfolio tab lists every holding with its price, market value, gain or loss and change today, with totals at the top. Allocation splits the portfolio by asset class. Account allocation shows that split for each account side by side. Targets compares your mix against the one you want and shows how many dollars to buy or sell to get back on target. Buy plan turns regular contributions into a buy list that steers new money toward whatever is underweight. That way you can rebalance without selling. Forecast projects the portfolio 30 years out from a growth rate and what you add each year. Some funds hold several asset classes, like a target-date fund in a 401(k). The Fund mix tab splits one of those by its actual mix.
 
 ## How do you set it up?
 
