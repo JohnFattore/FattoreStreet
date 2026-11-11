@@ -5,11 +5,11 @@ description = "FattoreStreet Django backend API"
 requires-python = ">=3.14"
 dependencies = [
     # The Django Framework
-    "Django==6.0.6",
+    "Django==6.0.10",
     # Security for communication with the react frontend
     "django-cors-headers==4.9.0",
     # API library
-    "djangorestframework==3.17.1",
+    "djangorestframework==3.18.3",
     # User authentication using tokens
     "djangorestframework-simplejwt==5.5.1",
     # Gunicorn HTTP server

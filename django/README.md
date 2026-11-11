@@ -1,10 +1,10 @@
 # Django Backend API
 
-Django 5 + Django REST Framework backend providing portfolio management, market data, and supporting services.
+Django 6 + Django REST Framework backend providing portfolio management, market data, and supporting services.
 
 ## Stack
 
-- Python 3, Django 5.0, Django REST Framework
+- Python 3, Django 6.0, Django REST Framework
 - PostgreSQL (via psycopg2)
 - django-redis (caching layer, Redis-backed in production)
 - SimpleJWT (authentication)
