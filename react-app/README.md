@@ -24,7 +24,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 
 | Route                      | Page               | Description                                                                                                                                |
 | -------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/`                        | Home               | Landing page with feature cards and a link to copy the Google Sheets portfolio tracker                                                     |
+| `/`                        | Home               | Landing page with feature cards and links to copy the Google Sheets portfolio tracker and its getting-started post                         |
 | `/portfolio`               | Portfolio          | Holdings overview, account balances, pie charts                                                                                            |
 | `/watchlist`               | WatchList          | Live price table with benchmarks                                                                                                           |
 | `/asset/:ticker`           | AssetView          | Individual asset detail with equity/ETF info                                                                                               |
