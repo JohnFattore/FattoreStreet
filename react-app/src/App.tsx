@@ -101,9 +101,11 @@ export default function App() {
         <Route path="/user" element={<User />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
-      <p>
-        This website is purely for entertainment. All investments carry risk.
-        Consult a professional.
+      <p className="small text-muted">
+        Fattore Street is not a registered investment adviser, broker-dealer, or
+        tax professional. Content on this site is general educational
+        information, not personalized advice or a recommendation to buy or sell
+        any security. All investing involves risk, including loss of principal.
       </p>
       <p>Index Funds are Awesome!!</p>
     </div>

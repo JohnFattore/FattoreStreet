@@ -47,6 +47,12 @@ export default function Chatbot() {
   return (
     <>
       <h2>Boglehead Chatbot</h2>
+      <p className="text-muted small">
+        The chatbot is an automated tool that gives general educational
+        information, not personalized investment, tax, or legal advice. Its
+        answers can be wrong; verify anything important with a qualified
+        professional.
+      </p>
       {renderChatbot()}
       <Principles />
     </>

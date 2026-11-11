@@ -1,11 +1,12 @@
 import principles from "../data/principles.json";
-import { Accordion, Table } from "react-bootstrap";
+import { Accordion, Alert, Table } from "react-bootstrap";
 
 export default function Principles() {
   return (
     <>
       <h1>Fattore's Investing Principles</h1>
       <p>{principles.intro}</p>
+      <Alert variant="secondary">{principles.disclaimer}</Alert>
       <Accordion defaultActiveKey="0">
         {principles.principles.map((principle) => (
           <Accordion.Item eventKey={String(principle.id)} key={principle.id}>

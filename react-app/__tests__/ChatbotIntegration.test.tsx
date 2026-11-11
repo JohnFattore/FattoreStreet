@@ -99,6 +99,20 @@ describe("ChatbotOutput", () => {
 });
 
 describe("Chatbot conversations", () => {
+  it("shows the not-advice disclaimers", async () => {
+    renderWithProviders(<Chatbot />, { preloadedState: authenticatedState });
+
+    expect(
+      screen.getByText(/not personalized investment, tax, or legal advice/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/not a registered investment adviser/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Fund tickers are examples only/),
+    ).toBeInTheDocument();
+  });
+
   it("lists conversations and opens one", async () => {
     renderWithProviders(<Chatbot />, { preloadedState: authenticatedState });
 
