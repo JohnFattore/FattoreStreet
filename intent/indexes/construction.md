@@ -32,7 +32,8 @@ A company that was delisted, acquired or renamed keeps its last computed size, a
 leave a dead or duplicate entry in the index. Only companies whose size was computed from a price
 within a week of the latest one are ranked. The window is measured against the latest price, not
 the calendar, so a failed price load doesn't empty the index, and a few missed refreshes keep
-yesterday's size.
+yesterday's size. If the cutoff would remove more than half of an index's current members, the
+refresh behind it was partial, not the market moving, so the rebuild is skipped as below.
 
 ### A bad refresh never shrinks or wipes an index
 Rebuilding replaces the whole membership, so rebuilding on top of a mostly failed size refresh

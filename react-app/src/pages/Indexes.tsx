@@ -4,6 +4,10 @@ import { useGetIndexMembersQuery, useGetIndexesQuery } from "../functions/api";
 import { IndexMembersTable } from "../components/IndexMembersTable";
 import { Fattore1000Russell1000CompareTable } from "../components/Fattore1000Russell1000CompareTable";
 
+// Dropdown entry for the Fattore 1000 vs Russell 1000 comparison. It is not an
+// index code: picking it fetches FAT1000 members and shows only the comparison.
+const RUSSELL_COMPARE = "FAT1000_VS_R1000";
+
 export default function Indexes() {
   const {
     data: indexes,
@@ -17,13 +21,15 @@ export default function Indexes() {
   const defaultCode =
     indexes?.find((i) => i.code === "FAT50")?.code ?? indexes?.[0]?.code ?? "";
   const effectiveCode = selectedCode || defaultCode;
+  const isCompare = effectiveCode === RUSSELL_COMPARE;
+  const membersCode = isCompare ? "FAT1000" : effectiveCode;
 
-  const shouldFetchMembers = effectiveCode.trim().length > 0;
+  const shouldFetchMembers = membersCode.trim().length > 0;
   const {
     data: members,
     isLoading: membersLoading,
     error: membersError,
-  } = useGetIndexMembersQuery(effectiveCode, { skip: !shouldFetchMembers });
+  } = useGetIndexMembersQuery(membersCode, { skip: !shouldFetchMembers });
 
   const selectedLabel = useMemo(() => {
     if (!indexes) return effectiveCode;
@@ -50,6 +56,11 @@ export default function Indexes() {
                 {i.displayName} ({i.code})
               </option>
             ))}
+            {indexes?.some((i) => i.code === "FAT1000") && (
+              <option value={RUSSELL_COMPARE}>
+                Fattore 1000 vs Russell 1000 (IWB)
+              </option>
+            )}
           </Form.Select>
         </Form.Group>
 
@@ -59,19 +70,21 @@ export default function Indexes() {
           </Alert>
         )}
 
-        <h5 className="mt-3">{selectedLabel}</h5>
-        <IndexMembersTable
-          members={members || []}
-          isLoading={membersLoading}
-          errors={[membersError]}
-        />
-
-        {effectiveCode === "FAT1000" && (
+        {isCompare ? (
           <Fattore1000Russell1000CompareTable
             members={members || []}
             membersLoading={membersLoading}
             membersError={membersError}
           />
+        ) : (
+          <>
+            <h5 className="mt-3">{selectedLabel}</h5>
+            <IndexMembersTable
+              members={members || []}
+              isLoading={membersLoading}
+              errors={[membersError]}
+            />
+          </>
         )}
       </Card>
     </div>

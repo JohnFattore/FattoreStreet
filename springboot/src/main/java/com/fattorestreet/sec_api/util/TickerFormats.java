@@ -10,7 +10,10 @@ public final class TickerFormats {
     private TickerFormats() {
     }
 
-    /** IEX symbol for a listing ticker: SEC's {@code -} class separator becomes IEX's {@code .}. */
+    /**
+     * IEX symbol for a listing ticker: SEC's {@code -} class separator becomes IEX's {@code .}. A
+     * ticker already in IEX form ({@code BRK.B}) or with no separator passes through unchanged.
+     */
     public static String iexSymbol(String listingTicker) {
         return listingTicker == null ? null : listingTicker.replace('-', '.');
     }

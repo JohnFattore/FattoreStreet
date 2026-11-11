@@ -24,8 +24,10 @@ import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.when;
 class FattoreIndexRebuildServiceTest {
 
     private static final int TEST_YEAR = 2026;
+    private static final LocalDate PRICE_DATE = LocalDate.of(2026, 11, 10);
 
     @Mock
     private ListingIndexMetricsRepository metricsRepository;
@@ -184,10 +187,11 @@ class FattoreIndexRebuildServiceTest {
         edge.setPriceDate(newest.minusDays(FattoreIndexRebuildService.MAX_PRICE_AGE_DAYS));
         ListingIndexMetrics renamed = metrics(listing("BK", equityAsset(false)), bd("90"));
         renamed.setPriceDate(newest.minusDays(FattoreIndexRebuildService.MAX_PRICE_AGE_DAYS + 1));
-        ListingIndexMetrics legacy = metrics(listing("OLD", equityAsset(false)), bd("80"));
+        ListingIndexMetrics undated = metrics(listing("OLD", equityAsset(false)), bd("80"));
+        undated.setPriceDate(null);
 
         when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR))
-                .thenReturn(List.of(fresh, edge, renamed, legacy));
+                .thenReturn(List.of(fresh, edge, renamed, undated));
         MarketIndex mi = new MarketIndex();
         when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.of(mi));
 
@@ -198,12 +202,49 @@ class FattoreIndexRebuildServiceTest {
     }
 
     @Test
-    void withFreshPrices_keepsEveryRowWhenNoneHasAPriceDate() {
-        List<ListingIndexMetrics> rows = List.of(
-                metrics(listing("A", equityAsset(false)), bd("1")),
-                metrics(listing("B", equityAsset(false)), bd("2")));
+    void withFreshPrices_treatsUndatedRowsAsStale() {
+        ListingIndexMetrics a = metrics(listing("A", equityAsset(false)), bd("1"));
+        a.setPriceDate(null);
+        ListingIndexMetrics b = metrics(listing("B", equityAsset(false)), bd("2"));
+        b.setPriceDate(null);
 
-        assertEquals(rows, FattoreIndexRebuildService.withFreshPrices(rows));
+        assertEquals(List.of(), FattoreIndexRebuildService.withFreshPrices(List.of(a, b)));
+    }
+
+    @Test
+    void rebuild_throwsAndKeepsMembersWhenMostCurrentMembersWentStale() {
+        // A single-ticker refresh dated AAA today; BBB and CCC still carry last month's date.
+        ListingIndexMetrics aaa = metrics(listing("AAA", equityAsset(false)), bd("100"));
+        ListingIndexMetrics bbb = metrics(listing("BBB", equityAsset(false)), bd("90"));
+        bbb.setPriceDate(PRICE_DATE.minusDays(30));
+        ListingIndexMetrics ccc = metrics(listing("CCC", equityAsset(false)), bd("80"));
+        ccc.setPriceDate(PRICE_DATE.minusDays(30));
+        when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(List.of(aaa, bbb, ccc));
+        when(indexMemberRepository.findTickersByIndexCode(FattoreIndexCodes.FAT50))
+                .thenReturn(List.of("AAA", "BBB", "CCC"));
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> serviceFat50.rebuild(TEST_YEAR));
+
+        assertTrue(e.getMessage().contains("2 of 3"));
+        verify(indexMemberRepository, never()).deleteByMarketIndex_Code(any());
+        verify(indexMemberRepository, never()).save(any());
+    }
+
+    @Test
+    void rebuild_proceedsWhenOnlyAFewCurrentMembersDropOut() {
+        ListingIndexMetrics aaa = metrics(listing("AAA", equityAsset(false)), bd("100"));
+        ListingIndexMetrics bbb = metrics(listing("BBB", equityAsset(false)), bd("90"));
+        ListingIndexMetrics gone = metrics(listing("GONE", equityAsset(false)), bd("80"));
+        gone.setPriceDate(PRICE_DATE.minusDays(30));
+        when(metricsRepository.findAllWithListingAndAssetByYear(TEST_YEAR)).thenReturn(List.of(aaa, bbb, gone));
+        when(indexMemberRepository.findTickersByIndexCode(FattoreIndexCodes.FAT50))
+                .thenReturn(List.of("AAA", "BBB", "GONE"));
+        MarketIndex mi = new MarketIndex();
+        when(marketIndexRepository.findByCode(FattoreIndexCodes.FAT50)).thenReturn(Optional.of(mi));
+
+        FattoreIndexRebuildService.RebuildResult result = serviceFat50.rebuild(TEST_YEAR);
+
+        assertEquals(List.of("AAA", "BBB"), result.tickers());
     }
 
     private static BigDecimal bd(String s) {
@@ -232,6 +273,7 @@ class FattoreIndexRebuildServiceTest {
         m.setListing(listing);
         m.setYear(TEST_YEAR);
         m.setFreeFloatMarketCap(ffMc);
+        m.setPriceDate(PRICE_DATE);
         return m;
     }
 }
