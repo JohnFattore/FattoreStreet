@@ -17,6 +17,7 @@ We have organized the documentation to help you get started quickly:
 - **[🚀 Getting Started](docs/GETTING_STARTED.md)**: Setup guide for local development and staging.
 - **[🏗 High-level design](intent/design.md)**: How the platform is shaped and why: services, data flow, external sources and key decisions.
 - **[📖 API Reference](docs/API_REFERENCE.md)**: Django and Spring Boot HTTP endpoints.
+- **[🗄️ Database Schema](docs/DATABASE_SCHEMA.md)**: Tables, columns and relationships for the Django and Spring Boot databases.
 - **[☁️ Deployment](docs/DEPLOYMENT.md)**: Infrastructure guide (Docker Compose on AWS EC2, GHCR images, SSM-driven deploys).
 
 **CI**: Pull requests and pushes to `main` run [GitHub Actions](.github/workflows/ci.yml) (React lint/build/tests, Django tests, Spring Boot tests, detect-secrets). See [Getting Started](docs/GETTING_STARTED.md) (Testing and CI sections) for local equivalents.
