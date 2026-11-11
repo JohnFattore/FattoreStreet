@@ -312,28 +312,157 @@ class IndexMetricsRefreshServiceTest {
         when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("EMPTY"))
                 .thenReturn(Optional.of(price("EMPTY", 10.0, 100L)));
         when(webService.fetchFinancials(7L)).thenReturn("{\"facts\":{}}");
+        when(webService.fetchSubmissions(7L)).thenReturn(emptySubmissionsJson());
         IndexMetricsRefreshService.RefreshResult r = service.refreshAllTickers(YEAR);
         assertTrue(r.skippedTickers().contains("EMPTY:no_shares"));
     }
 
-    // ----- dual-class cap split -----
+    // ----- multi-class companies: per-class shares from the cover page -----
+
+    private static final String ACCESSION = "0001193125-26-452412";
+    private static final String INSTANCE = "brka-20260930_htm.xml";
+
+    /** companyfacts with a decade-old undimensioned DEI share count, as multi-class filers have. */
+    private static String staleFactsJson(long staleShares, long publicFloatUsd, String floatEnd) {
+        return "{\"facts\":{\"dei\":{"
+                + "\"EntityCommonStockSharesOutstanding\":{\"units\":{\"shares\":["
+                + "{\"end\":\"2011-04-29\",\"val\":" + staleShares + "}]}},"
+                + "\"EntityPublicFloat\":{\"units\":{\"USD\":["
+                + "{\"end\":\"" + floatEnd + "\",\"val\":" + publicFloatUsd + "}]}}"
+                + "}}}";
+    }
+
+    private static String submissionsWithPeriodicFiling() {
+        return "{\"filings\":{\"recent\":{\"form\":[\"8-K\",\"10-Q\"],"
+                + "\"accessionNumber\":[\"0001193125-26-000001\",\"" + ACCESSION + "\"]}}}";
+    }
+
+    private void stubCoverPage(long cik, String instanceXml) {
+        when(webService.fetchSubmissions(cik)).thenReturn(submissionsWithPeriodicFiling());
+        when(webService.fetchFilingIndex(cik, ACCESSION)).thenReturn(
+                "{\"directory\":{\"item\":[{\"name\":\"brka-20260930.htm\"},{\"name\":\"" + INSTANCE + "\"}]}}");
+        when(webService.fetchFilingDocument(cik, ACCESSION, INSTANCE)).thenReturn(instanceXml);
+    }
+
+    private static String berkshireCover() {
+        return CoverPageFixtures.instance(
+                CoverPageFixtures.Fact.symbol(CoverPageFixtures.CLASS_A, "BRK.A"),
+                CoverPageFixtures.Fact.symbol(CoverPageFixtures.CLASS_B, "BRK.B"),
+                CoverPageFixtures.Fact.shares(CoverPageFixtures.CLASS_A, 1_000L),
+                CoverPageFixtures.Fact.shares(CoverPageFixtures.CLASS_B, 2_000_000L));
+    }
+
+    private static DailyPrice floatDatePrice(String iexSymbol, double adjustedClose) {
+        DailyPrice p = price(iexSymbol, adjustedClose, 1L);
+        p.setTradeDate(LocalDate.of(2025, 6, 30));
+        return p;
+    }
 
     @Test
-    void googleClassA_capIsHalved() {
-        Listing goog = listing("GOOG", asset(1652044L, false));
-        when(listingRepository.findAll()).thenReturn(List.of(goog));
-        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("GOOG"))
-                .thenReturn(Optional.of(price("GOOG", 200.0, 1_000L)));
-        stubHappyPathSec(1652044L, 1_000_000L); // raw cap = 200 * 1,000,000 = 200,000,000
-        when(metricsRepository.findByListingAndYear(goog, YEAR)).thenReturn(Optional.empty());
+    void multiClass_staleDeiUsesThisClassFromTheCoverPage() {
+        Asset brk = asset(1067983L, false);
+        Listing brkB = listing("BRK-B", brk);
+        Listing brkA = listing("BRK-A", brk);
+        runSingle(brkB);
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.B"))
+                .thenReturn(Optional.of(price("BRK.B", 500.0, 1_000L)));
+        // Public float $1.2B against listed value 1,000 x 600,000 + 2,000,000 x 400 = $1.4B.
+        when(webService.fetchFinancials(1067983L)).thenReturn(staleFactsJson(941_481L, 1_200_000_000L, "2025-06-30"));
+        stubCoverPage(1067983L, berkshireCover());
+        when(listingRepository.findByAsset(brk)).thenReturn(List.of(brkA, brkB));
+        when(dailyPriceRepository.findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(
+                "BRK.A", LocalDate.of(2025, 6, 30))).thenReturn(Optional.of(floatDatePrice("BRK.A", 600_000.0)));
+        when(dailyPriceRepository.findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(
+                "BRK.B", LocalDate.of(2025, 6, 30))).thenReturn(Optional.of(floatDatePrice("BRK.B", 400.0)));
+        when(metricsRepository.findByListingAndYear(brkB, YEAR)).thenReturn(Optional.empty());
 
-        service.refreshAllTickers(YEAR);
+        IndexMetricsRefreshService.RefreshResult r = service.refreshAllTickers(YEAR);
 
+        assertEquals(1, r.processed());
         ArgumentCaptor<ListingIndexMetrics> saved = ArgumentCaptor.forClass(ListingIndexMetrics.class);
         verify(metricsRepository).save(saved.capture());
-        // Halved: 200,000,000 / 2 = 100,000,000
-        assertEquals(0, saved.getValue().getMarketCap().compareTo(new BigDecimal("100000000")));
-        assertEquals(0, saved.getValue().getFreeFloatMarketCap().compareTo(new BigDecimal("100000000")));
+        // Class B only: 2,000,000 x $500, not the 2011 Class A count.
+        assertEquals(0, saved.getValue().getMarketCap().compareTo(new BigDecimal("1000000000")));
+        assertEquals(0, saved.getValue().getFreeFloat().compareTo(new BigDecimal("0.8571428571")));
+    }
+
+    @Test
+    void multiClass_coverPageFetchedOncePerCompany() {
+        Asset brk = asset(1067983L, false);
+        Listing brkA = listing("BRK-A", brk);
+        Listing brkB = listing("BRK-B", brk);
+        when(listingRepository.findAll()).thenReturn(List.of(brkA, brkB));
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.A"))
+                .thenReturn(Optional.of(price("BRK.A", 700_000.0, 10L)));
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.B"))
+                .thenReturn(Optional.of(price("BRK.B", 500.0, 1_000L)));
+        when(webService.fetchFinancials(1067983L)).thenReturn(staleFactsJson(941_481L, 1L, "2025-06-30"));
+        stubCoverPage(1067983L, berkshireCover());
+        when(listingRepository.findByAsset(brk)).thenReturn(List.of(brkA, brkB));
+        when(metricsRepository.findByListingAndYear(any(), anyInt())).thenReturn(Optional.empty());
+
+        IndexMetricsRefreshService.RefreshResult r = service.refreshAllTickers(YEAR);
+
+        assertEquals(2, r.processed());
+        verify(webService, times(1)).fetchFilingDocument(1067983L, ACCESSION, INSTANCE);
+        ArgumentCaptor<ListingIndexMetrics> saved = ArgumentCaptor.forClass(ListingIndexMetrics.class);
+        verify(metricsRepository, times(2)).save(saved.capture());
+        assertEquals(0, saved.getAllValues().get(0).getMarketCap().compareTo(new BigDecimal("700000000")));
+        assertEquals(0, saved.getAllValues().get(1).getMarketCap().compareTo(new BigDecimal("1000000000")));
+    }
+
+    @Test
+    void multiClass_listingMissingFromCoverPageIsSkipped() {
+        Listing other = listing("BRK-C", asset(1067983L, false));
+        runSingle(other);
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.C"))
+                .thenReturn(Optional.of(price("BRK.C", 5.0, 1L)));
+        when(webService.fetchFinancials(1067983L)).thenReturn(staleFactsJson(941_481L, 1L, "2025-06-30"));
+        stubCoverPage(1067983L, berkshireCover());
+
+        IndexMetricsRefreshService.RefreshResult r = service.refreshAllTickers(YEAR);
+
+        assertEquals(List.of("BRK-C:class_unmatched"), r.skippedTickers());
+        verify(metricsRepository, never()).save(any());
+    }
+
+    @Test
+    void staleShareCountWithNoCoverPageIsSkippedNotUsed() {
+        Listing l = listing("OLD", asset(5L, false));
+        runSingle(l);
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("OLD"))
+                .thenReturn(Optional.of(price("OLD", 10.0, 1L)));
+        when(webService.fetchFinancials(5L)).thenReturn(staleFactsJson(941_481L, 1L, "2025-06-30"));
+        when(webService.fetchSubmissions(5L)).thenReturn(emptySubmissionsJson());
+
+        IndexMetricsRefreshService.RefreshResult r = service.refreshAllTickers(YEAR);
+
+        assertEquals(List.of("OLD:stale_shares"), r.skippedTickers());
+        verify(metricsRepository, never()).save(any());
+    }
+
+    @Test
+    void coverPageFetchFailureIsAnSecFetchSkip() {
+        Listing l = listing("BRK-B", asset(1067983L, false));
+        runSingle(l);
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.B"))
+                .thenReturn(Optional.of(price("BRK.B", 500.0, 1L)));
+        when(webService.fetchFinancials(1067983L)).thenReturn(staleFactsJson(941_481L, 1L, "2025-06-30"));
+        when(webService.fetchSubmissions(1067983L)).thenReturn(submissionsWithPeriodicFiling());
+        when(webService.fetchFilingIndex(1067983L, ACCESSION)).thenThrow(new IllegalStateException("SEC 503"));
+
+        IndexMetricsRefreshService.RefreshResult r = service.refreshAllTickers(YEAR);
+
+        assertEquals(List.of("BRK-B:sec_fetch"), r.skippedTickers());
+    }
+
+    @Test
+    void isCurrent_measuresAgainstThePriceDate() {
+        LocalDate priceDate = LocalDate.of(2026, 11, 10);
+        int maxAge = IndexMetricsRefreshService.MAX_SHARE_COUNT_AGE_DAYS;
+        assertTrue(IndexMetricsRefreshService.isCurrent(priceDate.minusDays(maxAge), priceDate));
+        assertFalse(IndexMetricsRefreshService.isCurrent(priceDate.minusDays(maxAge + 1), priceDate));
+        assertFalse(IndexMetricsRefreshService.isCurrent(null, priceDate));
     }
 
     // ----- market cap uses unadjusted close, not adjustedClose -----
