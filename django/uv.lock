@@ -7,6 +7,9 @@ resolution-markers = [
     "sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[manifest]
+constraints = [{ name = "soupsieve", specifier = "<3" }]
+
 [[package]]
 name = "asgiref"
 version = "3.11.1"

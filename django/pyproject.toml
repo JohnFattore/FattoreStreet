@@ -34,3 +34,8 @@ dependencies = [
     # AWS SDK: the advisor chatbot calls Bedrock
     "boto3==1.43.126",
 ]
+
+[tool.uv]
+# soupsieve arrives via beautifulsoup4 (yfinance). The security fix needs 2.9;
+# an unconstrained upgrade jumps it two majors, so hold it on the 2.x line.
+constraint-dependencies = ["soupsieve<3"]
