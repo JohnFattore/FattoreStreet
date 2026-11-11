@@ -13,13 +13,16 @@ The indexes approximate US large-cap equity benchmarks, so funds, partnerships, 
 non-US companies are excluded. A company headquartered in the US is eligible wherever it is
 incorporated: many US companies incorporate in Ireland, Bermuda or Switzerland for tax reasons while
 running the business from here, and excluding them drops names investors think of as US large caps.
+Headquarters decides: a company incorporated in the US but run from abroad is not eligible. When the
+filings give no headquarters, US incorporation stands in for it.
 A company with no free-float market cap is not eligible.
 
 ### Members are the largest eligible companies by total market cap
 The Fattore 50, 100 and 1000 take the top 50, 100 and 1000 eligible companies ranked by the whole
 company's market cap. Ranking by free float would drop a large company with big insider stakes near
 the cutoff, though it is plainly one of the largest; such a company stays in at a small weight
-instead, since weighting is by free float.
+instead, since weighting is by free float. Every listed class of a member company is in the index,
+so an index holds more listings than companies, and its size and partial flag count companies.
 
 ### Weights are proportional to free-float market cap and sum to exactly 100%
 Cap weighting mirrors the benchmarks being approximated, and weights that don't add up make every

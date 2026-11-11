@@ -113,7 +113,8 @@ public class IndexLoadRunner implements ApplicationRunner {
             }
             List<FattoreIndexRebuildService.RebuildResult> rebuilds = indexLoadService.rebuildAll(resolvedYear);
             for (FattoreIndexRebuildService.RebuildResult rb : rebuilds) {
-                log.info("Rebuilt {} -- memberCount={}, partial={}", rb.indexCode(), rb.memberCount(), rb.partial());
+                log.info("Rebuilt {} -- companies={}, listings={}, partial={}",
+                        rb.indexCode(), rb.companyCount(), rb.listingCount(), rb.partial());
             }
             long elapsedMs = System.currentTimeMillis() - startTime;
             log.info("Index load finished in {}m {}s", elapsedMs / 60000, (elapsedMs % 60000) / 1000);

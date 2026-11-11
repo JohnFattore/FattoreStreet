@@ -45,7 +45,7 @@ class IndexLoadServiceTest {
     }
 
     private static FattoreIndexRebuildService.RebuildResult result(String code) {
-        return new FattoreIndexRebuildService.RebuildResult(code, 2026, 1, false, BigDecimal.ONE, List.of("AAPL"));
+        return new FattoreIndexRebuildService.RebuildResult(code, 2026, 1, 1, false, BigDecimal.ONE, List.of("AAPL"));
     }
 
     @Test

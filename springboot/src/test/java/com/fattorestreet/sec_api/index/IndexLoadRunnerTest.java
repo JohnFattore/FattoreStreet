@@ -53,9 +53,9 @@ class IndexLoadRunnerTest {
 
     private static List<FattoreIndexRebuildService.RebuildResult> rebuildResults(boolean partial) {
         return List.of(
-                new FattoreIndexRebuildService.RebuildResult("FAT100", 2026, 100, false, BigDecimal.TEN, List.of("MSFT")),
-                new FattoreIndexRebuildService.RebuildResult("FAT1000", 2026, 900, partial, BigDecimal.TEN, List.of("GOOG")),
-                new FattoreIndexRebuildService.RebuildResult("FAT50", 2026, 50, false, BigDecimal.TEN, List.of("AAPL")));
+                new FattoreIndexRebuildService.RebuildResult("FAT100", 2026, 100, 100, false, BigDecimal.TEN, List.of("MSFT")),
+                new FattoreIndexRebuildService.RebuildResult("FAT1000", 2026, 900, 900, partial, BigDecimal.TEN, List.of("GOOG")),
+                new FattoreIndexRebuildService.RebuildResult("FAT50", 2026, 50, 50, false, BigDecimal.TEN, List.of("AAPL")));
     }
 
     @Test
