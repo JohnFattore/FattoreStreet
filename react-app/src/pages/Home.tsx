@@ -39,8 +39,8 @@ export default function Home() {
           <Link to="/user" className="btn btn-primary btn-lg">
             Get Started
           </Link>
-          <Link to="/watchlist" className="btn btn-outline-light btn-lg">
-            Explore Data
+          <Link to="/indexes" className="btn btn-outline-light btn-lg">
+            Explore Indexes
           </Link>
           <Link to="/chatbot" className="btn btn-outline-light btn-lg">
             Chat with AI

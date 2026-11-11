@@ -48,6 +48,13 @@ describe("Home", () => {
     }
   });
 
+  it("points the hero data button at the indexes", () => {
+    renderWithProviders(<Home />);
+    expect(
+      screen.getByRole("link", { name: "Explore Indexes" }),
+    ).toHaveAttribute("href", "/indexes");
+  });
+
   it("renders the Buffett quote", () => {
     renderWithProviders(<Home />);
     expect(screen.getByText(/know-nothing investor/)).toBeInTheDocument();
