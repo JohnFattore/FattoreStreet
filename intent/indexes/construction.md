@@ -10,13 +10,16 @@ hiccuped, is worse than none.
 
 ### Only US operating companies' common stock is eligible
 The indexes approximate US large-cap equity benchmarks, so funds, partnerships, preferred stock and
-non-US companies are excluded. A company incorporated in the US is eligible; a company with unknown
-incorporation counts as US when it is headquartered there. A company with no free-float market cap
-is not eligible.
+non-US companies are excluded. A company headquartered in the US is eligible wherever it is
+incorporated: many US companies incorporate in Ireland, Bermuda or Switzerland for tax reasons while
+running the business from here, and excluding them drops names investors think of as US large caps.
+A company with no free-float market cap is not eligible.
 
-### Members are the largest eligible companies by free-float market cap
-The Fattore 50, 100 and 1000 take the top 50, 100 and 1000 eligible companies ranked by free-float
-market cap.
+### Members are the largest eligible companies by total market cap
+The Fattore 50, 100 and 1000 take the top 50, 100 and 1000 eligible companies ranked by the whole
+company's market cap. Ranking by free float would drop a large company with big insider stakes near
+the cutoff, though it is plainly one of the largest; such a company stays in at a small weight
+instead, since weighting is by free float.
 
 ### Weights are proportional to free-float market cap and sum to exactly 100%
 Cap weighting mirrors the benchmarks being approximated, and weights that don't add up make every
@@ -30,10 +33,10 @@ and weights both move daily; there is no separate reconstitution schedule.
 ### Only currently priced companies are ranked
 A company that was delisted, acquired or renamed keeps its last computed size, and ranking it would
 leave a dead or duplicate entry in the index. Only companies whose size was computed from a price
-within a week of the latest one are ranked. The window is measured against the latest price, not
-the calendar, so a failed price load doesn't empty the index, and a few missed refreshes keep
-yesterday's size. If the cutoff would remove more than half of an index's current members, the
-refresh behind it was partial, not the market moving, so the rebuild is skipped as below.
+within a few trading days of the latest one are ranked. The window is measured against the latest
+price, not the calendar, so a failed price load doesn't empty the index, and a few missed refreshes
+keep yesterday's size. If the cutoff would remove most of an index's current members, the refresh
+behind it was partial, not the market moving, so the rebuild is skipped as below.
 
 ### A bad refresh never shrinks or wipes an index
 Rebuilding replaces the whole membership, so rebuilding on top of a mostly failed size refresh

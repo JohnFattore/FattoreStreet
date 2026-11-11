@@ -32,13 +32,12 @@ disagree on punctuation is a silent hole, so the forms are treated as one ticker
 A company with several share classes reports shares outstanding per class on its filing cover page,
 and each listed class is its own security with its own price. Multiplying a combined count by each
 class's price overstates the company, and multiplying one class's count by another's price makes
-it unrecognizable (Berkshire Class B came out at $0.5B). Each class is sized from its own count,
-read from the latest cover page, so no list of multi-class companies has to be kept by hand.
-Unlisted classes (Alphabet's Class B, Visa's Class B and C) have no price and add nothing, for now.
+it unrecognizable. Each class is sized from its own count, read from the latest cover page, so no
+list of multi-class companies has to be kept by hand.
 
 ### A stale share count is never used
-A share count more than about 15 months older than the latest price says nothing about the company
-today. The bulk SEC data keeps decade-old company-wide figures for multi-class filers, because it
+A share count more than a full annual reporting cycle older than the latest price says nothing
+about the company today. The bulk SEC data keeps decade-old company-wide figures for multi-class filers, because it
 drops the per-class figures their cover pages report. Such a figure sends the refresh to the cover
 page, and if that has none, the company is skipped and keeps yesterday's size.
 
@@ -53,3 +52,11 @@ If the SEC can't be reached, sizes computed earlier stay in place rather than be
 run that gets repeated failures stops early instead of hammering the source. Applies *Missing
 evidence is not evidence of absence* and *Be a good citizen of free sources* from
 [principles](../principles.md).
+
+## Non-goals
+
+- **Unlisted share classes in a listed class's size, for now.** Some companies have classes that
+  don't trade but convert into one that does: Berkshire Class A converts into 1,500 Class B shares,
+  and Visa's Class B and C convert into Class A. The benchmarks count those as extra shares of the
+  listed class, so leaving them out undersizes these companies. It will be done once a free source
+  for the conversion ratios is found.
