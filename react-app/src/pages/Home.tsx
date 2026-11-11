@@ -74,82 +74,6 @@ export default function Home() {
           <Col md={4}>
             <Card>
               <Card.Body>
-                <div className="fs-1 mb-3 text-primary">📊</div>
-                <Card.Title>Portfolio Management</Card.Title>
-                <Card.Text>
-                  A professional stock and bond paper trader. Create
-                  hypothetical portfolios, track performance, and master the art
-                  of disciplined investing without capital risk.
-                </Card.Text>
-                <Link
-                  to="/portfolio"
-                  className="btn btn-link p-0 text-decoration-none"
-                >
-                  Launch Portfolio &rarr;
-                </Link>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={4}>
-            <Card>
-              <Card.Body>
-                <div className="fs-1 mb-3 text-primary">📈</div>
-                <Card.Title>Market Visualizer</Card.Title>
-                <Card.Text>
-                  Analyze how your chosen assets compare to the broader market
-                  index. Insights into diversification, weighting, and
-                  historical performance comparisons.
-                </Card.Text>
-                <Link
-                  to="/visualizer"
-                  className="btn btn-link p-0 text-decoration-none"
-                >
-                  View Insights &rarr;
-                </Link>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={4}>
-            <Card>
-              <Card.Body>
-                <div className="fs-1 mb-3 text-primary">🔔</div>
-                <Card.Title>Live Watchlist</Card.Title>
-                <Card.Text>
-                  Keep your finger on the pulse with a live stock and ETF
-                  tracker. Monitor real-time price movements and market trends
-                  for your favorite securities.
-                </Card.Text>
-                <Link
-                  to="/watchlist"
-                  className="btn btn-link p-0 text-decoration-none"
-                >
-                  Monitor Markets &rarr;
-                </Link>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={4}>
-            <Card>
-              <Card.Body>
-                <div className="fs-1 mb-3 text-primary">🌎</div>
-                <Card.Title>Macro Analytics</Card.Title>
-                <Card.Text>
-                  Understand the big picture with deep-dive graphs of essential
-                  macroeconomic data. See how broader economic indicators affect
-                  the investment landscape.
-                </Card.Text>
-                <Link
-                  to="/economic-indicators"
-                  className="btn btn-link p-0 text-decoration-none"
-                >
-                  Study Macro &rarr;
-                </Link>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={4}>
-            <Card>
-              <Card.Body>
                 <div className="fs-1 mb-3 text-primary">🤖</div>
                 <Card.Title>Boglehead AI</Card.Title>
                 <Card.Text>
@@ -162,6 +86,44 @@ export default function Home() {
                   className="btn btn-link p-0 text-decoration-none"
                 >
                   Chat with AI &rarr;
+                </Link>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4}>
+            <Card>
+              <Card.Body>
+                <div className="fs-1 mb-3 text-primary">🏛️</div>
+                <Card.Title>Fattore Indexes</Card.Title>
+                <Card.Text>
+                  Browse the Fattore 50, 100 and 1000, built entirely from free
+                  primary-source SEC and IEX data. See every constituent, its
+                  weight and its key metrics.
+                </Card.Text>
+                <Link
+                  to="/indexes"
+                  className="btn btn-link p-0 text-decoration-none"
+                >
+                  Explore Indexes &rarr;
+                </Link>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4}>
+            <Card>
+              <Card.Body>
+                <div className="fs-1 mb-3 text-primary">📊</div>
+                <Card.Title>Portfolio Management</Card.Title>
+                <Card.Text>
+                  A stock and bond paper trader. Build hypothetical portfolios,
+                  check your allocation against the market, and keep a live
+                  watchlist, all without capital risk.
+                </Card.Text>
+                <Link
+                  to="/portfolio"
+                  className="btn btn-link p-0 text-decoration-none"
+                >
+                  Launch Portfolio &rarr;
                 </Link>
               </Card.Body>
             </Card>

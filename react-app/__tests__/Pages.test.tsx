@@ -35,12 +35,17 @@ describe("Home", () => {
 
   it("renders platform capability cards", () => {
     renderWithProviders(<Home />);
-    expect(screen.getByText("Portfolio Management")).toBeInTheDocument();
-    expect(screen.getByText("Market Visualizer")).toBeInTheDocument();
-    expect(screen.getByText("Live Watchlist")).toBeInTheDocument();
     expect(screen.getByText("Boglehead AI")).toBeInTheDocument();
-    expect(screen.getByText("Macro Analytics")).toBeInTheDocument();
-    expect(screen.queryByText("Nashville Restaurants")).not.toBeInTheDocument();
+    expect(screen.getByText("Fattore Indexes")).toBeInTheDocument();
+    expect(screen.getByText("Portfolio Management")).toBeInTheDocument();
+    for (const dropped of [
+      "Market Visualizer",
+      "Live Watchlist",
+      "Macro Analytics",
+      "Nashville Restaurants",
+    ]) {
+      expect(screen.queryByText(dropped)).not.toBeInTheDocument();
+    }
   });
 
   it("renders the Buffett quote", () => {
