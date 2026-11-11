@@ -48,6 +48,8 @@ export default function TopNavigation() {
               <Nav.Link as={NavLink} to="/economic-indicators">
                 Economic Indicators
               </Nav.Link>
+              {/* Link, not NavLink: NavLink would only light up on /portfolio,
+                  but this tab should stay active across the whole group. */}
               <Nav.Link as={Link} to="/portfolio" active={inPortfolio}>
                 Portfolio
               </Nav.Link>

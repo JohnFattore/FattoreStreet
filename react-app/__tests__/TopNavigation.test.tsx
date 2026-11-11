@@ -58,9 +58,10 @@ describe("TopNavigation", () => {
       expect(
         screen.queryByRole("navigation", subNavQuery),
       ).not.toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "Portfolio" })).not.toHaveClass(
-        "active",
-      );
+      const [topBar] = screen.getAllByRole("navigation");
+      expect(
+        within(topBar).getByRole("link", { name: "Portfolio" }),
+      ).not.toHaveClass("active");
     },
   );
 
