@@ -208,6 +208,14 @@ export default function Home() {
             >
               Copy the Tracker &rarr;
             </a>
+            <div className="mt-3">
+              <Link
+                to="/blog/portfolio-tracker"
+                className="btn btn-link p-0 text-decoration-none"
+              >
+                How to get started
+              </Link>
+            </div>
           </Card.Body>
         </Card>
       </Container>

@@ -58,6 +58,13 @@ describe("Home", () => {
     );
     expect(link).toHaveAttribute("target", "_blank");
   });
+
+  it("links to the portfolio tracker getting-started post", () => {
+    renderWithProviders(<Home />);
+    expect(
+      screen.getByRole("link", { name: /How to get started/ }),
+    ).toHaveAttribute("href", "/blog/portfolio-tracker");
+  });
 });
 
 describe("SECData", () => {
