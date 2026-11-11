@@ -14,19 +14,20 @@ const portfolioLinks = [
   { to: "/watchlist", label: "Watchlist" },
 ];
 
-const portfolioPathPrefixes = [
-  "/portfolio",
-  "/visualizer",
-  "/watchlist",
-  "/account/",
-];
+// The group's own pages plus account detail, which is reached from Portfolio.
+const portfolioPaths = [...portfolioLinks.map(({ to }) => to), "/account"];
+
+// Match on a path boundary so "/portfolios" doesn't count as "/portfolio".
+function isPortfolioPath(pathname: string) {
+  return portfolioPaths.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
 
 export default function TopNavigation() {
   const { access } = useSelector((state: RootState) => state.user);
   const { pathname } = useLocation();
-  const inPortfolio = portfolioPathPrefixes.some((prefix) =>
-    pathname.startsWith(prefix),
-  );
+  const inPortfolio = isPortfolioPath(pathname);
 
   return (
     <>
@@ -63,7 +64,7 @@ export default function TopNavigation() {
       </Navbar>
       {inPortfolio && (
         <Container>
-          <Nav variant="underline" aria-label="Portfolio">
+          <Nav as="nav" variant="underline" aria-label="Portfolio">
             {portfolioLinks.map(({ to, label }) => (
               <Nav.Link key={to} as={NavLink} to={to}>
                 {label}
