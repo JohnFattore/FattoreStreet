@@ -19,7 +19,7 @@
     "@hookform/resolvers": "^5.5.7",
     "@reduxjs/toolkit": "^2.12.0",
     "@tanstack/react-table": "^8.21.3",
-    "axios": "^1.19.0",
+    "axios": "^1.20.0",
     "bootstrap": "^5.3.8",
     "leaflet": "^1.9.4",
     "leaflet.awesome-markers": "^2.0.5",
