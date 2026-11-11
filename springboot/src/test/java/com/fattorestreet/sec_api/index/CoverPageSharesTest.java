@@ -136,6 +136,18 @@ class CoverPageSharesTest {
     }
 
     @Test
+    void malformedShareCountLosesThatClassOnly() throws Exception {
+        CoverPageShares cp = CoverPageShares.parse(instance(
+                Fact.symbol(CLASS_A, "XA"),
+                Fact.symbol(CLASS_B, "XB"),
+                new Fact("EntityCommonStockSharesOutstanding", "n/a", CLASS_A, "2026-10-28"),
+                Fact.shares(CLASS_B, 42L)));
+
+        assertNull(cp.sharesFor("XA"));
+        assertEquals(42L, cp.sharesFor("XB"));
+    }
+
+    @Test
     void blankInputIsEmpty() throws Exception {
         assertSame(CoverPageShares.EMPTY, CoverPageShares.parse(""));
         assertSame(CoverPageShares.EMPTY, CoverPageShares.parse(null));

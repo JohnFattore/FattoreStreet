@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -146,7 +147,9 @@ public record CoverPageShares(
 
         // Filing XML is untrusted input: no DTDs, no external entities (XXE). Configured here, in the
         // method that creates the reader, which is where FindSecBugs looks for it.
-        XMLInputFactory factory = XMLInputFactory.newFactory();
+        // The JDK's own implementation, not whatever StAX provider is on the classpath: the jdk.xml limits
+        // below are JDK properties, and another provider (Woodstox) would reject them.
+        XMLInputFactory factory = XMLInputFactory.newDefaultFactory();
         factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
         factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
         // With DTDs off no custom entity can be declared, so these limits only ever count the predefined
@@ -198,7 +201,13 @@ public record CoverPageShares(
             if (c == null || !c.usable()) {
                 continue;
             }
-            long shares = new BigDecimal(f.value()).longValue();
+            long shares;
+            try {
+                shares = new BigDecimal(f.value()).longValue();
+            } catch (NumberFormatException e) {
+                // One malformed fact loses that class, not the whole cover page.
+                continue;
+            }
             if (c.classMember() == null) {
                 if (plainSharesDate == null || (c.date() != null && c.date().isAfter(plainSharesDate))) {
                     plainShares = shares;
@@ -219,7 +228,7 @@ public record CoverPageShares(
             if (c == null || !c.usable()) {
                 continue;
             }
-            String symbol = TickerFormats.compact(f.value().toUpperCase(java.util.Locale.ROOT));
+            String symbol = TickerFormats.compact(f.value().toUpperCase(Locale.ROOT));
             if (c.classMember() == null) {
                 plainSymbols.add(symbol);
             } else if (classShares.containsKey(c.classMember())) {

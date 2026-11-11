@@ -457,6 +457,68 @@ class IndexMetricsRefreshServiceTest {
     }
 
     @Test
+    void multiClass_currentCompanyWideDeiIsNotUsedWhenTheCompanyHasSeveralListings() {
+        Asset brk = asset(1067983L, false);
+        Listing brkB = listing("BRK-B", brk);
+        runSingle(brkB);
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.B"))
+                .thenReturn(Optional.of(price("BRK.B", 500.0, 1_000L)));
+        // A current, company-wide figure: right for the company, wrong for any one class.
+        when(webService.fetchFinancials(1067983L)).thenReturn(factsJson(9_999_999L));
+        stubCoverPage(1067983L, berkshireCover());
+        when(listingRepository.findByAsset(brk)).thenReturn(List.of(listing("BRK-A", brk), brkB));
+        when(metricsRepository.findByListingAndYear(brkB, YEAR)).thenReturn(Optional.empty());
+
+        service.refreshAllTickers(YEAR);
+
+        ArgumentCaptor<ListingIndexMetrics> saved = ArgumentCaptor.forClass(ListingIndexMetrics.class);
+        verify(metricsRepository).save(saved.capture());
+        assertEquals(0, saved.getValue().getMarketCap().compareTo(new BigDecimal("1000000000")));
+    }
+
+    @Test
+    void multiClass_failedCoverPageIsNotRefetchedForSiblings() {
+        Asset brk = asset(1067983L, false);
+        Listing brkA = listing("BRK-A", brk);
+        Listing brkB = listing("BRK-B", brk);
+        when(listingRepository.findAll()).thenReturn(List.of(brkA, brkB));
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.A"))
+                .thenReturn(Optional.of(price("BRK.A", 700_000.0, 10L)));
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.B"))
+                .thenReturn(Optional.of(price("BRK.B", 500.0, 1L)));
+        when(webService.fetchFinancials(1067983L)).thenReturn(staleFactsJson(941_481L, 1L, "2025-06-30"));
+        when(webService.fetchSubmissions(1067983L)).thenReturn(submissionsWithPeriodicFiling());
+        when(webService.fetchFilingIndex(1067983L, ACCESSION)).thenThrow(new IllegalStateException("SEC 503"));
+
+        IndexMetricsRefreshService.RefreshResult r = service.refreshAllTickers(YEAR);
+
+        assertEquals(List.of("BRK-A:sec_fetch", "BRK-B:sec_fetch"), r.skippedTickers());
+        verify(webService, times(1)).fetchFilingIndex(1067983L, ACCESSION);
+    }
+
+    @Test
+    void multiClass_listedClassWithoutFloatDatePriceDefaultsFreeFloatToOne() {
+        Asset brk = asset(1067983L, false);
+        Listing brkB = listing("BRK-B", brk);
+        runSingle(brkB);
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.B"))
+                .thenReturn(Optional.of(price("BRK.B", 500.0, 1_000L)));
+        when(webService.fetchFinancials(1067983L)).thenReturn(staleFactsJson(941_481L, 1_200_000_000L, "2025-06-30"));
+        stubCoverPage(1067983L, berkshireCover());
+        when(listingRepository.findByAsset(brk)).thenReturn(List.of(listing("BRK-A", brk), brkB));
+        // Only Class A has a price on the float date; Class B has none.
+        when(dailyPriceRepository.findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(
+                "BRK.A", LocalDate.of(2025, 6, 30))).thenReturn(Optional.of(floatDatePrice("BRK.A", 600_000.0)));
+        when(metricsRepository.findByListingAndYear(brkB, YEAR)).thenReturn(Optional.empty());
+
+        service.refreshAllTickers(YEAR);
+
+        ArgumentCaptor<ListingIndexMetrics> saved = ArgumentCaptor.forClass(ListingIndexMetrics.class);
+        verify(metricsRepository).save(saved.capture());
+        assertEquals(0, saved.getValue().getFreeFloat().compareTo(BigDecimal.ONE));
+    }
+
+    @Test
     void isCurrent_measuresAgainstThePriceDate() {
         LocalDate priceDate = LocalDate.of(2026, 11, 10);
         int maxAge = IndexMetricsRefreshService.MAX_SHARE_COUNT_AGE_DAYS;

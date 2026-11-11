@@ -151,7 +151,8 @@ public class IndexMetricsRefreshService {
         int nextProgressPct = 10;
 
         // Cover pages by CIK for this run, so share classes of one company (BRK-A, BRK-B) fetch it once.
-        Map<Long, CoverPageShares> coverPages = new HashMap<>();
+        // An empty Optional records a failed fetch, so siblings don't retry it against a failing source.
+        Map<Long, Optional<CoverPageShares>> coverPages = new HashMap<>();
         for (int n = 0; n < total; n++) {
             Listing listing = listings.get(n);
             RefreshOutcome outcome = refreshOneListingSafely(listing, year, coverPages);
@@ -183,7 +184,8 @@ public class IndexMetricsRefreshService {
         return new RefreshResult(processed, skipped, skippedTickers);
     }
 
-    private RefreshOutcome refreshOneListingSafely(Listing listing, int year, Map<Long, CoverPageShares> coverPages) {
+    private RefreshOutcome refreshOneListingSafely(
+            Listing listing, int year, Map<Long, Optional<CoverPageShares>> coverPages) {
         try {
             // Pre-flight checks (no DB writes, no network) — fail fast on ineligible listings.
             Asset asset = listing.getAsset();
@@ -233,9 +235,12 @@ public class IndexMetricsRefreshService {
 
             // Shares: a current company-wide DEI figure; else this listing's class from the latest cover
             // page (multi-class filers have no current company-wide figure in companyfacts at all); else
-            // a current us-gaap fallback. A stale figure is never used.
+            // a current us-gaap fallback. A stale figure is never used. A company with several listings
+            // always goes to the cover page: a company-wide figure, even a current one, would size
+            // every class at the whole company.
             LocalDate priceDate = dp.getTradeDate();
-            boolean deiCurrent = sf.sharesFromDei() && isCurrent(sf.sharesAsOf(), priceDate);
+            boolean multiListed = listingRepository.findByAsset(asset).size() > 1;
+            boolean deiCurrent = !multiListed && sf.sharesFromDei() && isCurrent(sf.sharesAsOf(), priceDate);
             CoverPageShares cover = null;
             Long shares;
             if (deiCurrent) {
@@ -244,12 +249,20 @@ public class IndexMetricsRefreshService {
                 if (submissions == null) {
                     return RefreshOutcome.skipped(ticker + ":sec_fetch");
                 }
-                try {
-                    cover = coverPage(cik, submissions, coverPages);
-                } catch (Exception e) {
-                    log.warn("[{}] SEC cover page failed: {}", ticker, e.getMessage());
+                Optional<CoverPageShares> fetched = coverPages.get(cik);
+                if (fetched == null) {
+                    try {
+                        fetched = Optional.of(coverPage(cik, submissions));
+                    } catch (Exception e) {
+                        log.warn("[{}] SEC cover page failed: {}", ticker, e.getMessage());
+                        fetched = Optional.empty();
+                    }
+                    coverPages.put(cik, fetched);
+                }
+                if (fetched.isEmpty()) {
                     return RefreshOutcome.skipped(ticker + ":sec_fetch");
                 }
+                cover = fetched.get();
                 if (cover.hasClassShares()) {
                     shares = cover.sharesFor(ticker);
                     if (shares == null) {
@@ -366,15 +379,10 @@ public class IndexMetricsRefreshService {
 
     /**
      * The latest periodic filing's cover page, from its XBRL instance ({@code *_htm.xml}, present for
-     * every inline-XBRL filing). Cached per CIK for the run; {@link CoverPageShares#EMPTY} when the
-     * company has no recent periodic filing or the filing has no instance document.
+     * every inline-XBRL filing). {@link CoverPageShares#EMPTY} when the company has no recent periodic
+     * filing or the filing has no instance document.
      */
-    private CoverPageShares coverPage(Long cik, JsonNode submissions, Map<Long, CoverPageShares> cache)
-            throws XMLStreamException {
-        CoverPageShares cached = cache.get(cik);
-        if (cached != null) {
-            return cached;
-        }
+    private CoverPageShares coverPage(Long cik, JsonNode submissions) throws XMLStreamException {
         CoverPageShares cover = CoverPageShares.EMPTY;
         String accession = SecIndexFactsParser.latestPeriodicFilingAccession(submissions);
         if (accession != null) {
@@ -392,7 +400,6 @@ public class IndexMetricsRefreshService {
                 cover = CoverPageShares.parse(webService.fetchFilingDocument(cik, accession, instance));
             }
         }
-        cache.put(cik, cover);
         return cover;
     }
 
@@ -420,9 +427,14 @@ public class IndexMetricsRefreshService {
                     .findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(symbol, sf.publicFloatDate());
             Double price = fd.map(p -> p.getAdjustedClose() != null ? p.getAdjustedClose() : p.getClosePrice())
                     .orElse(null);
-            if (price != null && price > 0) {
-                listedValue = listedValue.add(BigDecimal.valueOf(c.shares()).multiply(BigDecimal.valueOf(price)));
+            if (price == null || price <= 0) {
+                // Dropping the class would shrink the denominator and inflate the ratio. Fall back to the
+                // rule for an unknown float: the whole company counts as free-floating.
+                log.info("[{}] no float-date price for listed class {}; free float defaults to 1",
+                        asset.getCik(), c.compactSymbol());
+                return BigDecimal.ONE;
             }
+            listedValue = listedValue.add(BigDecimal.valueOf(c.shares()).multiply(BigDecimal.valueOf(price)));
         }
         if (listedValue.signum() <= 0) {
             return BigDecimal.ONE;
