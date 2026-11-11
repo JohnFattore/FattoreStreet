@@ -55,6 +55,15 @@ describe("Home", () => {
     ).toHaveAttribute("href", "/indexes");
   });
 
+  it("leads the hero's secondary buttons with the chatbot", () => {
+    renderWithProviders(<Home />);
+    const chat = screen.getByRole("link", { name: "Chat with AI" });
+    const indexes = screen.getByRole("link", { name: "Explore Indexes" });
+    expect(
+      chat.compareDocumentPosition(indexes) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("renders the Buffett quote", () => {
     renderWithProviders(<Home />);
     expect(screen.getByText(/know-nothing investor/)).toBeInTheDocument();

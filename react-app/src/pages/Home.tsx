@@ -39,11 +39,11 @@ export default function Home() {
           <Link to="/user" className="btn btn-primary btn-lg">
             Get Started
           </Link>
-          <Link to="/indexes" className="btn btn-outline-light btn-lg">
-            Explore Indexes
-          </Link>
           <Link to="/chatbot" className="btn btn-outline-light btn-lg">
             Chat with AI
+          </Link>
+          <Link to="/indexes" className="btn btn-outline-light btn-lg">
+            Explore Indexes
           </Link>
         </div>
       </div>
