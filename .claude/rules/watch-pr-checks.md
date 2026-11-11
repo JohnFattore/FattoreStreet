@@ -14,7 +14,7 @@ After opening a PR, or pushing new commits to a PR's branch, watch its CI and th
 
 2. When it finishes, report:
    - **CI**: every check's result. For a failure, pull the failing step's log (`gh run view <run-id> --log-failed`) and say what broke, not just that it's red.
-   - **Claude review**: read the sticky comment (`gh pr view <number> --json comments -q '.comments[-1].body'`, or the comment from `claude[bot]`) and summarize its findings by severity. Check that the comment is from the current run (it is edited in place on every push) rather than a stale one.
+   - **Claude review**: read the sticky comment (`gh pr view <number> --json comments -q '.comments[-1].body'`; it is posted by `github-actions`, not a Claude bot account) and summarize its findings by severity. It is edited in place on every push, so confirm it is current: the "View job" run ID in its first line must match the run ID of the `Claude review` check.
 
 3. Recommend what to do about each finding (fix, follow-up, or ignore, with a reason), then wait for the user.
 
