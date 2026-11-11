@@ -17,6 +17,30 @@ class SecIndexFactsParserTest {
         JsonNode root = buildFacts("dei", "EntityCommonStockSharesOutstanding", 1_000_000L);
         var facts = SecIndexFactsParser.parseShareFacts(root);
         assertEquals(1_000_000L, facts.sharesOutstanding());
+        assertEquals(java.time.LocalDate.of(2025, 12, 31), facts.sharesAsOf());
+        assertTrue(facts.sharesFromDei());
+    }
+
+    @Test
+    void parseShareFacts_usGaapFallbackIsNotFromDei() {
+        var facts = SecIndexFactsParser.parseShareFacts(buildFacts("us-gaap", "CommonStockSharesOutstanding", 5L));
+        assertFalse(facts.sharesFromDei());
+        assertEquals(java.time.LocalDate.of(2025, 12, 31), facts.sharesAsOf());
+    }
+
+    @Test
+    void latestPeriodicFilingAccession_takesNewestTenKOrTenQ() throws Exception {
+        JsonNode root = mapper.readTree("{\"filings\":{\"recent\":{"
+                + "\"form\":[\"8-K\",\"10-Q/A\",\"10-Q\",\"10-K\"],"
+                + "\"accessionNumber\":[\"a\",\"b\",\"c\",\"d\"]}}}");
+        assertEquals("c", SecIndexFactsParser.latestPeriodicFilingAccession(root));
+    }
+
+    @Test
+    void latestPeriodicFilingAccession_nullWithoutOne() throws Exception {
+        assertNull(SecIndexFactsParser.latestPeriodicFilingAccession(mapper.readTree("{}")));
+        assertNull(SecIndexFactsParser.latestPeriodicFilingAccession(mapper.readTree(
+                "{\"filings\":{\"recent\":{\"form\":[\"8-K\"],\"accessionNumber\":[\"a\"]}}}")));
     }
 
     @Test

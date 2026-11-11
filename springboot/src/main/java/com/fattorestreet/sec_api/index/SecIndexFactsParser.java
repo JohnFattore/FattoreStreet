@@ -63,15 +63,26 @@ public final class SecIndexFactsParser {
             Map.entry("NZ", "New Zealand")
     );
 
+    /**
+     * @param sharesOutstanding latest shares outstanding from the first tag in the fallback chain that has one
+     * @param sharesAsOf        period end of that figure; for a multi-class filer it can be a decade old,
+     *                          because companyfacts drops the per-class figures current cover pages report
+     * @param sharesFromDei     whether it came from the cover-page DEI tag rather than a us-gaap fallback
+     */
     public record SecShareFacts(
             Long sharesOutstanding,
+            LocalDate sharesAsOf,
+            boolean sharesFromDei,
             Long publicFloatUsd,
             LocalDate publicFloatDate
     ) {
         static SecShareFacts empty() {
-            return new SecShareFacts(null, null, null);
+            return new SecShareFacts(null, null, false, null, null);
         }
     }
+
+    /** Periodic report forms whose cover page states shares outstanding. Amendments often omit it. */
+    private static final Set<String> PERIODIC_FORMS = Set.of("10-K", "10-Q", "20-F", "40-F");
 
     /**
      * Incorporation and HQ location from SEC submissions (company JSON).
@@ -111,17 +122,48 @@ public final class SecIndexFactsParser {
         if (root == null) {
             return SecShareFacts.empty();
         }
-        Long shares = null;
+        DatedValue shares = null;
+        boolean fromDei = false;
         for (String[] entry : SHARES_OUTSTANDING_TAGS) {
-            shares = latestFactVal(root, entry[0], entry[1]);
-            if (shares != null && shares > 0) {
+            DatedValue dv = latestFactVal(root, entry[0], entry[1]);
+            if (dv != null && dv.val() > 0) {
+                shares = dv;
+                fromDei = "dei".equals(entry[0]);
                 break;
             }
         }
         DatedValue publicFloat = latestDeiNumericUnitsDated(root, "EntityPublicFloat", "USD");
         Long publicFloatUsd = publicFloat != null ? publicFloat.val() : null;
         LocalDate publicFloatDate = publicFloat != null ? publicFloat.endDate() : null;
-        return new SecShareFacts(shares, publicFloatUsd, publicFloatDate);
+        return new SecShareFacts(
+                shares != null ? shares.val() : null,
+                shares != null ? shares.endDate() : null,
+                fromDei,
+                publicFloatUsd,
+                publicFloatDate);
+    }
+
+    /**
+     * Accession number of the most recent 10-K, 10-Q, 20-F or 40-F in SEC submissions JSON, whose cover
+     * page states shares outstanding per class. {@code null} when the recent filings list has none.
+     */
+    public static String latestPeriodicFilingAccession(JsonNode submissionsRoot) {
+        JsonNode recent = navigatePath(submissionsRoot, "filings", "recent");
+        if (recent == null) {
+            return null;
+        }
+        JsonNode forms = recent.get("form");
+        JsonNode accessions = recent.get("accessionNumber");
+        if (forms == null || accessions == null || !forms.isArray() || !accessions.isArray()) {
+            return null;
+        }
+        // SEC lists recent filings newest first.
+        for (int i = 0; i < forms.size() && i < accessions.size(); i++) {
+            if (PERIODIC_FORMS.contains(forms.get(i).asString())) {
+                return accessions.get(i).asString();
+            }
+        }
+        return null;
     }
 
     /**
@@ -236,7 +278,7 @@ public final class SecIndexFactsParser {
         return new LocationParts(normalizeCountry(t), null);
     }
 
-    private static Long latestFactVal(JsonNode root, String taxonomy, String tag) {
+    private static DatedValue latestFactVal(JsonNode root, String taxonomy, String tag) {
         JsonNode units = navigatePath(root, "facts", taxonomy, tag, "units");
         if (units == null || !units.isObject()) {
             return null;
@@ -245,8 +287,7 @@ public final class SecIndexFactsParser {
         if (arr == null) {
             return null;
         }
-        DatedValue dv = latestDatedByEndDate(arr);
-        return dv != null ? dv.val() : null;
+        return latestDatedByEndDate(arr);
     }
 
     private record DatedValue(long val, LocalDate endDate) {}

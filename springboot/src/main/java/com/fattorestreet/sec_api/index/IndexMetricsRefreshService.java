@@ -4,10 +4,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +53,14 @@ public class IndexMetricsRefreshService {
      * not per-ticker data issues, so failing fast avoids burning the rest of the run.
      */
     private static final int CONSECUTIVE_SEC_FAILURE_ABORT_THRESHOLD = 25;
+
+    /**
+     * A share count reported more than this many days before the latest price is stale. Every US filer
+     * restates it on each 10-Q, so a single-class company's figure is weeks old; a multi-class filer's
+     * undimensioned figure predates per-class cover pages and can be a decade old (Berkshire's is from
+     * 2011), so falling past this sends the refresh to the cover page instead.
+     */
+    static final int MAX_SHARE_COUNT_AGE_DAYS = 456;
 
     private final ListingRepository listingRepository;
     private final ListingIndexMetricsRepository metricsRepository;
@@ -138,9 +150,12 @@ public class IndexMetricsRefreshService {
         int total = listings.size();
         int nextProgressPct = 10;
 
+        // Cover pages by CIK for this run, so share classes of one company (BRK-A, BRK-B) fetch it once.
+        // An empty Optional records a failed fetch, so siblings don't retry it against a failing source.
+        Map<Long, Optional<CoverPageShares>> coverPages = new HashMap<>();
         for (int n = 0; n < total; n++) {
             Listing listing = listings.get(n);
-            RefreshOutcome outcome = refreshOneListingSafely(listing, year);
+            RefreshOutcome outcome = refreshOneListingSafely(listing, year, coverPages);
             if (outcome.processed()) {
                 processed++;
                 consecutiveSecFailures = 0;
@@ -169,7 +184,8 @@ public class IndexMetricsRefreshService {
         return new RefreshResult(processed, skipped, skippedTickers);
     }
 
-    private RefreshOutcome refreshOneListingSafely(Listing listing, int year) {
+    private RefreshOutcome refreshOneListingSafely(
+            Listing listing, int year, Map<Long, Optional<CoverPageShares>> coverPages) {
         try {
             // Pre-flight checks (no DB writes, no network) — fail fast on ineligible listings.
             Asset asset = listing.getAsset();
@@ -210,16 +226,65 @@ public class IndexMetricsRefreshService {
                 return RefreshOutcome.skipped(listing.getTicker() + ":sec_fetch");
             }
 
+            String ticker = listing.getTicker();
             SecIndexFactsParser.SecShareFacts sf = SecIndexFactsParser.parseShareFacts(factsRoot);
-            if (sf.sharesOutstanding() == null || sf.sharesOutstanding() <= 0) {
-                return RefreshOutcome.skipped(listing.getTicker() + ":no_shares");
+            JsonNode submissions = fetchSubmissionsRoot(cik, ticker);
+            SecIndexFactsParser.SubmissionsLocation loc = submissions != null
+                    ? SecIndexFactsParser.parseSubmissionsLocation(submissions)
+                    : SecIndexFactsParser.SubmissionsLocation.empty();
+
+            // Shares: a current company-wide DEI figure; else this listing's class from the latest cover
+            // page (multi-class filers have no current company-wide figure in companyfacts at all); else
+            // a current us-gaap fallback. A stale figure is never used. A company with several listings
+            // always goes to the cover page: a company-wide figure, even a current one, would size
+            // every class at the whole company.
+            LocalDate priceDate = dp.getTradeDate();
+            boolean multiListed = listingRepository.findByAsset(asset).size() > 1;
+            boolean deiCurrent = !multiListed && sf.sharesFromDei() && isCurrent(sf.sharesAsOf(), priceDate);
+            CoverPageShares cover = null;
+            Long shares;
+            if (deiCurrent) {
+                shares = sf.sharesOutstanding();
+            } else {
+                if (submissions == null) {
+                    return RefreshOutcome.skipped(ticker + ":sec_fetch");
+                }
+                Optional<CoverPageShares> fetched = coverPages.get(cik);
+                if (fetched == null) {
+                    try {
+                        fetched = Optional.of(coverPage(cik, submissions));
+                    } catch (Exception e) {
+                        log.warn("[{}] SEC cover page failed: {}", ticker, e.getMessage());
+                        fetched = Optional.empty();
+                    }
+                    coverPages.put(cik, fetched);
+                }
+                if (fetched.isEmpty()) {
+                    return RefreshOutcome.skipped(ticker + ":sec_fetch");
+                }
+                cover = fetched.get();
+                if (cover.hasClassShares()) {
+                    shares = cover.sharesFor(ticker);
+                    if (shares == null) {
+                        return RefreshOutcome.skipped(ticker + ":class_unmatched");
+                    }
+                } else if (cover.plainShares() != null) {
+                    shares = cover.plainShares();
+                } else if (sf.sharesOutstanding() != null && isCurrent(sf.sharesAsOf(), priceDate)) {
+                    shares = sf.sharesOutstanding();
+                } else {
+                    return RefreshOutcome.skipped(ticker + (sf.sharesOutstanding() == null ? ":no_shares" : ":stale_shares"));
+                }
+            }
+            if (shares == null || shares <= 0) {
+                return RefreshOutcome.skipped(ticker + ":no_shares");
             }
 
-            SecIndexFactsParser.SubmissionsLocation loc = fetchSubmissionsLocation(cik, listing.getTicker());
-
             // Free-float lookup also reads daily prices; safe to do before the write txn.
-            BigDecimal sharesBd = BigDecimal.valueOf(sf.sharesOutstanding());
-            BigDecimal freeFloat = computeFreeFloat(sf, iexSymbol, sharesBd);
+            BigDecimal sharesBd = BigDecimal.valueOf(shares);
+            BigDecimal freeFloat = cover != null && cover.hasClassShares()
+                    ? computeMultiClassFreeFloat(sf, cover, asset)
+                    : computeFreeFloat(sf, iexSymbol, sharesBd);
 
             // Compute write-time values now so the txn body is pure DB read+write.
             BigDecimal priceBd = BigDecimal.valueOf(price);
@@ -228,17 +293,8 @@ public class IndexMetricsRefreshService {
             BigDecimal volumeUsd = vol.multiply(priceBd).setScale(5, RoundingMode.HALF_UP);
             BigDecimal ffMc = marketCap.multiply(freeFloat).setScale(5, RoundingMode.HALF_UP);
 
-            String ticker = listing.getTicker();
-            if (DualClassIndexCapSplit.halvesCapForTicker(ticker)) {
-                marketCap = DualClassIndexCapSplit.apply(ticker, marketCap);
-                ffMc = DualClassIndexCapSplit.apply(ticker, ffMc);
-            }
-
-            BigDecimal finalMarketCap = marketCap;
-            BigDecimal finalFfMc = ffMc;
-            LocalDate priceDate = dp.getTradeDate();
             RefreshOutcome outcome = transactionTemplate.execute(status -> persistMetrics(
-                    listing, year, finalMarketCap, vol, volumeUsd, freeFloat, finalFfMc, priceDate, loc));
+                    listing, year, marketCap, vol, volumeUsd, freeFloat, ffMc, priceDate, loc));
             if (outcome == null) {
                 return RefreshOutcome.skipped(listing.getTicker() + ":txn_null");
             }
@@ -307,15 +363,84 @@ public class IndexMetricsRefreshService {
         }
     }
 
-    private SecIndexFactsParser.SubmissionsLocation fetchSubmissionsLocation(Long cik, String ticker) {
+    /** SEC submissions JSON, or {@code null} when it can't be fetched (location then stays unknown). */
+    private JsonNode fetchSubmissionsRoot(Long cik, String ticker) {
         try {
-            String json = webService.fetchSubmissions(cik);
-            JsonNode root = objectMapper.readTree(json);
-            return SecIndexFactsParser.parseSubmissionsLocation(root);
+            return objectMapper.readTree(webService.fetchSubmissions(cik));
         } catch (Exception e) {
-            log.warn("[{}] SEC submissions failed (country lookup): {}", ticker, e.getMessage());
-            return SecIndexFactsParser.SubmissionsLocation.empty();
+            log.warn("[{}] SEC submissions failed: {}", ticker, e.getMessage());
+            return null;
         }
+    }
+
+    static boolean isCurrent(LocalDate asOf, LocalDate priceDate) {
+        return asOf != null && priceDate != null && !asOf.isBefore(priceDate.minusDays(MAX_SHARE_COUNT_AGE_DAYS));
+    }
+
+    /**
+     * The latest periodic filing's cover page, from its XBRL instance ({@code *_htm.xml}, present for
+     * every inline-XBRL filing). {@link CoverPageShares#EMPTY} when the company has no recent periodic
+     * filing or the filing has no instance document.
+     */
+    private CoverPageShares coverPage(Long cik, JsonNode submissions) throws XMLStreamException {
+        CoverPageShares cover = CoverPageShares.EMPTY;
+        String accession = SecIndexFactsParser.latestPeriodicFilingAccession(submissions);
+        if (accession != null) {
+            JsonNode items = objectMapper.readTree(webService.fetchFilingIndex(cik, accession))
+                    .path("directory").path("item");
+            String instance = null;
+            for (JsonNode item : items) {
+                String name = item.path("name").asString("");
+                if (name.endsWith("_htm.xml")) {
+                    instance = name;
+                    break;
+                }
+            }
+            if (instance != null) {
+                cover = CoverPageShares.parse(webService.fetchFilingDocument(cik, accession, instance));
+            }
+        }
+        return cover;
+    }
+
+    /**
+     * Free float for one class of a multi-class company: public float (USD, company-wide) over the value
+     * of every listed class on the float date. Dividing the company-wide figure by one class's value, as
+     * the single-class path would, overstates the ratio by the other classes' share of the company.
+     * Unlisted classes (Alphabet's Class B, Visa's Class B and C) have no price and are left out, which
+     * suits a float measure: they are mostly the affiliate holdings that public float excludes.
+     * Adjusted close puts the float-date price on the current share basis, as in {@link #computeFreeFloat}.
+     */
+    private BigDecimal computeMultiClassFreeFloat(SecIndexFactsParser.SecShareFacts sf, CoverPageShares cover,
+            Asset asset) {
+        if (sf.publicFloatUsd() == null || sf.publicFloatUsd() <= 0 || sf.publicFloatDate() == null) {
+            return BigDecimal.ONE;
+        }
+        Map<String, String> iexBySymbol = new HashMap<>();
+        for (Listing sibling : listingRepository.findByAsset(asset)) {
+            iexBySymbol.put(TickerFormats.compact(sibling.getTicker()), TickerFormats.iexSymbol(sibling.getTicker()));
+        }
+        BigDecimal listedValue = BigDecimal.ZERO;
+        for (CoverPageShares.ListedClass c : cover.listedClasses()) {
+            String symbol = iexBySymbol.getOrDefault(c.compactSymbol(), c.compactSymbol());
+            Optional<DailyPrice> fd = dailyPriceRepository
+                    .findTopByTickerAndTradeDateLessThanEqualOrderByTradeDateDesc(symbol, sf.publicFloatDate());
+            Double price = fd.map(p -> p.getAdjustedClose() != null ? p.getAdjustedClose() : p.getClosePrice())
+                    .orElse(null);
+            if (price == null || price <= 0) {
+                // Dropping the class would shrink the denominator and inflate the ratio. Fall back to the
+                // rule for an unknown float: the whole company counts as free-floating.
+                log.info("[{}] no float-date price for listed class {}; free float defaults to 1",
+                        asset.getCik(), c.compactSymbol());
+                return BigDecimal.ONE;
+            }
+            listedValue = listedValue.add(BigDecimal.valueOf(c.shares()).multiply(BigDecimal.valueOf(price)));
+        }
+        if (listedValue.signum() <= 0) {
+            return BigDecimal.ONE;
+        }
+        BigDecimal ff = BigDecimal.valueOf(sf.publicFloatUsd()).divide(listedValue, 10, RoundingMode.HALF_UP);
+        return ff.compareTo(BigDecimal.ONE) > 0 ? BigDecimal.ONE : ff;
     }
 
     /**
