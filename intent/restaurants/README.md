@@ -37,6 +37,8 @@ stored: no new Yelp data is imported, and it ends when the app is retired or mov
   it. The dead call is removed; reviving the feature is deferred.
 - **Public reviews or a review community.** Reviews stay private to whoever wrote them.
 - **Menus and favourite dishes.** Started once and never used.
+- **A link from the web app's top bar or home page.** It's reachable only at its own address while
+  it's frozen. See *The front door* in [design](../design.md).
 
 ## Open questions
 

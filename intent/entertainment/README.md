@@ -11,6 +11,11 @@ Django renders itself rather than in the web app. The author is the only writer 
 needs no code to maintain, and the server-rendered page doubles as a working demonstration of
 Django's built-in page templates, which fits the practice half of the public workspace.
 
+It is now heading out, the same way as [restaurants](../restaurants/README.md). It doesn't serve
+the finance core, so the web app no longer links to it, and it may move to a separate repo for
+retired FattoreStreet apps. Until then it keeps running at its own address, and the requirements
+below still hold. Like restaurants, it isn't added to while it waits. (inferred)
+
 This branch has one part:
 
 - [Recommendations](recommendations.md): the author's curated list, readable by anyone.
@@ -23,3 +28,10 @@ This branch has one part:
 - **A second page in the web app.** An unlinked web app page with a hard-coded album list, useful
   links and ratio definitions duplicated this branch. It goes; the ratio definitions move to
   [derived metrics](../fundamentals/derived-metrics.md).
+- **A link from the web app's top bar or home page.** It's reachable only at its own address while
+  it heads out. See *The front door* in [design](../design.md).
+
+## Open questions
+
+- **When does it move out?** Together with restaurants, or on its own schedule? And is the list
+  still edited while it waits, or frozen like restaurants?
