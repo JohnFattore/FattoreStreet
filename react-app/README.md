@@ -20,6 +20,10 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | Linting            | ESLint 10 + typescript-eslint v8 (aligned with the TypeScript version in use) |
 | Formatting         | Prettier 3 (all tracked files) + Stylelint 17 (css/scss, standard-scss)       |
 
+## Navigation
+
+`TopNavigation` has two rows. The top bar is the brand (links home), then Chatbot, Indexes, Economic Indicators, Portfolio, Blog and Profile. Portfolio opens a second row with Portfolio (`/portfolio`), Allocation (`/visualizer`) and Watchlist (`/watchlist`), shown on any of those pages and on `/account/:id`. Restaurants and Entertainment are not linked from the bar; their routes still work directly.
+
 ## Pages & Routes
 
 | Route                      | Page               | Description                                                                                                                                |

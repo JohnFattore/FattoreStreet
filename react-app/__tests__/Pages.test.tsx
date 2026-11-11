@@ -35,12 +35,33 @@ describe("Home", () => {
 
   it("renders platform capability cards", () => {
     renderWithProviders(<Home />);
-    expect(screen.getByText("Portfolio Management")).toBeInTheDocument();
-    expect(screen.getByText("Market Visualizer")).toBeInTheDocument();
-    expect(screen.getByText("Live Watchlist")).toBeInTheDocument();
     expect(screen.getByText("Boglehead AI")).toBeInTheDocument();
-    expect(screen.getByText("Macro Analytics")).toBeInTheDocument();
-    expect(screen.getByText("Nashville Restaurants")).toBeInTheDocument();
+    expect(screen.getByText("Fattore Indexes")).toBeInTheDocument();
+    expect(screen.getByText("Portfolio Management")).toBeInTheDocument();
+    for (const dropped of [
+      "Market Visualizer",
+      "Live Watchlist",
+      "Macro Analytics",
+      "Nashville Restaurants",
+    ]) {
+      expect(screen.queryByText(dropped)).not.toBeInTheDocument();
+    }
+  });
+
+  it("points the hero data button at the indexes", () => {
+    renderWithProviders(<Home />);
+    expect(
+      screen.getByRole("link", { name: "Explore Indexes" }),
+    ).toHaveAttribute("href", "/indexes");
+  });
+
+  it("leads the hero's secondary buttons with the chatbot", () => {
+    renderWithProviders(<Home />);
+    const chat = screen.getByRole("link", { name: "Chat with AI" });
+    const indexes = screen.getByRole("link", { name: "Explore Indexes" });
+    expect(
+      chat.compareDocumentPosition(indexes) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("renders the Buffett quote", () => {

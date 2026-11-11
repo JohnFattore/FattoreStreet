@@ -211,6 +211,22 @@ img {
   margin-right: auto;
 }
 
+.navbar-brand {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+// Second row under the top bar, shown on the Portfolio group's pages
+.nav-underline {
+  --bs-nav-link-color: var(--primary);
+  --bs-nav-link-hover-color: var(--secondary);
+  --bs-nav-underline-link-active-color: var(--primary);
+
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--primary);
+  font-size: 0.95rem;
+}
+
 // ============ Page/Component-scoped styles ============
 
 // -- SEC Data page --
