@@ -94,6 +94,17 @@ variable "task_memory" {
   default     = 4096
 }
 
+variable "task_ephemeral_storage_gib" {
+  description = "Fargate ephemeral storage (GiB) for the hist load. Each IEX TOPS day is downloaded to disk before parsing, and the next day is prefetched while the current one parses, so two files can coexist. Single days have reached ~23 GB, past the 20 GiB Fargate default."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.task_ephemeral_storage_gib >= 21 && var.task_ephemeral_storage_gib <= 200
+    error_message = "Fargate ephemeral storage must be 21-200 GiB (omit the block for the 20 GiB default)."
+  }
+}
+
 variable "hist_load_days" {
   description = "Number of trading days the load walks back (HIST_LOAD_DAYS). Already-loaded days are skipped."
   type        = number

@@ -452,6 +452,7 @@ That is pennies a month for now; add a second `imageCountMoreThan` rule if it gr
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `task_memory` | `4096` | Lower to `2048` after profiling a real run. |
+| `task_ephemeral_storage_gib` | `60` | Hist load disk. Each TOPS day (up to ~23 GB seen) is written to disk, and the next is prefetched during parsing, so two can coexist. The 20 GiB Fargate default ran out on 2026-11-05's file. |
 | `hist_load_days` | `20` | Days walked back; already-loaded days are skipped (idempotent). |
 | `hist_load_equity_only` | `true` | Restricts the post-load adjustment to non-fund tickers. Set `false` to include ETFs, accepting a much longer run. |
 | `schedule_expression` / `schedule_timezone` | `cron(30 6 * * ? *)` / `Etc/UTC` | When the hist load runs (tfvars example: `cron(0 2 * * ? *)` / `America/New_York`). |
