@@ -16,9 +16,8 @@ The product is a set of areas, each with its own branch in the tree:
 - **Market data, fundamentals, indexes, economic indicators.** The platform's own public data, built
   from free primary sources. Shared by everyone, changed only by scheduled jobs.
 - **Accounts, portfolio, advisor.** Things that belong to one signed-in user.
-- **Blog, entertainment, feedback.** The author's public workspace, plus a channel back to the
-  author.
-- **Restaurants.** A frozen legacy app, kept running safely until it moves out.
+- **Blog, feedback.** The author's public workspace, plus a channel back to the author.
+- **Restaurants, entertainment.** Legacy apps, kept running safely until they move out.
 
 Those areas run on a small number of services:
 
@@ -35,11 +34,19 @@ Those areas run on a small number of services:
 
 The main API, market-data service and Nginx run as containers on one small EC2 host.
 
-The web app's top bar shows the finance core and nothing else. The advisor leads, followed by the
-areas built on free primary data (indexes, economic indicators), then a Portfolio tab whose own
-second row holds the per-user pages (portfolio, allocation, watchlist), then the blog. Restaurants
-and entertainment are left out of the bar because they don't serve the finance core, but their
-pages still work at their own addresses.
+## The front door
+
+The web app's top bar and home page feature the finance core and nothing else. A bar that lists
+every area buries the parts built on the platform's own free data among side projects, and a
+first-time visitor leaves without seeing what makes it different. (inferred)
+
+- **The top bar** leads with the advisor, then the areas built on free primary data (indexes,
+  economic indicators), then a Portfolio tab whose own second row holds the per-user pages
+  (holdings, allocation, watch list), then the blog. Grouping the per-user pages under one tab keeps
+  the bar short without hiding any of them.
+- **The home page** features just three: the advisor, the indexes and the portfolio.
+- **Legacy apps** (restaurants, entertainment) are linked from neither. They keep working at their
+  own addresses until they move out.
 
 ## How the parts depend on each other
 
