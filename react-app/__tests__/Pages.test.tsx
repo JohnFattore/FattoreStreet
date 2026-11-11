@@ -175,13 +175,29 @@ describe("Indexes", () => {
     expect(screen.getByText("Indexes")).toBeInTheDocument();
   });
 
-  it("shows Fattore 1000 vs IWB comparison when FAT1000 is selected", async () => {
+  it("leaves the IWB comparison off the plain FAT1000 view", async () => {
     renderWithProviders(<Indexes />);
-    await screen.findByRole("combobox");
     await waitFor(() =>
       expect(screen.getByRole("combobox")).not.toBeDisabled(),
     );
     await userEvent.selectOptions(screen.getByRole("combobox"), "FAT1000");
+    expect(
+      await screen.findByRole("heading", { name: /\(FAT1000\)/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /Fattore 1000 vs Russell 1000/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the Fattore 1000 vs IWB comparison as its own dropdown entry", async () => {
+    renderWithProviders(<Indexes />);
+    await waitFor(() =>
+      expect(screen.getByRole("combobox")).not.toBeDisabled(),
+    );
+    await userEvent.selectOptions(
+      screen.getByRole("combobox"),
+      "Fattore 1000 vs Russell 1000 (IWB)",
+    );
     expect(
       await screen.findByRole("heading", {
         name: /Fattore 1000 vs Russell 1000/i,
