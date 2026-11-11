@@ -173,6 +173,11 @@ resource "aws_ecs_task_definition" "this" {
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.task.arn
 
+  # TOPS files are downloaded to local disk; see var.task_ephemeral_storage_gib.
+  ephemeral_storage {
+    size_in_gib = var.task_ephemeral_storage_gib
+  }
+
   runtime_platform {
     operating_system_family = "LINUX"
     cpu_architecture        = "ARM64"
