@@ -1,11 +1,13 @@
 {
-  "intro": "The goal of Fattore Street is to get all workers of America to secure their financial future...",
+  "intro": "The goal of Fattore Street is to help workers across America secure their financial future. These principles describe the Boglehead approach the site's author follows. They are general education, not personalized investment advice.",
+
+  "disclaimer": "Fattore Street is not a registered investment adviser, broker-dealer, or tax professional. Everything on this site is general educational information, not a recommendation to buy or sell any security or a substitute for advice tailored to your situation. Fund tickers are examples only. The site's author personally owns the Fidelity funds and Vanguard ETFs listed here. All investing involves risk, including loss of principal, and past performance does not guarantee future results.",
 
   "principles": [
     {
       "id": 1,
       "title": "Brokerage Accounts",
-      "content": "Fidelity, Schwab, and Vanguard are three of the top choices for brokerage accounts. Below are the passively managed mutual funds for each brokerage that together make up the entire global stock market.",
+      "content": "Fidelity, Schwab, and Vanguard are three of the top choices for brokerage accounts. Below are examples of passively managed index funds at each brokerage that together cover the entire global stock market. They are listed to illustrate the approach, not as a recommendation to buy any particular fund.",
       "table": {
         "data": [
           {
@@ -42,37 +44,37 @@
     {
       "id": 2,
       "title": "Managing Bad Debt",
-      "content": "Any debt which has an interest rate greater than your money market fund should be paid off. Other debt, notably low interest rate mortgages, can be managed by just paying the monthly premium. Keeping the cash with your emergency fund in a MMF might make more financial sense. Err on the side of paying off debts. Paying off debt is a guaranteed return. Once bills are paid, emergency funds established, and bad debt settled, excess cash can be invested."
+      "content": "A common rule of thumb is to pay off any debt with an interest rate greater than your money market fund's yield. Other debt, notably low interest rate mortgages, can be managed by just paying the monthly premium. Keeping the cash with your emergency fund in a MMF might make more financial sense. Paying off debt is effectively a guaranteed return, so many investors err on the side of paying it off. Once bills are paid, emergency funds established, and bad debt settled, excess cash can be invested."
     },
     {
       "id": 3,
       "title": "6 Month Emergency Fund",
-      "content": "Maintain a six-month emergency fund in a money market fund. Money market funds are preferred because they offer the highest return out of all risk-free options, all within the same brokerage account as your other investments. These funds invest in short-term treasury bills, so their yield tracks short-term interest rates; check the fund's current 7-day yield. A high-yield savings account is another good option, but might require opening up a separate account."
+      "content": "A common guideline is a six-month emergency fund held in a money market fund. Money market funds are popular for this because they offer the highest return out of all risk-free options, all within the same brokerage account as your other investments. These funds invest in short-term treasury bills, so their yield tracks short-term interest rates; check the fund's current 7-day yield. A high-yield savings account is another good option, but might require opening up a separate account."
     },
     {
       "id": 4,
       "title": "Buy and Hold",
-      "content": "Investing in low-cost, passively managed, market cap weighted, broadly diversified index funds is the best investing strategy. Limiting the number of funds in your portfolio reduces complexity. Allocate 20-40% to the international fund. Focus on staying invested rather than trying to time the market. Over the long term, holding your investments smooths out the ups and downs, leading to a solid average return. $100 invested at the start of the year in 1963 would be worth $41,024.18 at the end of 2023, which is a 40,924.18% return on investment or 10.37% a year. Note: Reinvesting dividends and not adjusting for inflation."
+      "content": "The Boglehead approach favors low-cost, passively managed, market cap weighted, broadly diversified index funds. Limiting the number of funds in your portfolio reduces complexity. Boglehead portfolios commonly hold 20-40% of stocks in an international fund. Focus on staying invested rather than trying to time the market. Over the long term, holding your investments smooths out the ups and downs, leading to a solid average return. $100 invested at the start of the year in 1963 would be worth $41,024.18 at the end of 2023, which is a 40,924.18% return on investment or 10.37% a year. Note: Reinvesting dividends and not adjusting for inflation."
     },
     {
       "id": 5,
       "title": "Picking Investments",
-      "content": "Buying and holding any low-cost broad index fund will yield exceptional results. Ensure the fund passively tracks a broad index and has a minimal expense ratio, less than 0.10%. Even professional active fund managers are unable to beat the returns of simple index funds, particularly because of their steep expense ratios. For 401ks, where options are limited, the target date funds are typically a slam dunk. Avoid market timing and especially day trading."
+      "content": "Buying and holding a low-cost broad index fund has historically been hard to beat. Look for a fund that passively tracks a broad index and has a minimal expense ratio, ideally under 0.10%. Most professional active fund managers fail to beat simple index funds over the long run, largely because of their higher expense ratios. In 401ks, where options are limited, a target date fund is often a simple one-fund choice. Market timing and day trading generally work against investors."
     },
     {
       "id": 6,
       "title": "Diversification",
-      "content": "A well-diversified portfolio reduces some risks of investing by averaging out the noise of the market. A large index such as the S&P 500 is less volatile compared to the individual stocks that comprise it. The two recommended funds together represent the entire global stock market, ensuring maximum diversification."
+      "content": "A well-diversified portfolio reduces some risks of investing by averaging out the noise of the market. A large index such as the S&P 500 is less volatile compared to the individual stocks that comprise it. A US total market fund plus an international fund together represent the entire global stock market."
     },
     {
       "id": 7,
       "title": "Continuous Investing",
-      "content": "Continuous automatic investing helps smooth out buying price and overall returns. Mutual funds are recommended over ETFs because they allow flexible automatic investing. Setting up weekly automatic investing is the ideal way to seamlessly build wealth over time."
+      "content": "Continuous automatic investing helps smooth out buying price and overall returns. Mutual funds can be more convenient than ETFs here because brokerages typically allow automatic investing of any dollar amount on a schedule. Regular automatic investing is a simple way to build wealth over time."
     },
     {
       "id": 8,
       "title": "Tax-Advantaged Accounts",
-      "content": "Capitalize on all tax-advantaged investment accounts such as IRAs and 401ks. Effectively, investments in IRAs and 401ks are not subject to capital gains tax; the difference is when income tax is applied. These accounts are either government or employer-sponsored; the employer 401k match is financially potent.",
+      "content": "Tax-advantaged accounts such as IRAs and 401ks are worth understanding and using where they fit your situation. Effectively, investments in IRAs and 401ks are not subject to capital gains tax; the difference is when income tax is applied. These accounts are either government or employer-sponsored; the employer 401k match is financially potent.",
       "table": {
         "data": [
           {
@@ -96,7 +98,7 @@
     {
       "id": 9,
       "title": "Bonds",
-      "content": "Bonds can be utilized in a portfolio to increase diversification, decrease risk, but also decrease overall potential return. 20-30 year olds have little need for bonds because they have long time horizons, while older individuals near retirement will appreciate the decrease in volatility. The percent of a portfolio as bonds should be roughly your age minus 20 (equivalently, about 120 minus your age in stocks). A 20 year old should have no bonds, a 60 year old about 40%."
+      "content": "Bonds can be utilized in a portfolio to increase diversification, decrease risk, but also decrease overall potential return. 20-30 year olds have little need for bonds because they have long time horizons, while older individuals near retirement will appreciate the decrease in volatility. One common rule of thumb is to hold roughly your age minus 20 as a percent in bonds (equivalently, about 120 minus your age in stocks), so a 20 year old would hold no bonds and a 60 year old about 40%. The right mix depends on your own goals and risk tolerance."
     }
   ]
 }
