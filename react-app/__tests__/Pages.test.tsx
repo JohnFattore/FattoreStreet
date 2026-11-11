@@ -48,6 +48,16 @@ describe("Home", () => {
     expect(screen.getByText(/know-nothing investor/)).toBeInTheDocument();
     expect(screen.getByText(/Warren Buffett/)).toBeInTheDocument();
   });
+
+  it("links to a copy of the Google Sheets portfolio tracker", () => {
+    renderWithProviders(<Home />);
+    const link = screen.getByRole("link", { name: /Copy the Tracker/ });
+    expect(link).toHaveAttribute(
+      "href",
+      expect.stringMatching(/docs\.google\.com\/spreadsheets\/d\/.+\/copy$/),
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
 });
 
 describe("SECData", () => {
