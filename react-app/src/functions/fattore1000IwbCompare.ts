@@ -23,12 +23,21 @@ export function formatIwbAsOfDate(
   });
 }
 
+/**
+ * Ticker with share-class separators removed. iShares writes Berkshire Class B as `BRKB`,
+ * while index members carry the SEC listing ticker `BRK-B`; both compact to `BRKB`.
+ */
+export function compactTicker(ticker: string): string {
+  return ticker.replace(/[.-]/g, "");
+}
+
+/** IWB weights keyed by compact ticker, so separated member tickers find their row. */
 export function buildIwbWeightMap(
   holdings: IIwbReferenceHolding[],
 ): Map<string, number> {
   const m = new Map<string, number>();
   for (const h of holdings) {
-    m.set(h.ticker, h.weightPercent);
+    m.set(compactTicker(h.ticker), h.weightPercent);
   }
   return m;
 }
@@ -40,8 +49,9 @@ export function buildFattore1000IwbCompareRows(
   return [...members]
     .map((m) => {
       const ticker = m.stock.ticker;
+      const key = compactTicker(ticker);
       const fw = m.percent;
-      const iw = iwbByTicker.has(ticker) ? iwbByTicker.get(ticker)! : null;
+      const iw = iwbByTicker.has(key) ? iwbByTicker.get(key)! : null;
       return {
         ticker,
         fattoreWeight: fw,

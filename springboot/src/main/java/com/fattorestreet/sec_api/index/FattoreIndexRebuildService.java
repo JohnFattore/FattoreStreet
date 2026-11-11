@@ -2,9 +2,13 @@ package com.fattorestreet.sec_api.index;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +29,13 @@ import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 public class FattoreIndexRebuildService {
 
     private static final int PERCENT_SCALE = 5;
+
+    /**
+     * A row priced more than this many days before the newest row is stale: its ticker has stopped
+     * printing on IEX (delisted, acquired, renamed) or has left the refresh scope. A week covers a
+     * long holiday weekend plus one failed nightly refresh.
+     */
+    static final int MAX_PRICE_AGE_DAYS = 7;
 
     private final ListingIndexMetricsRepository metricsRepository;
     private final MarketIndexRepository marketIndexRepository;
@@ -64,7 +75,8 @@ public class FattoreIndexRebuildService {
 
     @Transactional
     public RebuildResult rebuild(int year) {
-        List<ListingIndexMetrics> rows = metricsRepository.findAllWithListingAndAssetByYear(year);
+        List<ListingIndexMetrics> rows = withFreshPrices(metricsRepository.findAllWithListingAndAssetByYear(year));
+        guardAgainstShrinking(rows);
         List<ListingIndexMetrics> eligible = rows.stream()
                 .filter(this::isEligible)
                 .sorted(Comparator
@@ -107,6 +119,54 @@ public class FattoreIndexRebuildService {
 
         boolean partial = eligible.size() < topN;
         return new RebuildResult(indexCode, year, take, partial, totalFf, List.copyOf(tickers));
+    }
+
+    /**
+     * Throws, before anything is deleted, when more than half of the index's current members have
+     * no fresh row. Daily turnover moves a few names at the tail; losing half the index means the
+     * freshness cutoff is reacting to a partial refresh (a single-ticker run, a run that died
+     * midway), not to the market. Measured against current members rather than all rows, because
+     * rows left over from wider refresh scopes are stale by design and would trip a row-based
+     * guard every night. The index-load runner turns the exception into a failed task, and the
+     * transaction rollback keeps yesterday's members.
+     */
+    private void guardAgainstShrinking(List<ListingIndexMetrics> freshRows) {
+        List<String> currentMembers = indexMemberRepository.findTickersByIndexCode(indexCode);
+        if (currentMembers.isEmpty()) {
+            return;
+        }
+        Set<String> freshTickers = freshRows.stream()
+                .map(m -> m.getListing() != null ? m.getListing().getTicker() : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        long lost = currentMembers.stream().filter(t -> !freshTickers.contains(t)).count();
+        if (lost * 2 > currentMembers.size()) {
+            throw new IllegalStateException(String.format(
+                    "%s rebuild skipped: %d of %d current members have no row priced within %d days of the "
+                            + "newest; keeping existing members",
+                    indexCode, lost, currentMembers.size(), MAX_PRICE_AGE_DAYS));
+        }
+    }
+
+    /**
+     * Drops rows whose price is more than {@link #MAX_PRICE_AGE_DAYS} older than the newest row's.
+     * Measured against the data rather than the clock, so a failed price load ages nothing out. A
+     * row with no price date is stale: migration V5 dated every existing row, so only a listing
+     * the refresh has never priced lacks one.
+     */
+    static List<ListingIndexMetrics> withFreshPrices(List<ListingIndexMetrics> rows) {
+        LocalDate newest = rows.stream()
+                .map(ListingIndexMetrics::getPriceDate)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        if (newest == null) {
+            return List.of();
+        }
+        LocalDate cutoff = newest.minusDays(MAX_PRICE_AGE_DAYS);
+        return rows.stream()
+                .filter(m -> m.getPriceDate() != null && !m.getPriceDate().isBefore(cutoff))
+                .toList();
     }
 
     private boolean isEligible(ListingIndexMetrics m) {

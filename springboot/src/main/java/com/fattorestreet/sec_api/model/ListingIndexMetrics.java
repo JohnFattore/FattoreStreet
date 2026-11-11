@@ -1,6 +1,7 @@
 package com.fattorestreet.sec_api.model;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -68,6 +69,10 @@ public class ListingIndexMetrics {
 
     @Column(name = "year_ipo")
     private Integer yearIpo = 0;
+
+    /** Trade date of the close behind {@link #marketCap}; the rebuild skips rows priced too long ago. */
+    @Column(name = "price_date")
+    private LocalDate priceDate;
 
     public Long getId() {
         return id;
@@ -179,5 +184,13 @@ public class ListingIndexMetrics {
 
     public void setYearIpo(Integer yearIpo) {
         this.yearIpo = yearIpo;
+    }
+
+    public LocalDate getPriceDate() {
+        return priceDate;
+    }
+
+    public void setPriceDate(LocalDate priceDate) {
+        this.priceDate = priceDate;
     }
 }

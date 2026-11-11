@@ -138,6 +138,48 @@ class IndexMetricsRefreshServiceTest {
     }
 
     @Test
+    void matchIwbListings_matchesCompactIwbTickerToSeparatedListing() {
+        Listing brkB = listing("BRK-B", asset(1067983L, false));
+        Listing brkA = listing("BRK-A", asset(1067983L, false));
+        Listing aapl = listing("AAPL", asset(320193L, false));
+
+        List<Listing> matched = IndexMetricsRefreshService.matchIwbListings(
+                List.of(brkB, brkA, aapl), Set.of("BRKB", "AAPL"));
+
+        assertEquals(List.of(brkB, aapl), matched);
+    }
+
+    @Test
+    void matchIwbListings_compactFormNeverPullsInAnUnrelatedPlainTicker() {
+        // "BFB" is an exact listing, so the IWB ticker is matched and BF-B must not also come in.
+        Listing plain = listing("BFB", asset(1L, false));
+        Listing separated = listing("BF-B", asset(2L, false));
+
+        List<Listing> matched = IndexMetricsRefreshService.matchIwbListings(
+                List.of(plain, separated), Set.of("BFB"));
+
+        assertEquals(List.of(plain), matched);
+    }
+
+    @Test
+    void refresh_looksUpPricesByIexSymbolAndRecordsPriceDate() {
+        Listing brkB = listing("BRK-B", asset(1067983L, false));
+        runSingle(brkB);
+        when(dailyPriceRepository.findTopByTickerOrderByTradeDateDesc("BRK.B"))
+                .thenReturn(Optional.of(price("BRK.B", 500.0, 1_000L)));
+        stubHappyPathSec(1067983L, 2_000_000L);
+        when(metricsRepository.findByListingAndYear(brkB, YEAR)).thenReturn(Optional.empty());
+
+        IndexMetricsRefreshService.RefreshResult r = service.refreshAllTickers(YEAR);
+
+        assertEquals(1, r.processed());
+        ArgumentCaptor<ListingIndexMetrics> saved = ArgumentCaptor.forClass(ListingIndexMetrics.class);
+        verify(metricsRepository).save(saved.capture());
+        assertEquals(0, saved.getValue().getMarketCap().compareTo(new BigDecimal("1000000000")));
+        assertEquals(LocalDate.of(2026, 4, 1), saved.getValue().getPriceDate());
+    }
+
+    @Test
     void refreshAllTickers_doesNotFilter() {
         Listing aapl = listing("AAPL", asset(320193L, false));
         Listing other = listing("ZZZZ", asset(999L, false));
