@@ -166,25 +166,6 @@ export default function Home() {
               </Card.Body>
             </Card>
           </Col>
-          <Col md={4}>
-            <Card>
-              <Card.Body>
-                <div className="fs-1 mb-3 text-primary">🍔</div>
-                <Card.Title>Nashville Restaurants</Card.Title>
-                <Card.Text>
-                  Because life isn't just about investing. Explore our curated
-                  Nashville restaurant recommender for the best dining
-                  experiences in Music City.
-                </Card.Text>
-                <Link
-                  to="/restaurants"
-                  className="btn btn-link p-0 text-decoration-none"
-                >
-                  Find Dining &rarr;
-                </Link>
-              </Card.Body>
-            </Card>
-          </Col>
         </Row>
       </Container>
 

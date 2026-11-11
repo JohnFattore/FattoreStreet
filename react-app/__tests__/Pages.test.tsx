@@ -40,7 +40,7 @@ describe("Home", () => {
     expect(screen.getByText("Live Watchlist")).toBeInTheDocument();
     expect(screen.getByText("Boglehead AI")).toBeInTheDocument();
     expect(screen.getByText("Macro Analytics")).toBeInTheDocument();
-    expect(screen.getByText("Nashville Restaurants")).toBeInTheDocument();
+    expect(screen.queryByText("Nashville Restaurants")).not.toBeInTheDocument();
   });
 
   it("renders the Buffett quote", () => {
