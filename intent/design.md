@@ -35,6 +35,12 @@ Those areas run on a small number of services:
 
 The main API, market-data service and Nginx run as containers on one small EC2 host.
 
+The web app's top bar shows the finance core and nothing else. The advisor leads, followed by the
+areas built on free primary data (indexes, economic indicators), then a Portfolio tab whose own
+second row holds the per-user pages (portfolio, allocation, watchlist), then the blog. Restaurants
+and entertainment are left out of the bar because they don't serve the finance core, but their
+pages still work at their own addresses.
+
 ## How the parts depend on each other
 
 ```mermaid

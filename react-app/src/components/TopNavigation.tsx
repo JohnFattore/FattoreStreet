@@ -4,58 +4,74 @@ import Navbar from "react-bootstrap/Navbar";
 import LogoutButton from "./LogoutButton";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
-import { Link } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 
-const djangoBaseUrl = (import.meta.env.VITE_APP_DJANGO_URL || "").endsWith("/")
-  ? import.meta.env.VITE_APP_DJANGO_URL
-  : `${import.meta.env.VITE_APP_DJANGO_URL}/`;
+// Pages grouped under the Portfolio tab. Restaurants and Entertainment are
+// deliberately left out of the nav; their routes still resolve directly.
+const portfolioLinks = [
+  { to: "/portfolio", label: "Portfolio" },
+  { to: "/visualizer", label: "Allocation" },
+  { to: "/watchlist", label: "Watchlist" },
+];
 
-const entertainmentBaseUrl = djangoBaseUrl + "entertainment/";
+const portfolioPathPrefixes = [
+  "/portfolio",
+  "/visualizer",
+  "/watchlist",
+  "/account/",
+];
 
 export default function TopNavigation() {
   const { access } = useSelector((state: RootState) => state.user);
+  const { pathname } = useLocation();
+  const inPortfolio = portfolioPathPrefixes.some((prefix) =>
+    pathname.startsWith(prefix),
+  );
 
   return (
-    <Navbar expand="lg">
-      <Container>
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        <Navbar.Collapse id="basic-navbar-nav">
-          <Nav>
-            <Nav.Link as={Link} to="/">
-              Home
-            </Nav.Link>
-            <Nav.Link as={Link} to="/portfolio">
-              Portfolio
-            </Nav.Link>
-            <Nav.Link as={Link} to="/visualizer">
-              Visualizer
-            </Nav.Link>
-            <Nav.Link as={Link} to="/watchlist">
-              Watchlist
-            </Nav.Link>
-            <Nav.Link as={Link} to="/indexes">
-              Indexes
-            </Nav.Link>
-            <Nav.Link as={Link} to="/chatbot">
-              Chatbot
-            </Nav.Link>
-            <Nav.Link as={Link} to="/blog">
-              Blog
-            </Nav.Link>
-            <Nav.Link as={Link} to="/economic-indicators">
-              Economic Indicators
-            </Nav.Link>
-            <Nav.Link as={Link} to="/restaurants">
-              Restaurants
-            </Nav.Link>
-            <Nav.Link href={entertainmentBaseUrl}>Entertainment</Nav.Link>
-            <Nav.Link as={Link} to="/user">
-              Profile
-            </Nav.Link>
-            {access && <LogoutButton />}
+    <>
+      <Navbar expand="lg">
+        <Container>
+          <Navbar.Brand as={Link} to="/">
+            Fattore Street
+          </Navbar.Brand>
+          <Navbar.Toggle aria-controls="basic-navbar-nav" />
+          <Navbar.Collapse id="basic-navbar-nav">
+            <Nav>
+              <Nav.Link as={NavLink} to="/chatbot">
+                Chatbot
+              </Nav.Link>
+              <Nav.Link as={NavLink} to="/indexes">
+                Indexes
+              </Nav.Link>
+              <Nav.Link as={NavLink} to="/economic-indicators">
+                Economic Indicators
+              </Nav.Link>
+              <Nav.Link as={Link} to="/portfolio" active={inPortfolio}>
+                Portfolio
+              </Nav.Link>
+              <Nav.Link as={NavLink} to="/blog">
+                Blog
+              </Nav.Link>
+              <Nav.Link as={NavLink} to="/user">
+                Profile
+              </Nav.Link>
+              {access && <LogoutButton />}
+            </Nav>
+          </Navbar.Collapse>
+        </Container>
+      </Navbar>
+      {inPortfolio && (
+        <Container>
+          <Nav variant="underline" aria-label="Portfolio">
+            {portfolioLinks.map(({ to, label }) => (
+              <Nav.Link key={to} as={NavLink} to={to}>
+                {label}
+              </Nav.Link>
+            ))}
           </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+        </Container>
+      )}
+    </>
   );
 }
