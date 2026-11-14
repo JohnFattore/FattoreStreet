@@ -17,7 +17,7 @@ RUN npx sass src/styles/custom.scss src/styles/custom.css \
 # Stage 2: Django collectstatic (base image + uv pattern mirrors
 # django/Dockerfile; dummy env values match the django job in ci.yml --
 # settings just needs them present to import)
-FROM python:3.14.10-slim AS django-static
+FROM python:3.15.0-slim AS django-static
 COPY --from=ghcr.io/astral-sh/uv:0.11.26 /uv /uvx /bin/
 WORKDIR /app/django
 ENV UV_PYTHON_DOWNLOADS=never
