@@ -17,7 +17,7 @@ Django 6 + Django REST Framework backend providing portfolio management, market 
 |-----|---------|
 | `portfolio` | Asset & account CRUD, yfinance adjusted-close prices/dividends/splits/info, quarterly financials |
 | `users` | User registration, JWT token management |
-| `chatbot` | Boglehead AI financial advisor (open-weight model on AWS Bedrock via the Converse API), with separate per-user conversations; its system prompt is built from `chatbot/context/*.md` (see [Advisor context](#advisor-context)) |
+| `chatbot` | Boglehead AI financial advisor (open-weight model on AWS Bedrock via the Converse API), with separate per-user conversations, plus a written analysis for the company comparison page (`POST chatbot/api/company-comparison/`, same throttle and token cap, own short system prompt in `chatbot/prompt.py`); the advisor's system prompt is built from `chatbot/context/*.md` (see [Advisor context](#advisor-context)) |
 | `restaurants` | Restaurant reviews and recommendations |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
 | `blog` | Public blog posts (Markdown body) via `/blog/api/posts/`; content lives as Markdown in `blog/journal/` and `blog/learning-topics/` (see [Blog posts](#blog-posts)) |

@@ -10,6 +10,7 @@ import { ISECData } from "../interfaces";
 import LoadingButton from "../components/LoadingButton";
 import StateHandler from "../components/StateHandler";
 import { SecuritySearch } from "../components/SecuritySearch";
+import ComparisonAnalysis from "../components/ComparisonAnalysis";
 
 interface IFormInput {
   tickerA: string;
@@ -283,7 +284,16 @@ export function CompanyComparison() {
             errors={[queryA.error, queryB.error]}
             content={
               queryA.data &&
-              queryB.data && <ComparisonTable a={queryA.data} b={queryB.data} />
+              queryB.data && (
+                <>
+                  <ComparisonTable a={queryA.data} b={queryB.data} />
+                  <ComparisonAnalysis
+                    key={`${tickerA}-${tickerB}`}
+                    a={queryA.data}
+                    b={queryB.data}
+                  />
+                </>
+              )
             }
           />
         )}

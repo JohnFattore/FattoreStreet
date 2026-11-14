@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Conversation, Interaction
+from .prompt import COMPARISON_FIGURES
 
 class ChatMessageSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=500)  # Adjust max_length as needed
@@ -20,3 +21,30 @@ class ConversationDetailSerializer(ConversationSerializer):
 
     class Meta(ConversationSerializer.Meta):
         fields = ConversationSerializer.Meta.fields + ['interactions']
+
+
+# Fact-sheet figures are plain numbers, optionally a percentage ("24.46%"), or ISO dates. The fact
+# sheet writes "N/A" for a ratio it couldn't compute, which the prompt shows as not available.
+FIGURE_NUMBER = r"^(-?\d{1,20}(\.\d{1,10})?%?|N/A)$"
+FIGURE_DATE = r"^\d{4}-\d{2}-\d{2}$"
+
+
+class CompanyFiguresSerializer(serializers.Serializer):
+    """One company's comparison figures. Unknown keys are dropped; blank or null means not reported."""
+    ticker = serializers.RegexField(r"^[A-Z0-9][A-Z0-9.\-]{0,9}$")
+
+    def get_fields(self):
+        fields = super().get_fields()
+        for key, (_, kind) in COMPARISON_FIGURES.items():
+            fields[key] = serializers.RegexField(
+                FIGURE_DATE if kind == "date" else FIGURE_NUMBER,
+                max_length=32,
+                required=False,
+                allow_blank=True,
+                allow_null=True,
+            )
+        return fields
+
+
+class CompanyComparisonSerializer(serializers.Serializer):
+    companies = serializers.ListField(child=CompanyFiguresSerializer(), min_length=2, max_length=2)

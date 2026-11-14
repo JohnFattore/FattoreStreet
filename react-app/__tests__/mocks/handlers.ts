@@ -564,6 +564,13 @@ export const handlers = [
     );
   }),
 
+  http.post(chatbotApiBaseUrl.concat("company-comparison/"), () => {
+    return Response.json(
+      { analysis: "**AAPL** is the larger company by revenue." },
+      { status: 200 },
+    );
+  }),
+
   http.patch(chatbotApiBaseUrl.concat("conversations/:id/"), () => {
     return Response.json({}, { status: 200 });
   }),

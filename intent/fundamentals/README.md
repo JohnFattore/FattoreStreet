@@ -21,7 +21,8 @@ This branch has three parts:
 
 - [Quarterly financials](quarterly-financials.md): what each company reported, quarter by quarter.
 - [Derived metrics](derived-metrics.md): trailing-twelve-month totals and ratios built from them.
-- [Company comparison](company-comparison.md): two companies' headline figures side by side.
+- [Company comparison](company-comparison.md): two companies' headline figures side by side, with a
+  written analysis of them.
 
 ## Requirements
 

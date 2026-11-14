@@ -7,6 +7,8 @@ import { http } from "msw";
 import { CompanyComparison } from "../src/pages/CompanyComparison";
 import { pickWinner } from "../src/functions/helperFunctions";
 import { renderWithRoute } from "./testutils";
+import { toAnalysisFigures } from "../src/functions/analysisFigures";
+import { ISECData } from "../src/interfaces";
 import { server } from "./mocks/server";
 
 const factSheets: Record<string, Record<string, string>> = {
@@ -31,6 +33,19 @@ const factSheets: Record<string, Record<string, string>> = {
     latestQuarterEnd: "2024-12-31",
   },
 };
+
+const authenticatedState = {
+  user: {
+    access: "fake-token",
+    refresh: "fake-refresh",
+    username: "testuser",
+    darkMode: false,
+  },
+};
+
+const analysisUrl = import.meta.env.VITE_APP_DJANGO_URL.concat(
+  "chatbot/api/company-comparison/",
+);
 
 function useFactSheetsByTicker() {
   server.use(
@@ -175,5 +190,127 @@ describe("CompanyComparison", () => {
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(screen.queryByText("TTM Income Statement")).not.toBeInTheDocument();
+  });
+
+  it("prompts a signed-out reader to sign in for the analysis", async () => {
+    useFactSheetsByTicker();
+    let analysisRequested = false;
+    server.use(
+      http.post(analysisUrl, () => {
+        analysisRequested = true;
+        return Response.json({ analysis: "x" }, { status: 200 });
+      }),
+    );
+    renderWithRoute(<CompanyComparison />, {
+      path: "/compare",
+      initialEntry: "/compare?a=AAPL&b=MSFT",
+    });
+
+    expect(
+      await screen.findByText("AI Comparison Analysis"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("TTM Income Statement")).toBeInTheDocument();
+    expect(analysisRequested).toBe(false);
+  });
+
+  it("asks the model nothing until the reader clicks Generate Analysis", async () => {
+    useFactSheetsByTicker();
+    let analysisRequested = false;
+    server.use(
+      http.post(analysisUrl, () => {
+        analysisRequested = true;
+        return Response.json({ analysis: "x" }, { status: 200 });
+      }),
+    );
+    renderWithRoute(<CompanyComparison />, {
+      path: "/compare",
+      initialEntry: "/compare?a=AAPL&b=MSFT",
+      preloadedState: authenticatedState,
+    });
+
+    expect(
+      await screen.findByRole("button", { name: "Generate Analysis" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("AI Analysis")).toBeInTheDocument();
+    expect(analysisRequested).toBe(false);
+  });
+
+  it("sends every displayed figure and shows the analysis to a signed-in user", async () => {
+    useFactSheetsByTicker();
+    let sent: { companies: Record<string, string | null>[] } | undefined;
+    server.use(
+      http.post(analysisUrl, async ({ request }) => {
+        sent = (await request.json()) as typeof sent;
+        return Response.json(
+          { analysis: "**AAPL** is the larger company by revenue." },
+          { status: 200 },
+        );
+      }),
+    );
+    renderWithRoute(<CompanyComparison />, {
+      path: "/compare",
+      initialEntry: "/compare?a=AAPL&b=MSFT",
+      preloadedState: authenticatedState,
+    });
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Generate Analysis" }),
+    );
+    const bold = await screen.findByText("AAPL", { selector: "strong" });
+    expect(bold).toBeInTheDocument();
+    expect(sent?.companies.map((c) => c.ticker)).toEqual(["AAPL", "MSFT"]);
+    expect(sent?.companies[0]).toMatchObject({
+      ttm_revenue: "383285000000",
+      net_margin: "24.46%",
+      market_cap: "3500000000000.00",
+      latest_quarter_end: "2024-12-28",
+    });
+    // MSFT is unsized, so its market cap goes as missing rather than a guess
+    expect(sent?.companies[1].market_cap).toBeNull();
+  });
+
+  it("keeps the comparison when the analysis fails", async () => {
+    useFactSheetsByTicker();
+    server.use(
+      http.post(analysisUrl, () =>
+        Response.json(
+          {
+            detail:
+              "The advisor has reached its monthly usage limit and will be back next month.",
+          },
+          { status: 503 },
+        ),
+      ),
+    );
+    renderWithRoute(<CompanyComparison />, {
+      path: "/compare",
+      initialEntry: "/compare?a=AAPL&b=MSFT",
+      preloadedState: authenticatedState,
+    });
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Generate Analysis" }),
+    );
+    expect(
+      await screen.findByText(
+        "The advisor has reached its monthly usage limit and will be back next month.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("TTM Income Statement")).toBeInTheDocument();
+    expect(screen.getByText("35.96%")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Try Again" }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("toAnalysisFigures", () => {
+  it("maps every figure to its snake_case name, with null for missing", () => {
+    const figures = toAnalysisFigures(factSheets.MSFT as unknown as ISECData);
+    expect(figures.ticker).toBe("MSFT");
+    expect(figures.ro_a).toBeNull();
+    expect(figures.ttm_revenue_yoy).toBeNull();
+    expect(figures.debt_to_assets).toBe("45.10%");
+    expect(Object.keys(figures)).toHaveLength(23);
   });
 });

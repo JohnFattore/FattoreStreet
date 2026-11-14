@@ -50,7 +50,7 @@ Social feature for reviewing and sharing restaurant experiences.
 
 ## 🤖 Chatbot
 
-All chatbot endpoints require authentication and only ever touch the caller's own conversations; another user's conversation returns `404`. The advisor answers through AWS Bedrock; if the model call fails (throttling, model error, unreachable) the two asking endpoints return `503` with `{detail}` (code `advisor_unavailable`) and save nothing. They also return `503` with code `advisor_budget_exhausted`, without calling the model, once the month's token usage reaches `ADVISOR_MONTHLY_TOKEN_CAP`, and `429` once the user passes `ADVISOR_THROTTLE_RATE` questions (default 50 a day). Reading conversations is never throttled.
+All chatbot endpoints require authentication and only ever touch the caller's own conversations; another user's conversation returns `404`. The advisor answers through AWS Bedrock; if the model call fails (throttling, model error, unreachable) the asking endpoints (the two below plus the company comparison analysis) return `503` with `{detail}` (code `advisor_unavailable`) and save nothing. They also return `503` with code `advisor_budget_exhausted`, without calling the model, once the month's token usage reaches `ADVISOR_MONTHLY_TOKEN_CAP`, and `429` once the user passes `ADVISOR_THROTTLE_RATE` questions (default 50 a day). Reading conversations is never throttled.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -60,6 +60,7 @@ All chatbot endpoints require authentication and only ever touch the caller's ow
 | `PATCH` | `/chatbot/api/conversations/<id>/` | Rename a conversation. Body `{title}` (max 100 chars, not blank). Renaming doesn't change its place in the list. |
 | `DELETE` | `/chatbot/api/conversations/<id>/` | Delete a conversation and all its messages. Returns `204`. |
 | `POST` | `/chatbot/api/conversations/<id>/messages/` | Ask a follow-up. Body `{message}`. Only this conversation's recent exchanges are sent as context. Returns `{message}` with the advisor's reply. |
+| `POST` | `/chatbot/api/company-comparison/` | A short Markdown analysis of two companies' fact-sheet figures, written by the advisor's model. Body `{companies: [{ticker, market_cap, market_cap_as_of, ttm_revenue, ttm_revenue_yoy, ttm_gross_profit, ttm_operating_income, ttm_net_income, ttm_net_income_yoy, ttm_operating_cash_flow, latest_assets, latest_liabilities, latest_equity, latest_cash, latest_inventory, latest_eps, latest_quarter_end, net_margin, gross_margin, ro_a, debt_to_assets, cash_to_liabilities, ocf_to_net_income}, {...}]}`, exactly two companies. Every figure is optional (`null`, blank or `N/A` means not available) and must be a number, a percentage or an ISO date; anything else is `400` and unknown keys are dropped, so no free text reaches the model. Returns `{analysis}`. Nothing is stored; it shares the advisor's per-user throttle and monthly token cap. |
 
 ## 🧭 Changeflow (Tickets)
 
