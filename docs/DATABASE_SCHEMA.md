@@ -33,6 +33,7 @@ erDiagram
     auth_user ||--o{ restaurants_favorite : picks
     auth_user ||--o{ chatbot_conversation : starts
     chatbot_conversation ||--o{ chatbot_interaction : contains
+    auth_user ||--o{ chatbot_comparisonanalysisrequest : requests
     auth_user ||--o{ changeflow_ticket : files
     auth_user |o--o{ blog_post : authors
     blog_post }o--o{ blog_category : "filed under"
@@ -87,6 +88,16 @@ really removes its messages.
 | `input_text` | text | NN |
 | `output_text` | text | NN |
 | `timestamp` | timestamptz | NN, set on insert. Ordered by `(timestamp, id)` |
+
+**`chatbot_comparisonanalysisrequest`**: who asked for a company comparison analysis. Written after
+the request validates and before the model is called, so refused and failed calls are recorded too.
+The analysis text is not stored.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `user_id` | bigint | FK `auth_user`, NN, cascade delete |
+| `ticker_a`, `ticker_b` | varchar(10) | NN, the pair in the order compared |
+| `requested_at` | timestamptz | NN, set on insert; newest first |
 
 ### restaurants
 

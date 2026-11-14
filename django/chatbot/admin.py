@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AdvisorUsage, Conversation, Interaction
+from .models import AdvisorUsage, ComparisonAnalysisRequest, Conversation, Interaction
 
 class InteractionInline(admin.TabularInline):
     model = Interaction
@@ -15,3 +15,10 @@ class ConversationAdmin(admin.ModelAdmin):
 @admin.register(AdvisorUsage)
 class AdvisorUsageAdmin(admin.ModelAdmin):
     list_display = ('month', 'input_tokens', 'output_tokens', 'total_tokens')
+
+
+@admin.register(ComparisonAnalysisRequest)
+class ComparisonAnalysisRequestAdmin(admin.ModelAdmin):
+    list_display = ('requested_at', 'user', 'ticker_a', 'ticker_b')
+    list_filter = ('user',)
+    search_fields = ('user__username', 'ticker_a', 'ticker_b')

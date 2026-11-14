@@ -48,11 +48,20 @@ the root's *Not investment advice* rules out. The analysis describes what the fi
 growth, profitability, balance-sheet strength) and says nothing about which to buy, price targets
 or future results. See the *Analyst estimates or forecasts* non-goal in [fundamentals](README.md).
 
-### The analysis is for signed-in users and shares the advisor's spend ceiling
-Each analysis is a hosted-model call on the same per-token bill as the advisor. Only a signed-in
-user gets one, and it counts toward the same per-user daily limit and monthly cap as an advisor
-question (see *Spend has a hard ceiling* in [advisor](../advisor/README.md)). A signed-out reader
-still sees the full comparison, with a prompt to sign in for the analysis. (inferred)
+### Only signed-in users can generate an analysis
+Each analysis is a hosted-model call on the same per-token bill as the advisor, and an anonymous
+request can't be limited or traced to anyone. Only a signed-in user can generate one. A signed-out
+reader still sees the full comparison, with a prompt to sign in for the analysis.
+
+### Every analysis request is recorded with who asked
+Spend that can't be traced to an account can't be explained or stopped at its source. Each request
+for an analysis is recorded with the account that made it, the two companies and when, whether or
+not the model then answered. The analysis text itself is still not kept.
+
+### The analysis shares the advisor's spend ceiling
+A second route to the same model with its own limits would double what one account can spend. An
+analysis counts toward the same per-user daily limit and monthly cap as an advisor question (see
+*Spend has a hard ceiling* in [advisor](../advisor/README.md)). (inferred)
 
 ### A missing analysis never hides the comparison
 The figures are the primary data and the analysis is only a gloss on them. If the analysis can't be

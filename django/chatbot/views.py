@@ -20,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
-from .models import AdvisorUsage, Conversation, Interaction
+from .models import AdvisorUsage, ComparisonAnalysisRequest, Conversation, Interaction
 from .prompt import COMPARISON_SYSTEM_PROMPT, build_comparison_message, build_system_prompt
 from .serializer import (
     ChatMessageSerializer,
@@ -266,14 +266,23 @@ class CompanyComparisonAnalysisView(AdvisorThrottledMixin, APIView):
     """A written analysis of two companies' figures, as shown on the comparison page.
 
     Shares the advisor's per-user throttle scope and monthly token cap, since it is the same bill.
-    Nothing is stored: the analysis is written fresh from the figures sent.
+    Each request is recorded with who made it; the analysis itself is not stored.
     """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = CompanyComparisonSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        message = build_comparison_message(serializer.validated_data["companies"])
+        companies = serializer.validated_data["companies"]
+        # Recorded before the model call, so refused and failed attempts are traceable too
+        ComparisonAnalysisRequest.objects.create(
+            user=request.user, ticker_a=companies[0]["ticker"], ticker_b=companies[1]["ticker"]
+        )
+        logger.info(
+            "Comparison analysis requested by user %s (%s): %s vs %s",
+            request.user.pk, request.user.get_username(), companies[0]["ticker"], companies[1]["ticker"],
+        )
+        message = build_comparison_message(companies)
         analysis = converse(
             COMPARISON_SYSTEM_PROMPT,
             [{"role": "user", "content": [{"text": message}]}],
