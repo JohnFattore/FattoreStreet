@@ -16,6 +16,7 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Derives dividend ex-dates from SEC 8-K record-date disclosures and settlement-regime logic (T+3 before 2017-09-05, T+2 through 2024-05-27, T+1 after)
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
 - Serves stored 10-K MD&A summaries through `GET /filing-summaries`. **The generator is retired** — no new summary is ever written, so a ticker whose 10-K post-dates the last generation run returns an empty list. That is current behavior, not a bug; see "Filing summaries (frozen)" below
+- Company and fund search by name or ticker via public `GET /listings/search` (Postgres `pg_trgm` trigram matching, so partial names and small typos still match; exact tickers rank first; `includeFunds=false` limits to operating companies). Powers the site-wide search dropdown
 - Serves FRED (Federal Reserve Economic Data) observation series via public `POST /fred-data` (per-series optional year-over-year `pc1` units, 24h in-memory cache; powers the Economic Indicators page)
 - **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` and `GET /iwb-reference-holdings` (bundled IWB CSV tickers + fund weights for UI benchmark). Metrics refresh and rebuilds have no HTTP surface: the nightly `index-load` task refreshes metrics for the current year and then rebuilds all three indexes together. **Fattore 50** / **Fattore 100** / **Fattore 1000** are Russell-style top-50 / top-100 / top-1000 proxies (companies ranked by total market cap, each listed class weighted by its free-float cap) (`FAT50` / `FAT100` / `FAT1000`), not official FTSE Russell products.
 
@@ -349,6 +350,15 @@ APP_RUN_MODE=asset-load ASSET_LOAD_OVERWRITE_EXISTING=true mvn spring-boot:run
 The runner exits `1` if it persisted zero tickers — the signature of a missing `SEC_CONTACT_EMAIL`,
 which earns a 403 "Undeclared Automated Tool" on every request and would otherwise look like a
 successful run that happened to find nothing.
+
+The loaded universe is what `GET /listings/search` searches. The SEC fund ticker file carries no
+names, so most fund listings are stored with their ticker as their title and are found by ticker
+only; the search returns `name: null` for them.
+
+```bash
+curl "http://localhost:8080/listings/search?q=micrsoft&limit=5"
+curl "http://localhost:8080/listings/search?q=spdr&includeFunds=false"
+```
 
 ### 10-K Filing Summaries (frozen)
 

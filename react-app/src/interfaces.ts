@@ -256,6 +256,14 @@ export interface IIndexMemberRow {
   stock: IIndexMemberStock;
 }
 
+// One match from the Spring Boot /listings/search endpoint. `name` is null when
+// the security universe holds no real name for the ticker (most fund tickers).
+export interface ISecuritySearchResult {
+  ticker: string;
+  name: string | null;
+  isFund: boolean;
+}
+
 export interface ISECData {
   ticker: string;
   cik: string;

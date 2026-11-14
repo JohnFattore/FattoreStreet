@@ -43,6 +43,7 @@ export {
   useGetIexDividendsQuery,
   useGetIexSplitsQuery,
   useGetFilingSummariesQuery,
+  useSearchListingsQuery,
   useGetIndexesQuery,
   useGetIndexMembersQuery,
   useGetIwbReferenceHoldingsQuery,

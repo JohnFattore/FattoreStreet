@@ -5,6 +5,7 @@ import LogoutButton from "./LogoutButton";
 import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { NavbarSearch } from "./NavbarSearch";
 
 // Pages grouped under the Portfolio tab. Restaurants and Entertainment are
 // deliberately left out of the nav; their routes still resolve directly.
@@ -64,6 +65,7 @@ export default function TopNavigation() {
               </Nav.Link>
               {access && <LogoutButton />}
             </Nav>
+            <NavbarSearch />
           </Navbar.Collapse>
         </Container>
       </Navbar>

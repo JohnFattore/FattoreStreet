@@ -72,4 +72,12 @@ describe("TopNavigation", () => {
     expect(within(subNav).getByText("Allocation")).toHaveClass("active");
     expect(within(subNav).getByText("Watchlist")).not.toHaveClass("active");
   });
+
+  it("has a security search box on every page", () => {
+    renderAt("/blog");
+
+    expect(
+      screen.getByRole("search").querySelector('[role="combobox"]'),
+    ).toHaveAccessibleName("Search securities");
+  });
 });

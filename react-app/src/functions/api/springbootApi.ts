@@ -10,6 +10,7 @@ import type {
   IIwbReferenceHoldings,
   ISECData,
   ISECQuartersResponse,
+  ISecuritySearchResult,
 } from "../../interfaces";
 import { axiosBaseQuery } from "./baseQuery";
 
@@ -75,6 +76,16 @@ export const springbootApi = createApi({
         summaries: IFilingSummary[];
       }) => response.summaries,
     }),
+    searchListings: builder.query<
+      ISecuritySearchResult[],
+      { q: string; limit?: number; includeFunds?: boolean }
+    >({
+      query: ({ q, limit = 8, includeFunds = true }) => ({
+        url: "listings/search",
+        method: "GET",
+        params: { q, limit, includeFunds },
+      }),
+    }),
     getIndexes: builder.query<IMarketIndex[], void>({
       query: () => ({
         url: "indexes",
@@ -116,6 +127,7 @@ export const {
   useGetIexDividendsQuery,
   useGetIexSplitsQuery,
   useGetFilingSummariesQuery,
+  useSearchListingsQuery,
   useGetIndexesQuery,
   useGetIndexMembersQuery,
   useGetIwbReferenceHoldingsQuery,

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -26,6 +28,8 @@ import com.fattorestreet.sec_api.economic.FredService.FredObservation;
 import com.fattorestreet.sec_api.fundamentals.FinancialService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
+import com.fattorestreet.sec_api.listing.ListingSearchService;
+import com.fattorestreet.sec_api.listing.ListingSearchService.SearchResult;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.DailyPrice;
@@ -52,6 +56,7 @@ public class PublicController {
     private final MarketIndexRepository marketIndexRepository;
     private final IndexMemberApiService indexMemberApiService;
     private final FredService fredService;
+    private final ListingSearchService listingSearchService;
 
     public PublicController(
             AssetRepository assetRepository,
@@ -62,7 +67,8 @@ public class PublicController {
             FilingSummaryRepository filingSummaryRepository,
             MarketIndexRepository marketIndexRepository,
             IndexMemberApiService indexMemberApiService,
-            FredService fredService
+            FredService fredService,
+            ListingSearchService listingSearchService
     ) {
         this.assetRepository = assetRepository;
         this.quarterRepository = quarterRepository;
@@ -73,6 +79,7 @@ public class PublicController {
         this.marketIndexRepository = marketIndexRepository;
         this.indexMemberApiService = indexMemberApiService;
         this.fredService = fredService;
+        this.listingSearchService = listingSearchService;
     }
 
     public record MarketIndexRow(String code, String displayName) {
@@ -287,6 +294,19 @@ public class PublicController {
             output.add(entry);
         }
         return ResponseEntity.ok(Map.of("ticker", ticker, "summaries", output));
+    }
+
+    /**
+     * Companies and funds whose name or ticker matches {@code q}, best match first. Backs the
+     * site-wide search dropdown; {@code includeFunds=false} restricts it to operating companies.
+     */
+    @GetMapping("/listings/search")
+    public List<SearchResult> searchListings(
+            @RequestParam @NotBlank @Size(max = 100) String q,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(25) int limit,
+            @RequestParam(defaultValue = "true") boolean includeFunds
+    ) {
+        return listingSearchService.search(q, limit, includeFunds);
     }
 
     @GetMapping("/indexes")

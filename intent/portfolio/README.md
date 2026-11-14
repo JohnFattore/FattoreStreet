@@ -13,12 +13,13 @@ where ownership is enforced, and they're valued using the market data the rest o
 builds. See [data ownership](../accounts/data-ownership.md) and [market data](../market-data/README.md).
 (inferred)
 
-This branch has four parts:
+This branch has five parts:
 
 - [Holdings](holdings.md): a user's accounts and the positions in them.
 - [Performance](performance.md): what those positions returned, and how that compares with the market.
 - [Watch list](watch-list.md): securities a user follows but doesn't hold.
 - [Security page](security-page.md): the per-security view every other page links to.
+- [Security search](security-search.md): finding a security by name or ticker from anywhere on the site.
 
 ## Requirements
 

@@ -248,6 +248,8 @@ are keyed by ticker so the IEX universe (most symbols have no SEC asset) can loa
 | `sec_identity_status` | varchar(24) | ETF identity enrichment outcome |
 | `last_sec_detection_at` | timestamp | Last corporate-action detection run (V2). Drives the rolling ~weekly re-detect. Not audited |
 
+Indexes: GIN trigram indexes `listings_title_trgm_idx` on `lower(title)` and `listings_sec_series_name_trgm_idx` on `lower(sec_series_name)` (V6, `pg_trgm` extension) serve name search.
+
 ### Prices and corporate actions
 
 **`daily_prices`**: one OHLCV bar per ticker per day, from IEX HIST. PK id comes from a sequence
