@@ -17,10 +17,11 @@ figure for every filer in one place per period. Loading them is a scheduled one-
 market-data service, like every other refresh, so it costs nothing between runs and needs no one
 to start it.
 
-This branch has two parts:
+This branch has three parts:
 
 - [Quarterly financials](quarterly-financials.md): what each company reported, quarter by quarter.
 - [Derived metrics](derived-metrics.md): trailing-twelve-month totals and ratios built from them.
+- [Company comparison](company-comparison.md): two companies' headline figures side by side.
 
 ## Requirements
 

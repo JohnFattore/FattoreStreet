@@ -164,3 +164,21 @@ export function translateError(error: string) {
     return error;
   }
 }
+
+// Returns which side is stronger for a metric, or null when it is a tie,
+// a value is missing, or the metric has no better direction
+export function pickWinner(
+  a: string | undefined,
+  b: string | undefined,
+  higherIsBetter: boolean | undefined,
+): "a" | "b" | null {
+  if (higherIsBetter === undefined) {
+    return null;
+  }
+  const valueA = parseFloat(a ?? "");
+  const valueB = parseFloat(b ?? "");
+  if (Number.isNaN(valueA) || Number.isNaN(valueB) || valueA === valueB) {
+    return null;
+  }
+  return valueA > valueB === higherIsBetter ? "a" : "b";
+}

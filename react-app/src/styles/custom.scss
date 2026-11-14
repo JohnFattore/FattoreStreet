@@ -229,6 +229,23 @@ img {
 
 // ============ Page/Component-scoped styles ============
 
+// -- Company Comparison page --
+.company-comparison-page {
+  .container {
+    margin-top: 1.5rem;
+  }
+
+  form {
+    margin-bottom: 1.5rem;
+  }
+
+  .card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgb(0 0 0 / 7.5%);
+    border: 0;
+  }
+}
+
 // -- SEC Data page --
 .sec-data-page {
   .container {
