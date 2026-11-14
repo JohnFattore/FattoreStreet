@@ -25,6 +25,7 @@ import AdminSuccessBar from "./pages/AdminSuccessBar";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import LlmNotebook from "./pages/LlmNotebook";
+import { CompanyComparison } from "./pages/CompanyComparison";
 
 // react router for all our routes
 export default function App() {
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/economic-indicators" element={<EconomicIndicators />} />
         <Route path="/indexes" element={<Indexes />} />
         <Route path="/sec-edgar/:ticker" element={<SECData />} />
+        <Route path="/compare" element={<CompanyComparison />} />
         <Route path="/iex-prices/:ticker" element={<IexPricesView />} />
         <Route path="/react-admin/success-bar" element={<AdminSuccessBar />} />
         <Route path="/blog" element={<Blog />} />
