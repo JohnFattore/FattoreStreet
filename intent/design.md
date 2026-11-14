@@ -81,7 +81,7 @@ citizen of free sources* in [principles](principles.md)).
 | SEC EDGAR | Security universe, fundamentals, corporate actions, free-float shares | Yes |
 | IEX historical data | Daily raw prices | Yes |
 | FRED | Economic series | Government series, yes. Four privately owned series are kept under a named exception (see [series](economic-indicators/series.md)) |
-| AWS Bedrock (open-weight model) | The advisor's answers | Generated per user; nothing licensed is stored. Prompts aren't used for training (see [advisor](advisor/README.md)) |
+| AWS Bedrock (open-weight model) | The advisor's answers and the company comparison's written analysis | Generated per user; nothing licensed is stored. Prompts aren't used for training (see [advisor](advisor/README.md)) |
 | yfinance | Development diagnostics only, by principle | No. Still shown to users today; being removed (see [portfolio](portfolio/README.md)) |
 | Finnhub | Live quotes | No. To be removed last, replaced by the latest close (see [portfolio](portfolio/README.md)) |
 | Yelp | Restaurant data, legacy | No. Kept under a temporary exception while the app is frozen (see [restaurants](restaurants/README.md)) |

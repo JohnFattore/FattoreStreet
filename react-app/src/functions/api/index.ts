@@ -33,6 +33,7 @@ export {
   usePostConversationMessageMutation,
   useRenameConversationMutation,
   useDeleteConversationMutation,
+  useGetCompanyComparisonAnalysisQuery,
 } from "./djangoApi";
 
 export {

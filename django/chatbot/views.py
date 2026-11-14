@@ -20,9 +20,14 @@ from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
-from .models import AdvisorUsage, Conversation, Interaction
-from .prompt import build_system_prompt
-from .serializer import ChatMessageSerializer, ConversationSerializer, ConversationDetailSerializer
+from .models import AdvisorUsage, ComparisonAnalysisRequest, Conversation, Interaction
+from .prompt import COMPARISON_SYSTEM_PROMPT, build_comparison_message, build_system_prompt
+from .serializer import (
+    ChatMessageSerializer,
+    CompanyComparisonSerializer,
+    ConversationDetailSerializer,
+    ConversationSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +43,8 @@ DEFAULT_MODEL_ID = "us.meta.llama3-3-70b-instruct-v1:0"
 HISTORY_TURNS = 10
 TITLE_LENGTH = 60
 MAX_REPLY_TOKENS = 2048
+# A comparison analysis is a few short paragraphs, so it gets a tighter limit than an advisor answer
+MAX_COMPARISON_TOKENS = 800
 
 # Spend cap: Bedrock tokens (input + output, all users) allowed per UTC calendar month. Expected use
 # is about 5M tokens a month; 20M is roughly $15 at Llama 3.3 70B prices. 0 turns the advisor off.
@@ -155,25 +162,19 @@ def bedrock_client() -> BaseClient:
     )
 
 
-def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> str:
-    """Ask the advisor through the Bedrock Converse API.
+def converse(system_prompt: str, messages: list[dict], max_tokens: int = MAX_REPLY_TOKENS) -> str:
+    """One Bedrock Converse call, counted against the shared monthly token cap.
 
     Raises AdvisorBudgetExhausted past the monthly token cap, and AdvisorUnavailable on any model error.
     """
     check_budget()
 
-    messages = []
-    for interaction in previous_interactions:
-        messages.append({"role": "user", "content": [{"text": interaction.input_text}]})
-        messages.append({"role": "assistant", "content": [{"text": interaction.output_text}]})
-    messages.append({"role": "user", "content": [{"text": message}]})
-
     try:
         response = bedrock_client().converse(
             modelId=env("ADVISOR_MODEL_ID", default=DEFAULT_MODEL_ID),
-            system=[{"text": build_system_prompt()}],
+            system=[{"text": system_prompt}],
             messages=messages,
-            inferenceConfig={"temperature": 0.5, "topP": 0.95, "maxTokens": MAX_REPLY_TOKENS},
+            inferenceConfig={"temperature": 0.5, "topP": 0.95, "maxTokens": max_tokens},
         )
     except (ClientError, BotoCoreError) as exc:
         logger.exception("Bedrock advisor call failed")
@@ -189,12 +190,22 @@ def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> s
         raise AdvisorUnavailable() from exc
 
     if response.get("stopReason") == "max_tokens":
-        # A cut-off answer still beats none; the log shows whether MAX_REPLY_TOKENS needs raising
-        logger.warning("Bedrock advisor reply hit maxTokens=%d and was truncated", MAX_REPLY_TOKENS)
+        # A cut-off answer still beats none; the log shows whether the token limit needs raising
+        logger.warning("Bedrock advisor reply hit maxTokens=%d and was truncated", max_tokens)
     if not reply.strip():
         logger.error("Bedrock advisor returned no text (stopReason=%s)", response.get("stopReason"))
         raise AdvisorUnavailable()
     return reply
+
+
+def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> str:
+    """Ask the advisor, with earlier exchanges of the same conversation as context."""
+    messages = []
+    for interaction in previous_interactions:
+        messages.append({"role": "user", "content": [{"text": interaction.input_text}]})
+        messages.append({"role": "assistant", "content": [{"text": interaction.output_text}]})
+    messages.append({"role": "user", "content": [{"text": message}]})
+    return converse(build_system_prompt(), messages)
 
 
 class ConversationListCreateView(AdvisorThrottledMixin, generics.ListAPIView):
@@ -249,3 +260,32 @@ class ConversationMessageView(AdvisorThrottledMixin, APIView):
             conversation.save(update_fields=['last_message_at'])
 
         return Response({"message": reply}, status=status.HTTP_200_OK)
+
+
+class CompanyComparisonAnalysisView(AdvisorThrottledMixin, APIView):
+    """A written analysis of two companies' figures, as shown on the comparison page.
+
+    Shares the advisor's per-user throttle scope and monthly token cap, since it is the same bill.
+    Each request is recorded with who made it; the analysis itself is not stored.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = CompanyComparisonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        companies = serializer.validated_data["companies"]
+        # Recorded before the model call, so refused and failed attempts are traceable too
+        ComparisonAnalysisRequest.objects.create(
+            user=request.user, ticker_a=companies[0]["ticker"], ticker_b=companies[1]["ticker"]
+        )
+        logger.info(
+            "Comparison analysis requested by user %s (%s): %s vs %s",
+            request.user.pk, request.user.get_username(), companies[0]["ticker"], companies[1]["ticker"],
+        )
+        message = build_comparison_message(companies)
+        analysis = converse(
+            COMPARISON_SYSTEM_PROMPT,
+            [{"role": "user", "content": [{"text": message}]}],
+            max_tokens=MAX_COMPARISON_TOKENS,
+        )
+        return Response({"analysis": analysis}, status=status.HTTP_200_OK)

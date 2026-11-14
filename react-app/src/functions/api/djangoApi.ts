@@ -408,6 +408,21 @@ export const djangoApi = createApi({
       }),
       invalidatesTags: [{ type: "Conversations", id: "LIST" }],
     }),
+    // A POST, but a query: the analysis is a pure function of the figures sent, so the
+    // same comparison reuses its cached answer instead of asking the model again
+    getCompanyComparisonAnalysis: builder.query<
+      string,
+      { companies: Record<string, string | null>[] }
+    >({
+      query: (body) => ({
+        url: "chatbot/api/company-comparison/",
+        method: "POST",
+        data: body,
+      }),
+      transformResponse: (response: { analysis: string }) => response.analysis,
+      // Each answer costs a model call, so keep it for the session's revisits
+      keepUnusedDataFor: 3600,
+    }),
     getAssets: builder.query<IAsset[], number | void>({
       query: (accountId) => ({
         url: "portfolio/api/assets/",
@@ -668,4 +683,5 @@ export const {
   usePostConversationMessageMutation,
   useRenameConversationMutation,
   useDeleteConversationMutation,
+  useGetCompanyComparisonAnalysisQuery,
 } = djangoApi;

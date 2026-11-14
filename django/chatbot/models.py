@@ -51,3 +51,21 @@ class AdvisorUsage(models.Model):
 
     def __str__(self):
         return f"{self.month:%Y-%m}: {self.total_tokens:,} tokens"
+
+
+class ComparisonAnalysisRequest(models.Model):
+    """Who asked for a company comparison analysis, which pair, and when.
+
+    Written before the model is called, so failed and refused calls are recorded too. The
+    analysis text is not kept: it is a pure function of the figures and is written fresh.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comparison_analysis_requests')
+    ticker_a = models.CharField(max_length=10)
+    ticker_b = models.CharField(max_length=10)
+    requested_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f"{self.user.username}: {self.ticker_a} vs {self.ticker_b} at {self.requested_at:%Y-%m-%d %H:%M}"
