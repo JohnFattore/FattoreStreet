@@ -175,7 +175,7 @@ class PublicControllerTest {
     }
 
     @Test
-    void companyFactSheet_sizedCompany_includesMarketCapAndDate() throws Exception {
+    void companyFactSheet_sizedCompanyWithoutQuarters_returnsMarketCapAlone() throws Exception {
         Asset asset = buildAsset(320193L);
         when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
         when(quarterRepository.findByAsset(asset)).thenReturn(Collections.emptyList());
@@ -186,7 +186,9 @@ class PublicControllerTest {
         mockMvc.perform(get("/company-fact-sheet").param("ticker", "AAPL"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.marketCap").value("3500000000000.12"))
-                .andExpect(jsonPath("$.marketCapAsOf").value("2026-11-13"));
+                .andExpect(jsonPath("$.marketCapAsOf").value("2026-11-13"))
+                .andExpect(jsonPath("$.ttmRevenue").doesNotExist())
+                .andExpect(jsonPath("$.latestQuarterEnd").doesNotExist());
     }
 
     @Test
