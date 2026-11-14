@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Alert, Card, Col, Container, Form, Row, Table } from "react-bootstrap";
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -109,6 +110,11 @@ const sections: IMetricSection[] = [
   },
 ];
 
+const schema = yup.object().shape({
+  tickerA: yup.string().trim().uppercase().required(),
+  tickerB: yup.string().trim().uppercase().required(),
+});
+
 function formatMetric(value: string | undefined, format: IMetric["format"]) {
   if (value === undefined || value === null || value === "") {
     return "N/A";
@@ -123,6 +129,8 @@ function formatMetric(value: string | undefined, format: IMetric["format"]) {
   }
 }
 
+// A raw Table rather than SortableTable: the rows are a fixed metric list, so
+// sorting them means nothing (the static label/value exception in the rule)
 function ComparisonTable({ a, b }: { a: ISECData; b: ISECData }) {
   return (
     <>
@@ -183,18 +191,20 @@ export function CompanyComparison() {
   const tickerA = searchParams.get("a") ?? "";
   const tickerB = searchParams.get("b") ?? "";
 
-  const schema = yup.object().shape({
-    tickerA: yup.string().required().uppercase(),
-    tickerB: yup.string().required().uppercase(),
-  });
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<IFormInput>({
     resolver: yupResolver(schema),
     defaultValues: { tickerA, tickerB },
   });
+  // defaultValues only apply on mount; keep the inputs in step with the URL on
+  // back/forward or a nav click to a bare /compare
+  useEffect(() => {
+    reset({ tickerA, tickerB });
+  }, [tickerA, tickerB, reset]);
   const onSubmit: SubmitHandler<IFormInput> = (data) => {
     setSearchParams({ a: data.tickerA, b: data.tickerB });
   };

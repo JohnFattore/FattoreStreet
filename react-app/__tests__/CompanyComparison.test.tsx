@@ -105,6 +105,22 @@ describe("CompanyComparison", () => {
     expect(screen.getByText("$3.30")).toBeInTheDocument();
   });
 
+  it("trims whitespace from submitted tickers", async () => {
+    useFactSheetsByTicker();
+    renderWithRoute(<CompanyComparison />, {
+      path: "/compare",
+      initialEntry: "/compare",
+    });
+
+    await userEvent.type(screen.getByLabelText("First ticker"), "  aapl ");
+    await userEvent.type(screen.getByLabelText("Second ticker"), "msft  ");
+    await userEvent.click(screen.getByRole("button", { name: "Compare" }));
+
+    expect(await screen.findByText("TTM Income Statement")).toBeInTheDocument();
+    expect(screen.getByLabelText("First ticker")).toHaveValue("AAPL");
+    expect(screen.getByLabelText("Second ticker")).toHaveValue("MSFT");
+  });
+
   it("requires both tickers", async () => {
     renderWithRoute(<CompanyComparison />, {
       path: "/compare",
