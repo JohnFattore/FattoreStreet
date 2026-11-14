@@ -85,6 +85,32 @@ describe("SecuritySearch", () => {
     );
   });
 
+  it("forgets the highlighted match when focus leaves the box", async () => {
+    const onSelect = vi.fn();
+    renderWithProviders(
+      <>
+        <Harness onSelect={onSelect} />
+        <button>Elsewhere</button>
+      </>,
+    );
+
+    await userEvent.type(screen.getByRole("combobox"), "apple");
+    await screen.findByRole("listbox");
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+    await userEvent.tab();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("combobox"));
+    expect(screen.getByRole("combobox")).not.toHaveAttribute(
+      "aria-activedescendant",
+    );
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ ticker: "AAPL" }),
+    );
+  });
+
   it("picks a match on click", async () => {
     const onSelect = vi.fn();
     renderWithProviders(<Harness onSelect={onSelect} />);

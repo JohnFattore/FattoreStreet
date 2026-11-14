@@ -100,7 +100,13 @@ export function SecuritySearch({
           setActiveIndex(-1);
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => setOpen(false)}
+        onBlur={() => {
+          // Forget the highlight too: refocusing reopens the list, and a
+          // stale highlight would make Enter pick a match the user can't see
+          // they chose
+          setOpen(false);
+          setActiveIndex(-1);
+        }}
         onKeyDown={handleKeyDown}
       />
       {showList && (

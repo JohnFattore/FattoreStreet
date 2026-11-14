@@ -80,7 +80,8 @@ export const springbootApi = createApi({
       ISecuritySearchResult[],
       { q: string; limit?: number; includeFunds?: boolean }
     >({
-      query: ({ q, limit = 8, includeFunds = true }) => ({
+      // limit is left to the endpoint's default unless a caller sets it
+      query: ({ q, limit, includeFunds = true }) => ({
         url: "listings/search",
         method: "GET",
         params: { q, limit, includeFunds },
