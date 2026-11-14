@@ -23,10 +23,17 @@ class ConversationDetailSerializer(ConversationSerializer):
         fields = ConversationSerializer.Meta.fields + ['interactions']
 
 
-# Fact-sheet figures are plain numbers, optionally a percentage ("24.46%"), or ISO dates. The fact
-# sheet writes "N/A" for a ratio it couldn't compute, which the prompt shows as not available.
-FIGURE_NUMBER = r"^(-?\d{1,20}(\.\d{1,10})?%?|N/A)$"
-FIGURE_DATE = r"^\d{4}-\d{2}-\d{2}$"
+# Fact-sheet figures by kind: money, EPS and multiples are plain numbers, percentages carry a "%" ("24.46%"),
+# and dates are ISO. The fact sheet writes "N/A" for a ratio it couldn't compute, which the prompt
+# shows as not available. Checking each kind separately keeps "24%" out of a money figure, which
+# the prompt could not format.
+FIGURE_PATTERNS = {
+    "money": r"^-?\d{1,20}(\.\d{1,10})?$",
+    "eps": r"^-?\d{1,20}(\.\d{1,10})?$",
+    "ratio": r"^-?\d{1,20}(\.\d{1,10})?$",
+    "percent": r"^(-?\d{1,20}(\.\d{1,10})?%|N/A)$",
+    "date": r"^\d{4}-\d{2}-\d{2}$",
+}
 
 
 class CompanyFiguresSerializer(serializers.Serializer):
@@ -37,7 +44,7 @@ class CompanyFiguresSerializer(serializers.Serializer):
         fields = super().get_fields()
         for key, (_, kind) in COMPARISON_FIGURES.items():
             fields[key] = serializers.RegexField(
-                FIGURE_DATE if kind == "date" else FIGURE_NUMBER,
+                FIGURE_PATTERNS[kind],
                 max_length=32,
                 required=False,
                 allow_blank=True,

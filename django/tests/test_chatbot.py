@@ -457,6 +457,7 @@ def comparison_company(ticker: str, **overrides) -> dict:
         "net_margin": "24.46%",
         "latest_eps": "6.08",
         "latest_quarter_end": "2024-12-28",
+        "ocf_to_net_income": "1.18",
     }
     figures.update(overrides)
     return figures
@@ -469,6 +470,7 @@ class ComparisonMessageTest(BaseAPITestCase):
         self.assertEqual(format_figure("3400000000000", "money"), "$3.40T")
         self.assertEqual(format_figure("6.08", "eps"), "$6.08")
         self.assertEqual(format_figure("24.46%", "percent"), "24.46%")
+        self.assertEqual(format_figure("1.18", "ratio"), "1.18x")
         self.assertEqual(format_figure(None, "money"), "not available")
         self.assertEqual(format_figure("", "percent"), "not available")
         self.assertEqual(format_figure("N/A", "percent"), "not available")
@@ -537,6 +539,16 @@ class CompanyComparisonAnalysisTest(BedrockPatchMixin, BaseAPITestCase):
         response = self.client.post(self.url, self.payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.mock_client.converse.assert_not_called()
+
+    def test_figure_of_the_wrong_kind_is_rejected_and_not_recorded(self):
+        for key, value in (("market_cap", "24%"), ("latest_eps", "N/A"), ("net_margin", "24.46"),
+                           ("ocf_to_net_income", "117.93%"), ("latest_quarter_end", "N/A")):
+            with self.subTest(key=key, value=value):
+                companies = [comparison_company("AAPL", **{key: value}), comparison_company("MSFT")]
+                response = self.client.post(self.url, {"companies": companies}, format='json')
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.mock_client.converse.assert_not_called()
+        self.assertFalse(ComparisonAnalysisRequest.objects.exists())
 
     def test_invalid_ticker_rejected(self):
         self.payload["companies"][1]["ticker"] = "msft; drop"

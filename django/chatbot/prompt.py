@@ -57,7 +57,8 @@ COMPARISON_FIGURES: dict[str, tuple[str, str]] = {
     "ro_a": ("Return on assets", "percent"),
     "debt_to_assets": ("Debt to assets", "percent"),
     "cash_to_liabilities": ("Cash to liabilities", "percent"),
-    "ocf_to_net_income": ("Operating cash flow to net income", "percent"),
+    # A plain multiple, not a percentage: the fact sheet writes it as "1.18"
+    "ocf_to_net_income": ("Operating cash flow to net income", "ratio"),
 }
 
 COMPARISON_SYSTEM_PROMPT = """You write short, plain-language comparisons of two US public companies \
@@ -88,6 +89,8 @@ def format_figure(value: str | None, kind: str) -> str:
         return f"${amount:,.0f}"
     if kind == "eps":
         return f"${value}"
+    if kind == "ratio":
+        return f"{value}x"
     return value
 
 
