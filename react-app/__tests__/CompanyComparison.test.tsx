@@ -89,6 +89,18 @@ describe("CompanyComparison", () => {
     expect(screen.getByText("45.10%")).toHaveClass("text-success");
   });
 
+  it("normalizes tickers typed straight into the URL", async () => {
+    useFactSheetsByTicker();
+    renderWithRoute(<CompanyComparison />, {
+      path: "/compare",
+      initialEntry: "/compare?a=aapl&b=%20msft",
+    });
+
+    expect(await screen.findByText("TTM Income Statement")).toBeInTheDocument();
+    expect(screen.getByLabelText("First ticker")).toHaveValue("AAPL");
+    expect(screen.getByLabelText("Second ticker")).toHaveValue("MSFT");
+  });
+
   it("compares tickers submitted through the form", async () => {
     useFactSheetsByTicker();
     renderWithRoute(<CompanyComparison />, {

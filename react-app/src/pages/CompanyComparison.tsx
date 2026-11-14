@@ -188,8 +188,10 @@ function ComparisonTable({ a, b }: { a: ISECData; b: ISECData }) {
 
 export function CompanyComparison() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tickerA = searchParams.get("a") ?? "";
-  const tickerB = searchParams.get("b") ?? "";
+  // Normalize here too, so a hand-edited URL behaves like a form submission:
+  // the endpoint rejects lowercase tickers, and one ticker gets one cache entry
+  const tickerA = searchParams.get("a")?.trim().toUpperCase() ?? "";
+  const tickerB = searchParams.get("b")?.trim().toUpperCase() ?? "";
 
   const {
     register,
