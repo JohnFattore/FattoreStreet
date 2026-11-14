@@ -18,6 +18,8 @@ const factSheets: Record<string, Record<string, string>> = {
     debtToAssets: "84.39%",
     latestEps: "6.08",
     latestQuarterEnd: "2024-12-28",
+    marketCap: "3500000000000.00",
+    marketCapAsOf: "2026-11-13",
   },
   MSFT: {
     ticker: "MSFT",
@@ -87,6 +89,21 @@ describe("CompanyComparison", () => {
     expect(screen.getByText("35.96%")).toHaveClass("text-success");
     expect(screen.getByText("24.46%")).not.toHaveClass("text-success");
     expect(screen.getByText("45.10%")).toHaveClass("text-success");
+  });
+
+  it("shows market cap with its date, unmarked, and N/A when unsized", async () => {
+    useFactSheetsByTicker();
+    renderWithRoute(<CompanyComparison />, {
+      path: "/compare",
+      initialEntry: "/compare?a=AAPL&b=MSFT",
+    });
+
+    expect(await screen.findByText("Market Size")).toBeInTheDocument();
+    const cap = screen.getByText("$3,500.00 Billion");
+    expect(cap).not.toHaveClass("text-success");
+    expect(screen.getByText("2026-11-13")).toBeInTheDocument();
+    const capRow = screen.getByText("Market Cap").closest("tr");
+    expect(capRow).toHaveTextContent("N/A");
   });
 
   it("normalizes tickers typed straight into the URL", async () => {

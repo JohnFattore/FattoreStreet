@@ -35,7 +35,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `/account/:id`             | AccountView        | Account holdings breakdown                                                                                                                 |
 | `/indexes`                 | Indexes            | Browse computed indexes (e.g. Fattore 50, Fattore 100, Fattore 1000) and view constituents, weights, and key metrics                       |
 | `/sec-edgar/:ticker`       | SECData            | SEC EDGAR financials, quarterly comparison, 10-K filing summaries                                                                          |
-| `/compare?a=:t1&b=:t2`     | CompanyComparison  | Side-by-side SEC EDGAR fundamentals (TTM income, balance sheet, ratios) for two tickers, stronger value highlighted                        |
+| `/compare?a=:t1&b=:t2`     | CompanyComparison  | Side-by-side market cap and SEC EDGAR fundamentals (TTM income, balance sheet, ratios) for two tickers, stronger value highlighted         |
 | `/iex-prices/:ticker`      | IexPricesView      | IEX daily adjusted OHLCV prices plus side-by-side adjusted price, dividend, and split comparisons vs YFinance                              |
 | `/react-admin/success-bar` | AdminSuccessBar    | Per-ticker corporate-action success overview comparing Spring Boot vs YFinance price/dividend alignment using persisted manual ticker list |
 | `/visualizer`              | Visualizer         | Chart comparison tool                                                                                                                      |

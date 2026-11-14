@@ -24,6 +24,13 @@ not better. A tie or a blank figure marks neither side. (inferred)
 A comparison that has to be re-entered can't be sent to someone else or revisited. The two
 companies being compared are part of the page's address. (inferred)
 
+### Each company's size is shown as its latest market cap
+Fundamentals alone hide how big a company is in the market, which a reader needs to judge whether
+two companies are true peers. Each side shows the same market cap the [indexes](../indexes/market-cap.md)
+use, built from SEC share counts and exchange closes, summed across the company's listed share
+classes and labelled with the date of the close it uses. Like other size figures it marks no winner.
+A company the platform hasn't sized shows no figure rather than a guess.
+
 ### A company that can't be loaded fails the comparison visibly
 Half a comparison next to an empty column reads as if the missing company had no figures. If either
 company can't be loaded, the page says so instead of showing one side. (inferred)
@@ -34,6 +41,10 @@ company can't be loaded, the page says so instead of showing one side. (inferred
   development* in [fundamentals](README.md).
 
 ## Open questions
+
+- **Market cap coverage.** Sizes are only computed for the companies the index refresh covers, so a
+  company outside it shows no market cap. Should the refresh widen to every operating company, or
+  should the comparison size a company on demand?
 
 - **More than two companies.** Is a comparison always a pair, or should it grow to a small peer
   group (three to five)? The page compares exactly two today.

@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fattorestreet.sec_api.economic.FredService;
 import com.fattorestreet.sec_api.economic.FredService.FredObservation;
 import com.fattorestreet.sec_api.fundamentals.FinancialService;
+import com.fattorestreet.sec_api.index.CompanyMarketCapService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
 import com.fattorestreet.sec_api.listing.ListingSearchService;
@@ -56,6 +57,7 @@ public class PublicController {
     private final MarketIndexRepository marketIndexRepository;
     private final IndexMemberApiService indexMemberApiService;
     private final FredService fredService;
+    private final CompanyMarketCapService companyMarketCapService;
     private final ListingSearchService listingSearchService;
 
     public PublicController(
@@ -68,6 +70,7 @@ public class PublicController {
             MarketIndexRepository marketIndexRepository,
             IndexMemberApiService indexMemberApiService,
             FredService fredService,
+            CompanyMarketCapService companyMarketCapService,
             ListingSearchService listingSearchService
     ) {
         this.assetRepository = assetRepository;
@@ -79,6 +82,7 @@ public class PublicController {
         this.marketIndexRepository = marketIndexRepository;
         this.indexMemberApiService = indexMemberApiService;
         this.fredService = fredService;
+        this.companyMarketCapService = companyMarketCapService;
         this.listingSearchService = listingSearchService;
     }
 
@@ -159,6 +163,10 @@ public class PublicController {
         Map<String, Object> response = new HashMap<>();
         response.put("ticker", ticker);
         response.put("cik", asset.getCik().toString());
+        companyMarketCapService.latestFor(asset).ifPresent(mc -> {
+            response.put("marketCap", formatNumber(mc.marketCap()));
+            response.put("marketCapAsOf", mc.asOf().toString());
+        });
 
         if (!metrics.isEmpty()) {
             response.put("ttmNetIncome", formatNumber(metrics.get("ttmNetIncome")));

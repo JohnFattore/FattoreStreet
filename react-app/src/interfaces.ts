@@ -287,6 +287,9 @@ export interface ISECData {
   roA: string;
   ocfToNetIncome: string;
   latestQuarterEnd: string;
+  // Absent when the platform hasn't sized the company (outside the index refresh)
+  marketCap?: string;
+  marketCapAsOf?: string;
 }
 
 export interface IQuarter {
