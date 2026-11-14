@@ -38,10 +38,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 })
 class ListingSearchPostgresTest {
 
-    // Same major version as production (deploy/docker-compose.infra.yml)
+    // Same exact image as production (deploy/docker-compose.infra.yml)
     @Container
     @ServiceConnection
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17.12-trixie");
 
     @Autowired
     private ListingSearchService listingSearchService;

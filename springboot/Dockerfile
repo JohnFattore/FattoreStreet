@@ -4,7 +4,7 @@
 # stage-2 runtime, so the jar is built and run on the same JDK. Always take an
 # LTS here: the previous eclipse-temurin:19 was non-LTS, went EOL, and left this
 # image stranded on a dead tag family that Dependabot could not bump.
-FROM maven:3-eclipse-temurin-26 AS build
+FROM maven:3.10.0-eclipse-temurin-26 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
@@ -16,7 +16,7 @@ RUN mvn -B clean package -DskipTests -Dquality.skip=true
 # Stage 2: Runtime
 # noble (Ubuntu 24.04) is deliberate: the AWS CLI v2 install below is a glibc
 # binary with no musl build, so alpine is not an option here.
-FROM eclipse-temurin:25-jre-noble
+FROM eclipse-temurin:25.0.5_8-jre-noble
 WORKDIR /app
 
 # AWS CLI v2 + jq so the entrypoint can pull config from Secrets Manager at start.

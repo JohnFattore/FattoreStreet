@@ -30,7 +30,7 @@ x-django-env: &django-env
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:17.12-trixie
     volumes:
       - pgdata:/var/lib/postgresql/data
       # creates the extra "springboot" database on first init (django uses
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:8
+    image: redis:8.10.3
     restart: unless-stopped
 
   django:
@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: nginx:1.31
+    image: nginx:1.31.8
     ports:
       - "80:80"
     volumes:
