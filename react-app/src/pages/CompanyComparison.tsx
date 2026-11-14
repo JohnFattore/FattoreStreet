@@ -30,6 +30,14 @@ interface IMetricSection {
 
 const sections: IMetricSection[] = [
   {
+    // Size is never a winner: bigger is not better
+    title: "Market Size",
+    metrics: [
+      { key: "marketCap", label: "Market Cap", format: "money" },
+      { key: "marketCapAsOf", label: "Market Cap As Of", format: "text" },
+    ],
+  },
+  {
     title: "TTM Income Statement",
     metrics: [
       { key: "ttmRevenue", label: "Revenue", format: "money" },
@@ -221,7 +229,8 @@ export function CompanyComparison() {
         <h1>Compare Companies</h1>
         <p>
           Side-by-side SEC EDGAR fundamentals. The stronger value is highlighted
-          where a metric has a clear better direction.
+          where a metric has a clear better direction. Market cap is SEC shares
+          outstanding times the latest IEX close.
         </p>
 
         <Form onSubmit={handleSubmit(onSubmit)}>

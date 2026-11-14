@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.Listing;
 import com.fattorestreet.sec_api.model.ListingIndexMetrics;
 
@@ -21,4 +22,7 @@ public interface ListingIndexMetricsRepository extends JpaRepository<ListingInde
     List<ListingIndexMetrics> findAllWithListingAndAssetByYear(@Param("year") int year);
 
     List<ListingIndexMetrics> findAllByYear(int year);
+
+    /** Every metrics row for any of the company's listings, across all years. */
+    List<ListingIndexMetrics> findByListing_Asset(Asset asset);
 }
