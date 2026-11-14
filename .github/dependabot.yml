@@ -44,6 +44,8 @@ updates:
           - minor
           - patch
 
+  # Base-image pins in the Dockerfiles. Majors are ignored: the springboot
+  # runtime stays on a Temurin LTS, and python/node/maven majors are migrations.
   - package-ecosystem: docker
     directories:
       - /django
@@ -51,6 +53,9 @@ updates:
       - /nginx
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # Image pins in the compose files (postgres, redis, pgadmin4, nginx). Majors
   # are ignored: postgres needs a dump/restore or pg_upgrade, and redis moves

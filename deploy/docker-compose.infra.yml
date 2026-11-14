@@ -43,10 +43,10 @@ services:
     networks: [dockerNet, pgadminNet]
     restart: unless-stopped
 
-  # Pinned exactly like postgres; bump the major deliberately with the redis-py/django-redis
-  # client pins in django/pyproject.toml. No host port: redis has no auth, and
-  # django reaches it over dockerNet (redis://redis:6379); debug with
-  # `docker exec -it redis redis-cli`.
+  # Pinned exactly like postgres; bump the major deliberately with the
+  # redis-py/django-redis client pins in django/pyproject.toml. No host port:
+  # redis has no auth, and django reaches it over dockerNet
+  # (redis://redis:6379); debug with `docker exec -it redis redis-cli`.
   redis:
     image: redis:8.10.3
     container_name: redis
