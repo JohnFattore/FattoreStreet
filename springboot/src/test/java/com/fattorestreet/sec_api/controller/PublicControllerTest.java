@@ -26,6 +26,8 @@ import com.fattorestreet.sec_api.index.CompanyMarketCapService.CompanyMarketCap;
 import com.fattorestreet.sec_api.index.IndexMemberApiService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.StockRow;
+import com.fattorestreet.sec_api.listing.ListingSearchService;
+import com.fattorestreet.sec_api.listing.ListingSearchService.SearchResult;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.CorporateAction;
 import com.fattorestreet.sec_api.model.CorporateAction.ActionType;
@@ -65,6 +67,7 @@ class PublicControllerTest {
     @MockitoBean private MarketIndexRepository marketIndexRepository;
     @MockitoBean private IndexMemberApiService indexMemberApiService;
     @MockitoBean private FredService fredService;
+    @MockitoBean private ListingSearchService listingSearchService;
 
     private Asset buildAsset(Long cik) {
         Asset a = new Asset();
@@ -495,5 +498,52 @@ class PublicControllerTest {
                         .content("[{\"seriesId\":\"bad id\"}]"))
         );
         verifyNoInteractions(fredService);
+    }
+
+    // --- /listings/search endpoint ---
+
+    @Test
+    void searchListings_returnsMatchesWithNameAndTicker() throws Exception {
+        when(listingSearchService.search("apple", 10, true)).thenReturn(List.of(
+                new SearchResult("AAPL", "Apple Inc.", false),
+                new SearchResult("VTI", null, true)));
+
+        mockMvc.perform(get("/listings/search").param("q", "apple"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].ticker").value("AAPL"))
+                .andExpect(jsonPath("$[0].name").value("Apple Inc."))
+                .andExpect(jsonPath("$[0].isFund").value(false))
+                .andExpect(jsonPath("$[1].name").value(nullValue()))
+                .andExpect(jsonPath("$[1].isFund").value(true));
+    }
+
+    @Test
+    void searchListings_passesLimitAndFundFilter() throws Exception {
+        when(listingSearchService.search("tesla", 5, false)).thenReturn(List.of());
+
+        mockMvc.perform(get("/listings/search")
+                        .param("q", "tesla")
+                        .param("limit", "5")
+                        .param("includeFunds", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        verify(listingSearchService).search("tesla", 5, false);
+    }
+
+    @Test
+    void searchListings_missingQuery_returns400() throws Exception {
+        mockMvc.perform(get("/listings/search"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(listingSearchService);
+    }
+
+    @Test
+    void searchListings_limitAboveMax_isRejected() {
+        assertThrows(jakarta.servlet.ServletException.class, () ->
+                mockMvc.perform(get("/listings/search").param("q", "a").param("limit", "500"))
+        );
+        verifyNoInteractions(listingSearchService);
     }
 }

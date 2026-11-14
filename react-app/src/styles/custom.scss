@@ -198,6 +198,13 @@ img {
   border-radius: 5px;
 }
 
+// Security search dropdown: the keyboard-highlighted match looks like a hovered one
+[role="listbox"] .list-group-item.active {
+  color: var(--secondary);
+  background-color: var(--primary);
+  border-color: var(--tertiary);
+}
+
 // ============ Global utility rules ============
 
 // Spinners inside buttons always get right margin

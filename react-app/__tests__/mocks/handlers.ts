@@ -164,6 +164,32 @@ export const handlers = [
     );
   }),
 
+  // --- Spring Boot: security search ---
+  http.get(
+    import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("listings/search"),
+    ({ request }) => {
+      const params = new URL(request.url).searchParams;
+      const q = (params.get("q") ?? "").toLowerCase();
+      const includeFunds = params.get("includeFunds") !== "false";
+      const universe = [
+        { ticker: "AAPL", name: "Apple Inc.", isFund: false },
+        { ticker: "APLE", name: "Apple Hospitality REIT, Inc.", isFund: false },
+        { ticker: "MSFT", name: "MICROSOFT CORP", isFund: false },
+        { ticker: "SPY", name: "SPDR S&P 500 ETF TRUST", isFund: true },
+        { ticker: "VTI", name: null, isFund: true },
+      ];
+      return Response.json(
+        universe.filter(
+          (row) =>
+            (includeFunds || !row.isFund) &&
+            (row.ticker.toLowerCase().startsWith(q) ||
+              (row.name ?? "").toLowerCase().includes(q)),
+        ),
+        { status: 200 },
+      );
+    },
+  ),
+
   // --- Spring Boot: indexes ---
   http.get(import.meta.env.VITE_APP_SPRINGBOOT_URL.concat("indexes"), () => {
     return Response.json(

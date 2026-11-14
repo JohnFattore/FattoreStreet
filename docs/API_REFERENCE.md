@@ -99,6 +99,14 @@ Index metrics refresh and cap-ranked rebuilds have no HTTP surface. They run as 
 the current year and then rebuilds `FAT50`, `FAT100` and `FAT1000` together. See
 `springboot/deploy/terraform/README.md` for the ad-hoc invocation.
 
+## 🔎 Security search
+
+Finds companies and funds in the SEC security universe by name or ticker; backs the site-wide search dropdown. Names are trigram-matched in Postgres (`pg_trgm`, migration V6), so partial names and one-letter typos still match.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/listings/search` | None | Query params: `q` (required, max 100 chars), `limit` (1–25, default 10), `includeFunds` (default `true`; `false` returns operating companies only). Response: array of `{ "ticker": "AAPL", "name": "Apple Inc.", "isFund": false }`, best match first: exact ticker, then name prefix, ticker prefix, name substring, then similarity. `q` is matched case-insensitively and `.` is read as `-` for tickers (`brk.b` finds `BRK-B`). `name` is the fund series name when known, else the SEC title, and `null` when the only stored name is the ticker itself (most fund tickers, whose SEC source file carries no names). |
+
 ## 📈 FRED Economic Data
 
 Economic observation series from the Federal Reserve Bank of St. Louis (FRED). Previously served by Django at `/portfolio/api/fred-data/`; now handled entirely by Spring Boot. Requires `FRED_API_KEY` on the Spring Boot service. Responses are cached in memory for 24h per series/units combination; nothing is persisted.

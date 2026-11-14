@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Alert, Card, Col, Container, Form, Row, Table } from "react-bootstrap";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { Controller, useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useGetSecEdgarDataQuery } from "../functions/api";
@@ -9,6 +9,7 @@ import { formatString, pickWinner } from "../functions/helperFunctions";
 import { ISECData } from "../interfaces";
 import LoadingButton from "../components/LoadingButton";
 import StateHandler from "../components/StateHandler";
+import { SecuritySearch } from "../components/SecuritySearch";
 
 interface IFormInput {
   tickerA: string;
@@ -202,7 +203,7 @@ export function CompanyComparison() {
   const tickerB = searchParams.get("b")?.trim().toUpperCase() ?? "";
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -236,17 +237,35 @@ export function CompanyComparison() {
         <Form onSubmit={handleSubmit(onSubmit)}>
           <Row>
             <Col md={5}>
-              <Form.Control
-                {...register("tickerA")}
-                placeholder="First ticker"
-                aria-label="First ticker"
+              <Controller
+                name="tickerA"
+                control={control}
+                render={({ field }) => (
+                  <SecuritySearch
+                    value={field.value}
+                    onChange={field.onChange}
+                    onSelect={(result) => field.onChange(result.ticker)}
+                    ariaLabel="First ticker"
+                    placeholder="First ticker or company name"
+                    includeFunds={false}
+                  />
+                )}
               />
             </Col>
             <Col md={5}>
-              <Form.Control
-                {...register("tickerB")}
-                placeholder="Second ticker"
-                aria-label="Second ticker"
+              <Controller
+                name="tickerB"
+                control={control}
+                render={({ field }) => (
+                  <SecuritySearch
+                    value={field.value}
+                    onChange={field.onChange}
+                    onSelect={(result) => field.onChange(result.ticker)}
+                    ariaLabel="Second ticker"
+                    placeholder="Second ticker or company name"
+                    includeFunds={false}
+                  />
+                )}
               />
             </Col>
             <Col md={2}>

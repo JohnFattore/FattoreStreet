@@ -50,3 +50,7 @@ current without a human* from [principles](../principles.md).
 
 - **Price symbols with no filer.** Most symbols in the price feed have no SEC filer. Should they be
   part of the universe users can search, or kept only as price history?
+- **Fund names.** The SEC's fund ticker list carries identifiers but no names, so most fund tickers
+  have no name to search by or display. The SEC's investment company series and class data names
+  each registrant, series and share class and is free to use. Should the universe load names from it
+  on the same monthly refresh, or is a ticker enough for funds?
