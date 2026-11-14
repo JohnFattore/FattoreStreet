@@ -396,7 +396,7 @@ FRED data is provided by the Federal Reserve Bank of St. Louis (https://fred.stl
 mvn test
 ```
 
-Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` import in `application.properties` never leaks real secrets into test contexts. JaCoCo runs with the suite: the HTML report lands in `target/site/jacoco/index.html`, and `mvn verify` enforces a minimum line-coverage floor (`jacoco:check`). Repository tests use `@DataJpaTest` against the in-memory H2 database (Boot 4 artifact `spring-boot-data-jpa-test`). SQL that only Postgres can run (the `pg_trgm` company search) is tested in `ListingSearchPostgresTest` against a real `postgres:17` container via Testcontainers (`spring-boot-testcontainers`, `testcontainers-postgresql`), with the schema built by the Flyway migrations; it is skipped when no Docker daemon is available, and CI runners have one.
+Tests run from `target/` (surefire `workingDirectory`), so the optional `.env` import in `application.properties` never leaks real secrets into test contexts. JaCoCo runs with the suite: the HTML report lands in `target/site/jacoco/index.html`, and `mvn verify` enforces a minimum line-coverage floor (`jacoco:check`). Repository tests use `@DataJpaTest` against the in-memory H2 database (Boot 4 artifact `spring-boot-data-jpa-test`). SQL that only Postgres can run (the `pg_trgm` company search) is tested in `ListingSearchPostgresTest` against a real `postgres:17.12-trixie` container (the same pin as production) via Testcontainers (`spring-boot-testcontainers`, `testcontainers-postgresql`), with the schema built by the Flyway migrations; it is skipped when no Docker daemon is available, and CI runners have one.
 
 ### Code Quality
 

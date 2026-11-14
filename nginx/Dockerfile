@@ -6,7 +6,7 @@
 # Stage 1: React build (sass generates the gitignored custom.css that
 # index.html links, then Vite emits ../nginx/dist -- the /app layout mirrors
 # the repo so the relative outDir in vite.config.ts works)
-FROM node:26-slim AS react-build
+FROM node:26.13.1-slim AS react-build
 WORKDIR /app/react-app
 COPY react-app/package.json react-app/package-lock.json ./
 RUN npm ci
@@ -17,7 +17,7 @@ RUN npx sass src/styles/custom.scss src/styles/custom.css \
 # Stage 2: Django collectstatic (base image + uv pattern mirrors
 # django/Dockerfile; dummy env values match the django job in ci.yml --
 # settings just needs them present to import)
-FROM python:3.14-slim AS django-static
+FROM python:3.14.10-slim AS django-static
 COPY --from=ghcr.io/astral-sh/uv:0.11.26 /uv /uvx /bin/
 WORKDIR /app/django
 ENV UV_PYTHON_DOWNLOADS=never
@@ -31,7 +31,7 @@ RUN SECRET_KEY=build-only-dummy-secret-key \
     uv run python manage.py collectstatic --noinput
 
 # Stage 3: nginx serving the artifacts from the stages above
-FROM nginx:1.31
+FROM nginx:1.31.8
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/index.html /var/www/index.html
 COPY --from=react-build /app/nginx/dist /var/www/dist
