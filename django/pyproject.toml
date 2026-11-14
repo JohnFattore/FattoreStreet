@@ -15,7 +15,7 @@ dependencies = [
     # Gunicorn HTTP server
     "gunicorn==26.0.0",
     # PostgreSQL to Python library
-    "psycopg2-binary==2.9.12",
+    "psycopg2-binary==2.9.13",
     # Environment Variables
     "django-environ==0.14.0",
     # HTTP requests from python
@@ -23,16 +23,16 @@ dependencies = [
     # History
     "django-simple-history==3.13.0",
     # YFinance API
-    "yfinance==1.5.2",
+    "yfinance==1.8.0",
     # Redis library for the Django cache backend
     "redis==8.1.0",
     # pandas for numerical computations
-    "pandas==3.0.5",
-    "numpy==2.5.1",
+    "pandas==3.1.1",
+    "numpy==2.5.4",
     "django-redis==7.0.0",
-    "pandas-market-calendars==5.4.0",
+    "pandas-market-calendars==5.6.0",
     # AWS SDK: the advisor chatbot calls Bedrock
-    "boto3==1.43.126",
+    "boto3==1.44.0",
 ]
 
 [tool.uv]
