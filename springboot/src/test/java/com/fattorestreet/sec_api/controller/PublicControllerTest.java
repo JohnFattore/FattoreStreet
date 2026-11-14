@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,8 @@ import com.fattorestreet.sec_api.config.SecurityConfig;
 import com.fattorestreet.sec_api.economic.FredService;
 import com.fattorestreet.sec_api.economic.FredService.FredObservation;
 import com.fattorestreet.sec_api.fundamentals.FinancialService;
+import com.fattorestreet.sec_api.index.CompanyMarketCapService;
+import com.fattorestreet.sec_api.index.CompanyMarketCapService.CompanyMarketCap;
 import com.fattorestreet.sec_api.index.IndexMemberApiService;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.IndexMemberRow;
 import com.fattorestreet.sec_api.index.IndexMemberApiService.StockRow;
@@ -55,6 +58,7 @@ class PublicControllerTest {
     @MockitoBean private AssetRepository assetRepository;
     @MockitoBean private QuarterRepository quarterRepository;
     @MockitoBean private FinancialService financialService;
+    @MockitoBean private CompanyMarketCapService companyMarketCapService;
     @MockitoBean private DailyPriceRepository dailyPriceRepository;
     @MockitoBean private CorporateActionRepository corporateActionRepository;
     @MockitoBean private FilingSummaryRepository filingSummaryRepository;
@@ -166,7 +170,23 @@ class PublicControllerTest {
                 .andExpect(jsonPath("$.ttmRevenue").exists())
                 .andExpect(jsonPath("$.ttmNetIncome").exists())
                 .andExpect(jsonPath("$.netMargin").exists())
-                .andExpect(jsonPath("$.latestQuarterEnd").value("2024-12-31"));
+                .andExpect(jsonPath("$.latestQuarterEnd").value("2024-12-31"))
+                .andExpect(jsonPath("$.marketCap").doesNotExist());
+    }
+
+    @Test
+    void companyFactSheet_sizedCompany_includesMarketCapAndDate() throws Exception {
+        Asset asset = buildAsset(320193L);
+        when(assetRepository.findByListings_Ticker("AAPL")).thenReturn(asset);
+        when(quarterRepository.findByAsset(asset)).thenReturn(Collections.emptyList());
+        when(financialService.calculateMetrics(anyList())).thenReturn(Collections.emptyMap());
+        when(companyMarketCapService.latestFor(asset)).thenReturn(Optional.of(
+                new CompanyMarketCap(new BigDecimal("3500000000000.12345"), LocalDate.of(2026, 11, 13))));
+
+        mockMvc.perform(get("/company-fact-sheet").param("ticker", "AAPL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.marketCap").value("3500000000000.12"))
+                .andExpect(jsonPath("$.marketCapAsOf").value("2026-11-13"));
     }
 
     @Test

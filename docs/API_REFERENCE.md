@@ -153,6 +153,7 @@ Provides a summary of trailing twelve months (TTM) performance and the latest ba
 - **Latest balance sheet:** `latestAssets`, `latestLiabilities`, `latestEquity`, `latestInventory`, `latestCash`, `latestEps`
 - **Ratios:** `netMargin`, `grossMargin`, `roA`, `debtToAssets`, `cashToLiabilities` (percentages), `ocfToNetIncome`
 - `latestQuarterEnd`: Date of the most recent quarter (`YYYY-MM-DD`)
+- `marketCap`, `marketCapAsOf`: Latest market cap (SEC shares outstanding × IEX close, summed across the company's listed share classes, from the index-load metrics) and the trade date of the close behind it. Omitted when the company has never been sized, i.e. it falls outside the index refresh scope
 
 ## 📈 IEX Daily Prices
 
