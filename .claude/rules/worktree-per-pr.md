@@ -34,8 +34,9 @@ Several Claude sessions often share the main checkout. If one session commits wi
 
    ```bash
    git -C "$main" fetch --prune origin
-   # Must print nothing: no commits that exist only locally. (Uses --remotes, since GitHub
-   # deletes origin/<branch> on merge and origin/<branch>..<branch> would then error.)
+   # For a merge-commit PR, must print nothing: no commits that exist only locally (squash and
+   # rebase merges are covered below). Uses --remotes because GitHub deletes origin/<branch>
+   # on merge, and origin/<branch>..<branch> would then error.
    git -C "$main" log --oneline <branch> --not --remotes
    git -C "$main" worktree remove "$wt"
    git -C "$main" merge-base --is-ancestor <branch> origin/main && git -C "$main" branch -D <branch>
