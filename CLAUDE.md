@@ -137,7 +137,7 @@ Additional conventions:
 
 ## Environment Variables
 
-### Django (`.env` in `django/`)
+### Django (`.env` in `django/mysite/`, read by `environ.Env.read_env()` next to `settings.py`)
 - `SECRET_KEY` — required
 - `DEBUG` — bool, default `True`
 - `DATABASE` — required: `postgresLocal`, `postgresDocker`, or any other value (e.g. `sqlite`) for SQLite; unset raises at startup
