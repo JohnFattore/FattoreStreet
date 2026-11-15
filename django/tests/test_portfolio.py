@@ -3,6 +3,7 @@ from decimal import Decimal
 from datetime import date
 from rest_framework import status
 from django.urls import reverse
+from django.contrib.auth.models import User
 from portfolio.models import Asset, Account
 from tests.base import BaseAPITestCase, MarketDataPatchMixin
 
@@ -95,6 +96,23 @@ class AssetsTests(MarketDataPatchMixin, BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         created_asset = Asset.objects.latest('id')
         self.assertEqual(created_asset.user, self.user)
+
+    def test_create_asset_in_unknown_account_returns_404(self):
+        self.authenticate_client()
+        data = {'ticker': 'SPY', 'shares': 10, 'buy_date': '2023-10-13', 'account_id': 999999}
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['detail'], 'Account does not exist.')
+
+    def test_create_asset_in_another_users_account_returns_403(self):
+        other = User.objects.create_user(username='otheruser', password='other-pass-91')  # pragma: allowlist secret
+        account = Account.objects.create(name='Not Mine', user=other, account_type='ROTH_IRA')
+        self.authenticate_client()
+        data = {'ticker': 'SPY', 'shares': 10, 'buy_date': '2023-10-13', 'account_id': account.id}
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['detail'], 'You do not own this account.')
+        self.assertFalse(Asset.objects.filter(account=account).exists())
 
     def test_create_asset_future_date(self):
         self.authenticate_client()

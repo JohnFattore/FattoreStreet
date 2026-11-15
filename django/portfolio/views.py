@@ -1,4 +1,5 @@
 from rest_framework import generics, serializers
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -61,10 +62,10 @@ class AssetListCreateView(generics.ListCreateAPIView):
         if account_id:
             try:
                 account = Account.objects.get(id=account_id)
-                if account.user != self.request.user:
-                    raise serializers.ValidationError({"detail": "You do not own this account."})
             except Account.DoesNotExist:
-                raise serializers.ValidationError({"detail": "Account does not exist."})
+                raise NotFound("Account does not exist.")
+            if account.user != self.request.user:
+                raise PermissionDenied("You do not own this account.")
 
         serializer.save(user=self.request.user, account=account)
 
