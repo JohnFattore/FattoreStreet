@@ -57,6 +57,9 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception ex, @Nullable Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
+        if (statusCode.is5xxServerError()) {
+            log.error("Server error", ex);
+        }
         return ResponseEntity.status(statusCode).headers(headers).body(Map.of("detail", detailFor(ex, statusCode)));
     }
 

@@ -4,14 +4,15 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import com.fattorestreet.sec_api.config.CacheConfig;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -20,17 +21,12 @@ import tools.jackson.databind.ObjectMapper;
 public class FredService {
 
     private static final String OBSERVATIONS_URL = "https://api.stlouisfed.org/fred/series/observations";
-    private static final long CACHE_TTL_MS = 24 * 60 * 60 * 1000L;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String apiKey;
-    private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
     public record FredObservation(LocalDate date, double value) {
-    }
-
-    private record CacheEntry(List<FredObservation> observations, long expiresAtEpochMs) {
     }
 
     @Autowired
@@ -43,13 +39,12 @@ public class FredService {
         this.apiKey = apiKey;
     }
 
+    /**
+     * Fetches a series from FRED, cached in Redis per series and units (TTL {@code fred.cache-ttl},
+     * default 24h; see {@link CacheConfig}).
+     */
+    @Cacheable(cacheNames = CacheConfig.FRED_CACHE, key = "#seriesId + '|' + #computeYoy")
     public List<FredObservation> getSeries(String seriesId, boolean computeYoy) {
-        String cacheKey = seriesId + "|" + computeYoy;
-        CacheEntry cached = cache.get(cacheKey);
-        if (cached != null && cached.expiresAtEpochMs() > System.currentTimeMillis()) {
-            return cached.observations();
-        }
-
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(OBSERVATIONS_URL)
                 .queryParam("series_id", seriesId)
                 .queryParam("api_key", apiKey)
@@ -59,9 +54,7 @@ public class FredService {
         }
         String body = restTemplate.getForObject(builder.toUriString(), String.class);
 
-        List<FredObservation> observations = parseObservations(body);
-        cache.put(cacheKey, new CacheEntry(observations, System.currentTimeMillis() + CACHE_TTL_MS));
-        return observations;
+        return parseObservations(body);
     }
 
     private List<FredObservation> parseObservations(String body) {
