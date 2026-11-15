@@ -79,6 +79,8 @@ With `DEBUG=True` (the local default) Django uses a dummy cache and Redis is not
 docker run -d -p 6379:6379 redis
 ```
 
+Spring Boot caches FRED series in the same Redis (`REDIS_URL`, default `redis://localhost:6379`). It doesn't need one locally: without Redis, each `/fred-data` request just calls FRED directly and logs a cache warning.
+
 Scheduled IEX daily price ingest runs in AWS (EventBridge Scheduler + Fargate), not locally — see [`springboot/deploy/terraform/`](../springboot/deploy/terraform/README.md).
 
 ### 5. Frontend Styling (Sass)

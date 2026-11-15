@@ -119,7 +119,7 @@ Finds companies and funds in the SEC security universe by name or ticker; backs 
 
 ## 📈 FRED Economic Data
 
-Economic observation series from the Federal Reserve Bank of St. Louis (FRED). Previously served by Django at `/portfolio/api/fred-data/`; now handled entirely by Spring Boot. Requires `FRED_API_KEY` on the Spring Boot service. Responses are cached in memory for 24h per series/units combination; nothing is persisted.
+Economic observation series from the Federal Reserve Bank of St. Louis (FRED). Previously served by Django at `/portfolio/api/fred-data/`; now handled entirely by Spring Boot. Requires `FRED_API_KEY` on the Spring Boot service. Responses are cached in Redis for 24h per series/units combination (an unreachable Redis falls back to calling FRED); nothing is persisted in the database.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
