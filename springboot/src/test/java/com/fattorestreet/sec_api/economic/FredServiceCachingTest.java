@@ -22,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fattorestreet.sec_api.config.CacheConfig;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
@@ -92,6 +93,8 @@ class FredServiceCachingTest {
         void reset() {
             cacheManager.getCache(CacheConfig.FRED_CACHE).clear();
             clearInvocations(restTemplate);
+            // Shared mock across tests: restore the default payload after any test re-stubs it
+            when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(PAYLOAD);
         }
 
         @Test
@@ -105,6 +108,18 @@ class FredServiceCachingTest {
 
             fredService.getSeries("CPIAUCSL", false);
             verify(restTemplate, times(3)).getForObject(anyString(), eq(String.class));
+        }
+
+        @Test
+        void getSeries_doesNotCacheAnEmptySeries() {
+            when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn("{\"observations\": []}");
+
+            fredService.getSeries("EMPTY", false);
+            fredService.getSeries("EMPTY", false);
+
+            // Nothing stored, so the second call retries FRED rather than serving [] for a full TTL
+            verify(restTemplate, times(2)).getForObject(anyString(), eq(String.class));
+            assertNull(cacheManager.getCache(CacheConfig.FRED_CACHE).get("EMPTY|false"));
         }
 
         @Test

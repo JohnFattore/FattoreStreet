@@ -41,9 +41,13 @@ public class FredService {
 
     /**
      * Fetches a series from FRED, cached in Redis per series and units (TTL {@code fred.cache-ttl},
-     * default 24h; see {@link CacheConfig}).
+     * default 24h; see {@link CacheConfig}). An empty series isn't cached, so a transient bad payload
+     * doesn't hide the series for a full TTL.
      */
-    @Cacheable(cacheNames = CacheConfig.FRED_CACHE, key = "#seriesId + '|' + #computeYoy")
+    @Cacheable(
+            cacheNames = CacheConfig.FRED_CACHE,
+            key = "#seriesId + '|' + #computeYoy",
+            unless = "#result.isEmpty()")
     public List<FredObservation> getSeries(String seriesId, boolean computeYoy) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(OBSERVATIONS_URL)
                 .queryParam("series_id", seriesId)

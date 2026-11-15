@@ -383,7 +383,7 @@ Already-summarized filings (by accession number) are skipped on re-runs.
 
 ### FRED Economic Data
 
-Public endpoint (no auth) returning FRED observation series, keyed by series id. Requires `FRED_API_KEY`. Each item may set `computeYoy: true` to request year-over-year percent change (`units=pc1`). Responses are cached in Redis for 24 hours (`FRED_CACHE_TTL`) per series/units combination, under keys `springboot::fred::<SERIES>|<computeYoy>`, so they survive restarts. If Redis is unreachable, requests go straight to FRED. Nothing is persisted in the database.
+Public endpoint (no auth) returning FRED observation series, keyed by series id. Requires `FRED_API_KEY`. Each item may set `computeYoy: true` to request year-over-year percent change (`units=pc1`). Responses are cached in Redis for 24 hours (`FRED_CACHE_TTL`) per series/units combination, under keys `springboot::fred::<SERIES>|<computeYoy>`, so they survive restarts. An empty series is not cached. If Redis is unreachable (2s connect and command timeouts), requests go straight to FRED. Nothing is persisted in the database.
 
 ```bash
 curl -X POST http://localhost:8080/fred-data \
