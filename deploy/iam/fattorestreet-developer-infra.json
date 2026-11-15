@@ -27,7 +27,11 @@
         "cloudwatch:GetMetricData",
         "cloudwatch:GetMetricStatistics",
         "cloudwatch:ListMetrics",
-        "tag:GetResources"
+        "tag:GetResources",
+        "route53:Get*",
+        "route53:List*",
+        "route53domains:Get*",
+        "route53domains:List*"
       ],
       "Resource": "*"
     },
