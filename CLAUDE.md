@@ -96,7 +96,7 @@ com.fattorestreet.sec_api/
     support/         Parsers, extractors, persisters
   listing/           Assets, listings, ETF identity enrichment
   marketdata/        Daily prices, IEX HIST binary ingest
-  economic/          FRED economic data client + in-memory cache
+  economic/          FRED economic data client (Redis-cached via config/CacheConfig)
   index/             Index membership, metrics refresh
   repository/        Spring Data JPA repositories
   model/             JPA entities
@@ -158,6 +158,8 @@ Additional conventions:
 - `DJANGO_PORTFOLIO_BASE_URL` — Django base URL for validation calls
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 - `FRED_API_KEY` — FRED key for the public `POST /fred-data` economic data endpoint
+- `REDIS_URL` — Redis for the FRED response cache, the same key and instance as Django's, default `redis://localhost:6379`; when it's unreachable, responses are simply uncached
+- `FRED_CACHE_TTL` — FRED cache entry lifetime, default `24h`
 
 ### React (`.env.*` per mode)
 - `VITE_APP_DJANGO_URL` — Django base URL (`http://127.0.0.1:8000/` in dev, `https://fattorestreet.com/django/` in production)

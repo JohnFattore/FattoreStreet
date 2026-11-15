@@ -28,7 +28,7 @@ Those areas run on a small number of services:
 | Market-data service (Spring Boot, Java) | Prices, corporate actions, fundamentals, indexes, the security universe, economic indicators | The public side: shared data for anyone, no sign-in, no user data. Its heavy batch work also runs apart from the user-facing API, as on-demand jobs. See *Two backends* below. |
 | Scheduled jobs (the market-data service run as one-shot tasks on AWS Fargate, started by EventBridge Scheduler) | Every recurring data refresh | See *Cheap to run* and *The data stays current without a human* in [principles](principles.md): compute exists only while a job runs, and no one has to start it. |
 | PostgreSQL | All stored data, for both backends | One database keeps backups, access and cost in one place. |
-| Redis | Cache for the main API | Repeated lookups stay fast without re-asking outside sources. Nothing in it is the only copy of anything. |
+| Redis | Cache for both backends | Repeated lookups stay fast without re-asking outside sources. Nothing in it is the only copy of anything. |
 | Nginx | One public entry point in front of everything | One domain, one certificate, and the backends never face the internet directly. |
 | Local AI tooling (llama.cpp and friends) | Experiments on the author's own machine | Not part of the running site. The advisor uses an open-weight model on AWS Bedrock instead, which costs less than owning a GPU (see [advisor](advisor/README.md)). |
 

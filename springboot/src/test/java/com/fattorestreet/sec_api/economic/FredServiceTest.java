@@ -69,16 +69,4 @@ class FredServiceTest {
         verify(restTemplate).getForObject(urlCaptor.capture(), eq(String.class));
         assertTrue(urlCaptor.getValue().contains("units=pc1"));
     }
-
-    @Test
-    void getSeries_cachesResultsPerSeriesAndUnits() {
-        when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(PAYLOAD);
-
-        fredService.getSeries("UNRATE", false);
-        fredService.getSeries("UNRATE", false);
-        verify(restTemplate, times(1)).getForObject(anyString(), eq(String.class));
-
-        fredService.getSeries("UNRATE", true);
-        verify(restTemplate, times(2)).getForObject(anyString(), eq(String.class));
-    }
 }

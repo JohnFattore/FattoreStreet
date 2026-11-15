@@ -17,7 +17,7 @@ A Spring Boot 3.4 microservice providing SEC EDGAR financial data for all public
 - Applies cumulative backward price adjustment factors for split/dividend-adjusted OHLCV (decoupled from IEX load — runs as a separate process)
 - Serves stored 10-K MD&A summaries through `GET /filing-summaries`. **The generator is retired** — no new summary is ever written, so a ticker whose 10-K post-dates the last generation run returns an empty list. That is current behavior, not a bug; see "Filing summaries (frozen)" below
 - Company and fund search by name or ticker via public `GET /listings/search` (Postgres `pg_trgm` trigram matching, so partial names and small typos still match; exact tickers rank first; `includeFunds=false` limits to operating companies). Powers the site-wide search dropdown
-- Serves FRED (Federal Reserve Economic Data) observation series via public `POST /fred-data` (per-series optional year-over-year `pc1` units, 24h in-memory cache; powers the Economic Indicators page)
+- Serves FRED (Federal Reserve Economic Data) observation series via public `POST /fred-data` (per-series optional year-over-year `pc1` units, 24h Redis cache shared with Django's instance; powers the Economic Indicators page)
 - Returns every error as `{"detail": "..."}`, the same shape as Django REST Framework (`controller/ApiExceptionHandler`): validation failures are `400`, unknown tickers `404`, and unexpected failures a `500` with a generic message (the cause is logged only). See "Error responses" in `docs/API_REFERENCE.md`
 - **Market indexes (Spring-only — Django does not serve these routes):** `MarketIndex` (one row per index: `code` + `display_name`), `Listing` + `ListingIndexMetrics` (one row per listing per **calendar year**; IEX daily prices + SEC companyfacts for shares/float), and `IndexMember` rows (FK to `MarketIndex`). Public `GET /index-members` and `GET /iwb-reference-holdings` (bundled IWB CSV tickers + fund weights for UI benchmark). Metrics refresh and rebuilds have no HTTP surface: the nightly `index-load` task refreshes metrics for the current year and then rebuilds all three indexes together. **Fattore 50** / **Fattore 100** / **Fattore 1000** are Russell-style top-50 / top-100 / top-1000 proxies (companies ranked by total market cap, each listed class weighted by its free-float cap) (`FAT50` / `FAT100` / `FAT1000`), not official FTSE Russell products.
 
@@ -33,6 +33,7 @@ Application code under `com.fattorestreet.sec_api`: `client` (SEC HTTP / `WebSer
 - Spring Security for the filter chain only (CORS, CSRF-disable, stateless sessions). **No route is authenticated** and the service verifies no tokens: the JWT resource server went with the `/admin/**` routes, and with it Spring Boot's dependency on Django's `SECRET_KEY`
 - Spring `RestTemplate`-based SEC client (`WebService` in `client` package)
 - Bean Validation (`spring-boot-starter-validation`)
+- Spring Cache over Redis (`spring-boot-starter-cache` + `spring-boot-starter-data-redis`, Lettuce) for upstream API responses. Values are stored as JSON, and cache errors are logged and fall through to the upstream (`config/CacheConfig`)
 - Custom pcap/pcapng + IEX-TP binary parser using `ByteBuffer` for HIST TOPS trade extraction
 - Maven build, Docker multi-stage image
 
@@ -95,6 +96,8 @@ Before adding or changing any external data source:
 | `SEC_HTTP_RETRY_BASE_BACKOFF_MS` | `1000` | Base backoff for SEC retries; multiplied by attempt |
 | `SEC_HTTP_MIN_INTERVAL_MS` | `250` | Minimum delay between SEC requests to reduce throttling |
 | `FRED_API_KEY` | (empty) | FRED API key for the public `POST /fred-data` economic data endpoint |
+| `FRED_CACHE_TTL` | `24h` | How long a FRED series stays cached in Redis (Spring `Duration`, e.g. `6h`) |
+| `REDIS_URL` | `redis://localhost:6379` | Redis for the response cache, the same key and instance Django uses. Only server mode uses it, and an unreachable Redis only means uncached responses, so local runs and the Fargate jobs work without one |
 
 ### Run Locally
 
@@ -380,7 +383,7 @@ Already-summarized filings (by accession number) are skipped on re-runs.
 
 ### FRED Economic Data
 
-Public endpoint (no auth) returning FRED observation series, keyed by series id. Requires `FRED_API_KEY`. Each item may set `computeYoy: true` to request year-over-year percent change (`units=pc1`). Responses are cached in memory for 24 hours per series/units combination; nothing is persisted.
+Public endpoint (no auth) returning FRED observation series, keyed by series id. Requires `FRED_API_KEY`. Each item may set `computeYoy: true` to request year-over-year percent change (`units=pc1`). Responses are cached in Redis for 24 hours (`FRED_CACHE_TTL`) per series/units combination, under keys `springboot::fred::<SERIES>|<computeYoy>`, so they survive restarts. If Redis is unreachable, requests go straight to FRED. Nothing is persisted in the database.
 
 ```bash
 curl -X POST http://localhost:8080/fred-data \
