@@ -15,6 +15,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -110,7 +111,7 @@ public class PublicController {
     ) {
         Asset asset = assetRepository.findByListings_Ticker(ticker);
         if (asset == null) {
-            return ResponseEntity.notFound().build();
+            return unknownTicker(ticker);
         }
         List<Quarter> quarters = quarterRepository.findByAsset(asset);
         List<Map<String, Object>> quarterOutput = new ArrayList<>();
@@ -155,7 +156,7 @@ public class PublicController {
     ) {
         Asset asset = assetRepository.findByListings_Ticker(ticker);
         if (asset == null) {
-            return ResponseEntity.notFound().build();
+            return unknownTicker(ticker);
         }
         List<Quarter> quarters = quarterRepository.findByAsset(asset);
         Map<String, Object> metrics = financialService.calculateMetrics(quarters);
@@ -348,5 +349,10 @@ public class PublicController {
             return "N/A";
         }
         return String.format("%.2f%%", (Double) val * 100);
+    }
+
+    /** A 404 in the {@code {"detail": ...}} shape every error uses (see {@link ApiExceptionHandler}). */
+    private static ResponseEntity<Map<String, String>> unknownTicker(String ticker) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("detail", "No company found for ticker " + ticker + "."));
     }
 }

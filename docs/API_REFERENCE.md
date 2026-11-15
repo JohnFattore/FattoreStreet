@@ -8,6 +8,15 @@ The backend is split across two services:
 
 There is no machine-generated OpenAPI/Swagger in this repo right now. Use the endpoint tables below for Django and Spring Boot.
 
+## ⚠️ Error responses
+
+Both services return errors in Django REST Framework's shape, so the frontend parses them with one helper (`getErrorMessages` in `react-app/src/functions/helperFunctions.tsx`):
+
+- `{"detail": "..."}` for everything that is not a field error: `401`/`403`, `404`, throttling (`429`), advisor outages (`503`) and every Spring Boot error.
+- `{"<field>": ["...", ...]}` for Django validation errors (`400`); `non_field_errors` holds errors that belong to no single field.
+
+Spring Boot errors come from `ApiExceptionHandler`. Validation failures (bad ticker format, missing or out-of-range parameters) are `400` with the constraint messages joined by `; `, an unknown ticker is `404`, and an unexpected failure is `500` with the generic `"Internal server error."` (the cause is logged, never returned).
+
 ## 🔐 Authentication (Users)
 
 All protected endpoints require a valid JWT Access Token in the header:

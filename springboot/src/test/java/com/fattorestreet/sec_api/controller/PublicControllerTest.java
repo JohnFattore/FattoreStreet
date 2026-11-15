@@ -43,7 +43,6 @@ import com.fattorestreet.sec_api.repository.MarketIndexRepository;
 import com.fattorestreet.sec_api.repository.QuarterRepository;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -118,20 +117,32 @@ class PublicControllerTest {
         when(assetRepository.findByListings_Ticker("ZZZZ")).thenReturn(null);
 
         mockMvc.perform(get("/quarters").param("ticker", "ZZZZ"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("No company found for ticker ZZZZ."));
     }
 
     @Test
-    void quarters_invalidTickerFormat_throwsConstraintViolation() {
-        assertThrows(jakarta.servlet.ServletException.class, () ->
-                mockMvc.perform(get("/quarters").param("ticker", "aapl"))
-        );
+    void quarters_invalidTickerFormat_returns400WithDetail() throws Exception {
+        mockMvc.perform(get("/quarters").param("ticker", "aapl"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Invalid ticker format"));
     }
 
     @Test
     void quarters_missingTicker_returns400() throws Exception {
         mockMvc.perform(get("/quarters"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("ticker")));
+    }
+
+    @Test
+    void unexpectedException_returns500WithGenericDetail() throws Exception {
+        when(assetRepository.findByListings_Ticker("AAPL")).thenThrow(new IllegalStateException("db password leaked"));
+
+        mockMvc.perform(get("/quarters").param("ticker", "AAPL"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.detail").value("Internal server error."))
+                .andExpect(content().string(not(containsString("leaked"))));
     }
 
     // --- /company-fact-sheet endpoint ---
@@ -199,7 +210,8 @@ class PublicControllerTest {
         when(assetRepository.findByListings_Ticker("ZZZZ")).thenReturn(null);
 
         mockMvc.perform(get("/company-fact-sheet").param("ticker", "ZZZZ"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("No company found for ticker ZZZZ."));
     }
 
     @Test
@@ -491,12 +503,12 @@ class PublicControllerTest {
     }
 
     @Test
-    void fredData_invalidSeriesIdFormat_throwsConstraintViolation() {
-        assertThrows(jakarta.servlet.ServletException.class, () ->
-                mockMvc.perform(post("/fred-data")
+    void fredData_invalidSeriesIdFormat_returns400WithDetail() throws Exception {
+        mockMvc.perform(post("/fred-data")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[{\"seriesId\":\"bad id\"}]"))
-        );
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Invalid series id format"));
         verifyNoInteractions(fredService);
     }
 
@@ -540,10 +552,10 @@ class PublicControllerTest {
     }
 
     @Test
-    void searchListings_limitAboveMax_isRejected() {
-        assertThrows(jakarta.servlet.ServletException.class, () ->
-                mockMvc.perform(get("/listings/search").param("q", "a").param("limit", "500"))
-        );
+    void searchListings_limitAboveMax_returns400() throws Exception {
+        mockMvc.perform(get("/listings/search").param("q", "a").param("limit", "500"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").isString());
         verifyNoInteractions(listingSearchService);
     }
 }
