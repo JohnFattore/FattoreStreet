@@ -44,7 +44,7 @@ Service-specific detail: [django/README.md](django/README.md), [springboot/READM
 
 For full details, see [Getting Started](docs/GETTING_STARTED.md). Typical local ports: Django **8000**, Spring Boot **8080**, Vite **5173**.
 
-**Django (primary API)** — requires [uv](https://docs.astral.sh/uv/) (`brew install uv`). Create `django/.env` with at least `SECRET_KEY` and `DATABASE` (e.g. `DATABASE=sqlite` for a quick start; see [Getting Started](docs/GETTING_STARTED.md) for the full list):
+**Django (primary API)** — requires [uv](https://docs.astral.sh/uv/) (`brew install uv`). Create `django/mysite/.env` (next to `settings.py`) with at least `SECRET_KEY` and `DATABASE` (e.g. `DATABASE=sqlite` for a quick start; see [Getting Started](docs/GETTING_STARTED.md) for the full list):
 
 ```bash
 cd django

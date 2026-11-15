@@ -43,7 +43,13 @@ Several Claude sessions often share the main checkout. If one session commits wi
 
    The `&&` makes the ancestry check a gate rather than a comment: `-D` only runs if every commit on the branch is in `origin/main`. Plain `git branch -d` isn't enough, because it compares against the current `HEAD` and refuses whenever the main checkout isn't on `main`.
 
-   This repo merges PRs with merge commits, so the ancestry check passes after a normal merge. A squash- or rebase-merged PR rewrites the commits, so the check fails even though the work landed. In that case, delete with `-D` only when `gh pr view <n> --json state` says `MERGED` and the `--not --remotes` check above printed nothing.
+   This repo merges PRs with merge commits, so the ancestry check passes after a normal merge. A squash- or rebase-merged PR rewrites the commits, so the ancestry check fails even though the work landed, and the `--not --remotes` check lists the branch's original commits. Those are expected there. Instead, delete with `-D` only when the PR shows `MERGED` and its head is the local branch tip, which means every local commit was in the PR:
+
+   ```bash
+   [ "$(gh pr view <n> --json state -q .state)" = MERGED ] \
+     && [ "$(gh pr view <n> --json headRefOid -q .headRefOid)" = "$(git -C "$main" rev-parse <branch>)" ] \
+     && git -C "$main" branch -D <branch>
+   ```
 
 ## Skip When
 
