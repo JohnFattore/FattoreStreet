@@ -169,6 +169,16 @@ class MonitoringAPITests(BaseAPITestCase):
 
     def test_summary_aggregates_error_and_warn_counts_per_service(self):
         self.authenticate_staff()
+        expected_query = (
+            "fields @log, @timestamp, @message "
+            "| parse @message /(?<err_tok>(?i)\\b(?:ERROR|Exception|Traceback|CRITICAL|FATAL)\\b"
+            '|\\[error\\]|\\[crit\\]|"[A-Z]+ [^"]+ HTTP\\/[0-9.]+" 5[0-9]{2}\\b)/ '
+            "| parse @message /(?<warn_tok>(?i)\\b(?:WARN|WARNING)\\b"
+            '|\\[warn\\]|"[A-Z]+ [^"]+ HTTP\\/[0-9.]+" 4[0-9]{2}\\b)/ '
+            "| filter ispresent(err_tok) or ispresent(warn_tok) "
+            "| stats count(err_tok) as error_count, count(warn_tok) as warn_count by @log, bin(1h) as bucket "
+            "| sort bucket asc"
+        )
         self.logs_stubber.add_response(
             "start_query",
             {"queryId": "q-summary-1"},
@@ -176,7 +186,7 @@ class MonitoringAPITests(BaseAPITestCase):
                 "logGroupNames": ANY,
                 "startTime": ANY,
                 "endTime": ANY,
-                "queryString": ANY,
+                "queryString": expected_query,
             },
         )
         self.logs_stubber.add_response(
