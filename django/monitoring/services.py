@@ -22,6 +22,7 @@ env = environ.Env()
 CACHE_TTL_SECONDS = 60
 INSIGHTS_TIMEOUT_SECONDS = 10.0
 INSIGHTS_POLL_INTERVAL_SECONDS = 0.35
+MAX_FILTER_PAGES = 3
 
 ALLOWED_LEVELS = ("ERROR", "WARN", "INFO", "DEBUG")
 
@@ -211,17 +212,24 @@ def _quote_filter_term(term: str) -> str:
 
 
 def build_filter_pattern(query: str, level: str, source_key: str) -> str:
-    terms: list[str] = []
     cleaned_query = query.strip()
+    # CloudWatch filterPattern cannot combine '?' OR terms with AND terms, and
+    # Nginx access logs encode status codes rather than level keywords. When a
+    # search query is present with ERROR/WARN (or on nginx), filter by the query
+    # term in CloudWatch and let detect_log_level post-filter in Python.
+    if not cleaned_query and source_key != "nginx":
+        if level == "ERROR":
+            return "?ERROR ?Exception ?Traceback ?CRITICAL ?FATAL"
+        if level == "WARN":
+            return "?WARN ?WARNING"
+        if level in ("INFO", "DEBUG"):
+            return _quote_filter_term(level)
+
+    terms: list[str] = []
     if cleaned_query:
         terms.append(_quote_filter_term(cleaned_query))
-    # Nginx access logs encode status codes rather than level keywords, and
-    # Python emits WARNING while Java emits WARN, so level filtering for those
-    # runs in Python after fetch when combined with a query.
-    if level in ("ERROR", "INFO", "DEBUG") and source_key != "nginx":
+    if level in ("INFO", "DEBUG") and source_key != "nginx":
         terms.append(_quote_filter_term(level))
-    elif level == "WARN" and not cleaned_query and source_key != "nginx":
-        return "?WARN ?WARNING"
     return " ".join(terms)
 
 
@@ -237,60 +245,70 @@ def fetch_log_events(
     sources = get_allowed_sources()
     source_meta = sources[source_key]
     log_group = source_meta["log_group"]
-
-    params: dict[str, object] = {
-        "logGroupName": log_group,
-        "startTime": int(start.timestamp() * 1000),
-        "endTime": int(end.timestamp() * 1000),
-        "limit": limit,
-    }
     filter_pattern = build_filter_pattern(query, level, source_key)
-    if filter_pattern:
-        params["filterPattern"] = filter_pattern
-    if next_token:
-        params["nextToken"] = next_token
+    start_ms = int(start.timestamp() * 1000)
+    end_ms = int(end.timestamp() * 1000)
 
-    try:
-        response = logs_client().filter_log_events(**params)
-    except ClientError as exc:
-        if _is_not_found(exc):
-            return {
-                "source": source_key,
-                "log_group": log_group,
-                "events": [],
-                "next_token": None,
-            }
-        logger.exception("CloudWatch FilterLogEvents failed for %s", log_group)
-        raise MonitoringUnavailable() from exc
-    except BotoCoreError as exc:
-        logger.exception("CloudWatch FilterLogEvents failed for %s", log_group)
-        raise MonitoringUnavailable() from exc
+    events: list[dict] = []
+    current_token: str | None = next_token or None
+    max_pages = MAX_FILTER_PAGES if level else 1
 
-    events = []
-    for item in response.get("events", []):
-        message = (item.get("message") or "").rstrip("\r\n")
-        detected_level = detect_log_level(message)
-        if level and detected_level != level:
-            continue
-        ts_ms = int(item.get("timestamp", 0))
-        ts_iso = datetime.fromtimestamp(ts_ms / 1000.0, tz=dt_timezone.utc).isoformat()
-        events.append(
-            {
-                "event_id": item.get("eventId", ""),
-                "timestamp": ts_iso,
-                "timestamp_ms": ts_ms,
-                "log_stream": item.get("logStreamName", ""),
-                "level": detected_level,
-                "message": message,
-            }
-        )
+    for page_index in range(max_pages):
+        params: dict[str, object] = {
+            "logGroupName": log_group,
+            "startTime": start_ms,
+            "endTime": end_ms,
+            "limit": limit,
+        }
+        if filter_pattern:
+            params["filterPattern"] = filter_pattern
+        if current_token:
+            params["nextToken"] = current_token
+
+        try:
+            response = logs_client().filter_log_events(**params)
+        except ClientError as exc:
+            if _is_not_found(exc) and page_index == 0:
+                return {
+                    "source": source_key,
+                    "log_group": log_group,
+                    "events": [],
+                    "next_token": None,
+                }
+            logger.exception("CloudWatch FilterLogEvents failed for %s", log_group)
+            raise MonitoringUnavailable() from exc
+        except BotoCoreError as exc:
+            logger.exception("CloudWatch FilterLogEvents failed for %s", log_group)
+            raise MonitoringUnavailable() from exc
+
+        for item in response.get("events", []):
+            message = (item.get("message") or "").rstrip("\r\n")
+            detected_level = detect_log_level(message)
+            if level and detected_level != level:
+                continue
+            ts_ms = int(item.get("timestamp", 0))
+            ts_iso = datetime.fromtimestamp(ts_ms / 1000.0, tz=dt_timezone.utc).isoformat()
+            events.append(
+                {
+                    "event_id": item.get("eventId", ""),
+                    "timestamp": ts_iso,
+                    "timestamp_ms": ts_ms,
+                    "log_stream": item.get("logStreamName", ""),
+                    "level": detected_level,
+                    "message": message,
+                }
+            )
+
+        current_token = response.get("nextToken")
+        if not current_token or len(events) >= limit:
+            break
 
     events.sort(key=lambda row: row["timestamp_ms"], reverse=True)
     return {
         "source": source_key,
         "log_group": log_group,
         "events": events,
-        "next_token": response.get("nextToken"),
+        "next_token": current_token,
     }
 
 
@@ -382,9 +400,9 @@ def fetch_error_summary(hours: int = 24) -> dict:
     query_string = (
         "fields @log, @timestamp, @message "
         "| filter @message like /(?i)\\b(ERROR|Exception|Traceback|CRITICAL|FATAL|WARN|WARNING)\\b"
-        "|\\[error\\]|\\[crit\\]|\\[warn\\]/ "
+        '|\\[error\\]|\\[crit\\]|\\[warn\\]|"[A-Z]+ [^"]+ HTTP\\/[0-9.]+" [45][0-9]{2}\\b/ '
         "| eval is_error = (@message like /(?i)\\b(ERROR|Exception|Traceback|CRITICAL|FATAL)\\b"
-        "|\\[error\\]|\\[crit\\]/) "
+        '|\\[error\\]|\\[crit\\]|"[A-Z]+ [^"]+ HTTP\\/[0-9.]+" 5[0-9]{2}\\b/) '
         "| stats sum(is_error) as error_count, sum(not is_error) as warn_count by @log, bin(1h) as bucket "
         "| sort bucket asc"
     )

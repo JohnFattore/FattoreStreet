@@ -97,7 +97,28 @@ class MonitoringAPITests(BaseAPITestCase):
                 "startTime": ANY,
                 "endTime": ANY,
                 "limit": 50,
-                "filterPattern": '"Bedrock" "ERROR"',
+                "filterPattern": '"Bedrock"',
+            },
+        )
+        self.logs_stubber.add_response(
+            "filter_log_events",
+            {
+                "events": [
+                    {
+                        "eventId": "evt-3",
+                        "timestamp": 1763720120000,
+                        "logStreamName": "django-123",
+                        "message": "Traceback (most recent call last): Bedrock timeout\n",
+                    },
+                ],
+            },
+            {
+                "logGroupName": "/fattorestreet/django",
+                "startTime": ANY,
+                "endTime": ANY,
+                "limit": 50,
+                "filterPattern": '"Bedrock"',
+                "nextToken": "token-page-2",
             },
         )
 
@@ -107,10 +128,31 @@ class MonitoringAPITests(BaseAPITestCase):
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["source"], "django")
-        self.assertEqual(res.data["next_token"], "token-page-2")
-        self.assertEqual(len(res.data["events"]), 1)
-        self.assertEqual(res.data["events"][0]["event_id"], "evt-2")
+        self.assertIsNone(res.data["next_token"])
+        self.assertEqual(len(res.data["events"]), 2)
+        self.assertEqual(res.data["events"][0]["event_id"], "evt-3")
+        self.assertEqual(res.data["events"][1]["event_id"], "evt-2")
         self.assertEqual(res.data["events"][0]["level"], "ERROR")
+        self.logs_stubber.assert_no_pending_responses()
+
+    def test_logs_error_level_without_query_uses_expanded_or_filter_pattern(self):
+        self.authenticate_staff()
+        self.logs_stubber.add_response(
+            "filter_log_events",
+            {"events": []},
+            {
+                "logGroupName": "/fattorestreet/springboot",
+                "startTime": ANY,
+                "endTime": ANY,
+                "limit": 200,
+                "filterPattern": "?ERROR ?Exception ?Traceback ?CRITICAL ?FATAL",
+            },
+        )
+        res = self.client.get(
+            reverse("monitoring_logs"),
+            {"source": "springboot", "level": "ERROR"},
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.logs_stubber.assert_no_pending_responses()
 
     def test_logs_returns_empty_list_when_log_group_does_not_exist_yet(self):
