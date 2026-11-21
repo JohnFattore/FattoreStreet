@@ -27,6 +27,7 @@ All protected endpoints require a valid JWT Access Token in the header:
 | `POST` | `/users/api/users/` | Register a new user. The password must be at least 8 characters and not on Django's common-password list; otherwise `400` with messages under `password`. |
 | `POST` | `/users/api/token/` | Login - Obtain Access and Refresh tokens. |
 | `POST` | `/users/api/token/refresh/` | Refresh an expired Access token. |
+| `GET` | `/users/api/me/` | Retrieve the authenticated user's profile (`{id, username, email, is_staff}`). |
 
 ## 📈 Portfolio (Assets)
 
@@ -88,6 +89,19 @@ Public blog posts (no authentication required).
 | `GET` | `/blog/api/posts/` | List published blog posts (supports `search`, `category`, `exclude_category`, `tag`, `page`, `page_size`). |
 | `GET` | `/blog/api/posts/<slug>/` | Retrieve a single published blog post by slug. |
 | `GET` | `/blog/api/categories/` | List blog categories. |
+
+## 📊 Monitoring (Staff Only)
+
+All monitoring endpoints require an authenticated user with `is_staff=True` (`IsAdminUser`). Unauthenticated requests return `401`; signed-in non-staff users receive `403`. CloudWatch errors return `503` (`monitoring_unavailable`) and Logs Insights queries exceeding the 10-second poll budget return `504` (`monitoring_query_timeout`).
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/monitoring/api/sources/` | List allowlisted CloudWatch log sources (`{sources: [{key, label, log_group, category}]}`). |
+| `GET` | `/monitoring/api/logs/` | Fetch and filter log events via CloudWatch `FilterLogEvents`. Query params: `source` (required allowlisted key), `start` (ISO datetime), `end` (ISO datetime), `q` (search text), `level` (`ERROR`, `WARN`, `INFO`, `DEBUG`), `next_token`, `limit` (1–500, default 200). Returns `{source, log_group, events: [{event_id, timestamp, timestamp_ms, log_stream, level, message}], next_token}`. |
+| `GET` | `/monitoring/api/summary/` | Error and warning counts per allowlisted service/job over the last `hours` (1–168, default 24) via CloudWatch Logs Insights, cached 60s. Returns `{hours, totals: [{source, label, category, error_count, warn_count}], buckets: [{bucket, error_count, warn_count}]}`. |
+| `GET` | `/monitoring/api/traffic/` | Nginx request volume, 4xx/5xx counts, hourly buckets, and top 5xx paths over `hours` (1–168, default 24) via Logs Insights on `nginx-logs`, cached 60s. Returns `{hours, total_requests, total_4xx, total_5xx, buckets, top_5xx_paths}`. |
+| `GET` | `/monitoring/api/jobs/` | Latest run status, exit code, duration, and staleness flag for each of the five scheduled Fargate tasks (`hist-load`, `index-load`, `fundamentals-load`, `validate-prices`, `asset-load`), cached 60s. Returns `{jobs: [{key, label, schedule, expected_interval_hours, stale_after_hours, last_run_at, last_success_at, duration_seconds, exit_code, status, is_stale, stopped_reason, task_arn}]}`. |
+| `GET` | `/monitoring/api/metrics/` | EC2 host CPU (`AWS/EC2`), memory, and disk utilization (`CWAgent` for `/` and `/mnt/ebs`) over `hours` (1–168, default 24) for `MONITORING_INSTANCE_ID`, cached 60s. Returns `{hours, instance_id, configured, latest, series}`. |
 | `GET` | `/blog/api/tags/` | List blog tags. |
 
 ---

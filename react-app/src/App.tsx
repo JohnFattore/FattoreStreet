@@ -22,6 +22,8 @@ import IexPricesView from "./pages/IexPricesView";
 import Indexes from "./pages/Indexes";
 import User from "./pages/User";
 import AdminSuccessBar from "./pages/AdminSuccessBar";
+import { AdminDashboard } from "./pages/AdminDashboard";
+import { AdminRoute } from "./components/AdminRoute";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import LlmNotebook from "./pages/LlmNotebook";
@@ -95,7 +97,22 @@ export default function App() {
         <Route path="/sec-edgar/:ticker" element={<SECData />} />
         <Route path="/compare" element={<CompanyComparison />} />
         <Route path="/iex-prices/:ticker" element={<IexPricesView />} />
-        <Route path="/react-admin/success-bar" element={<AdminSuccessBar />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/success-bar"
+          element={
+            <AdminRoute>
+              <AdminSuccessBar />
+            </AdminRoute>
+          }
+        />
         <Route path="/blog" element={<Blog />} />
         {/* Static segment, so it out-ranks /blog/:slug in the router */}
         <Route path="/blog/llm-notebook" element={<LlmNotebook />} />

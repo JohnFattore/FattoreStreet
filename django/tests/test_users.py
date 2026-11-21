@@ -83,6 +83,23 @@ class UserTests(BaseAPITestCase):
         response = self.client.get(reverse('accounts'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_current_user_requires_authentication(self):
+        response = self.client.get(reverse('current_user'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_current_user_returns_staff_flag(self):
+        self.authenticate_client()
+        response = self.client.get(reverse('current_user'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'testuser')
+        self.assertFalse(response.data['is_staff'])
+
+        self.user.is_staff = True
+        self.user.save(update_fields=['is_staff'])
+        response = self.client.get(reverse('current_user'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['is_staff'])
+
 
 class UserServiceTests(BaseAPITestCase):
     def test_deactivate_user_marks_inactive_and_returns_user(self):

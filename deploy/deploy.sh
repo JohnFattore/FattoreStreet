@@ -82,6 +82,18 @@ cp systemd/fattorestreet-cert-renew.timer /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now fattorestreet-cert-renew.timer
 
+# CloudWatch Agent: publishes host memory and disk usage to the CWAgent
+# namespace (CPU comes from AWS/EC2 automatically). Installed from the Amazon
+# Linux 2023 repo and reloaded from cloudwatch-agent.json on every deploy.
+if [ ! -x /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl ]; then
+  dnf install -y amazon-cloudwatch-agent
+fi
+mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+cp cloudwatch-agent.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 -s \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
 # Health check: nginx must answer over HTTPS or the deploy (and the GitHub
 # Action behind it) fails
 echo "=== Health check ==="

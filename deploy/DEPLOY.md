@@ -294,6 +294,37 @@ in Budgets, or detach `FattoreStreetBedrockKillSwitch` from the role yourself.
 While the policy is attached, the chatbot answers `503 advisor_unavailable` and
 the logs show `AccessDeniedException`.
 
+### 8. CloudWatch monitoring for `/admin`
+
+The staff-only `/admin` dashboard reads container logs, scheduled Fargate job
+run history, Nginx traffic, and EC2 host capacity from CloudWatch. Rollout order
+matters because Docker's `awslogs` driver refuses to start a container when its
+log group does not exist yet:
+
+1. **IAM.** Render [`iam/ec2-fattorestreet-role-monitoring.json`](iam/ec2-fattorestreet-role-monitoring.json)
+   and [`iam/fattorestreet-developer-infra.json`](iam/fattorestreet-developer-infra.json)
+   with `iam/render.sh`, then from an admin CloudShell attach the monitoring
+   policy to `EC2FattoreStreetRole` and update the developer role's infra
+   policy:
+
+   ```sh
+   aws iam put-role-policy --role-name EC2FattoreStreetRole \
+     --policy-name cloudwatch-monitoring \
+     --policy-document file://<RENDER_DIR>/ec2-fattorestreet-role-monitoring.json
+   ```
+
+2. **Log groups & job-runs EventBridge rule.** Run `terraform apply` in
+   `springboot/deploy/terraform/` before merging the compose change. That
+   creates `/fattorestreet/django`, `/fattorestreet/springboot`, and
+   `/fattorestreet/job-runs`, imports `nginx-logs` with a 30-day retention
+   policy, and wires the EventBridge `STOPPED` rule.
+3. **Instance ID secret.** Add `"MONITORING_INSTANCE_ID": "<INSTANCE_ID>"` to
+   `fattorestreet/env` in Secrets Manager so `/django/monitoring/api/metrics/`
+   can query EC2 CPU and the CloudWatch Agent's memory and disk metrics.
+4. **CloudWatch Agent.** `deploy.sh` installs `amazon-cloudwatch-agent` on the
+   host and loads [`cloudwatch-agent.json`](cloudwatch-agent.json) on every
+   deploy.
+
 ## TLS certificate renewal
 
 The Let's Encrypt certificate (90-day lifetime) is renewed by

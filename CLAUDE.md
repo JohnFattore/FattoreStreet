@@ -67,7 +67,7 @@ Browser → Nginx (443 SSL)
   /static/      → Django collected static files
 ```
 
-Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurants/`, `chatbot/`, `changeflow/`, `blog/`, `entertainment/`, plus `admin/`), with API routes at `<app>/api/...` — e.g. `POST /django/users/api/token/` from the browser reaches Django as `POST /users/api/token/`. Set `DJANGO_FORCE_SCRIPT_NAME=/django` in production so redirects and `{% url %}` include the prefix.
+Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurants/`, `chatbot/`, `changeflow/`, `blog/`, `entertainment/`, `monitoring/`, plus `admin/`), with API routes at `<app>/api/...` — e.g. `POST /django/users/api/token/` from the browser reaches Django as `POST /users/api/token/`. Set `DJANGO_FORCE_SCRIPT_NAME=/django` in production so redirects and `{% url %}` include the prefix.
 
 ### Authentication
 - Django issues SimpleJWT Access + Refresh tokens via `POST /users/api/token/`
@@ -83,6 +83,7 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 - `changeflow/` — Changelog + feedback tickets
 - `blog/` — Blog posts with categories and tags. Content is Markdown in `blog/journal/` (the author's posts) and `blog/learning-topics/` (daily study topics, filenames prefixed with their GitHub issue number, filed under the `LLM Notebook` category). The files ship in the image and are the source of truth; `deploy/deploy.sh` runs `manage.py sync_blog_posts` on every deploy, so merging to `main` publishes. Posts match on slug derived from the filename — see `django/README.md`, and the `blog-editor` skill for the file format
 - `entertainment/` — Media recommendations (books, movies, shows, music, podcasts, games, websites)
+- `monitoring/` — Staff-only (`IsAdminUser`) read-only operational API querying CloudWatch Logs (`FilterLogEvents` and Logs Insights) and CloudWatch Metrics (`GetMetricData`) for the `/admin` dashboard
 
 **Scheduled jobs**: five Fargate one-shot tasks on EventBridge Scheduler crons (see `springboot/deploy/terraform/`), not inside Django, and the only trigger for this work. `hist-load` (02:00 ET daily) is the IEX HIST daily price ingest, which after a successful load also runs corporate-action price adjustment (`PriceAdjustmentService.adjustAllTickers`); `index-load` (09:30 daily); `fundamentals-load` (13:30 daily, `EdgarService.syncFrames`), which covers a recent year window (`FUNDAMENTALS_LOAD_YEARS_BACK`, default 1) rather than the full 2009→present history, because frames are fetched per (concept, period); `validate-prices` (Sun 20:00 weekly), a read-only adjusted-price accuracy report emailed via SNS that writes nothing; and `asset-load` (1st of the month, 22:00), the SEC ticker universe load plus ETF identity enrichment. They are scheduled clear of each other: the SEC rate limiter is per-process, so overlapping tasks double the effective request rate. Automatic SEC detection is scoped to members of one index (`FAT1000` by default, property `app.price-adjustment.detection-index-code`), because the price universe is the full IEX HIST symbol set (~24k tickers, most with no SEC counterpart) and re-scanning it takes days; within that scope it re-detects the stalest ~1/7 of tickers per night (rolling weekly refresh via `listings.last_sec_detection_at`) plus any in-scope ticker with a >25% overnight move. Price adjustment itself still covers every ticker with unadjusted rows. External-data helpers (`portfolio/helper.py`) cache lazily in Redis on first request.
 
@@ -150,6 +151,8 @@ Additional conventions:
 - `FINNHUB_API_KEY` — portfolio quotes
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 - `DJANGO_FORCE_SCRIPT_NAME` — set to `/django` when served behind the nginx prefix
+- `MONITORING_INSTANCE_ID` — EC2 instance ID for host CPU/memory/disk metrics on `/admin` (optional; when unset the metrics panel shows an unconfigured notice)
+- `MONITORING_LOG_GROUPS` — optional JSON map overriding default CloudWatch log group names by source key
 
 ### Spring Boot (`.env` in `springboot/`, auto-imported)
 - `DB_URL`, `DB_USERNAME`, `POSTGRES_PASSWORD` — PostgreSQL connection (`POSTGRES_PASSWORD` is the shared DB-password key used by Django and the postgres image too)

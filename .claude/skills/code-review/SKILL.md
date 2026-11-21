@@ -11,7 +11,7 @@ Review code changes against the project's established conventions. Run `git diff
 
 ### Every change
 
-- [ ] **Data licensing**: nothing sourced from yfinance (or any non-commercially-free provider) is stored, returned from an API, or rendered. yfinance is allowed only in dev-gated, ephemeral verification code
+- [ ] **Data licensing**: nothing sourced from yfinance (or any non-commercially-free provider) is stored, returned from an API to public users, or rendered on public pages. yfinance is allowed only in dev-gated or staff-gated (`AdminRoute`) ephemeral verification code
 - [ ] No hardcoded secrets, keys, or connection strings; a detect-secrets false positive gets an inline `pragma: allowlist secret`, never a baseline entry
 - [ ] Changed logic has matching test updates, and user-facing changes have matching doc updates (see `auto-update-tests.md`, `auto-update-docs.md`)
 
@@ -25,7 +25,7 @@ Review code changes against the project's established conventions. Run `git diff
 - [ ] Data-dependent UI wrapped in `<StateHandler>`
 - [ ] Django responses converted from snake_case via `transformResponse`; interfaces in `interfaces.ts`
 - [ ] No hardcoded API URLs -- use `VITE_APP_*` env vars
-- [ ] No control that triggers a backend job (no admin page)
+- [ ] No control that triggers a backend job (read-only staff monitoring and diagnostics pages are fine)
 
 ### Django (`django/**/*.py`)
 

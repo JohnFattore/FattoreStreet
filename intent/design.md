@@ -17,6 +17,8 @@ The product is a set of areas, each with its own branch in the tree:
   from free primary sources. Shared by everyone, changed only by scheduled jobs.
 - **Accounts, portfolio, advisor.** Things that belong to one signed-in user.
 - **Blog, feedback.** The author's public workspace, plus a channel back to the author.
+- **Operations.** The author's private view of logs, scheduled-job health, host capacity and data
+  diagnostics.
 - **Restaurants, entertainment.** Legacy apps, kept running safely until they move out.
 
 Those areas run on a small number of services:
@@ -24,7 +26,7 @@ Those areas run on a small number of services:
 | Service | Carries | Why it's separate |
 |---|---|---|
 | Web app (React, TypeScript) | Every page users see | One client for every area, served as static files so it costs nothing to run beyond the host. |
-| Main API (Django) | Accounts, portfolio, advisor, blog, recommendations, feedback | User-owned data, sign-in and editorial content are ordinary request-and-response work that a batteries-included web framework handles with little code. |
+| Main API (Django) | Accounts, portfolio, advisor, blog, recommendations, feedback, operations | User-owned data, sign-in, editorial content and staff-only operational queries are ordinary request-and-response work that a batteries-included web framework handles with little code. |
 | Market-data service (Spring Boot, Java) | Prices, corporate actions, fundamentals, indexes, the security universe, economic indicators | The public side: shared data for anyone, no sign-in, no user data. Its heavy batch work also runs apart from the user-facing API, as on-demand jobs. See *Two backends* below. |
 | Scheduled jobs (the market-data service run as one-shot tasks on AWS Fargate, started by EventBridge Scheduler) | Every recurring data refresh | See *Cheap to run* and *The data stays current without a human* in [principles](principles.md): compute exists only while a job runs, and no one has to start it. |
 | PostgreSQL | All stored data, for both backends | One database keeps backups, access and cost in one place. |
@@ -93,8 +95,9 @@ citizen of free sources* in [principles](principles.md)).
 - **A signed-in user** can change only their own data: holdings, reviews, conversations and the
   tickets they file. The watch list is kept only in the browser today (see
   [watch list](portfolio/watch-list.md)). See [accounts](accounts/README.md).
-- **The author** writes the blog and the recommendations. Blog posts live in the repo and merging
-  publishes them, so the repo is the editor and the history. See [blog](blog/README.md).
+- **The author** writes the blog and the recommendations, and reads the operational monitoring and
+  diagnostic views. Blog posts live in the repo and merging publishes them, so the repo is the
+  editor and the history. See [blog](blog/README.md) and [operations](operations/README.md).
 - **Only scheduled jobs** change shared market data. No public endpoint writes it. See *Least
   privilege, no secrets in the repo* in [principles](principles.md).
 

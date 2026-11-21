@@ -10,6 +10,7 @@ const restaurantsApiBaseUrl = djangoBaseUrl + "restaurants/api/";
 const changeflowApiBaseUrl = djangoBaseUrl + "changeflow/api/";
 const blogApiBaseUrl = djangoBaseUrl + "blog/api/";
 const chatbotApiBaseUrl = djangoBaseUrl + "chatbot/api/";
+const monitoringApiBaseUrl = djangoBaseUrl + "monitoring/api/";
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -939,6 +940,221 @@ export const handlers = [
         author_username: "spike",
         categories: [{ name: "Investing", slug: "investing" }],
         tags: [{ name: "Bogleheads", slug: "bogleheads" }],
+      },
+      { status: 200 },
+    );
+  }),
+
+  // --- Users & Admin Monitoring (Django) ---
+  http.get(usersApiBaseUrl.concat("me/"), () => {
+    return Response.json(
+      {
+        id: 1,
+        username: "spike",
+        email: "spike@fattorestreet.com",
+        is_staff: true,
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get(monitoringApiBaseUrl.concat("sources/"), () => {
+    return Response.json(
+      {
+        sources: [
+          {
+            key: "django",
+            label: "Django API",
+            log_group: "/fattorestreet/django",
+            category: "service",
+          },
+          {
+            key: "springboot",
+            label: "Spring Boot SEC Service",
+            log_group: "/fattorestreet/springboot",
+            category: "service",
+          },
+          {
+            key: "nginx",
+            label: "Nginx Reverse Proxy",
+            log_group: "nginx-logs",
+            category: "service",
+          },
+          {
+            key: "hist-load",
+            label: "IEX HIST Daily Load",
+            log_group: "/ecs/fattorestreet-hist-load",
+            category: "job",
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get(monitoringApiBaseUrl.concat("logs/"), ({ request }) => {
+    const params = new URL(request.url).searchParams;
+    const source = params.get("source") ?? "django";
+    const q = params.get("q") ?? "";
+    const level = params.get("level") ?? "";
+
+    const allEvents = [
+      {
+        event_id: "evt-1",
+        timestamp: "2026-11-21T12:00:00+00:00",
+        timestamp_ms: 1763726400000,
+        log_stream: `${source}-stream-1`,
+        level: "ERROR",
+        message: `2026-11-21 12:00:00 ERROR ${source} Sample error event`,
+      },
+      {
+        event_id: "evt-2",
+        timestamp: "2026-11-21T11:59:00+00:00",
+        timestamp_ms: 1763726340000,
+        log_stream: `${source}-stream-1`,
+        level: "INFO",
+        message: `2026-11-21 11:59:00 INFO ${source} Health check ok`,
+      },
+    ];
+
+    const filtered = allEvents.filter((e) => {
+      if (level && e.level !== level) return false;
+      if (q && !e.message.toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    });
+
+    return Response.json(
+      {
+        source,
+        log_group: `/fattorestreet/${source}`,
+        events: filtered,
+        next_token: "next-page-token-1",
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get(monitoringApiBaseUrl.concat("summary/"), () => {
+    return Response.json(
+      {
+        hours: 24,
+        totals: [
+          {
+            source: "django",
+            label: "Django API",
+            category: "service",
+            error_count: 2,
+            warn_count: 4,
+          },
+          {
+            source: "springboot",
+            label: "Spring Boot SEC Service",
+            category: "service",
+            error_count: 0,
+            warn_count: 1,
+          },
+        ],
+        buckets: [
+          {
+            bucket: "2026-11-21 12:00:00.000",
+            error_count: 2,
+            warn_count: 5,
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get(monitoringApiBaseUrl.concat("traffic/"), () => {
+    return Response.json(
+      {
+        hours: 24,
+        total_requests: 1450,
+        total_4xx: 23,
+        total_5xx: 2,
+        buckets: [
+          {
+            bucket: "2026-11-21 12:00:00.000",
+            total_requests: 1450,
+            status_4xx: 23,
+            status_5xx: 2,
+          },
+        ],
+        top_5xx_paths: [
+          {
+            method: "POST",
+            path: "/django/chatbot/api/conversations/",
+            status: 503,
+            error_count: 2,
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get(monitoringApiBaseUrl.concat("jobs/"), () => {
+    return Response.json(
+      {
+        jobs: [
+          {
+            key: "hist-load",
+            label: "IEX HIST Daily Load",
+            schedule: "Daily 02:00 ET",
+            expected_interval_hours: 24,
+            stale_after_hours: 36,
+            last_run_at: "2026-11-21T07:12:00+00:00",
+            last_success_at: "2026-11-21T07:12:00+00:00",
+            duration_seconds: 720,
+            exit_code: 0,
+            status: "SUCCESS",
+            is_stale: false,
+            stopped_reason: "Essential container in task exited",
+            task_arn: "arn:aws:ecs:us-east-1:123456789012:task/hist/1",
+          },
+          {
+            key: "index-load",
+            label: "Index Metrics & Rebuild",
+            schedule: "Daily 09:30 ET",
+            expected_interval_hours: 24,
+            stale_after_hours: 36,
+            last_run_at: "2026-11-18T14:35:00+00:00",
+            last_success_at: "2026-11-18T14:35:00+00:00",
+            duration_seconds: 310,
+            exit_code: 1,
+            status: "FAILED",
+            is_stale: true,
+            stopped_reason: "Container exited with non-zero status",
+            task_arn: "arn:aws:ecs:us-east-1:123456789012:task/index/1",
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get(monitoringApiBaseUrl.concat("metrics/"), () => {
+    return Response.json(
+      {
+        hours: 24,
+        instance_id: "i-0123456789abcdef0",
+        configured: true,
+        latest: {
+          cpu_percent: 12.4,
+          mem_used_percent: 58.2,
+          disk_root_percent: 39.5,
+          disk_ebs_percent: 48.1,
+        },
+        series: [
+          {
+            timestamp: "2026-11-21T12:00:00+00:00",
+            cpu_percent: 12.4,
+            mem_used_percent: 58.2,
+            disk_root_percent: 39.5,
+            disk_ebs_percent: 48.1,
+          },
+        ],
       },
       { status: 200 },
     );

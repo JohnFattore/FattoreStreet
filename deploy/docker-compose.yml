@@ -23,6 +23,14 @@ services:
     image: ghcr.io/johnfattore/django:${TAG:-latest}
     container_name: django
     env_file: .env
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /fattorestreet/django
+        tag: django-{{.ID}}
+        mode: non-blocking
+        max-buffer-size: 4m
     networks: [dockerNet]
     restart: unless-stopped
 
@@ -30,6 +38,14 @@ services:
     image: ghcr.io/johnfattore/springboot:${TAG:-latest}
     container_name: springboot
     env_file: .env
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /fattorestreet/springboot
+        tag: springboot-{{.ID}}
+        mode: non-blocking
+        max-buffer-size: 4m
     networks: [dockerNet]
     restart: unless-stopped
 
@@ -49,6 +65,8 @@ services:
         awslogs-group: nginx-logs
         # tag templates the CloudWatch log stream name per container
         tag: nginx-{{.ID}}
+        mode: non-blocking
+        max-buffer-size: 4m
     # start after the backends; nginx.conf re-resolves their IPs every 10s
     # via Docker DNS, so recreated backends are picked up without a restart
     depends_on: [django, springboot]

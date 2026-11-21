@@ -37,12 +37,12 @@ paths:
 
 ## No Spring Boot admin panel
 
-There is no admin page and no authenticated Spring Boot route. The `/admin/**` endpoints were
-retired; every data-loading job now runs as a scheduled Fargate one-shot selected by
-`APP_RUN_MODE` (see `springboot/deploy/terraform/README.md`). Do not add a React control to
-trigger a backend job, and do not reintroduce `Admin.tsx` -- a new job gets a run mode and a
-schedule, not a button. `/react-admin/success-bar` (`AdminSuccessBar`) is unrelated: it is a
-read-only diagnostics view and stays.
+There is no Spring Boot admin page and no authenticated Spring Boot route. The `/admin/**` endpoints
+on Spring Boot were retired; every data-loading job now runs as a scheduled Fargate one-shot
+selected by `APP_RUN_MODE` (see `springboot/deploy/terraform/README.md`). Do not add a React control
+to trigger a backend job, and do not reintroduce `Admin.tsx` -- a new job gets a run mode and a
+schedule, not a button. `/admin` (`AdminDashboard`) and `/admin/success-bar` (`AdminSuccessBar`) are
+read-only staff monitoring and diagnostics views backed by Django, not job triggers.
 
 ## Error Handling
 

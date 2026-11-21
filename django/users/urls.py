@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('api/users/', views.UserCreateView.as_view(), name="users"),
+    path('api/me/', views.CurrentUserView.as_view(), name="current_user"),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     # routes for djangorestframework-simplejwt
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

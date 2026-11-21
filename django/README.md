@@ -21,6 +21,7 @@ Django 6 + Django REST Framework backend providing portfolio management, market 
 | `restaurants` | Restaurant reviews and recommendations |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
 | `blog` | Public blog posts (Markdown body) via `/blog/api/posts/`; content lives as Markdown in `blog/journal/` and `blog/learning-topics/` (see [Blog posts](#blog-posts)) |
+| `monitoring` | Staff-only (`IsAdminUser`) operational monitoring API wrapping CloudWatch Logs (`FilterLogEvents`, Logs Insights) and CloudWatch Metrics (`GetMetricData`) |
 
 Market index membership APIs live in the Spring Boot service (`sec-api`), not in Django.
 
@@ -88,8 +89,10 @@ The IEX HIST daily price ingest is scheduled outside Django: an EventBridge Sche
 | `ADVISOR_MODEL_ID` | `us.meta.llama3-3-70b-instruct-v1:0` | Bedrock model or inference-profile ID the chatbot calls. Changing models is this env var plus the matching IAM grant (`deploy/iam/ec2-fattorestreet-role-bedrock.json`). |
 | `ADVISOR_MONTHLY_TOKEN_CAP` | `20000000` | Bedrock tokens (input + output, all users) the chatbot may spend per UTC month. Past it the chatbot answers `503 advisor_budget_exhausted` without calling Bedrock. `0` turns the advisor off. Usage is in Django admin under *Advisor usage*. |
 | `ADVISOR_THROTTLE_RATE` | `50/day` | Per-user limit on chatbot questions (DRF rate format); past it the user gets `429`. Counted in the Django cache, so it only applies when `DEBUG=False` (Redis). |
-| `AWS_REGION` | `us-east-1` | Region for the Bedrock client. Credentials come from the default AWS chain: the EC2 instance role in production, `AWS_PROFILE` in development. No API key. |
+| `AWS_REGION` | `us-east-1` | Region for the Bedrock and CloudWatch clients. Credentials come from the default AWS chain: the EC2 instance role in production, `AWS_PROFILE` in development. No API key. |
 | `DJANGO_FORCE_SCRIPT_NAME` | (empty) | Public URL prefix where nginx serves Django (e.g. `/django`). Set in production so admin login redirects and `{% url %}` resolve under `/django/...`. Omit or leave empty for local `runserver` at `/admin/`. |
+| `MONITORING_INSTANCE_ID` | (empty) | EC2 instance ID queried by `/monitoring/api/metrics/` for host CPU, memory, and disk utilization. |
+| `MONITORING_LOG_GROUPS` | (empty) | Optional JSON object mapping allowlisted source keys to custom CloudWatch log group names. |
 
 ## Getting Started
 

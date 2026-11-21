@@ -346,7 +346,6 @@ function TickerSuccessRow({
 
 export default function AdminSuccessBar() {
   const dispatch = useDispatch<AppDispatch>();
-  const { username } = useSelector((state: RootState) => state.user);
   const { tickers, error } = useSelector(
     (state: RootState) => state.adminSuccessBar,
   );
@@ -354,10 +353,6 @@ export default function AdminSuccessBar() {
   const assetInfoArg: string[] | typeof skipToken =
     tickers.length > 0 ? tickers : skipToken;
   const { data: assetInfos } = useGetAssetInfosQuery(assetInfoArg);
-
-  if (username !== "spike") {
-    return <h1>Error</h1>;
-  }
 
   const handleAddTicker = (event: FormEvent) => {
     event.preventDefault();

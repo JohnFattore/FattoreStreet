@@ -26,27 +26,28 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 
 ## Pages & Routes
 
-| Route                      | Page               | Description                                                                                                                                |
-| -------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/`                        | Home               | Landing page with feature cards and links to copy the Google Sheets portfolio tracker and its getting-started post                         |
-| `/portfolio`               | Portfolio          | Holdings overview, account balances, pie charts                                                                                            |
-| `/watchlist`               | WatchList          | Live price table with benchmarks                                                                                                           |
-| `/asset/:ticker`           | AssetView          | Individual asset detail with equity/ETF info                                                                                               |
-| `/account/:id`             | AccountView        | Account holdings breakdown                                                                                                                 |
-| `/indexes`                 | Indexes            | Browse computed indexes (e.g. Fattore 50, Fattore 100, Fattore 1000) and view constituents, weights, and key metrics                       |
-| `/sec-edgar/:ticker`       | SECData            | SEC EDGAR financials, quarterly comparison, 10-K filing summaries                                                                          |
-| `/compare?a=:t1&b=:t2`     | CompanyComparison  | Side-by-side market cap and SEC EDGAR fundamentals for two tickers, stronger value highlighted, AI analysis for signed-in users            |
-| `/iex-prices/:ticker`      | IexPricesView      | IEX daily adjusted OHLCV prices plus side-by-side adjusted price, dividend, and split comparisons vs YFinance                              |
-| `/react-admin/success-bar` | AdminSuccessBar    | Per-ticker corporate-action success overview comparing Spring Boot vs YFinance price/dividend alignment using persisted manual ticker list |
-| `/visualizer`              | Visualizer         | Chart comparison tool                                                                                                                      |
-| `/economic-indicators`     | EconomicIndicators | FRED macroeconomic data charts (served by Spring Boot `POST /fred-data`) with chart-level latest readings (date + value)                   |
-| `/chatbot`                 | Chatbot            | Boglehead AI financial advisor: conversation list (new, rename, delete) beside the chat                                                    |
-| `/restaurants`             | Restaurants        | Restaurant reviews and map                                                                                                                 |
-| `/entertainment`           | Entertainment      | Music and media                                                                                                                            |
-| `/blog`                    | Blog               | The author's own posts, with the `LLM Notebook` category excluded and a link out to it                                                     |
-| `/blog/llm-notebook`       | LlmNotebook        | The `LLM Notebook` learning topics, written by (and credited to) Claude                                                                    |
-| `/blog/:slug`              | BlogPost           | A single post, Markdown rendered via `react-markdown`                                                                                      |
-| `/user`                    | User               | User profile and settings                                                                                                                  |
+| Route                  | Page               | Description                                                                                                                                                 |
+| ---------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                    | Home               | Landing page with feature cards and links to copy the Google Sheets portfolio tracker and its getting-started post                                          |
+| `/portfolio`           | Portfolio          | Holdings overview, account balances, pie charts                                                                                                             |
+| `/watchlist`           | WatchList          | Live price table with benchmarks                                                                                                                            |
+| `/asset/:ticker`       | AssetView          | Individual asset detail with equity/ETF info                                                                                                                |
+| `/account/:id`         | AccountView        | Account holdings breakdown                                                                                                                                  |
+| `/indexes`             | Indexes            | Browse computed indexes (e.g. Fattore 50, Fattore 100, Fattore 1000) and view constituents, weights, and key metrics                                        |
+| `/sec-edgar/:ticker`   | SECData            | SEC EDGAR financials, quarterly comparison, 10-K filing summaries                                                                                           |
+| `/compare?a=:t1&b=:t2` | CompanyComparison  | Side-by-side market cap and SEC EDGAR fundamentals for two tickers, stronger value highlighted, AI analysis for signed-in users                             |
+| `/iex-prices/:ticker`  | IexPricesView      | IEX daily adjusted OHLCV prices plus side-by-side adjusted price, dividend, and split comparisons vs YFinance                                               |
+| `/admin`               | AdminDashboard     | Staff-only (`AdminRoute`) CloudWatch monitoring dashboard: scheduled Fargate job health, error summary, Nginx traffic/5xx, EC2 host metrics, and log viewer |
+| `/admin/success-bar`   | AdminSuccessBar    | Staff-only (`AdminRoute`) per-ticker corporate-action diagnostic comparing Spring Boot vs YFinance price/dividend alignment                                 |
+| `/visualizer`          | Visualizer         | Chart comparison tool                                                                                                                                       |
+| `/economic-indicators` | EconomicIndicators | FRED macroeconomic data charts (served by Spring Boot `POST /fred-data`) with chart-level latest readings (date + value)                                    |
+| `/chatbot`             | Chatbot            | Boglehead AI financial advisor: conversation list (new, rename, delete) beside the chat                                                                     |
+| `/restaurants`         | Restaurants        | Restaurant reviews and map                                                                                                                                  |
+| `/entertainment`       | Entertainment      | Music and media                                                                                                                                             |
+| `/blog`                | Blog               | The author's own posts, with the `LLM Notebook` category excluded and a link out to it                                                                      |
+| `/blog/llm-notebook`   | LlmNotebook        | The `LLM Notebook` learning topics, written by (and credited to) Claude                                                                                     |
+| `/blog/:slug`          | BlogPost           | A single post, Markdown rendered via `react-markdown`                                                                                                       |
+| `/user`                | User               | User profile and settings                                                                                                                                   |
 
 ## Key Components
 
@@ -58,6 +59,8 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | `PriceComparison`                    | IexPricesView                                                   | IEX vs YFinance daily adjusted-close comparison                                                                                                                                                        |
 | `DividendComparison`                 | IexPricesView                                                   | Internal corporate-action dividends vs YFinance dividends (nearest-date matching)                                                                                                                      |
 | `SplitComparison`                    | IexPricesView                                                   | Internal SEC split events vs YFinance split events (date-window matching with normalized split ratios)                                                                                                 |
+| `AdminDashboard`                     | AdminDashboard                                                  | Staff-only CloudWatch monitoring overview (Fargate jobs, service errors, Nginx traffic, EC2 metrics) and filterable log viewer                                                                         |
+| `AdminRoute`                         | App (`/admin`, `/admin/success-bar`)                            | Route guard that prompts anonymous visitors to sign in and verifies `isStaff` via `GET /users/api/me/`, rendering `ErrorPage` for non-staff users                                                      |
 | `AdminSuccessBar`                    | AdminSuccessBar                                                 | Aggregated per-ticker success bars for Spring Boot vs YFinance price/dividend parity                                                                                                                   |
 | `SortableTable`                      | Multiple                                                        | Reusable sortable table with column config                                                                                                                                                             |
 | `SecuritySearch`                     | NavbarSearch, WatchList (`TickerSearchForm`), CompanyComparison | Combobox that suggests companies and funds as you type, shown as "Name (TICKER)" (`GET /listings/search`, debounced); arrows + Enter or click to pick. CompanyComparison passes `includeFunds={false}` |

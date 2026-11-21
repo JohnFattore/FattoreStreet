@@ -8,8 +8,9 @@ The platform is public, and one non-free value that is stored or displayed creat
 exposure that deleting code later can't undo. Every value that is persisted, returned by an API or
 rendered to a user comes from a source licensed for free commercial use, or is derived only from
 such values. A source whose license is unclear is forbidden until it's verified. During development,
-non-free sources may be used for verification and diagnostics, as long as the result is temporary,
-never stored, never returned to users and never displayed.
+or on an author-only diagnostic view gated to the author's staff account, non-free sources may be
+used for verification and diagnostics, as long as the result is temporary, never stored, and never
+returned or displayed to public users.
 
 ### Primary sources are the truth
 The value of the platform is that its numbers can be audited, and a derived number is only as

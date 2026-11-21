@@ -33,3 +33,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         # Tuple of serialized model fields (see link [2])
         fields = ( "id", "username", "password", "email" )
+
+
+class CurrentUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("id", "username", "email", "is_staff")
