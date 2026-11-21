@@ -399,11 +399,12 @@ def fetch_error_summary(hours: int = 24) -> dict:
 
     query_string = (
         "fields @log, @timestamp, @message "
-        "| filter @message like /(?i)\\b(ERROR|Exception|Traceback|CRITICAL|FATAL|WARN|WARNING)\\b"
-        '|\\[error\\]|\\[crit\\]|\\[warn\\]|"[A-Z]+ [^"]+ HTTP\\/[0-9.]+" [45][0-9]{2}\\b/ '
-        "| eval is_error = (@message like /(?i)\\b(ERROR|Exception|Traceback|CRITICAL|FATAL)\\b"
-        '|\\[error\\]|\\[crit\\]|"[A-Z]+ [^"]+ HTTP\\/[0-9.]+" 5[0-9]{2}\\b/) '
-        "| stats sum(is_error) as error_count, sum(not is_error) as warn_count by @log, bin(1h) as bucket "
+        "| parse @message /(?<err_tok>(?i)\\b(?:ERROR|Exception|Traceback|CRITICAL|FATAL)\\b"
+        '|\\[error\\]|\\[crit\\]|"[A-Z]+ [^"]+ HTTP\\/[0-9.]+" 5[0-9]{2}\\b)/ '
+        "| parse @message /(?<warn_tok>(?i)\\b(?:WARN|WARNING)\\b"
+        '|\\[warn\\]|"[A-Z]+ [^"]+ HTTP\\/[0-9.]+" 4[0-9]{2}\\b)/ '
+        "| filter ispresent(err_tok) or ispresent(warn_tok) "
+        "| stats count(err_tok) as error_count, count(warn_tok) as warn_count by @log, bin(1h) as bucket "
         "| sort bucket asc"
     )
 
