@@ -27,8 +27,9 @@ page shows the right kind of summary for each.
 Price alone doesn't explain value. Companies link to their figures in
 [fundamentals](../fundamentals/README.md).
 
-### Comparisons with third-party data exist only in development
+### Comparisons with third-party data are never shown on public pages
 The comparison of the platform's prices, splits and dividends with yfinance's is a diagnostic. Per
 *Only commercially free data is stored or shown* in [principles](../principles.md), it's reachable
-only in development and never on the public site. Today it's public and linked from every security
-page, which has to change.
+only in development or on an author-only diagnostic view (see
+[diagnostics](../operations/diagnostics.md)), and never on the public security page. Today it's
+public and linked from every security page, which has to change.

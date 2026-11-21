@@ -1,0 +1,73 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ShipContainerLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": [
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:nginx-logs",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:nginx-logs:*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/django",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/django:*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/springboot",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/springboot:*"
+      ]
+    },
+    {
+      "Sid": "ReadMonitoringLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:FilterLogEvents",
+        "logs:DescribeLogStreams",
+        "logs:StartQuery"
+      ],
+      "Resource": [
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:nginx-logs",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:nginx-logs:*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/django",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/django:*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/springboot",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/springboot:*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/job-runs",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/job-runs:*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/ecs/fattorestreet-*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/ecs/fattorestreet-*:*"
+      ]
+    },
+    {
+      "Sid": "ReadMonitoringLogQueries",
+      "Effect": "Allow",
+      "Action": [
+        "logs:GetQueryResults",
+        "logs:StopQuery"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadMonitoringMetrics",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:GetMetricData"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PublishHostMetrics",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricData"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "cloudwatch:namespace": "CWAgent"
+        }
+      }
+    }
+  ]
+}

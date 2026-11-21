@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'changeflow.apps.ChangeflowConfig',
     'blog.apps.BlogConfig',
     'entertainment.apps.EntertainmentConfig',
+    'monitoring.apps.MonitoringConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -174,3 +175,32 @@ REST_FRAMEWORK = {
 }
 
 HOME_URL = env("HOME_URL", default="/")
+
+# Format stdout lines with ISO timestamp + level so CloudWatch Logs and Logs
+# Insights can filter Django events the same way as Spring Boot.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

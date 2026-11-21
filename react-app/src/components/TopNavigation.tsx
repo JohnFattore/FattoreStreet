@@ -6,6 +6,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../main";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { NavbarSearch } from "./NavbarSearch";
+import { useGetCurrentUserQuery } from "../functions/api";
 
 // Pages grouped under the Portfolio tab. Restaurants and Entertainment are
 // deliberately left out of the nav; their routes still resolve directly.
@@ -27,6 +28,9 @@ function isPortfolioPath(pathname: string) {
 
 export default function TopNavigation() {
   const { access } = useSelector((state: RootState) => state.user);
+  const { data: currentUser } = useGetCurrentUserQuery(undefined, {
+    skip: !access,
+  });
   const { pathname } = useLocation();
   const inPortfolio = isPortfolioPath(pathname);
 
@@ -63,6 +67,11 @@ export default function TopNavigation() {
               <Nav.Link as={NavLink} to="/user">
                 Profile
               </Nav.Link>
+              {access && currentUser?.isStaff && (
+                <Nav.Link as={NavLink} to="/admin">
+                  Admin
+                </Nav.Link>
+              )}
               {access && <LogoutButton />}
             </Nav>
             <NavbarSearch />

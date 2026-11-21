@@ -4,9 +4,16 @@ import type {
   IChatMessage,
   IConversation,
   IConversationDetail,
+  ICurrentUser,
   IDividendRow,
   IEquityInfo,
   IETFInfo,
+  IMonitoringJobsResponse,
+  IMonitoringLogsResponse,
+  IMonitoringMetricsResponse,
+  IMonitoringSource,
+  IMonitoringSummaryResponse,
+  IMonitoringTrafficResponse,
   IRestaurant,
   IReview,
   ISplitRow,
@@ -648,6 +655,264 @@ export const djangoApi = createApi({
         withAuth: false,
       }),
     }),
+    getCurrentUser: builder.query<ICurrentUser, void>({
+      query: () => ({
+        url: "users/api/me/",
+        method: "GET",
+      }),
+      transformResponse: (raw: {
+        id: number;
+        username: string;
+        email: string;
+        is_staff: boolean;
+      }): ICurrentUser => ({
+        id: raw.id,
+        username: raw.username,
+        email: raw.email,
+        isStaff: raw.is_staff,
+      }),
+    }),
+    getMonitoringSources: builder.query<IMonitoringSource[], void>({
+      query: () => ({
+        url: "monitoring/api/sources/",
+        method: "GET",
+      }),
+      transformResponse: (raw: {
+        sources: {
+          key: string;
+          label: string;
+          log_group: string;
+          category: "service" | "job" | "system";
+        }[];
+      }): IMonitoringSource[] =>
+        raw.sources.map((s) => ({
+          key: s.key,
+          label: s.label,
+          logGroup: s.log_group,
+          category: s.category,
+        })),
+    }),
+    getMonitoringLogs: builder.query<
+      IMonitoringLogsResponse,
+      {
+        source: string;
+        start?: string;
+        end?: string;
+        minutes?: number;
+        q?: string;
+        level?: string;
+        nextToken?: string;
+        limit?: number;
+      }
+    >({
+      query: ({ source, start, end, minutes, q, level, nextToken, limit }) => ({
+        url: "monitoring/api/logs/",
+        method: "GET",
+        params: {
+          source,
+          ...(start ? { start } : {}),
+          ...(end ? { end } : {}),
+          ...(minutes ? { minutes } : {}),
+          ...(q ? { q } : {}),
+          ...(level ? { level } : {}),
+          ...(nextToken ? { next_token: nextToken } : {}),
+          ...(limit ? { limit } : {}),
+        },
+      }),
+      transformResponse: (raw: {
+        source: string;
+        log_group: string;
+        events: {
+          event_id: string;
+          timestamp: string;
+          timestamp_ms: number;
+          log_stream: string;
+          level: "ERROR" | "WARN" | "INFO" | "DEBUG";
+          message: string;
+        }[];
+        next_token: string | null;
+      }): IMonitoringLogsResponse => ({
+        source: raw.source,
+        logGroup: raw.log_group,
+        events: raw.events.map((e) => ({
+          eventId: e.event_id,
+          timestamp: e.timestamp,
+          timestampMs: e.timestamp_ms,
+          logStream: e.log_stream,
+          level: e.level,
+          message: e.message,
+        })),
+        nextToken: raw.next_token,
+      }),
+    }),
+    getMonitoringSummary: builder.query<
+      IMonitoringSummaryResponse,
+      { hours?: number } | void
+    >({
+      query: (arg) => ({
+        url: "monitoring/api/summary/",
+        method: "GET",
+        params: arg?.hours ? { hours: arg.hours } : undefined,
+      }),
+      transformResponse: (raw: {
+        hours: number;
+        totals: {
+          source: string;
+          label: string;
+          category: string;
+          error_count: number;
+          warn_count: number;
+        }[];
+        buckets: {
+          bucket: string;
+          error_count: number;
+          warn_count: number;
+        }[];
+      }): IMonitoringSummaryResponse => ({
+        hours: raw.hours,
+        totals: raw.totals.map((t) => ({
+          source: t.source,
+          label: t.label,
+          category: t.category,
+          errorCount: t.error_count,
+          warnCount: t.warn_count,
+        })),
+        buckets: raw.buckets.map((b) => ({
+          bucket: b.bucket,
+          errorCount: b.error_count,
+          warnCount: b.warn_count,
+        })),
+      }),
+    }),
+    getMonitoringTraffic: builder.query<
+      IMonitoringTrafficResponse,
+      { hours?: number } | void
+    >({
+      query: (arg) => ({
+        url: "monitoring/api/traffic/",
+        method: "GET",
+        params: arg?.hours ? { hours: arg.hours } : undefined,
+      }),
+      transformResponse: (raw: {
+        hours: number;
+        total_requests: number;
+        total_4xx: number;
+        total_5xx: number;
+        buckets: {
+          bucket: string;
+          total_requests: number;
+          status_4xx: number;
+          status_5xx: number;
+        }[];
+        top_5xx_paths: {
+          method: string;
+          path: string;
+          status: number;
+          error_count: number;
+        }[];
+      }): IMonitoringTrafficResponse => ({
+        hours: raw.hours,
+        totalRequests: raw.total_requests,
+        total4xx: raw.total_4xx,
+        total5xx: raw.total_5xx,
+        buckets: raw.buckets.map((b) => ({
+          bucket: b.bucket,
+          totalRequests: b.total_requests,
+          status4xx: b.status_4xx,
+          status5xx: b.status_5xx,
+        })),
+        top5xxPaths: raw.top_5xx_paths.map((p) => ({
+          method: p.method,
+          path: p.path,
+          status: p.status,
+          errorCount: p.error_count,
+        })),
+      }),
+    }),
+    getMonitoringJobs: builder.query<IMonitoringJobsResponse, void>({
+      query: () => ({
+        url: "monitoring/api/jobs/",
+        method: "GET",
+      }),
+      transformResponse: (raw: {
+        jobs: {
+          key: string;
+          label: string;
+          schedule: string;
+          expected_interval_hours: number;
+          stale_after_hours: number;
+          last_run_at: string | null;
+          last_success_at: string | null;
+          duration_seconds: number | null;
+          exit_code: number | null;
+          status: "SUCCESS" | "FAILED" | "UNKNOWN";
+          is_stale: boolean;
+          stopped_reason: string;
+          task_arn: string;
+        }[];
+      }): IMonitoringJobsResponse => ({
+        jobs: raw.jobs.map((j) => ({
+          key: j.key,
+          label: j.label,
+          schedule: j.schedule,
+          expectedIntervalHours: j.expected_interval_hours,
+          staleAfterHours: j.stale_after_hours,
+          lastRunAt: j.last_run_at,
+          lastSuccessAt: j.last_success_at,
+          durationSeconds: j.duration_seconds,
+          exitCode: j.exit_code,
+          status: j.status,
+          isStale: j.is_stale,
+          stoppedReason: j.stopped_reason,
+          taskArn: j.task_arn,
+        })),
+      }),
+    }),
+    getMonitoringMetrics: builder.query<
+      IMonitoringMetricsResponse,
+      { hours?: number } | void
+    >({
+      query: (arg) => ({
+        url: "monitoring/api/metrics/",
+        method: "GET",
+        params: arg?.hours ? { hours: arg.hours } : undefined,
+      }),
+      transformResponse: (raw: {
+        hours: number;
+        instance_id: string;
+        configured: boolean;
+        latest: {
+          cpu_percent: number | null;
+          mem_used_percent: number | null;
+          disk_root_percent: number | null;
+          disk_ebs_percent: number | null;
+        };
+        series: {
+          timestamp: string;
+          cpu_percent: number | null;
+          mem_used_percent: number | null;
+          disk_root_percent: number | null;
+          disk_ebs_percent: number | null;
+        }[];
+      }): IMonitoringMetricsResponse => ({
+        hours: raw.hours,
+        instanceId: raw.instance_id,
+        configured: raw.configured,
+        latest: {
+          cpuPercent: raw.latest.cpu_percent,
+          memUsedPercent: raw.latest.mem_used_percent,
+          diskRootPercent: raw.latest.disk_root_percent,
+          diskEbsPercent: raw.latest.disk_ebs_percent,
+        },
+        series: raw.series.map((pt) => ({
+          timestamp: pt.timestamp,
+          cpuPercent: pt.cpu_percent,
+          memUsedPercent: pt.mem_used_percent,
+          diskRootPercent: pt.disk_root_percent,
+          diskEbsPercent: pt.disk_ebs_percent,
+        })),
+      }),
+    }),
   }),
 });
 
@@ -684,4 +949,11 @@ export const {
   useRenameConversationMutation,
   useDeleteConversationMutation,
   useGetCompanyComparisonAnalysisQuery,
+  useGetCurrentUserQuery,
+  useGetMonitoringSourcesQuery,
+  useGetMonitoringLogsQuery,
+  useGetMonitoringSummaryQuery,
+  useGetMonitoringTrafficQuery,
+  useGetMonitoringJobsQuery,
+  useGetMonitoringMetricsQuery,
 } = djangoApi;

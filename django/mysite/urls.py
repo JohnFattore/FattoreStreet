@@ -9,5 +9,6 @@ urlpatterns = [
     path("changeflow/", include("changeflow.urls")),
     path("blog/", include("blog.urls")),
     path("entertainment/", include("entertainment.urls")),
+    path("monitoring/", include("monitoring.urls")),
     path('admin/', admin.site.urls),
 ]

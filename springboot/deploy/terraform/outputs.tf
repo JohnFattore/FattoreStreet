@@ -97,3 +97,18 @@ output "asset_load_schedule_name" {
   description = "EventBridge schedule name for the asset-load task."
   value       = aws_scheduler_schedule.asset_load.name
 }
+
+output "django_log_group_name" {
+  description = "CloudWatch log group for the EC2 Django container."
+  value       = aws_cloudwatch_log_group.django.name
+}
+
+output "springboot_log_group_name" {
+  description = "CloudWatch log group for the EC2 Spring Boot server container."
+  value       = aws_cloudwatch_log_group.springboot.name
+}
+
+output "job_runs_log_group_name" {
+  description = "CloudWatch log group receiving all ECS task STOPPED events."
+  value       = aws_cloudwatch_log_group.job_runs.name
+}

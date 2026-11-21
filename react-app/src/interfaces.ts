@@ -340,3 +340,117 @@ export interface IYFinanceQuarter {
   paymentsOfDividends: number | null;
   paymentsForRepurchaseOfCommonStock: number | null;
 }
+
+export interface ICurrentUser {
+  id: number;
+  username: string;
+  email: string;
+  isStaff: boolean;
+}
+
+export interface IMonitoringSource {
+  key: string;
+  label: string;
+  logGroup: string;
+  category: "service" | "job" | "system";
+}
+
+export interface IMonitoringLogEvent {
+  eventId: string;
+  timestamp: string;
+  timestampMs: number;
+  logStream: string;
+  level: "ERROR" | "WARN" | "INFO" | "DEBUG";
+  message: string;
+}
+
+export interface IMonitoringLogsResponse {
+  source: string;
+  logGroup: string;
+  events: IMonitoringLogEvent[];
+  nextToken: string | null;
+}
+
+export interface IMonitoringServiceTotal {
+  source: string;
+  label: string;
+  category: string;
+  errorCount: number;
+  warnCount: number;
+}
+
+export interface IMonitoringErrorBucket {
+  bucket: string;
+  errorCount: number;
+  warnCount: number;
+}
+
+export interface IMonitoringSummaryResponse {
+  hours: number;
+  totals: IMonitoringServiceTotal[];
+  buckets: IMonitoringErrorBucket[];
+}
+
+export interface IMonitoringTrafficBucket {
+  bucket: string;
+  totalRequests: number;
+  status4xx: number;
+  status5xx: number;
+}
+
+export interface IMonitoringTop5xxPath {
+  method: string;
+  path: string;
+  status: number;
+  errorCount: number;
+}
+
+export interface IMonitoringTrafficResponse {
+  hours: number;
+  totalRequests: number;
+  total4xx: number;
+  total5xx: number;
+  buckets: IMonitoringTrafficBucket[];
+  top5xxPaths: IMonitoringTop5xxPath[];
+}
+
+export interface IMonitoringJobStatus {
+  key: string;
+  label: string;
+  schedule: string;
+  expectedIntervalHours: number;
+  staleAfterHours: number;
+  lastRunAt: string | null;
+  lastSuccessAt: string | null;
+  durationSeconds: number | null;
+  exitCode: number | null;
+  status: "SUCCESS" | "FAILED" | "UNKNOWN";
+  isStale: boolean;
+  stoppedReason: string;
+  taskArn: string;
+}
+
+export interface IMonitoringJobsResponse {
+  jobs: IMonitoringJobStatus[];
+}
+
+export interface IMonitoringMetricPoint {
+  timestamp: string;
+  cpuPercent: number | null;
+  memUsedPercent: number | null;
+  diskRootPercent: number | null;
+  diskEbsPercent: number | null;
+}
+
+export interface IMonitoringMetricsResponse {
+  hours: number;
+  instanceId: string;
+  configured: boolean;
+  latest: {
+    cpuPercent: number | null;
+    memUsedPercent: number | null;
+    diskRootPercent: number | null;
+    diskEbsPercent: number | null;
+  };
+  series: IMonitoringMetricPoint[];
+}

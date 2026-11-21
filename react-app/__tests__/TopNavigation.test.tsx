@@ -80,4 +80,24 @@ describe("TopNavigation", () => {
       screen.getByRole("search").querySelector('[role="combobox"]'),
     ).toHaveAccessibleName("Search securities");
   });
+
+  it("shows the Admin link only for signed-in staff users", async () => {
+    renderWithRoute(<TopNavigation />, {
+      path: "*",
+      initialEntry: "/",
+      preloadedState: {
+        user: {
+          access: "staff-token",
+          refresh: "staff-refresh",
+          username: "spike",
+          darkMode: false,
+        },
+      },
+    });
+
+    expect(await screen.findByRole("link", { name: "Admin" })).toHaveAttribute(
+      "href",
+      "/admin",
+    );
+  });
 });

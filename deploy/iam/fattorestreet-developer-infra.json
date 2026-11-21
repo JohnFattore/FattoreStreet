@@ -121,8 +121,21 @@
       ],
       "Resource": [
         "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/ecs/fattorestreet-*",
-        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/ecs/fattorestreet-*:*"
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/ecs/fattorestreet-*:*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:/fattorestreet/*:*",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:nginx-logs",
+        "arn:aws:logs:us-east-1:<ACCOUNT_ID>:log-group:nginx-logs:*"
       ]
+    },
+    {
+      "Sid": "LogResourcePolicies",
+      "Effect": "Allow",
+      "Action": [
+        "logs:PutResourcePolicy",
+        "logs:DeleteResourcePolicy"
+      ],
+      "Resource": "*"
     },
     {
       "Sid": "SecurityGroupsInVpc",

@@ -53,6 +53,7 @@ FattoreStreet answers with data that is:
 | [Restaurants](restaurants/README.md) | A legacy, frozen restaurant log, kept running until it moves out |
 | [Entertainment](entertainment/README.md) | The author's media recommendations, heading out like restaurants |
 | [Feedback](feedback/README.md) | A way for users to report problems, and the author's work queue |
+| [Operations](operations/README.md) | Author-only monitoring of service logs, scheduled jobs, host health and data diagnostics |
 
 ## Non-goals
 
