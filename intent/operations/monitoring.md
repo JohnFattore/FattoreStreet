@@ -43,6 +43,13 @@ Application logs don't show a disk that is nearly full, memory pressure from a c
 errors that never reached a backend. The dashboard shows recent host CPU, memory and disk usage
 together with request rates and server-error counts from the reverse proxy.
 
+### Client errors on the platform's own API are separated from background probe traffic
+Most client errors on a public site come from bots probing paths the app never served, so a raw
+client-error total hides the few that matter: an auth regression, a permission mistake, or a route
+the frontend calls that no longer exists. The dashboard counts client errors on the platform's own
+API routes apart from everything else, breaks them out into unauthenticated, forbidden, not found and
+other, and lists the API paths producing the most of them.
+
 ## Non-goals
 
 - **Real-time log streaming.** Periodic refresh and on-demand queries are enough for a single

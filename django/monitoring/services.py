@@ -447,6 +447,28 @@ def fetch_error_summary(hours: int = 24) -> dict:
     return payload
 
 
+# Client errors on the platform's own API (nginx's /django/ and /springboot/ prefixes)
+# are the ones worth reading; everything else is mostly bots probing paths the app
+# never served. Grouping by status, rather than summing boolean expressions, keeps
+# these queries to Logs Insights syntax already proven against the live service.
+_NGINX_REQUEST_PARSE = (
+    '| parse @message /"(?<method>[A-Z]+) (?<path>[^ "?]+)(?:\\?[^ "]*)? HTTP\\/[0-9.]+" (?<status>[0-9]{3}) / '
+)
+_API_4XX_FILTER = "| filter status >= 400 and status < 500 | filter path like /^\\/(django|springboot)\\// "
+API_4XX_BY_STATUS_QUERY = (
+    "fields @message " + _NGINX_REQUEST_PARSE + _API_4XX_FILTER + "| stats count(*) as request_count by status"
+)
+TOP_API_4XX_PATHS_QUERY = (
+    "fields @message "
+    + _NGINX_REQUEST_PARSE
+    + _API_4XX_FILTER
+    + "| stats count(*) as error_count by method, path, status "
+    "| sort error_count desc "
+    "| limit 10"
+)
+API_4XX_CATEGORIES = {"401": "unauthorized", "403": "forbidden", "404": "not_found"}
+
+
 def fetch_nginx_traffic(hours: int = 24) -> dict:
     cache_key = f"monitoring:traffic:{hours}"
     cached = django_cache.get(cache_key)
@@ -479,6 +501,8 @@ def fetch_nginx_traffic(hours: int = 24) -> dict:
 
     series_rows = run_insights_query([nginx_group], series_query, start, end)
     top_5xx_rows = run_insights_query([nginx_group], top_5xx_query, start, end)
+    api_4xx_status_rows = run_insights_query([nginx_group], API_4XX_BY_STATUS_QUERY, start, end)
+    top_api_4xx_rows = run_insights_query([nginx_group], TOP_API_4XX_PATHS_QUERY, start, end)
 
     buckets = []
     total_requests = 0
@@ -510,13 +534,35 @@ def fetch_nginx_traffic(hours: int = 24) -> dict:
         for row in top_5xx_rows
     ]
 
+    api_4xx = {"total": 0, "unauthorized": 0, "forbidden": 0, "not_found": 0, "other": 0}
+    for row in api_4xx_status_rows:
+        count = int(float(row.get("request_count", "0") or 0))
+        category = API_4XX_CATEGORIES.get(str(row.get("status", "")), "other")
+        api_4xx[category] += count
+        api_4xx["total"] += count
+
+    top_api_4xx_paths = [
+        {
+            "method": row.get("method", "GET"),
+            "path": row.get("path", "/"),
+            "status": int(float(row.get("status", "400") or 400)),
+            "error_count": int(float(row.get("error_count", "0") or 0)),
+        }
+        for row in top_api_4xx_rows
+    ]
+
     payload = {
         "hours": hours,
         "total_requests": total_requests,
         "total_4xx": total_4xx,
         "total_5xx": total_5xx,
+        "api_4xx": api_4xx,
+        # The two figures come from separate queries over a moving window, so clamp
+        # rather than report a negative count when they disagree by a request or two.
+        "non_api_4xx": max(total_4xx - api_4xx["total"], 0),
         "buckets": buckets,
         "top_5xx_paths": top_5xx_paths,
+        "top_api_4xx_paths": top_api_4xx_paths,
     }
     django_cache.set(cache_key, payload, CACHE_TTL_SECONDS)
     return payload

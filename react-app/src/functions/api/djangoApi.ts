@@ -13,6 +13,7 @@ import type {
   IMonitoringMetricsResponse,
   IMonitoringSource,
   IMonitoringSummaryResponse,
+  IMonitoringErrorPath,
   IMonitoringTrafficResponse,
   IRestaurant,
   IReview,
@@ -182,6 +183,20 @@ const toConversationDetail = (
       timestamp: interaction.timestamp,
     },
   ]),
+});
+
+interface IRawMonitoringErrorPath {
+  method: string;
+  path: string;
+  status: number;
+  error_count: number;
+}
+
+const toErrorPath = (row: IRawMonitoringErrorPath): IMonitoringErrorPath => ({
+  method: row.method,
+  path: row.path,
+  status: row.status,
+  errorCount: row.error_count,
 });
 
 /** Shared by the form and the message list so a new conversation's first question shows while it's asked */
@@ -798,35 +813,43 @@ export const djangoApi = createApi({
         total_requests: number;
         total_4xx: number;
         total_5xx: number;
+        api_4xx: {
+          total: number;
+          unauthorized: number;
+          forbidden: number;
+          not_found: number;
+          other: number;
+        };
+        non_api_4xx: number;
         buckets: {
           bucket: string;
           total_requests: number;
           status_4xx: number;
           status_5xx: number;
         }[];
-        top_5xx_paths: {
-          method: string;
-          path: string;
-          status: number;
-          error_count: number;
-        }[];
+        top_5xx_paths: IRawMonitoringErrorPath[];
+        top_api_4xx_paths: IRawMonitoringErrorPath[];
       }): IMonitoringTrafficResponse => ({
         hours: raw.hours,
         totalRequests: raw.total_requests,
         total4xx: raw.total_4xx,
         total5xx: raw.total_5xx,
+        api4xx: {
+          total: raw.api_4xx.total,
+          unauthorized: raw.api_4xx.unauthorized,
+          forbidden: raw.api_4xx.forbidden,
+          notFound: raw.api_4xx.not_found,
+          other: raw.api_4xx.other,
+        },
+        nonApi4xx: raw.non_api_4xx,
         buckets: raw.buckets.map((b) => ({
           bucket: b.bucket,
           totalRequests: b.total_requests,
           status4xx: b.status_4xx,
           status5xx: b.status_5xx,
         })),
-        top5xxPaths: raw.top_5xx_paths.map((p) => ({
-          method: p.method,
-          path: p.path,
-          status: p.status,
-          errorCount: p.error_count,
-        })),
+        top5xxPaths: raw.top_5xx_paths.map(toErrorPath),
+        topApi4xxPaths: raw.top_api_4xx_paths.map(toErrorPath),
       }),
     }),
     getMonitoringJobs: builder.query<IMonitoringJobsResponse, void>({

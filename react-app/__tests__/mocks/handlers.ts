@@ -1073,6 +1073,14 @@ export const handlers = [
         total_requests: 1450,
         total_4xx: 23,
         total_5xx: 2,
+        api_4xx: {
+          total: 7,
+          unauthorized: 4,
+          forbidden: 1,
+          not_found: 2,
+          other: 0,
+        },
+        non_api_4xx: 16,
         buckets: [
           {
             bucket: "2026-11-21 12:00:00.000",
@@ -1087,6 +1095,14 @@ export const handlers = [
             path: "/django/chatbot/api/conversations/",
             status: 503,
             error_count: 2,
+          },
+        ],
+        top_api_4xx_paths: [
+          {
+            method: "GET",
+            path: "/django/portfolio/api/assets/",
+            status: 401,
+            error_count: 4,
           },
         ],
       },

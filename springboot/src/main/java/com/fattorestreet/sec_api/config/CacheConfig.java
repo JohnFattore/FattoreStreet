@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.cache.autoconfigure.RedisCacheManagerBuilderCustomizer;
 import org.springframework.cache.Cache;
@@ -13,6 +14,8 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheWriter;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.JacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair;
 import org.springframework.data.redis.serializer.RedisSerializer;
@@ -39,6 +42,23 @@ public class CacheConfig implements CachingConfigurer {
     public static final String FRED_CACHE = "fred";
 
     private static final Logger log = LoggerFactory.getLogger(CacheConfig.class);
+
+    /**
+     * Writes cache entries before the cached method returns. On Lettuce, Spring Data Redis otherwise
+     * stores them in the background, where a failed write never reaches the
+     * {@link LoggingCacheErrorHandler} and a read straight after a miss can miss again. The cost is
+     * one Redis round trip on a cache miss, which already pays for an upstream HTTP call. The
+     * factory is looked up only when Boot builds a Redis cache manager, so contexts with another
+     * cache manager don't need one. This replaces the writer Boot would build, so writer options
+     * Boot sets from properties, such as {@code spring.cache.redis.enable-statistics}, would need
+     * to be configured here instead.
+     */
+    @Bean
+    RedisCacheManagerBuilderCustomizer immediateCacheWritesCustomizer(
+            ObjectProvider<RedisConnectionFactory> connectionFactory) {
+        return builder -> builder.cacheWriter(
+                RedisCacheWriter.create(connectionFactory.getObject(), RedisCacheWriter.RedisCacheWriterConfigurer::immediateWrites));
+    }
 
     @Bean
     RedisCacheManagerBuilderCustomizer fredCacheCustomizer(@Value("${fred.cache-ttl:24h}") Duration fredCacheTtl) {

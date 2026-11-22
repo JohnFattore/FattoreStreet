@@ -23,11 +23,22 @@ import {
   useGetMonitoringTrafficQuery,
 } from "../functions/api";
 import {
+  IMonitoringApi4xx,
+  IMonitoringErrorPath,
   IMonitoringJobStatus,
   IMonitoringLogEvent,
   IMonitoringServiceTotal,
-  IMonitoringTop5xxPath,
 } from "../interfaces";
+
+const API_4XX_CARDS: {
+  key: Exclude<keyof IMonitoringApi4xx, "total">;
+  label: string;
+}[] = [
+  { key: "unauthorized", label: "401 Unauthorized" },
+  { key: "forbidden", label: "403 Forbidden" },
+  { key: "notFound", label: "404 Not Found" },
+  { key: "other", label: "Other 4xx" },
+];
 
 type TimePreset = "15m" | "1h" | "6h" | "24h" | "7d" | "custom";
 
@@ -403,7 +414,7 @@ export function AdminDashboard() {
           </Card>
 
           <h4 className="mb-3">
-            Nginx Traffic &amp; 5xx Responses (Last {overviewHours}h)
+            Nginx Traffic &amp; Error Responses (Last {overviewHours}h)
           </h4>
           <StateHandler
             isLoading={trafficLoading}
@@ -425,6 +436,10 @@ export function AdminDashboard() {
                       <div className="fs-4 fw-bold">
                         {trafficData?.total4xx ?? 0}
                       </div>
+                      <div className="text-muted small">
+                        API {trafficData?.api4xx.total ?? 0} · Other{" "}
+                        {trafficData?.nonApi4xx ?? 0}
+                      </div>
                     </Card>
                   </Col>
                   <Col sm={4}>
@@ -443,6 +458,24 @@ export function AdminDashboard() {
                       </div>
                     </Card>
                   </Col>
+                </Row>
+
+                <h5>API Client Errors</h5>
+                <p className="text-muted small">
+                  4xx responses on /django/ and /springboot/ routes only. Other
+                  4xx traffic is mostly bots probing paths the app never served.
+                </p>
+                <Row className="g-3 mb-3">
+                  {API_4XX_CARDS.map(({ key, label }) => (
+                    <Col key={key} xs={6} md={3}>
+                      <Card className="p-3 text-center">
+                        <div className="text-muted small">{label}</div>
+                        <div className="fs-4 fw-bold">
+                          {trafficData?.api4xx[key] ?? 0}
+                        </div>
+                      </Card>
+                    </Col>
+                  ))}
                 </Row>
 
                 {trafficChartData.length > 0 && (
@@ -473,10 +506,29 @@ export function AdminDashboard() {
                   </div>
                 )}
 
+                {(trafficData?.topApi4xxPaths.length ?? 0) > 0 && (
+                  <Card className="p-3 mb-3">
+                    <h5>Top API 4xx Paths</h5>
+                    <SortableTable<IMonitoringErrorPath>
+                      data={trafficData?.topApi4xxPaths ?? []}
+                      isLoading={false}
+                      errors={[]}
+                      initialSortKey="errorCount"
+                      initialSortDirection="desc"
+                      columns={[
+                        { label: "Method", sortKey: "method" },
+                        { label: "Path", sortKey: "path" },
+                        { label: "Status", sortKey: "status" },
+                        { label: "4xx Count", sortKey: "errorCount" },
+                      ]}
+                    />
+                  </Card>
+                )}
+
                 {(trafficData?.top5xxPaths.length ?? 0) > 0 && (
                   <Card className="p-3">
                     <h5>Top 5xx Paths</h5>
-                    <SortableTable<IMonitoringTop5xxPath>
+                    <SortableTable<IMonitoringErrorPath>
                       data={trafficData?.top5xxPaths ?? []}
                       isLoading={false}
                       errors={[]}
