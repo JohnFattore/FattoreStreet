@@ -294,6 +294,55 @@ class MonitoringAPITests(BaseAPITestCase):
             },
             {"queryId": "q-traffic-5xx"},
         )
+        self.logs_stubber.add_response(
+            "start_query",
+            {"queryId": "q-traffic-api-4xx"},
+            {
+                "logGroupNames": ["nginx-logs"],
+                "startTime": ANY,
+                "endTime": ANY,
+                "queryString": (
+                    "fields @message "
+                    '| parse @message /"(?<method>[A-Z]+) (?<path>[^ "?]+)(?:\\?[^ "]*)? HTTP\\/[0-9.]+" '
+                    "(?<status>[0-9]{3}) / "
+                    "| filter status >= 400 and status < 500 "
+                    "| filter path like /^\\/(django|springboot)\\// "
+                    "| stats count(*) as request_count by status"
+                ),
+            },
+        )
+        self.logs_stubber.add_response(
+            "get_query_results",
+            {
+                "status": "Complete",
+                "results": [
+                    [{"field": "status", "value": "401"}, {"field": "request_count", "value": "3"}],
+                    [{"field": "status", "value": "404"}, {"field": "request_count", "value": "1"}],
+                    [{"field": "status", "value": "429"}, {"field": "request_count", "value": "1"}],
+                ],
+            },
+            {"queryId": "q-traffic-api-4xx"},
+        )
+        self.logs_stubber.add_response(
+            "start_query",
+            {"queryId": "q-traffic-api-4xx-paths"},
+            {"logGroupNames": ["nginx-logs"], "startTime": ANY, "endTime": ANY, "queryString": ANY},
+        )
+        self.logs_stubber.add_response(
+            "get_query_results",
+            {
+                "status": "Complete",
+                "results": [
+                    [
+                        {"field": "method", "value": "GET"},
+                        {"field": "path", "value": "/django/portfolio/api/assets/"},
+                        {"field": "status", "value": "401"},
+                        {"field": "error_count", "value": "3"},
+                    ]
+                ],
+            },
+            {"queryId": "q-traffic-api-4xx-paths"},
+        )
 
         res = self.client.get(reverse("monitoring_traffic"), {"hours": 24})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -302,6 +351,15 @@ class MonitoringAPITests(BaseAPITestCase):
         self.assertEqual(res.data["total_5xx"], 2)
         self.assertEqual(len(res.data["top_5xx_paths"]), 1)
         self.assertEqual(res.data["top_5xx_paths"][0]["path"], "/django/chatbot/api/conversations/")
+        self.assertEqual(
+            res.data["api_4xx"],
+            {"total": 5, "unauthorized": 3, "forbidden": 0, "not_found": 1, "other": 1},
+        )
+        self.assertEqual(res.data["non_api_4xx"], 3)
+        self.assertEqual(
+            res.data["top_api_4xx_paths"],
+            [{"method": "GET", "path": "/django/portfolio/api/assets/", "status": 401, "error_count": 3}],
+        )
         self.logs_stubber.assert_no_pending_responses()
 
     def test_jobs_computes_last_run_status_and_staleness(self):

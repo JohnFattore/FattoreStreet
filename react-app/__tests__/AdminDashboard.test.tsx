@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { http } from "msw";
@@ -83,6 +83,27 @@ describe("AdminRoute guard", () => {
       await screen.findByText("/django/chatbot/api/conversations/"),
     ).toBeInTheDocument();
     expect(await screen.findByText("58.2%")).toBeInTheDocument();
+  });
+
+  it("separates API client errors from other 4xx traffic", async () => {
+    renderWithProviders(
+      <AdminRoute>
+        <AdminDashboard />
+      </AdminRoute>,
+      { preloadedState: signedInState },
+    );
+
+    expect(await screen.findByText("API 7 · Other 16")).toBeInTheDocument();
+    const unauthorizedCard = (await screen.findByText("401 Unauthorized"))
+      .parentElement as HTMLElement;
+    expect(within(unauthorizedCard).getByText("4")).toBeInTheDocument();
+    const notFoundCard = screen.getByText("404 Not Found")
+      .parentElement as HTMLElement;
+    expect(within(notFoundCard).getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("Top API 4xx Paths")).toBeInTheDocument();
+    expect(
+      screen.getByText("/django/portfolio/api/assets/"),
+    ).toBeInTheDocument();
   });
 });
 

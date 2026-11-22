@@ -398,11 +398,19 @@ export interface IMonitoringTrafficBucket {
   status5xx: number;
 }
 
-export interface IMonitoringTop5xxPath {
+export interface IMonitoringErrorPath {
   method: string;
   path: string;
   status: number;
   errorCount: number;
+}
+
+export interface IMonitoringApi4xx {
+  total: number;
+  unauthorized: number;
+  forbidden: number;
+  notFound: number;
+  other: number;
 }
 
 export interface IMonitoringTrafficResponse {
@@ -410,8 +418,11 @@ export interface IMonitoringTrafficResponse {
   totalRequests: number;
   total4xx: number;
   total5xx: number;
+  api4xx: IMonitoringApi4xx;
+  nonApi4xx: number;
   buckets: IMonitoringTrafficBucket[];
-  top5xxPaths: IMonitoringTop5xxPath[];
+  top5xxPaths: IMonitoringErrorPath[];
+  topApi4xxPaths: IMonitoringErrorPath[];
 }
 
 export interface IMonitoringJobStatus {
