@@ -49,7 +49,9 @@ public class CacheConfig implements CachingConfigurer {
      * {@link LoggingCacheErrorHandler} and a read straight after a miss can miss again. The cost is
      * one Redis round trip on a cache miss, which already pays for an upstream HTTP call. The
      * factory is looked up only when Boot builds a Redis cache manager, so contexts with another
-     * cache manager don't need one.
+     * cache manager don't need one. This replaces the writer Boot would build, so writer options
+     * Boot sets from properties, such as {@code spring.cache.redis.enable-statistics}, would need
+     * to be configured here instead.
      */
     @Bean
     RedisCacheManagerBuilderCustomizer immediateCacheWritesCustomizer(

@@ -185,7 +185,6 @@ const toConversationDetail = (
   ]),
 });
 
-/** Shared by the form and the message list so a new conversation's first question shows while it's asked */
 interface IRawMonitoringErrorPath {
   method: string;
   path: string;
@@ -200,6 +199,7 @@ const toErrorPath = (row: IRawMonitoringErrorPath): IMonitoringErrorPath => ({
   errorCount: row.error_count,
 });
 
+/** Shared by the form and the message list so a new conversation's first question shows while it's asked */
 export const NEW_CONVERSATION_CACHE_KEY = "newConversation";
 
 const toRestaurant = (row: IRawRestaurantRow): IRestaurant => ({
