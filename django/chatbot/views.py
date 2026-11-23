@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date
 from functools import cache
 import logging
@@ -114,15 +115,27 @@ def check_budget() -> None:
         raise AdvisorBudgetExhausted()
 
 
-def record_usage(response: dict) -> None:
-    """Add a Converse response's token usage to this month's ledger, with an atomic increment."""
+@dataclass(frozen=True)
+class AdvisorReply:
+    text: str
+    model_id: str
+    input_tokens: int | None
+    output_tokens: int | None
+
+
+def record_usage(response: dict) -> tuple[int | None, int | None]:
+    """Add a Converse response's token usage to this month's ledger and return `(input_tokens, output_tokens)`.
+
+    Returns `(None, None)` when Bedrock omits usage. Still returns Bedrock's counts if the ledger
+    write fails, so per-interaction counts can include calls the monthly cap ledger missed.
+    """
     usage = response.get("usage") or {}
     input_tokens = int(usage.get("inputTokens", 0))
     output_tokens = int(usage.get("outputTokens", 0))
     if not input_tokens and not output_tokens:
         # Converse always reports usage, so this means the cap is blind to this call
         logger.warning("Bedrock advisor response reported no token usage")
-        return
+        return None, None
     month = current_month()
     try:
         AdvisorUsage.objects.get_or_create(month=month)
@@ -134,6 +147,7 @@ def record_usage(response: dict) -> None:
         # Bedrock has already billed this reply, so failing the request would waste it. The cap
         # undercounts by one call; the log line is how that shows up.
         logger.exception("Could not record advisor token usage (%d in, %d out)", input_tokens, output_tokens)
+    return input_tokens, output_tokens
 
 
 def title_from(message: str) -> str:
@@ -162,16 +176,18 @@ def bedrock_client() -> BaseClient:
     )
 
 
-def converse(system_prompt: str, messages: list[dict], max_tokens: int = MAX_REPLY_TOKENS) -> str:
+def converse(system_prompt: str, messages: list[dict], max_tokens: int = MAX_REPLY_TOKENS) -> AdvisorReply:
     """One Bedrock Converse call, counted against the shared monthly token cap.
 
     Raises AdvisorBudgetExhausted past the monthly token cap, and AdvisorUnavailable on any model error.
     """
     check_budget()
 
+    # Configured Bedrock model or inference-profile ID (not a resolved target behind a profile)
+    model_id = env("ADVISOR_MODEL_ID", default=DEFAULT_MODEL_ID)
     try:
         response = bedrock_client().converse(
-            modelId=env("ADVISOR_MODEL_ID", default=DEFAULT_MODEL_ID),
+            modelId=model_id,
             system=[{"text": system_prompt}],
             messages=messages,
             inferenceConfig={"temperature": 0.5, "topP": 0.95, "maxTokens": max_tokens},
@@ -181,7 +197,7 @@ def converse(system_prompt: str, messages: list[dict], max_tokens: int = MAX_REP
         raise AdvisorUnavailable() from exc
 
     # Count the tokens before anything can discard the reply: Bedrock bills them either way
-    record_usage(response)
+    input_tokens, output_tokens = record_usage(response)
 
     try:
         reply = "".join(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
@@ -195,10 +211,10 @@ def converse(system_prompt: str, messages: list[dict], max_tokens: int = MAX_REP
     if not reply.strip():
         logger.error("Bedrock advisor returned no text (stopReason=%s)", response.get("stopReason"))
         raise AdvisorUnavailable()
-    return reply
+    return AdvisorReply(text=reply, model_id=model_id, input_tokens=input_tokens, output_tokens=output_tokens)
 
 
-def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> str:
+def ask_advisor(previous_interactions: Iterable[Interaction], message: str) -> AdvisorReply:
     """Ask the advisor, with earlier exchanges of the same conversation as context."""
     messages = []
     for interaction in previous_interactions:
@@ -226,7 +242,14 @@ class ConversationListCreateView(AdvisorThrottledMixin, generics.ListAPIView):
 
         with transaction.atomic():
             conversation = Conversation.objects.create(user=request.user, title=title_from(user_message))
-            Interaction.objects.create(conversation=conversation, input_text=user_message, output_text=reply)
+            Interaction.objects.create(
+                conversation=conversation,
+                input_text=user_message,
+                output_text=reply.text,
+                model_id=reply.model_id,
+                input_tokens=reply.input_tokens,
+                output_tokens=reply.output_tokens,
+            )
 
         return Response(ConversationDetailSerializer(conversation).data, status=status.HTTP_201_CREATED)
 
@@ -255,11 +278,18 @@ class ConversationMessageView(AdvisorThrottledMixin, APIView):
         reply = ask_advisor(reversed(list(previous_interactions)), user_message)
 
         with transaction.atomic():
-            Interaction.objects.create(conversation=conversation, input_text=user_message, output_text=reply)
+            Interaction.objects.create(
+                conversation=conversation,
+                input_text=user_message,
+                output_text=reply.text,
+                model_id=reply.model_id,
+                input_tokens=reply.input_tokens,
+                output_tokens=reply.output_tokens,
+            )
             conversation.last_message_at = timezone.now()
             conversation.save(update_fields=['last_message_at'])
 
-        return Response({"message": reply}, status=status.HTTP_200_OK)
+        return Response({"message": reply.text}, status=status.HTTP_200_OK)
 
 
 class CompanyComparisonAnalysisView(AdvisorThrottledMixin, APIView):
@@ -287,5 +317,5 @@ class CompanyComparisonAnalysisView(AdvisorThrottledMixin, APIView):
             COMPARISON_SYSTEM_PROMPT,
             [{"role": "user", "content": [{"text": message}]}],
             max_tokens=MAX_COMPARISON_TOKENS,
-        )
+        ).text
         return Response({"analysis": analysis}, status=status.HTTP_200_OK)
