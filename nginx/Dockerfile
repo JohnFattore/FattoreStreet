@@ -31,7 +31,7 @@ RUN SECRET_KEY=build-only-dummy-secret-key \
     uv run python manage.py collectstatic --noinput
 
 # Stage 3: nginx serving the artifacts from the stages above
-FROM nginx:1.31.8
+FROM nginx:1.31.9
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/index.html /var/www/index.html
 COPY --from=react-build /app/nginx/dist /var/www/dist
