@@ -9,4 +9,5 @@ urlpatterns = [
     path("api/traffic/", views.MonitoringTrafficView.as_view(), name="monitoring_traffic"),
     path("api/jobs/", views.MonitoringJobsView.as_view(), name="monitoring_jobs"),
     path("api/metrics/", views.MonitoringMetricsView.as_view(), name="monitoring_metrics"),
+    path("api/user-activity/", views.MonitoringUserActivityView.as_view(), name="monitoring_user_activity"),
 ]

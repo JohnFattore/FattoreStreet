@@ -50,6 +50,13 @@ the frontend calls that no longer exists. The dashboard counts client errors on 
 API routes apart from everything else, breaks them out into unauthenticated, forbidden, not found and
 other, and lists the API paths producing the most of them.
 
+### Authenticated API activity is visible per user
+Overall request and error totals show how busy the platform is, not who is using which features or
+whether one account is triggering errors or hitting limits. The main API logs each handled request
+against the server-verified user (excluding the monitoring routes themselves and without adding
+database state), and the dashboard summarizes request counts, client and server errors, feature
+areas and recent activity per user with a direct link to inspect that user's logs.
+
 ## Non-goals
 
 - **Real-time log streaming.** Periodic refresh and on-demand queries are enough for a single

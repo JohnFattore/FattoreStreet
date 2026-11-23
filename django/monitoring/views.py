@@ -10,6 +10,7 @@ from .services import (
     fetch_job_health,
     fetch_log_events,
     fetch_nginx_traffic,
+    fetch_user_activity,
     get_allowed_sources,
 )
 
@@ -76,3 +77,13 @@ class MonitoringMetricsView(APIView):
         serializer.is_valid(raise_exception=True)
         hours = serializer.validated_data["hours"]
         return Response(fetch_host_metrics(hours=hours))
+
+
+class MonitoringUserActivityView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request: Request) -> Response:
+        serializer = HoursQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        hours = serializer.validated_data["hours"]
+        return Response(fetch_user_activity(hours=hours))

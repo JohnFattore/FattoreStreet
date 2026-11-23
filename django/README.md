@@ -21,7 +21,7 @@ Django 6 + Django REST Framework backend providing portfolio management, market 
 | `restaurants` | Restaurant reviews and recommendations |
 | `changeflow` | Changelog plus authenticated feedback ticket intake (`POST /changeflow/api/tickets/`) |
 | `blog` | Public blog posts (Markdown body) via `/blog/api/posts/`; content lives as Markdown in `blog/journal/` and `blog/learning-topics/` (see [Blog posts](#blog-posts)) |
-| `monitoring` | Staff-only (`IsAdminUser`) operational monitoring API wrapping CloudWatch Logs (`FilterLogEvents`, Logs Insights) and CloudWatch Metrics (`GetMetricData`) |
+| `monitoring` | Staff-only (`IsAdminUser`) operational monitoring API wrapping CloudWatch Logs (`FilterLogEvents`, Logs Insights) and CloudWatch Metrics (`GetMetricData`), plus structured per-request user activity logging (`monitoring.requests`) |
 
 Market index membership APIs live in the Spring Boot service (`sec-api`), not in Django.
 

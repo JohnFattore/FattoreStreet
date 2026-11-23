@@ -41,6 +41,7 @@ export {
   useGetMonitoringTrafficQuery,
   useGetMonitoringJobsQuery,
   useGetMonitoringMetricsQuery,
+  useGetMonitoringUserActivityQuery,
 } from "./djangoApi";
 
 export {

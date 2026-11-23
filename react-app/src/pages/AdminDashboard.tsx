@@ -21,6 +21,7 @@ import {
   useGetMonitoringSourcesQuery,
   useGetMonitoringSummaryQuery,
   useGetMonitoringTrafficQuery,
+  useGetMonitoringUserActivityQuery,
 } from "../functions/api";
 import {
   IMonitoringApi4xx,
@@ -28,6 +29,7 @@ import {
   IMonitoringJobStatus,
   IMonitoringLogEvent,
   IMonitoringServiceTotal,
+  IMonitoringUserActivity,
 } from "../interfaces";
 
 const API_4XX_CARDS: {
@@ -95,6 +97,7 @@ export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"overview" | "logs">("overview");
   const [overviewHours, setOverviewHours] = useState<number>(24);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
+  const [hideStaff, setHideStaff] = useState<boolean>(false);
 
   // Logs filter state
   const [selectedSource, setSelectedSource] = useState<string>("django");
@@ -145,6 +148,15 @@ export function AdminDashboard() {
     { hours: overviewHours },
     { pollingInterval: overviewPollingInterval },
   );
+  const {
+    data: userActivityData,
+    isLoading: userActivityLoading,
+    error: userActivityError,
+    refetch: refetchUserActivity,
+  } = useGetMonitoringUserActivityQuery(
+    { hours: overviewHours },
+    { pollingInterval: overviewPollingInterval },
+  );
 
   const logQueryWindow = useMemo(() => {
     if (timePreset === "custom") {
@@ -185,6 +197,19 @@ export function AdminDashboard() {
     setActiveTab("logs");
   };
 
+  const handleInspectUserLogs = (username: string) => {
+    const query = `user=${username}`;
+    setSelectedSource("django");
+    setTimePreset(
+      overviewHours <= 6 ? "6h" : overviewHours <= 24 ? "24h" : "7d",
+    );
+    setLevelFilter("");
+    setSearchInput(query);
+    setSubmittedSearch(query);
+    setNextToken("");
+    setActiveTab("logs");
+  };
+
   const handleFilterSubmit = (event: FormEvent) => {
     event.preventDefault();
     setSubmittedSearch(searchInput.trim());
@@ -197,11 +222,18 @@ export function AdminDashboard() {
       refetchSummary();
       refetchTraffic();
       refetchMetrics();
+      refetchUserActivity();
     } else {
       setNextToken("");
       refetchLogs();
     }
   };
+
+  const visibleUserActivity = useMemo(
+    () =>
+      (userActivityData?.users ?? []).filter((u) => !hideStaff || !u.isStaff),
+    [userActivityData, hideStaff],
+  );
 
   const trafficChartData = useMemo(
     () =>
@@ -232,8 +264,8 @@ export function AdminDashboard() {
         <div>
           <h2 className="mb-1">Admin Monitoring Dashboard</h2>
           <p className="text-muted mb-0">
-            CloudWatch service logs, scheduled Fargate job health, Nginx traffic
-            and EC2 host capacity.
+            CloudWatch service logs, scheduled Fargate job health, Nginx
+            traffic, per-user API activity and EC2 host capacity.
           </p>
         </div>
         <div className="d-flex align-items-center gap-2 flex-wrap">
@@ -543,6 +575,158 @@ export function AdminDashboard() {
                     />
                   </Card>
                 )}
+              </div>
+            }
+          />
+
+          <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+              <h4 className="mb-1">User Activity (Last {overviewHours}h)</h4>
+              <p className="text-muted small mb-0">
+                Django API requests attributed to verified signed-in users
+                (monitoring routes excluded; public Spring Boot routes are
+                unauthenticated).
+              </p>
+            </div>
+            <Form.Check
+              type="switch"
+              id="monitoring-hide-staff"
+              label="Hide staff"
+              checked={hideStaff}
+              onChange={(e) => setHideStaff(e.target.checked)}
+            />
+          </div>
+          <StateHandler
+            isLoading={userActivityLoading}
+            errors={[userActivityError]}
+            content={
+              <div className="mb-4">
+                <Row className="g-3 mb-3">
+                  <Col sm={4}>
+                    <Card className="p-3 text-center">
+                      <div className="text-muted small">
+                        Active Signed-in Users
+                      </div>
+                      <div className="fs-4 fw-bold">
+                        {userActivityData?.activeUsers ?? 0}
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col sm={4}>
+                    <Card className="p-3 text-center">
+                      <div className="text-muted small">
+                        Authenticated Requests
+                      </div>
+                      <div className="fs-4 fw-bold">
+                        {userActivityData?.authenticatedRequests ?? 0}
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col sm={4}>
+                    <Card className="p-3 text-center">
+                      <div className="text-muted small">Anonymous Requests</div>
+                      <div className="fs-4 fw-bold">
+                        {userActivityData?.anonymousRequests ?? 0}
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+
+                <Card className="p-3">
+                  {visibleUserActivity.length === 0 ? (
+                    <p className="text-muted mb-0">
+                      No signed-in user activity recorded in the last{" "}
+                      {overviewHours}h.
+                    </p>
+                  ) : (
+                    <SortableTable<IMonitoringUserActivity>
+                      data={visibleUserActivity}
+                      isLoading={false}
+                      errors={[]}
+                      initialSortKey="requestCount"
+                      initialSortDirection="desc"
+                      columns={[
+                        {
+                          label: "User",
+                          sortKey: "username",
+                          render: (row) => (
+                            <span>
+                              {row.username}
+                              {row.isStaff && (
+                                <Badge bg="info" className="ms-2">
+                                  Staff
+                                </Badge>
+                              )}
+                            </span>
+                          ),
+                        },
+                        {
+                          label: "Requests",
+                          sortKey: "requestCount",
+                        },
+                        {
+                          label: "4xx",
+                          sortKey: "status4xx",
+                          render: (row) => (
+                            <Badge
+                              bg={row.status4xx > 0 ? "warning" : "secondary"}
+                            >
+                              {row.status4xx}
+                            </Badge>
+                          ),
+                        },
+                        {
+                          label: "5xx",
+                          sortKey: "status5xx",
+                          render: (row) => (
+                            <Badge
+                              bg={row.status5xx > 0 ? "danger" : "secondary"}
+                            >
+                              {row.status5xx}
+                            </Badge>
+                          ),
+                        },
+                        {
+                          label: "Feature Areas",
+                          sortKey: "topApp",
+                          render: (row) => (
+                            <span className="small">
+                              {row.apps
+                                .slice(0, 3)
+                                .map((a) => `${a.app} (${a.requestCount})`)
+                                .join(", ")}
+                            </span>
+                          ),
+                        },
+                        {
+                          label: "Last Active",
+                          sortKey: "lastSeenMs",
+                          render: (row) => (
+                            <span className="text-nowrap small">
+                              {formatTimestamp(row.lastSeen)}
+                            </span>
+                          ),
+                        },
+                        {
+                          label: "Logs",
+                          sortKey: "username",
+                          sortable: false,
+                          render: (row) => (
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={() =>
+                                handleInspectUserLogs(row.username)
+                              }
+                            >
+                              Inspect Logs
+                            </Button>
+                          ),
+                        },
+                      ]}
+                    />
+                  )}
+                </Card>
               </div>
             }
           />

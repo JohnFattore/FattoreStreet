@@ -9,6 +9,7 @@ import boto3
 from botocore.client import BaseClient
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
+from django.contrib.auth.models import User
 from django.core.cache import cache as django_cache
 from django.utils import timezone
 import environ
@@ -579,6 +580,132 @@ def _parse_iso_datetime(value: str | None) -> datetime | None:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=dt_timezone.utc)
     return dt
+
+
+def _parse_insights_timestamp(value: str | None) -> datetime | None:
+    """Parse CloudWatch Logs Insights timestamp values (epoch ms/s strings or ISO datetimes)."""
+    if not value or not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    if not stripped:
+        return None
+    try:
+        numeric = float(stripped)
+        seconds = numeric / 1000.0 if numeric >= 1e11 else numeric
+        return datetime.fromtimestamp(seconds, tz=dt_timezone.utc)
+    except (ValueError, OSError, OverflowError):
+        pass
+    return _parse_iso_datetime(stripped.replace(" ", "T", 1))
+
+
+USER_ACTIVITY_QUERY = (
+    "fields @timestamp, @message "
+    "| filter @message like /api_request / "
+    "| parse @message /api_request user=(?<user>\\S+) user_id=(?<user_id>\\S+) "
+    "method=(?<method>[A-Z]+) app=(?<app>\\S+) path=(?<path>\\S+) "
+    "status=(?<status>[0-9]{3}) duration_ms=(?<duration_ms>[0-9]+)/ "
+    "| parse @message /status=(?<err_4xx>4[0-9]{2})\\b/ "
+    "| parse @message /status=(?<err_5xx>5[0-9]{2})\\b/ "
+    "| filter ispresent(user) "
+    "| stats count(*) as request_count, count(err_4xx) as status_4xx, "
+    "count(err_5xx) as status_5xx, max(@timestamp) as last_seen by user, app "
+    "| sort request_count desc "
+    "| limit 500"
+)
+
+
+def fetch_user_activity(hours: int = 24) -> dict:
+    cache_key = f"monitoring:user_activity:{hours}"
+    cached = django_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    sources = get_allowed_sources()
+    django_group = sources["django"]["log_group"]
+    end = timezone.now()
+    start = end - timedelta(hours=hours)
+
+    rows = run_insights_query([django_group], USER_ACTIVITY_QUERY, start, end)
+
+    per_user: dict[str, dict] = {}
+    anonymous_requests = 0
+    authenticated_requests = 0
+
+    for row in rows:
+        username = (row.get("user") or "").strip()
+        if not username:
+            continue
+        req_count = int(float(row.get("request_count", "0") or 0))
+        if username == "anonymous":
+            anonymous_requests += req_count
+            continue
+
+        c4xx = int(float(row.get("status_4xx", "0") or 0))
+        c5xx = int(float(row.get("status_5xx", "0") or 0))
+        app = (row.get("app") or "other").strip() or "other"
+        seen_dt = _parse_insights_timestamp(row.get("last_seen"))
+
+        authenticated_requests += req_count
+        entry = per_user.setdefault(
+            username,
+            {
+                "request_count": 0,
+                "status_4xx": 0,
+                "status_5xx": 0,
+                "last_seen": None,
+                "apps": {},
+            },
+        )
+        entry["request_count"] += req_count
+        entry["status_4xx"] += c4xx
+        entry["status_5xx"] += c5xx
+        entry["apps"][app] = entry["apps"].get(app, 0) + req_count
+        if seen_dt is not None and (entry["last_seen"] is None or seen_dt > entry["last_seen"]):
+            entry["last_seen"] = seen_dt
+
+    staff_by_username: dict[str, bool] = {}
+    if per_user:
+        staff_by_username = dict(
+            User.objects.filter(username__in=list(per_user.keys())).values_list("username", "is_staff")
+        )
+
+    users_out = []
+    for username, entry in sorted(
+        per_user.items(),
+        key=lambda item: (-item[1]["request_count"], item[0]),
+    ):
+        apps_sorted = [
+            {"app": app_name, "request_count": count}
+            for app_name, count in sorted(
+                entry["apps"].items(),
+                key=lambda item: (-item[1], item[0]),
+            )
+        ]
+        last_seen_dt: datetime | None = entry["last_seen"]
+        users_out.append(
+            {
+                "username": username,
+                "is_staff": bool(staff_by_username.get(username, False)),
+                "request_count": entry["request_count"],
+                "status_4xx": entry["status_4xx"],
+                "status_5xx": entry["status_5xx"],
+                "last_seen": last_seen_dt.isoformat() if last_seen_dt else None,
+                "last_seen_ms": int(last_seen_dt.timestamp() * 1000) if last_seen_dt else 0,
+                "top_app": apps_sorted[0]["app"] if apps_sorted else "",
+                "apps": apps_sorted,
+            }
+        )
+
+    payload = {
+        "hours": hours,
+        "active_users": len(users_out),
+        "total_requests": authenticated_requests + anonymous_requests,
+        "authenticated_requests": authenticated_requests,
+        "anonymous_requests": anonymous_requests,
+        "users": users_out,
+    }
+    django_cache.set(cache_key, payload, CACHE_TTL_SECONDS)
+    return payload
 
 
 def _fallback_last_stream_time(log_group: str) -> datetime | None:

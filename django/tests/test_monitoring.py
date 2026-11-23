@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
+from rest_framework_simplejwt.tokens import AccessToken
 
 from monitoring import services
 from tests.base import BaseAPITestCase
@@ -38,6 +39,7 @@ class MonitoringAPITests(BaseAPITestCase):
             (reverse("monitoring_traffic"), {}),
             (reverse("monitoring_jobs"), {}),
             (reverse("monitoring_metrics"), {}),
+            (reverse("monitoring_user_activity"), {}),
         ]
         # Anonymous -> 401
         for url, params in endpoints:
@@ -491,3 +493,115 @@ class MonitoringAPITests(BaseAPITestCase):
         self.assertEqual(res.data["latest"]["disk_ebs_percent"], 55.8)
         self.assertEqual(len(res.data["series"]), 1)
         self.cw_stubber.assert_no_pending_responses()
+
+    def test_user_activity_aggregates_by_user_separates_anonymous_and_flags_staff(self):
+        self.authenticate_staff()
+        self.logs_stubber.add_response(
+            "start_query",
+            {"queryId": "q-user-activity-1"},
+            {
+                "logGroupNames": ["/fattorestreet/django"],
+                "startTime": ANY,
+                "endTime": ANY,
+                "queryString": services.USER_ACTIVITY_QUERY,
+            },
+        )
+        self.logs_stubber.add_response(
+            "get_query_results",
+            {
+                "status": "Complete",
+                "results": [
+                    [
+                        {"field": "user", "value": "testuser"},
+                        {"field": "app", "value": "portfolio"},
+                        {"field": "request_count", "value": "30"},
+                        {"field": "status_4xx", "value": "1"},
+                        {"field": "status_5xx", "value": "0"},
+                        {"field": "last_seen", "value": "1763726400000"},
+                    ],
+                    [
+                        {"field": "user", "value": "testuser"},
+                        {"field": "app", "value": "chatbot"},
+                        {"field": "request_count", "value": "12"},
+                        {"field": "status_4xx", "value": "2"},
+                        {"field": "status_5xx", "value": "1"},
+                        {"field": "last_seen", "value": "2026-11-21 12:30:00.000"},
+                    ],
+                    [
+                        {"field": "user", "value": "staffuser"},
+                        {"field": "app", "value": "users"},
+                        {"field": "request_count", "value": "5"},
+                        {"field": "status_4xx", "value": "0"},
+                        {"field": "status_5xx", "value": "0"},
+                        {"field": "last_seen", "value": "2026-11-21 11:00:00.000"},
+                    ],
+                    [
+                        {"field": "user", "value": "anonymous"},
+                        {"field": "app", "value": "blog"},
+                        {"field": "request_count", "value": "18"},
+                        {"field": "status_4xx", "value": "4"},
+                        {"field": "status_5xx", "value": "0"},
+                        {"field": "last_seen", "value": "2026-11-21 12:15:00.000"},
+                    ],
+                ],
+            },
+            {"queryId": "q-user-activity-1"},
+        )
+
+        res = self.client.get(reverse("monitoring_user_activity"), {"hours": 24})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["hours"], 24)
+        self.assertEqual(res.data["active_users"], 2)
+        self.assertEqual(res.data["authenticated_requests"], 47)
+        self.assertEqual(res.data["anonymous_requests"], 18)
+        self.assertEqual(res.data["total_requests"], 65)
+
+        users = res.data["users"]
+        self.assertEqual([u["username"] for u in users], ["testuser", "staffuser"])
+        self.assertFalse(users[0]["is_staff"])
+        self.assertEqual(users[0]["request_count"], 42)
+        self.assertEqual(users[0]["status_4xx"], 3)
+        self.assertEqual(users[0]["status_5xx"], 1)
+        self.assertEqual(users[0]["top_app"], "portfolio")
+        self.assertEqual(
+            users[0]["apps"],
+            [
+                {"app": "portfolio", "request_count": 30},
+                {"app": "chatbot", "request_count": 12},
+            ],
+        )
+        self.assertEqual(users[0]["last_seen"], "2026-11-21T12:30:00+00:00")
+        self.assertTrue(users[1]["is_staff"])
+        self.assertEqual(users[1]["request_count"], 5)
+        self.logs_stubber.assert_no_pending_responses()
+
+    def test_request_activity_middleware_logs_verified_jwt_user_and_omits_query_string(self):
+        token = str(AccessToken.for_user(self.user))
+        with self.assertLogs("monitoring.requests", level="INFO") as captured:
+            res = self.client.get(
+                f"{reverse('current_user')}?filter_param=omitted_value",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(captured.output), 1)
+        line = captured.output[0]
+        self.assertIn(f"api_request user={self.user.username} user_id={self.user.pk}", line)
+        self.assertIn("method=GET app=users path=/users/api/me/ status=200 duration_ms=", line)
+        self.assertNotIn("filter_param", line)
+        self.assertNotIn("omitted_value", line)
+
+    def test_request_activity_middleware_logs_anonymous_for_unauthenticated_and_invalid_jwt(self):
+        with self.assertLogs("monitoring.requests", level="INFO") as captured:
+            res = self.client.get(
+                reverse("current_user"),
+                HTTP_AUTHORIZATION="Bearer not-a-valid-jwt-token",
+            )
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(len(captured.output), 1)
+        self.assertIn("api_request user=anonymous user_id=- method=GET app=users path=/users/api/me/ status=401", captured.output[0])
+
+    def test_request_activity_middleware_skips_monitoring_endpoints(self):
+        self.authenticate_staff()
+        with self.assertNoLogs("monitoring.requests", level="INFO"):
+            res = self.client.get(reverse("monitoring_sources"))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)

@@ -15,6 +15,7 @@ import type {
   IMonitoringSummaryResponse,
   IMonitoringErrorPath,
   IMonitoringTrafficResponse,
+  IMonitoringUserActivityResponse,
   IRestaurant,
   IReview,
   ISplitRow,
@@ -936,6 +937,54 @@ export const djangoApi = createApi({
         })),
       }),
     }),
+    getMonitoringUserActivity: builder.query<
+      IMonitoringUserActivityResponse,
+      { hours?: number } | void
+    >({
+      query: (arg) => ({
+        url: "monitoring/api/user-activity/",
+        method: "GET",
+        params: arg?.hours ? { hours: arg.hours } : undefined,
+      }),
+      transformResponse: (raw: {
+        hours: number;
+        active_users: number;
+        total_requests: number;
+        authenticated_requests: number;
+        anonymous_requests: number;
+        users: {
+          username: string;
+          is_staff: boolean;
+          request_count: number;
+          status_4xx: number;
+          status_5xx: number;
+          last_seen: string | null;
+          last_seen_ms: number;
+          top_app: string;
+          apps: { app: string; request_count: number }[];
+        }[];
+      }): IMonitoringUserActivityResponse => ({
+        hours: raw.hours,
+        activeUsers: raw.active_users,
+        totalRequests: raw.total_requests,
+        authenticatedRequests: raw.authenticated_requests,
+        anonymousRequests: raw.anonymous_requests,
+        users: raw.users.map((u) => ({
+          username: u.username,
+          isStaff: u.is_staff,
+          requestCount: u.request_count,
+          status4xx: u.status_4xx,
+          status5xx: u.status_5xx,
+          lastSeen: u.last_seen,
+          lastSeenMs: u.last_seen_ms,
+          topApp: u.top_app,
+          apps: u.apps.map((a) => ({
+            app: a.app,
+            requestCount: a.request_count,
+          })),
+        })),
+      }),
+    }),
   }),
 });
 
@@ -979,4 +1028,5 @@ export const {
   useGetMonitoringTrafficQuery,
   useGetMonitoringJobsQuery,
   useGetMonitoringMetricsQuery,
+  useGetMonitoringUserActivityQuery,
 } = djangoApi;
