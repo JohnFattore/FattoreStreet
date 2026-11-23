@@ -241,7 +241,7 @@
 						<configuration>
 							<rules>
 								<!-- Cleared by .mvn/wrapper/maven-wrapper.properties and the
-								     maven:3.9.16 builder image in Dockerfile -->
+								     maven:3.x builder image in Dockerfile -->
 								<requireMavenVersion>
 									<version>[3.9.0,)</version>
 								</requireMavenVersion>

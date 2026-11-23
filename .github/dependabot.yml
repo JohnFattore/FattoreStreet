@@ -45,7 +45,8 @@ updates:
           - patch
 
   # Base-image pins in the Dockerfiles. Majors are ignored: the springboot
-  # runtime stays on a Temurin LTS, and python/node/maven majors are migrations.
+  # builder and runtime stay on a Temurin LTS, and python/node/maven majors are
+  # migrations.
   - package-ecosystem: docker
     directories:
       - /django
