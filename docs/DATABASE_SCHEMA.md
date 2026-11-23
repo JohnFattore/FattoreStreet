@@ -80,7 +80,8 @@ table is installed.
 | `last_message_at` | timestamptz | NN. Bumped per new message (not on rename); list order is by this, newest first |
 
 **`chatbot_interaction`**: one question/answer pair. Not history-tracked, so deleting a conversation
-really removes its messages.
+really removes its messages. Per-turn token counts are observational and do not necessarily sum to
+`chatbot_advisorusage` (deleted conversations, discarded replies, or failed ledger writes diverge).
 
 | Column | Type | Notes |
 |--------|------|-------|

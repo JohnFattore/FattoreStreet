@@ -124,7 +124,11 @@ class AdvisorReply:
 
 
 def record_usage(response: dict) -> tuple[int | None, int | None]:
-    """Add a Converse response's token usage to this month's ledger, with an atomic increment."""
+    """Add a Converse response's token usage to this month's ledger and return `(input_tokens, output_tokens)`.
+
+    Returns `(None, None)` when Bedrock omits usage. Still returns Bedrock's counts if the ledger
+    write fails, so per-interaction counts can include calls the monthly cap ledger missed.
+    """
     usage = response.get("usage") or {}
     input_tokens = int(usage.get("inputTokens", 0))
     output_tokens = int(usage.get("outputTokens", 0))
@@ -179,6 +183,7 @@ def converse(system_prompt: str, messages: list[dict], max_tokens: int = MAX_REP
     """
     check_budget()
 
+    # Configured Bedrock model or inference-profile ID (not a resolved target behind a profile)
     model_id = env("ADVISOR_MODEL_ID", default=DEFAULT_MODEL_ID)
     try:
         response = bedrock_client().converse(
