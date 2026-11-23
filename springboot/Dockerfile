@@ -1,12 +1,16 @@
 # Stage 1: Build
-# maven:3.9.16 matches .mvn/wrapper/maven-wrapper.properties and clears the
-# enforcer requireMavenVersion floor; temurin-25 matches <java.version> and the
-# stage-2 runtime, so the jar is built and run on the same JDK. Always take an
-# LTS here: the previous eclipse-temurin:19 was non-LTS, went EOL, and left this
-# image stranded on a dead tag family that Dependabot could not bump.
-FROM maven:3.10.0-eclipse-temurin-26 AS build
+# maven:3.x clears the enforcer requireMavenVersion floor (>= 3.9.0);
+# temurin-25 matches <java.version> and the stage-2 runtime, so the jar is
+# built and run on the same JDK. Always take an LTS here: the previous
+# eclipse-temurin:19 was non-LTS, went EOL, and left this image stranded on a
+# dead tag family that Dependabot could not bump.
+FROM maven:3.10.0-eclipse-temurin-25 AS build
 WORKDIR /app
 COPY pom.xml .
+# Warm the local Maven repository in a layer that only invalidates when pom.xml
+# changes; -Dquality.skip=true matches the package step below so unused Error
+# Prone artifacts aren't downloaded.
+RUN mvn -B dependency:go-offline -Dquality.skip=true
 COPY src ./src
 # -Dquality.skip=true: this stage copies only pom.xml + src, so config/, .git
 # and .mvn are absent and any gate resolving them would fail here. Spotless,
