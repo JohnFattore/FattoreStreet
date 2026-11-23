@@ -465,3 +465,29 @@ export interface IMonitoringMetricsResponse {
   };
   series: IMonitoringMetricPoint[];
 }
+
+export interface IMonitoringUserAppCount {
+  app: string;
+  requestCount: number;
+}
+
+export interface IMonitoringUserActivity {
+  username: string;
+  isStaff: boolean;
+  requestCount: number;
+  status4xx: number;
+  status5xx: number;
+  lastSeen: string | null;
+  lastSeenMs: number;
+  topApp: string;
+  apps: IMonitoringUserAppCount[];
+}
+
+export interface IMonitoringUserActivityResponse {
+  hours: number;
+  activeUsers: number;
+  totalRequests: number;
+  authenticatedRequests: number;
+  anonymousRequests: number;
+  users: IMonitoringUserActivity[];
+}

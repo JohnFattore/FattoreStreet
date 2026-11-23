@@ -105,6 +105,44 @@ describe("AdminRoute guard", () => {
       screen.getByText("/django/portfolio/api/assets/"),
     ).toBeInTheDocument();
   });
+
+  it("displays per-user API activity, filters staff, and drills into user logs", async () => {
+    renderWithProviders(
+      <AdminRoute>
+        <AdminDashboard />
+      </AdminRoute>,
+      { preloadedState: signedInState },
+    );
+
+    expect(await screen.findByText("alice")).toBeInTheDocument();
+    expect(screen.getByText("spike")).toBeInTheDocument();
+    expect(
+      screen.getByText("portfolio (30), chatbot (12)"),
+    ).toBeInTheDocument();
+
+    const activeUsersCard = screen.getByText("Active Signed-in Users")
+      .parentElement as HTMLElement;
+    expect(within(activeUsersCard).getByText("2")).toBeInTheDocument();
+    const authReqsCard = screen.getByText("Authenticated Requests")
+      .parentElement as HTMLElement;
+    expect(within(authReqsCard).getByText("54")).toBeInTheDocument();
+    const anonReqsCard = screen.getByText("Anonymous Requests")
+      .parentElement as HTMLElement;
+    expect(within(anonReqsCard).getByText("20")).toBeInTheDocument();
+
+    // Hide staff accounts
+    await userEvent.click(screen.getByLabelText("Hide staff"));
+    expect(screen.queryByText("spike")).not.toBeInTheDocument();
+    expect(screen.getByText("alice")).toBeInTheDocument();
+
+    // Drill into alice's logs
+    await userEvent.click(screen.getByRole("button", { name: "Inspect Logs" }));
+    expect(screen.getByLabelText("Search Text")).toHaveValue("user=alice");
+    await waitFor(() => {
+      expect(screen.queryByText(/Health check ok/)).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(/user=alice/)).toBeInTheDocument();
+  });
 });
 
 describe("AdminDashboard Logs tab", () => {

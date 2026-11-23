@@ -1015,6 +1015,15 @@ export const handlers = [
         level: "INFO",
         message: `2026-11-21 11:59:00 INFO ${source} Health check ok`,
       },
+      {
+        event_id: "evt-3",
+        timestamp: "2026-11-21T11:58:00+00:00",
+        timestamp_ms: 1763726280000,
+        log_stream: `${source}-stream-1`,
+        level: "INFO",
+        message:
+          "2026-11-21 11:58:00 INFO monitoring.requests api_request user=alice user_id=2 method=GET app=portfolio path=/portfolio/api/assets/ status=200 duration_ms=12",
+      },
     ];
 
     const filtered = allEvents.filter((e) => {
@@ -1169,6 +1178,46 @@ export const handlers = [
             mem_used_percent: 58.2,
             disk_root_percent: 39.5,
             disk_ebs_percent: 48.1,
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  }),
+
+  http.get(monitoringApiBaseUrl.concat("user-activity/"), () => {
+    return Response.json(
+      {
+        hours: 24,
+        active_users: 2,
+        total_requests: 74,
+        authenticated_requests: 54,
+        anonymous_requests: 20,
+        users: [
+          {
+            username: "alice",
+            is_staff: false,
+            request_count: 42,
+            status_4xx: 1,
+            status_5xx: 0,
+            last_seen: "2026-11-21T12:30:00+00:00",
+            last_seen_ms: 1763728200000,
+            top_app: "portfolio",
+            apps: [
+              { app: "portfolio", request_count: 30 },
+              { app: "chatbot", request_count: 12 },
+            ],
+          },
+          {
+            username: "spike",
+            is_staff: true,
+            request_count: 12,
+            status_4xx: 0,
+            status_5xx: 0,
+            last_seen: "2026-11-21T12:00:00+00:00",
+            last_seen_ms: 1763726400000,
+            top_app: "users",
+            apps: [{ app: "users", request_count: 12 }],
           },
         ],
       },
