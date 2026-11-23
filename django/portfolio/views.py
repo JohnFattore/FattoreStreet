@@ -3,6 +3,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.throttling import AnonRateThrottle
 from .serializers import AssetSerializer, AccountSerializer, TickerQuerySerializer, SymbolQuerySerializer
 from .permissions import IsOwner
 from .models import Asset, Account
@@ -76,9 +77,16 @@ class AssetRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):     
         return Asset.objects.filter(user=self.request.user)
 
+class QuoteThrottle(AnonRateThrottle):
+    """Per-IP limit on public endpoints that call Finnhub, protecting the shared API quota."""
+    scope = "quote"
+
+
 class QuoteRetrieveView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [QuoteThrottle]
+
     def get(self, request):
         qs = SymbolQuerySerializer(data=request.query_params)
         qs.is_valid(raise_exception=True)
@@ -87,14 +95,16 @@ class QuoteRetrieveView(APIView):
             data = get_realtime_price(symbol)
         except QuoteFetchError as e:
             raise serializers.ValidationError({"symbol": str(e)})
-        except Exception as e:
+        except Exception:
             logger.exception("Unexpected error fetching quote for %s", symbol)
-            raise serializers.ValidationError({"symbol": str(e)})
+            raise serializers.ValidationError({"symbol": "Quote unavailable"})
         return Response(data)
 
 class AssetInfoRetrieveView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [QuoteThrottle]
+
     def get(self, request):
         tickers = request.query_params.get("tickers")
         if not tickers:
@@ -133,9 +143,9 @@ class AssetInfoRetrieveView(APIView):
                 financials["percent_change_3_years"] = percent_change(price, reference_prices["3_years_ago"])
                 financials["percent_change_5_years"] = percent_change(price, reference_prices["5_years_ago"])
                 data.append(financials)
-            except Exception as e:
+            except Exception:
                 logger.exception("Error processing ticker %s in asset-info", ticker)
-                errors.append({"ticker": ticker, "error": str(e)})
+                errors.append({"ticker": ticker, "error": "Quote unavailable"})
                 continue        
         return Response({"data": data, "errors": errors})
 

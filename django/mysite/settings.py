@@ -173,6 +173,13 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'monitoring.auth.TrackingJWTAuthentication',
     ),
+    'DEFAULT_THROTTLE_RATES': {
+        'quote': env('QUOTE_THROTTLE_RATE', default='30/min'),
+    },
+    # Nginx is the single reverse proxy in front of Django (X-Forwarded-For);
+    # taking only the rightmost entry prevents callers from spoofing the header
+    # to bypass IP-based throttles.
+    'NUM_PROXIES': 1,
 }
 
 HOME_URL = env("HOME_URL", default="/")

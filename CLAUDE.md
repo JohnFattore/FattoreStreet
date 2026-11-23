@@ -149,6 +149,7 @@ Additional conventions:
 - `ADVISOR_THROTTLE_RATE` — per-user chatbot question limit, default `50/day` (Redis-backed, so production only)
 - `AWS_REGION` — Bedrock region, default `us-east-1`. No API key: production uses the EC2 instance role, dev uses `AWS_PROFILE`
 - `FINNHUB_API_KEY` — portfolio quotes
+- `QUOTE_THROTTLE_RATE` — per-IP limit on public Finnhub quote endpoints (`/portfolio/api/quote/` and `/portfolio/api/asset-info/`), default `30/min` (Redis-backed, so production only)
 - `SEC_CONTACT_EMAIL` — email for SEC API User-Agent header (required by SEC)
 - `DJANGO_FORCE_SCRIPT_NAME` — set to `/django` when served behind the nginx prefix
 - `MONITORING_INSTANCE_ID` — EC2 instance ID for host CPU/memory/disk metrics on `/admin` (optional; when unset the metrics panel shows an unconfigured notice)

@@ -5,8 +5,11 @@ from datetime import date, datetime
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 import pandas as pd
+import requests
 
 from portfolio.helper import (
+    FINNHUB_QUOTE_URL,
+    FINNHUB_TIMEOUT,
     QuoteFetchError,
     _partition_cached,
     get_historical_dividends,
@@ -176,6 +179,25 @@ class RealtimePriceTests(LocMemCacheTestCase):
 
         self.assertEqual(result["price"], Decimal("178.72"))
         self.assertEqual(result["percent_change_daily"], Decimal("1.2") / 100)
+        mock_get.assert_called_once_with(
+            FINNHUB_QUOTE_URL,
+            params={"symbol": "AAPL"},
+            headers={"X-Finnhub-Token": "test-key"},
+            timeout=FINNHUB_TIMEOUT,
+        )
+
+    @patch("portfolio.helper.requests.get")
+    def test_api_key_sent_in_header_not_url_or_params(self, mock_get):
+        mock_get.return_value.json.return_value = {"c": 178.72, "dp": 1.2}
+
+        get_realtime_price("AAPL")
+
+        args, kwargs = mock_get.call_args
+        self.assertNotIn("test-key", args[0])
+        self.assertNotIn("token", args[0])
+        self.assertNotIn("token", kwargs["params"])
+        self.assertEqual(kwargs["headers"], {"X-Finnhub-Token": "test-key"})
+        self.assertEqual(kwargs["timeout"], (3, 5))
 
     @patch("portfolio.helper.requests.get")
     def test_raises_quote_fetch_error_when_dp_missing(self, mock_get):
@@ -184,6 +206,14 @@ class RealtimePriceTests(LocMemCacheTestCase):
         with self.assertRaises(QuoteFetchError):
             get_realtime_price("FAKE")
         self.assertIsNone(cache.get("current_quote_FAKE"))
+
+    @patch("portfolio.helper.requests.get")
+    def test_propagates_timeout_without_caching(self, mock_get):
+        mock_get.side_effect = requests.Timeout("timed out")
+
+        with self.assertRaises(requests.Timeout):
+            get_realtime_price("AAPL")
+        self.assertIsNone(cache.get("current_quote_AAPL"))
 
     @patch("portfolio.helper.requests.get")
     def test_second_call_served_from_cache(self, mock_get):
