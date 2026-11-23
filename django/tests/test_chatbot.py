@@ -21,7 +21,7 @@ from chatbot.prompt import (
     format_figure,
     reference_text,
 )
-from chatbot.views import AdvisorThrottle, bedrock_client, current_month, title_from
+from chatbot.views import AdvisorThrottle, DEFAULT_MODEL_ID, bedrock_client, current_month, title_from
 from tests.base import BaseAPITestCase
 
 
@@ -139,9 +139,14 @@ class ConversationCreateTest(BedrockPatchMixin, BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['title'], "What should I invest in?")
         self.assertEqual(len(response.data['interactions']), 1)
-        self.assertIn("index funds", response.data['interactions'][0]['output_text'].lower())
+        interaction_data = response.data['interactions'][0]
+        self.assertIn("index funds", interaction_data['output_text'].lower())
+        self.assertEqual(set(interaction_data.keys()), {'input_text', 'output_text', 'timestamp'})
         conversation = Conversation.objects.get()
         self.assertEqual(conversation.user, self.user)
+        interaction = conversation.interactions.get()
+        self.assertEqual(interaction.model_id, DEFAULT_MODEL_ID)
+        self.assertEqual((interaction.input_tokens, interaction.output_tokens), (100, 50))
 
     def test_new_conversation_starts_without_context(self):
         """Other conversations never feed a new one."""
@@ -158,6 +163,21 @@ class ConversationCreateTest(BedrockPatchMixin, BaseAPITestCase):
         kwargs = self.mock_client.converse.call_args.kwargs
         self.assertEqual(kwargs['modelId'], "qwen.test-model")
         self.assertEqual(kwargs['system'][0]['text'], build_system_prompt())
+        self.assertEqual(Interaction.objects.get().model_id, "qwen.test-model")
+
+    def test_missing_usage_leaves_token_fields_null(self):
+        self.mock_client.converse.return_value = {
+            "output": {"message": {"role": "assistant", "content": [{"text": "Index funds."}]}},
+            "stopReason": "end_turn",
+        }
+        self.authenticate_client()
+        with self.assertLogs("chatbot.views", level="WARNING"):
+            response = self.client.post(self.url, {"message": "Hello"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        interaction = Interaction.objects.get()
+        self.assertEqual(interaction.model_id, DEFAULT_MODEL_ID)
+        self.assertIsNone(interaction.input_tokens)
+        self.assertIsNone(interaction.output_tokens)
 
     def test_throttled_model_call_returns_503_and_creates_nothing(self):
         self.mock_client.converse.side_effect = ClientError(
@@ -287,11 +307,18 @@ class ConversationMessageTest(BedrockPatchMixin, BaseAPITestCase):
         self.url = reverse('conversation-messages', args=[self.conversation.pk])
 
     def test_post_message(self):
+        self.mock_client.converse.return_value = converse_reply(
+            "You should invest in low-cost index funds!", input_tokens=240, output_tokens=85
+        )
         self.authenticate_client()
-        response = self.client.post(self.url, {"message": "What should I invest in?"}, format='json')
+        with patch.dict("os.environ", {"ADVISOR_MODEL_ID": "qwen.test-model"}):
+            response = self.client.post(self.url, {"message": "What should I invest in?"}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("index funds", response.data["message"].lower())
         self.assertEqual(self.conversation.interactions.count(), 2)
+        latest = self.conversation.interactions.last()
+        self.assertEqual(latest.model_id, "qwen.test-model")
+        self.assertEqual((latest.input_tokens, latest.output_tokens), (240, 85))
         self.conversation.refresh_from_db()
         # A new message moves the conversation to the top of the list
         self.assertGreater(self.conversation.last_message_at, datetime(2026, 1, 1, tzinfo=timezone.utc))

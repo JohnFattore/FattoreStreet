@@ -4,11 +4,20 @@ from .models import AdvisorUsage, ComparisonAnalysisRequest, Conversation, Inter
 class InteractionInline(admin.TabularInline):
     model = Interaction
     extra = 0
+    readonly_fields = ('timestamp', 'model_id', 'input_tokens', 'output_tokens')
+
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
     list_display = ('user', 'title', 'last_message_at')
     inlines = [InteractionInline]
+
+
+@admin.register(Interaction)
+class InteractionAdmin(admin.ModelAdmin):
+    list_display = ('conversation', 'model_id', 'input_tokens', 'output_tokens', 'timestamp')
+    list_filter = ('model_id',)
+    readonly_fields = ('timestamp', 'model_id', 'input_tokens', 'output_tokens')
 
 
 # Lowering a month's totals here lifts the spend cap early, if you decide the spike was fine

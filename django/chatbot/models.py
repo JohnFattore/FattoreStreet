@@ -23,6 +23,9 @@ class Interaction(models.Model):
     input_text = models.TextField()
     output_text = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    input_tokens = models.PositiveIntegerField(null=True, blank=True)
+    output_tokens = models.PositiveIntegerField(null=True, blank=True)
+    model_id = models.CharField(max_length=200, blank=True, default="")
 
     class Meta:
         ordering = ['timestamp', 'id']

@@ -88,6 +88,9 @@ really removes its messages.
 | `input_text` | text | NN |
 | `output_text` | text | NN |
 | `timestamp` | timestamptz | NN, set on insert. Ordered by `(timestamp, id)` |
+| `input_tokens` | integer | Nullable, non-negative. Bedrock input token count for this turn |
+| `output_tokens` | integer | Nullable, non-negative. Bedrock output token count for this turn |
+| `model_id` | varchar(200) | NN, default `''`. Bedrock model or inference-profile ID used for this turn |
 
 **`chatbot_comparisonanalysisrequest`**: who asked for a company comparison analysis. Written after
 the request validates and before the model is called, so refused and failed calls are recorded too.
