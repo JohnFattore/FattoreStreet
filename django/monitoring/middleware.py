@@ -26,7 +26,7 @@ def _extract_app(path_info: str) -> str:
 
 
 def _resolve_user(request: HttpRequest):
-    for attr in ("_monitoring_user", "_force_auth_user", "user"):
+    for attr in ("_monitoring_user", "user"):
         candidate = getattr(request, attr, None)
         if candidate is not None and getattr(candidate, "is_authenticated", False):
             return candidate
@@ -58,7 +58,7 @@ class RequestActivityLoggingMiddleware:
             username = _sanitize_token(str(getattr(user, "username", "")), fallback="unknown")
             user_id = str(getattr(user, "pk", "") or "-")
         else:
-            username = "anonymous"
+            username = "-"
             user_id = "-"
 
         method = _sanitize_token(request.method or "GET", fallback="GET").upper()

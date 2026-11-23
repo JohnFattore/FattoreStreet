@@ -608,9 +608,9 @@ USER_ACTIVITY_QUERY = (
     "| parse @message /status=(?<err_5xx>5[0-9]{2})\\b/ "
     "| filter ispresent(user) "
     "| stats count(*) as request_count, count(err_4xx) as status_4xx, "
-    "count(err_5xx) as status_5xx, max(@timestamp) as last_seen by user, app "
+    "count(err_5xx) as status_5xx, max(@timestamp) as last_seen by user, user_id, app "
     "| sort request_count desc "
-    "| limit 500"
+    "| limit 2000"
 )
 
 
@@ -633,10 +633,14 @@ def fetch_user_activity(hours: int = 24) -> dict:
 
     for row in rows:
         username = (row.get("user") or "").strip()
+        user_id = (row.get("user_id") or "").strip()
         if not username:
             continue
         req_count = int(float(row.get("request_count", "0") or 0))
-        if username == "anonymous":
+        # Unauthenticated (and expired/invalid-token) requests log user_id=-.
+        # Checking user_id rather than username ensures a real account named
+        # "anonymous" or "-" is still tracked as an authenticated user.
+        if user_id == "-" or (not user_id and username in ("-", "anonymous")):
             anonymous_requests += req_count
             continue
 

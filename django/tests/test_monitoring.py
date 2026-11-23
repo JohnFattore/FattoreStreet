@@ -513,6 +513,7 @@ class MonitoringAPITests(BaseAPITestCase):
                 "results": [
                     [
                         {"field": "user", "value": "testuser"},
+                        {"field": "user_id", "value": str(self.user.pk)},
                         {"field": "app", "value": "portfolio"},
                         {"field": "request_count", "value": "30"},
                         {"field": "status_4xx", "value": "1"},
@@ -521,6 +522,7 @@ class MonitoringAPITests(BaseAPITestCase):
                     ],
                     [
                         {"field": "user", "value": "testuser"},
+                        {"field": "user_id", "value": str(self.user.pk)},
                         {"field": "app", "value": "chatbot"},
                         {"field": "request_count", "value": "12"},
                         {"field": "status_4xx", "value": "2"},
@@ -529,6 +531,7 @@ class MonitoringAPITests(BaseAPITestCase):
                     ],
                     [
                         {"field": "user", "value": "staffuser"},
+                        {"field": "user_id", "value": str(self.staff_user.pk)},
                         {"field": "app", "value": "users"},
                         {"field": "request_count", "value": "5"},
                         {"field": "status_4xx", "value": "0"},
@@ -537,6 +540,16 @@ class MonitoringAPITests(BaseAPITestCase):
                     ],
                     [
                         {"field": "user", "value": "anonymous"},
+                        {"field": "user_id", "value": "999"},
+                        {"field": "app", "value": "portfolio"},
+                        {"field": "request_count", "value": "2"},
+                        {"field": "status_4xx", "value": "0"},
+                        {"field": "status_5xx", "value": "0"},
+                        {"field": "last_seen", "value": "2026-11-21 12:10:00.000"},
+                    ],
+                    [
+                        {"field": "user", "value": "-"},
+                        {"field": "user_id", "value": "-"},
                         {"field": "app", "value": "blog"},
                         {"field": "request_count", "value": "18"},
                         {"field": "status_4xx", "value": "4"},
@@ -551,13 +564,13 @@ class MonitoringAPITests(BaseAPITestCase):
         res = self.client.get(reverse("monitoring_user_activity"), {"hours": 24})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["hours"], 24)
-        self.assertEqual(res.data["active_users"], 2)
-        self.assertEqual(res.data["authenticated_requests"], 47)
+        self.assertEqual(res.data["active_users"], 3)
+        self.assertEqual(res.data["authenticated_requests"], 49)
         self.assertEqual(res.data["anonymous_requests"], 18)
-        self.assertEqual(res.data["total_requests"], 65)
+        self.assertEqual(res.data["total_requests"], 67)
 
         users = res.data["users"]
-        self.assertEqual([u["username"] for u in users], ["testuser", "staffuser"])
+        self.assertEqual([u["username"] for u in users], ["testuser", "staffuser", "anonymous"])
         self.assertFalse(users[0]["is_staff"])
         self.assertEqual(users[0]["request_count"], 42)
         self.assertEqual(users[0]["status_4xx"], 3)
@@ -573,6 +586,7 @@ class MonitoringAPITests(BaseAPITestCase):
         self.assertEqual(users[0]["last_seen"], "2026-11-21T12:30:00+00:00")
         self.assertTrue(users[1]["is_staff"])
         self.assertEqual(users[1]["request_count"], 5)
+        self.assertEqual(users[2]["request_count"], 2)
         self.logs_stubber.assert_no_pending_responses()
 
     def test_request_activity_middleware_logs_verified_jwt_user_and_omits_query_string(self):
@@ -598,7 +612,7 @@ class MonitoringAPITests(BaseAPITestCase):
             )
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(len(captured.output), 1)
-        self.assertIn("api_request user=anonymous user_id=- method=GET app=users path=/users/api/me/ status=401", captured.output[0])
+        self.assertIn("api_request user=- user_id=- method=GET app=users path=/users/api/me/ status=401", captured.output[0])
 
     def test_request_activity_middleware_skips_monitoring_endpoints(self):
         self.authenticate_staff()
