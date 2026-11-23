@@ -4,7 +4,7 @@
 # built and run on the same JDK. Always take an LTS here: the previous
 # eclipse-temurin:19 was non-LTS, went EOL, and left this image stranded on a
 # dead tag family that Dependabot could not bump.
-FROM maven:3.10.0-eclipse-temurin-25 AS build
+FROM maven:3-eclipse-temurin-26 AS build
 WORKDIR /app
 COPY pom.xml .
 # Warm the local Maven repository in a layer that only invalidates when pom.xml
