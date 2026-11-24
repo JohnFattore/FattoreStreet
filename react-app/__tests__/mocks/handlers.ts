@@ -15,6 +15,15 @@ const monitoringApiBaseUrl = djangoBaseUrl + "monitoring/api/";
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+export function makeTestJwt(payload: Record<string, unknown>): string {
+  const encode = (obj: Record<string, unknown>) =>
+    btoa(JSON.stringify(obj))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode(payload)}.test-sig`;
+}
+
 // One post per blog list page: a hand-written one for /blog and a Claude-authored
 // learning topic for /blog/llm-notebook, so the category filters are observable.
 const blogPosts = [
@@ -389,12 +398,21 @@ export const handlers = [
   }),
 
   http.post(usersApiBaseUrl.concat("token/"), () => {
+    const nowSec = Math.floor(Date.now() / 1000);
     return Response.json(
       {
-        refresh:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc0MzcyODI2MywiaWF0IjoxNzQzNjQxODYzLCJqdGkiOiJjMzdhYTgwN2EzN2U0NzM1YmEwNjg3ZTU2NTdlOTgwZCIsInVzZXJfaWQiOjR9.0lnm8JXjuQA1g39Sd390WCi7gvLuY-kDeNOdcLcIQzw", // pragma: allowlist secret
-        access:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQzNjQyMTYzLCJpYXQiOjE3NDM2NDE4NjMsImp0aSI6IjE0Nzc4MDJkNjc4YTQ2OTM5MTMzNmQzMjIzODYxYmFjIiwidXNlcl9pZCI6NH0.1scYah9rH9XcikArJz64MC38VKWIzx0aWv4SdJClxEw", // pragma: allowlist secret
+        refresh: makeTestJwt({
+          token_type: "refresh",
+          exp: nowSec + 86400,
+          iat: nowSec,
+          user_id: 4,
+        }),
+        access: makeTestJwt({
+          token_type: "access",
+          exp: nowSec + 300,
+          iat: nowSec,
+          user_id: 4,
+        }),
       },
       { status: 200 },
     );
@@ -430,10 +448,16 @@ export const handlers = [
   }),
 
   http.post(usersApiBaseUrl.concat("token/refresh/"), () => {
+    const nowSec = Math.floor(Date.now() / 1000);
     return Response.json(
       {
-        access:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQzNjQyMTYzLCJpYXQiOjE3NDM2NDE4NjMsImp0aSI6IjE0Nzc4MDJkNjc4YTQ2OTM5MTMzNmQzMjIzODYxYmFjIiwidXNlcl9pZCI6NH0.refreshed", // pragma: allowlist secret
+        access: makeTestJwt({
+          token_type: "access",
+          exp: nowSec + 300,
+          iat: nowSec,
+          user_id: 4,
+          jti: "refreshed",
+        }),
       },
       { status: 200 },
     );

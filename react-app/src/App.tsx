@@ -8,10 +8,10 @@ import ErrorPage from "./components/ErrorPage";
 import Restaurants from "./pages/Restaurants";
 import Visualizer from "./pages/Visualizer";
 import EconomicIndicators from "./pages/EconomicIndicators";
-import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "./main";
 import { djangoApi } from "./functions/api";
+import { getSessionExpiryMs, hasActiveSession } from "./functions/auth";
 import { logout } from "./reducers/userReducer";
 import { useEffect } from "react";
 import Chatbot from "./pages/Chatbot";
@@ -29,9 +29,13 @@ import BlogPost from "./pages/BlogPost";
 import LlmNotebook from "./pages/LlmNotebook";
 import { CompanyComparison } from "./pages/CompanyComparison";
 
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
 // react router for all our routes
 export default function App() {
-  const { refresh, darkMode } = useSelector((state: RootState) => state.user);
+  const { access, refresh, darkMode } = useSelector(
+    (state: RootState) => state.user,
+  );
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
@@ -39,41 +43,55 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    const interceptorId = axios.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-        const detail = error.response?.data?.detail ?? "";
-        // Matches SimpleJWT messages like "Token is invalid or expired",
-        // "Token is expired", "token_not_valid", etc.
-        const isTokenError = /token.*(invalid|expired)/i.test(detail);
-        if (
-          error.response?.status === 401 &&
-          !originalRequest._retry &&
-          refresh &&
-          !isTokenError
-        ) {
-          originalRequest._retry = true;
-          const refreshRequest = dispatch(
-            djangoApi.endpoints.refreshLogin.initiate(refresh),
-          );
-          try {
-            const result = await refreshRequest.unwrap();
-            originalRequest.headers["Authorization"] =
-              `Bearer ${result.access}`;
-            return axios(originalRequest);
-          } finally {
-            refreshRequest.reset();
-          }
-        } else if (error.response?.status === 401 && isTokenError) {
-          dispatch(logout());
-        }
+    if (!access && !refresh) return;
 
-        return Promise.reject(error);
-      },
-    );
-    return () => axios.interceptors.response.eject(interceptorId);
-  }, [refresh, dispatch]);
+    let cleared = false;
+    const clearExpiredSession = () => {
+      if (cleared) return true;
+      if (!hasActiveSession({ access, refresh })) {
+        cleared = true;
+        dispatch(logout());
+        dispatch(djangoApi.util.resetApiState());
+        return true;
+      }
+      return false;
+    };
+
+    if (clearExpiredSession()) return;
+
+    const expiryMs = getSessionExpiryMs({ access, refresh });
+    let timerId: ReturnType<typeof setTimeout> | undefined;
+
+    const scheduleExpiryCheck = () => {
+      if (expiryMs === null) return;
+      const remainingMs = expiryMs - Date.now();
+      if (remainingMs <= 0) {
+        clearExpiredSession();
+        return;
+      }
+      timerId = setTimeout(
+        scheduleExpiryCheck,
+        Math.min(remainingMs, MAX_TIMEOUT_MS),
+      );
+    };
+
+    scheduleExpiryCheck();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        clearExpiredSession();
+      }
+    };
+
+    window.addEventListener("focus", clearExpiredSession);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (timerId !== undefined) clearTimeout(timerId);
+      window.removeEventListener("focus", clearExpiredSession);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [access, refresh, dispatch]);
 
   return (
     <div className="app-container">

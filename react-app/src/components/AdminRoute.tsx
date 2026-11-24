@@ -15,6 +15,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
   const {
     data: currentUser,
     isLoading,
+    isUninitialized,
     isError,
   } = useGetCurrentUserQuery(undefined, {
     skip: !access,
@@ -29,7 +30,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isUninitialized) {
     return <Spinner animation="border" />;
   }
 

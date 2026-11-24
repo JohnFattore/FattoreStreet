@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { http } from "msw";
 import userReducer, {
   logout,
+  setAccessToken,
   setUserDarkMode,
 } from "../src/reducers/userReducer";
 import locationReducer, { setLocation } from "../src/reducers/locationReducer";
@@ -39,6 +40,13 @@ describe("userReducer actions", () => {
     expect(state.darkMode).toBe(true);
   });
 
+  it("setAccessToken updates only the access token", () => {
+    const state = userReducer(loggedInUser, setAccessToken("fresh-access"));
+    expect(state.access).toBe("fresh-access");
+    expect(state.refresh).toBe("old-refresh");
+    expect(state.username).toBe("testUser");
+  });
+
   it("setUserDarkMode toggles the flag", () => {
     const state = userReducer(loggedInUser, setUserDarkMode(false));
     expect(state.darkMode).toBe(false);
@@ -58,7 +66,7 @@ describe("userReducer mutation matchers", () => {
     expect(store.getState().user.refresh).toBe("old-refresh");
   });
 
-  it("refreshLogin failure clears both tokens", async () => {
+  it("refreshLogin failure clears both tokens and username", async () => {
     server.use(
       http.post(djangoBaseUrl.concat("users/api/token/refresh/"), () =>
         Response.json(
@@ -73,6 +81,7 @@ describe("userReducer mutation matchers", () => {
       djangoApi.endpoints.refreshLogin.initiate("old-refresh"),
     );
 
+    expect(store.getState().user.username).toBe("");
     expect(store.getState().user.access).toBe("");
     expect(store.getState().user.refresh).toBe("");
   });

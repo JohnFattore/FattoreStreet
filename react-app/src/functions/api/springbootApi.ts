@@ -18,6 +18,7 @@ export const springbootApi = createApi({
   reducerPath: "springbootApi",
   baseQuery: axiosBaseQuery({
     defaultBaseUrl: import.meta.env.VITE_APP_SPRINGBOOT_URL,
+    useAuth: false,
   }),
   endpoints: (builder) => ({
     getSecEdgarData: builder.query<ISECData, string>({
