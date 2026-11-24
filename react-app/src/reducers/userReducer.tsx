@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { djangoApi } from "../functions/api/djangoApi";
+import { logout, setAccessToken } from "./authActions";
 
 interface UserSlice {
   username: string;
@@ -19,17 +20,20 @@ const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-    logout: (state) => {
-      state.username = "";
-      state.access = "";
-      state.refresh = "";
-    },
     setUserDarkMode: (state, action) => {
       state.darkMode = action.payload;
     },
   },
   extraReducers: (builder) => {
     builder
+      .addCase(logout, (state) => {
+        state.username = "";
+        state.access = "";
+        state.refresh = "";
+      })
+      .addCase(setAccessToken, (state, action) => {
+        state.access = action.payload;
+      })
       .addMatcher(djangoApi.endpoints.login.matchFulfilled, (state, action) => {
         state.username = action.payload.username;
         state.access = action.payload.access;
@@ -45,11 +49,13 @@ const userSlice = createSlice({
         },
       )
       .addMatcher(djangoApi.endpoints.refreshLogin.matchRejected, (state) => {
+        state.username = "";
         state.access = "";
         state.refresh = "";
       });
   },
 });
 
-export const { logout, setUserDarkMode } = userSlice.actions;
+export const { setUserDarkMode } = userSlice.actions;
+export { logout, setAccessToken };
 export default userSlice.reducer;

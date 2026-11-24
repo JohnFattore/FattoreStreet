@@ -21,6 +21,7 @@ import type {
   ISplitRow,
   IYFinanceQuarter,
 } from "../../interfaces";
+import { logout } from "../../reducers/authActions";
 import { axiosBaseQuery } from "./baseQuery";
 
 /** Raw snake_case shape returned by Django for a single asset */
@@ -221,6 +222,11 @@ export const djangoApi = createApi({
   reducerPath: "djangoApi",
   baseQuery: axiosBaseQuery({
     defaultBaseUrl: import.meta.env.VITE_APP_DJANGO_URL,
+    refreshPath: "users/api/token/refresh/",
+    onAuthFailure: (dispatch) => {
+      dispatch(logout());
+      dispatch(djangoApi.util.resetApiState());
+    },
   }),
   tagTypes: [
     "Assets",

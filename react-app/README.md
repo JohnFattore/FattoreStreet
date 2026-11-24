@@ -11,7 +11,7 @@ SPA built with [React 18](https://react.dev/) + [TypeScript](https://www.typescr
 | Routing            | React Router v6                                                               |
 | State management   | Redux Toolkit + RTK Query                                                     |
 | State persistence  | redux-persist                                                                 |
-| HTTP client        | Axios (interceptors for JWT refresh) + RTK Query `axiosBaseQuery`             |
+| HTTP client        | Axios + RTK Query `axiosBaseQuery` (proactive & 401 JWT refresh)              |
 | Styling            | React Bootstrap 5 + custom Sass theme (`custom.scss`)                         |
 | Forms              | react-hook-form + yup validation                                              |
 | Charts             | Recharts                                                                      |

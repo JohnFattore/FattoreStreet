@@ -71,8 +71,9 @@ Django mounts each app under its own prefix (`users/`, `portfolio/`, `restaurant
 
 ### Authentication
 - Django issues SimpleJWT Access + Refresh tokens via `POST /users/api/token/`
-- React stores tokens in Redux (redux-persist), Axios interceptor adds `Authorization: Bearer <token>`
-- RTK Query base query handles automatic 401 refresh
+- React stores tokens in Redux (redux-persist); `sanitizePersistedState` in `src/store.ts` wipes expired sessions on boot before render
+- RTK Query `axiosBaseQuery` (`src/functions/api/baseQuery.ts`) attaches `Authorization: Bearer <token>` on authenticated Django routes, proactively refreshes expired/expiring access tokens, and handles single-flight 401 refresh + retry or logout + cache reset
+- `src/App.tsx` monitors refresh-token expiry on a timer and on window focus/visibility so idle tabs log out without waiting for a 401
 - Spring Boot authenticates nothing. Every route is public and no token is verified: the `/admin/**` routes and the JWT resource server that guarded them were retired, so `SECRET_KEY` is now Django-only. Do not add an authenticated Spring Boot route — a new backend job gets a run mode and a schedule, not an endpoint
 
 ### Django Apps
@@ -116,8 +117,8 @@ Test classes mirror source under `src/test/java/.../sec_api/`.
 
 ### React State & API
 - All API calls use **RTK Query** via `src/functions/api/` (`djangoApi.ts`, `springbootApi.ts`, shared `baseQuery.ts`), with no exceptions — the Admin page that used raw axios is gone
-- Client-only state lives in `createSlice` reducers in `src/reducers/` (`user` for JWT tokens + dark mode, `location`, `watchList`, `adminSuccessBar`); the `user` slice captures tokens from the `login`/`refreshLogin` mutations via `extraReducers` matchers
-- 401 handling is a single global axios response interceptor in `src/App.tsx` that dispatches the `refreshLogin` mutation and retries. Only Django can return a 401; Spring Boot has no authenticated routes
+- Client-only state lives in `createSlice` reducers in `src/reducers/` (`user` for JWT tokens + dark mode, `location`, `watchList`, `adminSuccessBar`); the `user` slice captures tokens from the `login`/`refreshLogin` mutations via `extraReducers` matchers and `setAccessToken`/`logout` from `src/reducers/authActions.ts`
+- Token refresh and 401 handling live in `axiosBaseQuery` (`src/functions/api/baseQuery.ts`) rather than an axios `useEffect` interceptor, avoiding child-before-parent mount races and deduplicating concurrent refreshes. Only Django uses auth (`springbootApi` passes `useAuth: false`)
 - API responses use snake_case (Django convention); RTK Query transforms to camelCase for components
 - All pages protected by `<StateHandler>` for loading/error display
 
