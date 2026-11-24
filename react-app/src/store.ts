@@ -25,24 +25,30 @@ export function sanitizePersistedState(state: PersistedState): PersistedState {
         user?: Record<string, unknown>;
       })
     | undefined;
-  if (persisted?.user) {
-    delete persisted.user.loading;
-    delete persisted.user.error;
-
-    const access =
-      typeof persisted.user.access === "string" ? persisted.user.access : "";
-    const refresh =
-      typeof persisted.user.refresh === "string" ? persisted.user.refresh : "";
-    if ((access || refresh) && !hasActiveSession({ access, refresh })) {
-      persisted.user = {
-        ...persisted.user,
-        username: "",
-        access: "",
-        refresh: "",
-      };
-    }
+  if (!persisted?.user) {
+    return state;
   }
-  return state;
+
+  const { loading: _loading, error: _error, ...restUser } = persisted.user;
+  void _loading;
+  void _error;
+
+  const access = typeof restUser.access === "string" ? restUser.access : "";
+  const refresh = typeof restUser.refresh === "string" ? restUser.refresh : "";
+  const sanitizedUser =
+    (access || refresh) && !hasActiveSession({ access, refresh })
+      ? {
+          ...restUser,
+          username: "",
+          access: "",
+          refresh: "",
+        }
+      : restUser;
+
+  return {
+    ...persisted,
+    user: sanitizedUser,
+  } as PersistedState;
 }
 
 const persistConfig = {

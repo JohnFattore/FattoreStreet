@@ -45,8 +45,11 @@ export default function App() {
   useEffect(() => {
     if (!access && !refresh) return;
 
+    let cleared = false;
     const clearExpiredSession = () => {
+      if (cleared) return true;
       if (!hasActiveSession({ access, refresh })) {
+        cleared = true;
         dispatch(logout());
         dispatch(djangoApi.util.resetApiState());
         return true;

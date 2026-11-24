@@ -35,6 +35,8 @@ type RefreshOutcome =
   | { status: "auth_failed"; error: AxiosBaseQueryError }
   | { status: "transient_error"; error: AxiosBaseQueryError };
 
+const REFRESH_TIMEOUT_MS = 10_000;
+
 function normalizeBaseUrl(raw: string | undefined): string {
   const trimmed = (raw ?? "").trim();
   if (!trimmed) return "";
@@ -83,9 +85,11 @@ export function axiosBaseQuery({
     const requestToken = Symbol("refresh");
     const promise = (async (): Promise<RefreshOutcome> => {
       try {
-        const response = await axios.post<{ access: string }>(refreshUrl, {
-          refresh: refreshToken,
-        });
+        const response = await axios.post<{ access: string }>(
+          refreshUrl,
+          { refresh: refreshToken },
+          { timeout: REFRESH_TIMEOUT_MS },
+        );
         const newAccess = response.data.access;
         // Guard against a concurrent manual logout while the refresh was in flight.
         const currentRefresh = (api.getState() as RootState).user.refresh;

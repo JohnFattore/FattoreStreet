@@ -95,22 +95,28 @@ describe("JWT auth helpers", () => {
 });
 
 describe("sanitizePersistedState", () => {
-  it("clears expired sessions on rehydration while preserving darkMode", () => {
+  it("clears expired sessions on rehydration while preserving darkMode without mutating input", () => {
     const nowSec = Math.floor(Date.now() / 1000);
-    const persisted = sanitizePersistedState({
+    const rawUser = {
+      username: "spike",
+      access: makeTestJwt({ exp: nowSec - 300 }),
+      refresh: makeTestJwt({ exp: nowSec - 60 }),
+      darkMode: true,
+      loading: false,
+      error: "old",
+    };
+    const rawState = {
       _persist: { version: 1, rehydrated: true },
-      user: {
-        username: "spike",
-        access: makeTestJwt({ exp: nowSec - 300 }),
-        refresh: makeTestJwt({ exp: nowSec - 60 }),
-        darkMode: true,
-        loading: false,
-        error: "old",
-      },
-    } as never) as unknown as {
+      user: rawUser,
+    };
+    const persisted = sanitizePersistedState(rawState as never) as unknown as {
       user: Record<string, unknown>;
     };
 
+    expect(persisted).not.toBe(rawState);
+    expect(rawUser.loading).toBe(false);
+    expect(rawUser.error).toBe("old");
+    expect(rawUser.username).toBe("spike");
     expect(persisted.user).toEqual({
       username: "",
       access: "",
@@ -465,13 +471,13 @@ describe("App session expiry monitor", () => {
     expect(screen.getByText("Sign In")).toBeInTheDocument();
   });
 
-  it("clears an expired session on window focus after sleep", async () => {
+  it("clears an expired session once when focus and visibilitychange fire together after sleep", async () => {
     const nowMs = Date.now();
     const nowSec = Math.floor(nowMs / 1000);
     const dateSpy = vi.spyOn(Date, "now").mockReturnValue(nowMs);
 
     try {
-      const { store } = renderAppAt("/user", {
+      const store = createTestStore({
         user: {
           username: "spike",
           access: makeTestJwt({ exp: nowSec + 300 }),
@@ -479,18 +485,32 @@ describe("App session expiry monitor", () => {
           darkMode: false,
         },
       });
+      const dispatchSpy = vi.spyOn(store, "dispatch");
+      render(
+        <Provider store={store}>
+          <MemoryRouter initialEntries={["/user"]}>
+            <App />
+          </MemoryRouter>
+        </Provider>,
+      );
 
       expect(screen.getByText("User Profile")).toBeInTheDocument();
 
-      // Simulate clock advancing past refresh expiry while the machine slept.
+      // Simulate clock advancing past refresh expiry while the machine slept,
+      // with both focus and visibilitychange firing back-to-back.
       dateSpy.mockReturnValue(nowMs + 4_000_000);
       await act(async () => {
         window.dispatchEvent(new Event("focus"));
+        document.dispatchEvent(new Event("visibilitychange"));
       });
 
       await waitFor(() => {
         expect(store.getState().user.access).toBe("");
       });
+      const logoutDispatches = dispatchSpy.mock.calls.filter(
+        ([action]) => (action as { type?: string })?.type === "user/logout",
+      );
+      expect(logoutDispatches).toHaveLength(1);
       expect(screen.getByText("Sign In")).toBeInTheDocument();
     } finally {
       dateSpy.mockRestore();
