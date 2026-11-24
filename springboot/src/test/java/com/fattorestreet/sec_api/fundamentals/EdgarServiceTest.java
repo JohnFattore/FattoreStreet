@@ -1,6 +1,8 @@
 package com.fattorestreet.sec_api.fundamentals;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -10,12 +12,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
 
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.model.Asset;
 import com.fattorestreet.sec_api.model.Quarter;
 import com.fattorestreet.sec_api.repository.AssetRepository;
-import com.fattorestreet.sec_api.util.MarketTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -350,16 +354,60 @@ class EdgarServiceTest {
         lenient().when(webService.fetchXbrlFrames(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn("{}");
 
-        int currentYear = java.time.Year.now(MarketTime.MARKET).getValue();
-        var result = edgarService.syncFrames(currentYear);
+        var result = edgarService.syncFrames(2026, LocalDate.of(2026, 11, 24));
 
-        assertEquals(currentYear, result.startYear());
-        assertEquals(currentYear, result.endYear());
+        assertEquals(2026, result.startYear());
+        assertEquals(2026, result.endYear());
         // The window is what bounds the SEC request count; anything outside it must not be fetched.
         verify(webService, org.mockito.Mockito.never())
-                .fetchXbrlFrames(anyString(), anyString(), anyString(), eq("CY" + (currentYear - 1) + "Q1"));
-        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD", "CY" + currentYear + "Q1");
-        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD", "CY" + currentYear);
+                .fetchXbrlFrames(anyString(), anyString(), anyString(), eq("CY2025Q1"));
+        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD", "CY2026Q1");
+        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD", "CY2026");
+    }
+
+    @Test
+    void syncFrames_skipsQuartersThatHaveNotEnded() throws Exception {
+        when(assetRepository.findByIsFund(false)).thenReturn(List.of(asset(320193L)));
+        when(assetRepository.countByIsFund(true)).thenReturn(0L);
+        lenient().when(webService.fetchXbrlFrames(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn("{}");
+
+        edgarService.syncFrames(2026, LocalDate.of(2026, 11, 24));
+
+        // Q3 ended Sep 30; Q4 is still in progress, so SEC has no frame for it (duration or instant).
+        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD", "CY2026Q3");
+        verify(webService).fetchXbrlFrames("us-gaap", "Assets", "USD", "CY2026Q3I");
+        verify(webService, org.mockito.Mockito.never())
+                .fetchXbrlFrames(anyString(), anyString(), anyString(), eq("CY2026Q4"));
+        verify(webService, org.mockito.Mockito.never())
+                .fetchXbrlFrames(anyString(), anyString(), anyString(), eq("CY2026Q4I"));
+        // Annual frames for the current year are still fetched: fiscal years ending mid-year land there.
+        verify(webService).fetchXbrlFrames("us-gaap", "Revenues", "USD", "CY2026");
+    }
+
+    @Test
+    void quarterEnded_isFalseOnTheQuarterEndDateAndTrueTheDayAfter() {
+        assertFalse(EdgarService.quarterEnded(2026, 3, LocalDate.of(2026, 9, 30)));
+        assertTrue(EdgarService.quarterEnded(2026, 3, LocalDate.of(2026, 10, 1)));
+        assertTrue(EdgarService.quarterEnded(2025, 4, LocalDate.of(2026, 1, 1)));
+        assertFalse(EdgarService.quarterEnded(2026, 1, LocalDate.of(2026, 3, 31)));
+    }
+
+    @Test
+    void syncFrames_counts404AsMissingRatherThanFailed() throws Exception {
+        when(assetRepository.findByIsFund(false)).thenReturn(List.of(asset(320193L)));
+        when(assetRepository.countByIsFund(true)).thenReturn(0L);
+        lenient().when(webService.fetchXbrlFrames(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn("{}");
+        // A retired tag SEC publishes no frame for, as with SalesRevenueNet after 2018.
+        when(webService.fetchXbrlFrames("us-gaap", "SalesRevenueNet", "USD", "CY2026Q1"))
+                .thenThrow(HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found",
+                        HttpHeaders.EMPTY, new byte[0], StandardCharsets.UTF_8));
+
+        var result = edgarService.syncFrames(2026, LocalDate.of(2026, 4, 15));
+
+        assertEquals(1, result.framesMissing());
+        assertEquals(0, result.frameFailures());
     }
 
     @Test
@@ -371,7 +419,7 @@ class EdgarServiceTest {
         lenient().when(webService.fetchXbrlFrames(anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("403 Forbidden"));
 
-        var result = edgarService.syncFrames(java.time.Year.now(MarketTime.MARKET).getValue());
+        var result = edgarService.syncFrames(2026, LocalDate.of(2026, 11, 24));
 
         assertTrue(result.frameRequests() > 0);
         assertEquals(result.frameRequests(), result.frameFailures());

@@ -80,7 +80,7 @@ public class FundamentalsLoadRunner implements ApplicationRunner {
 
     /**
      * Runs the frames sync and returns the process exit code: {@code 0} on completion, {@code 1}
-     * when the sync throws or every frame request failed.
+     * when the sync throws or no frame request returned data.
      */
     int runLoad() {
         long startTime = System.currentTimeMillis();
@@ -90,13 +90,15 @@ public class FundamentalsLoadRunner implements ApplicationRunner {
             EdgarService.SyncResult result = edgarService.syncFrames(resolvedStartYear);
             long elapsedMs = System.currentTimeMillis() - startTime;
             log.info("Fundamentals load finished in {}m {}s -- years={}-{}, equitiesProcessed={}, fundsSkipped={}, "
-                            + "quartersPersisted={}, frameRequests={}, frameFailures={}",
+                            + "quartersPersisted={}, frameRequests={}, framesMissing={}, frameFailures={}",
                     elapsedMs / 60000, (elapsedMs % 60000) / 1000,
                     result.startYear(), result.endYear(), result.equitiesProcessed(), result.fundsSkipped(),
-                    result.quartersPersisted(), result.frameRequests(), result.frameFailures());
-            if (result.frameRequests() > 0 && result.frameFailures() == result.frameRequests()) {
-                log.error("Every frame request failed (likely a missing SEC_CONTACT_EMAIL User-Agent or an SEC "
-                        + "outage); exiting non-zero so the task is marked failed.");
+                    result.quartersPersisted(), result.frameRequests(), result.framesMissing(),
+                    result.frameFailures());
+            if (result.frameRequests() > 0
+                    && result.frameFailures() + result.framesMissing() == result.frameRequests()) {
+                log.error("No frame request returned data (likely a missing SEC_CONTACT_EMAIL User-Agent, an SEC "
+                        + "outage, or a changed frames URL); exiting non-zero so the task is marked failed.");
                 return 1;
             }
             return 0;

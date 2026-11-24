@@ -213,10 +213,15 @@ period), so full history is thousands of multi-megabyte requests almost entirely
 filings; two calendar years absorbs amendments and late filers, and the upsert key makes restating a
 year overwrite in place. Set `FUNDAMENTALS_LOAD_START_YEAR=2009` for a one-off backfill.
 
-The runner exits `1` only when *every* frame request failed — the signature of a missing
-`SEC_CONTACT_EMAIL` (403 "Undeclared Automated Tool" on all of them), which would otherwise persist
-nothing and still report success. Partial failures exit `0`, since SEC legitimately 404s
-concept/period combinations nobody tagged.
+Quarterly frames are requested only for calendar quarters that have already ended (SEC has no frame
+for a quarter in progress). A 404 counts as `framesMissing`, logged at DEBUG, not as a failure: SEC
+publishes no frame for a concept/period nobody tagged, which is routine for fallback tags such as
+`SalesRevenueNet` that were retired from us-gaap but are still needed for pre-2018 backfills.
+
+The runner exits `1` only when *no* frame request returned data (every one failed or 404'd): the
+signature of a missing `SEC_CONTACT_EMAIL` (403 "Undeclared Automated Tool" on all of them) or a
+changed frames URL, which would otherwise persist nothing and still report success. Partial
+failures exit `0`.
 
 ### Price Adjustments (Splits & Dividends)
 
