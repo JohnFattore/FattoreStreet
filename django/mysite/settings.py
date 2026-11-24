@@ -178,7 +178,9 @@ REST_FRAMEWORK = {
     },
     # Nginx is the single reverse proxy in front of Django (X-Forwarded-For);
     # taking only the rightmost entry prevents callers from spoofing the header
-    # to bypass IP-based throttles.
+    # to bypass IP-based throttles. Update NUM_PROXIES if another proxy (e.g.,
+    # an ALB or CDN) is added in front of Nginx, or all clients will share a
+    # single throttle bucket under the proxy's IP.
     'NUM_PROXIES': 1,
 }
 

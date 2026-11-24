@@ -77,6 +77,9 @@ class AssetRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):     
         return Asset.objects.filter(user=self.request.user)
 
+MAX_ASSET_INFO_TICKERS = 25
+
+
 class QuoteThrottle(AnonRateThrottle):
     """Per-IP limit on public endpoints that call Finnhub, protecting the shared API quota."""
     scope = "quote"
@@ -109,9 +112,13 @@ class AssetInfoRetrieveView(APIView):
         tickers = request.query_params.get("tickers")
         if not tickers:
             raise serializers.ValidationError({"tickers": "This field is required."})
-        ticker_list = [t.strip() for t in tickers.split(",") if t.strip()]
+        ticker_list = list(dict.fromkeys(t.strip() for t in tickers.split(",") if t.strip()))
         if not ticker_list:
             raise serializers.ValidationError({"tickers": "This field must contain at least 1 ticker."})
+        if len(ticker_list) > MAX_ASSET_INFO_TICKERS:
+            raise serializers.ValidationError(
+                {"tickers": f"At most {MAX_ASSET_INFO_TICKERS} tickers may be requested at once."}
+            )
         data = []
         errors = []
         dates = get_market_reference_dates()

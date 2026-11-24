@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from portfolio.helper import QuoteFetchError
 from portfolio.models import Asset, Account
-from portfolio.views import QuoteThrottle
+from portfolio.views import MAX_ASSET_INFO_TICKERS, QuoteThrottle
 from tests.base import BaseAPITestCase, MarketDataPatchMixin
 
 MOCK_PRICES = {
@@ -202,10 +202,10 @@ class AssetInfoTest(BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.url = reverse('asset-info')
-        patch("portfolio.views.get_yfinance_data", return_value=MOCK_YFINANCE_DATA).start()
+        self.mock_yfinance = patch("portfolio.views.get_yfinance_data", return_value=MOCK_YFINANCE_DATA).start()
         patch("portfolio.views.get_historical_prices", side_effect=_mock_historical_prices).start()
         patch("portfolio.views.get_market_reference_dates", return_value=MOCK_REFERENCE_DATES).start()
-        patch("portfolio.views.get_realtime_price", return_value=MOCK_QUOTE).start()
+        self.mock_quote = patch("portfolio.views.get_realtime_price", return_value=MOCK_QUOTE).start()
         self.addCleanup(patch.stopall)
 
     def test_asset_info(self):
@@ -218,6 +218,20 @@ class AssetInfoTest(BaseAPITestCase):
     def test_asset_info_missing_tickers(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 400)
+
+    def test_asset_info_deduplicates_tickers(self):
+        response = self.client.get(self.url, {'tickers': 'AAPL,AAPL,AAPL'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["data"]), 1)
+        self.mock_quote.assert_called_once_with("AAPL")
+
+    def test_asset_info_rejects_too_many_tickers(self):
+        too_many = ",".join(f"T{i}" for i in range(MAX_ASSET_INFO_TICKERS + 1))
+        response = self.client.get(self.url, {'tickers': too_many})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("tickers", response.data)
+        self.mock_yfinance.assert_not_called()
+        self.mock_quote.assert_not_called()
 
     def test_asset_info_hides_upstream_error_detail(self):
         upstream_error = requests.HTTPError(
