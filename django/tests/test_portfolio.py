@@ -1,10 +1,15 @@
 from unittest.mock import patch
 from decimal import Decimal
 from datetime import date
+import requests
 from rest_framework import status
+from django.core.cache import cache
+from django.test import override_settings
 from django.urls import reverse
 from django.contrib.auth.models import User
+from portfolio.helper import QuoteFetchError
 from portfolio.models import Asset, Account
+from portfolio.views import MAX_ASSET_INFO_TICKERS, QuoteThrottle
 from tests.base import BaseAPITestCase, MarketDataPatchMixin
 
 MOCK_PRICES = {
@@ -197,10 +202,10 @@ class AssetInfoTest(BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.url = reverse('asset-info')
-        patch("portfolio.views.get_yfinance_data", return_value=MOCK_YFINANCE_DATA).start()
+        self.mock_yfinance = patch("portfolio.views.get_yfinance_data", return_value=MOCK_YFINANCE_DATA).start()
         patch("portfolio.views.get_historical_prices", side_effect=_mock_historical_prices).start()
         patch("portfolio.views.get_market_reference_dates", return_value=MOCK_REFERENCE_DATES).start()
-        patch("portfolio.views.get_realtime_price", return_value=MOCK_QUOTE).start()
+        self.mock_quote = patch("portfolio.views.get_realtime_price", return_value=MOCK_QUOTE).start()
         self.addCleanup(patch.stopall)
 
     def test_asset_info(self):
@@ -213,6 +218,33 @@ class AssetInfoTest(BaseAPITestCase):
     def test_asset_info_missing_tickers(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 400)
+
+    def test_asset_info_deduplicates_tickers(self):
+        response = self.client.get(self.url, {'tickers': 'AAPL,AAPL,AAPL'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["data"]), 1)
+        self.mock_quote.assert_called_once_with("AAPL")
+
+    def test_asset_info_rejects_too_many_tickers(self):
+        too_many = ",".join(f"T{i}" for i in range(MAX_ASSET_INFO_TICKERS + 1))
+        response = self.client.get(self.url, {'tickers': too_many})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("tickers", response.data)
+        self.mock_yfinance.assert_not_called()
+        self.mock_quote.assert_not_called()
+
+    def test_asset_info_hides_upstream_error_detail(self):
+        upstream_error = requests.HTTPError(
+            "429 Client Error: Too Many Requests for url: https://finnhub.io/api/v1/quote?symbol=AAPL"
+        )
+        with patch("portfolio.views.get_realtime_price", side_effect=upstream_error):
+            with self.assertLogs("portfolio.views", level="ERROR"):
+                response = self.client.get(self.url, {'tickers': 'AAPL'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"], [])
+        self.assertEqual(response.data["errors"], [{"ticker": "AAPL", "error": "Quote unavailable"}])
+        self.assertNotIn("finnhub.io", response.content.decode())
+        self.assertNotIn("429", response.content.decode())
 
 
 class AssetPricesTest(BaseAPITestCase):
@@ -303,6 +335,89 @@ class QuoteTest(BaseAPITestCase):
     def test_quote_missing_symbol(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 400)
+
+    def test_quote_fetch_error_returns_controlled_message(self):
+        with patch("portfolio.views.get_realtime_price", side_effect=QuoteFetchError("No real time quote for FAKE")):
+            response = self.client.get(self.url, {'symbol': 'FAKE'})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"symbol": "No real time quote for FAKE"})
+
+    def test_quote_hides_upstream_error_detail(self):
+        upstream_error = requests.HTTPError(
+            "429 Client Error: Too Many Requests for url: https://finnhub.io/api/v1/quote?symbol=AAPL"
+        )
+        with patch("portfolio.views.get_realtime_price", side_effect=upstream_error):
+            with self.assertLogs("portfolio.views", level="ERROR"):
+                response = self.client.get(self.url, {'symbol': 'AAPL'})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"symbol": "Quote unavailable"})
+        self.assertNotIn("finnhub.io", response.content.decode())
+        self.assertNotIn("429", response.content.decode())
+
+
+@override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}})
+class QuoteThrottleTest(BaseAPITestCase):
+    """Tests for IP-based throttling on public quote endpoints."""
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+        self.addCleanup(cache.clear)
+        patch.dict(QuoteThrottle.THROTTLE_RATES, {"quote": "2/min"}).start()
+        self.mock_quote = patch("portfolio.views.get_realtime_price", return_value=MOCK_QUOTE).start()
+        patch("portfolio.views.get_yfinance_data", return_value=MOCK_YFINANCE_DATA).start()
+        patch("portfolio.views.get_historical_prices", side_effect=_mock_historical_prices).start()
+        patch("portfolio.views.get_market_reference_dates", return_value=MOCK_REFERENCE_DATES).start()
+        self.addCleanup(patch.stopall)
+        self.quote_url = reverse('quote')
+        self.asset_info_url = reverse('asset-info')
+
+    def test_quote_requests_past_rate_are_throttled(self):
+        for symbol in ("AAPL", "MSFT"):
+            response = self.client.get(self.quote_url, {'symbol': symbol})
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(self.quote_url, {'symbol': 'GOOG'})
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertGreater(int(response['Retry-After']), 0)
+        self.assertEqual(self.mock_quote.call_count, 2)
+
+    def test_asset_info_shares_quote_throttle(self):
+        self.assertEqual(self.client.get(self.quote_url, {'symbol': 'AAPL'}).status_code, status.HTTP_200_OK)
+        self.assertEqual(self.client.get(self.asset_info_url, {'tickers': 'AAPL'}).status_code, status.HTTP_200_OK)
+
+        response = self.client.get(self.asset_info_url, {'tickers': 'AAPL'})
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_spoofed_xff_prefix_cannot_bypass_throttle(self):
+        for i, symbol in enumerate(("AAPL", "MSFT")):
+            response = self.client.get(
+                self.quote_url,
+                {'symbol': symbol},
+                HTTP_X_FORWARDED_FOR=f"10.0.0.{i}, 203.0.113.5",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            self.quote_url,
+            {'symbol': 'GOOG'},
+            HTTP_X_FORWARDED_FOR="10.0.0.99, 203.0.113.5",
+        )
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_throttle_is_per_client_ip(self):
+        for symbol in ("AAPL", "MSFT"):
+            self.assertEqual(
+                self.client.get(
+                    self.quote_url, {'symbol': symbol}, HTTP_X_FORWARDED_FOR="203.0.113.5"
+                ).status_code,
+                status.HTTP_200_OK,
+            )
+
+        response = self.client.get(
+            self.quote_url, {'symbol': 'GOOG'}, HTTP_X_FORWARDED_FOR="203.0.113.6"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 class QuarterlyDataTest(BaseAPITestCase):

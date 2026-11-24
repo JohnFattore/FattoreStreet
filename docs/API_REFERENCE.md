@@ -39,11 +39,11 @@ Management of financial assets and retrieving market data.
 | `POST` | `/portfolio/api/assets/` | Track a new asset. |
 | `GET` | `/portfolio/api/assets/<id>/` | Retrieve details of a specific asset. |
 | `DELETE` | `/portfolio/api/assets/<id>/` | Remove an asset from portfolio. |
-| `GET` | `/portfolio/api/asset-info/` | Fetch live metadata for a ticker (e.g., name, sector). |
+| `GET` | `/portfolio/api/asset-info/` | Fetch live metadata for a comma-separated list of tickers (max 25 per request). Public; rate-limited per IP (`QUOTE_THROTTLE_RATE`, default `30/min`). |
 | `GET` | `/portfolio/api/asset-prices/` | Get historical adjusted-close price data for charting (yfinance). |
 | `GET` | `/portfolio/api/asset-dividends/` | Get historical dividend events per ticker from yfinance. |
 | `GET` | `/portfolio/api/asset-splits/` | Get historical split events per ticker from yfinance. |
-| `GET` | `/portfolio/api/quote/` | Get the latest price quote. |
+| `GET` | `/portfolio/api/quote/` | Get the latest price quote. Public; rate-limited per IP (`QUOTE_THROTTLE_RATE`, default `30/min`). |
 
 ## 🍽 Restaurants (Reviews)
 

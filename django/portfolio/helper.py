@@ -23,6 +23,9 @@ HISTORY_YEARS = 25
 # Extra days per year account for leap years
 HISTORY_DAYS = 365 * HISTORY_YEARS + HISTORY_YEARS
 
+FINNHUB_QUOTE_URL = "https://finnhub.io/api/v1/quote"
+FINNHUB_TIMEOUT = (3, 5)  # (connect, read) seconds
+
 def _partition_cached(tickers: list[str], make_cache_key: Callable[[str], str]) -> tuple[dict, list[str]]:
     """Split tickers into cached results and a list of uncached tickers.
 
@@ -117,8 +120,12 @@ def get_realtime_price(ticker: str) -> dict:
     if cached_data:
         return cached_data
     api_key = env("FINNHUB_API_KEY")
-    url = f"https://finnhub.io/api/v1/quote?symbol={ticker}&token={api_key}"
-    response = requests.get(url)
+    response = requests.get(
+        FINNHUB_QUOTE_URL,
+        params={"symbol": ticker},
+        headers={"X-Finnhub-Token": api_key},
+        timeout=FINNHUB_TIMEOUT,
+    )
     response.raise_for_status()
     quote = response.json()
     if quote.get("dp") is None:
