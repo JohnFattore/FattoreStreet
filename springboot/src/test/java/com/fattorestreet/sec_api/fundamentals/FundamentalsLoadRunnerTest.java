@@ -38,7 +38,11 @@ class FundamentalsLoadRunnerTest {
     }
 
     private static EdgarService.SyncResult syncResult(int startYear, int requests, int failures) {
-        return new EdgarService.SyncResult(startYear, startYear, 500, 7L, 4000, requests, failures);
+        return syncResult(startYear, requests, 0, failures);
+    }
+
+    private static EdgarService.SyncResult syncResult(int startYear, int requests, int missing, int failures) {
+        return new EdgarService.SyncResult(startYear, startYear, 500, 7L, 4000, requests, missing, failures);
     }
 
     @Test
@@ -51,7 +55,7 @@ class FundamentalsLoadRunnerTest {
 
     @Test
     void partialFrameFailuresStillReturnZero() throws Exception {
-        // SEC 404s concept/period combinations nobody tagged; that is routine, not a failed run.
+        // A few non-404 failures among otherwise good requests is not a failed run.
         when(edgarService.syncFrames(currentYear - 1)).thenReturn(syncResult(currentYear - 1, 200, 199));
 
         assertEquals(0, runner.runLoad());
@@ -62,6 +66,23 @@ class FundamentalsLoadRunnerTest {
         // What a missing SEC_CONTACT_EMAIL looks like: 403 on everything, nothing persisted.
         when(edgarService.syncFrames(currentYear - 1)).thenReturn(syncResult(currentYear - 1, 200, 200));
 
+        assertEquals(1, runner.runLoad());
+    }
+
+    @Test
+    void returnsZeroWhenSomeFramesAreMissingButOthersReturnedData() throws Exception {
+        when(edgarService.syncFrames(currentYear - 1)).thenReturn(syncResult(currentYear - 1, 200, 56, 0));
+
+        assertEquals(0, runner.runLoad());
+    }
+
+    @Test
+    void returnsOneWhenEveryFrameRequestWasMissingOrFailed() throws Exception {
+        // All 404s means the frames URL changed, not that nobody tagged anything.
+        when(edgarService.syncFrames(currentYear - 1)).thenReturn(syncResult(currentYear - 1, 200, 200, 0));
+        assertEquals(1, runner.runLoad());
+
+        when(edgarService.syncFrames(currentYear - 1)).thenReturn(syncResult(currentYear - 1, 200, 150, 50));
         assertEquals(1, runner.runLoad());
     }
 

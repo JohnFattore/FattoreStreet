@@ -1,6 +1,7 @@
 package com.fattorestreet.sec_api.fundamentals;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import com.fattorestreet.sec_api.client.WebService;
 import com.fattorestreet.sec_api.model.Asset;
@@ -128,12 +130,15 @@ public class EdgarService {
     public static final int FRAMES_START_YEAR = 2009;
 
     /**
-     * Counts frame fetches and how many of them failed, so a caller can tell a normal sync (SEC
-     * returns 404 for concept/period combinations nobody tagged, which is routine) from a total
-     * outage. {@link FundamentalsLoadRunner} uses it to decide the task's exit code.
+     * Counts frame fetches by outcome. A 404 is {@code missing}, not a failure: SEC publishes no frame
+     * for a concept/period nobody tagged, which is routine for fallback tags that only appear in older
+     * filings (e.g. {@code SalesRevenueNet}, retired from us-gaap in 2018 but still needed for
+     * backfills). {@code failures} is everything else (403, 5xx after retries, unparseable payloads).
+     * {@link FundamentalsLoadRunner} uses these to decide the task's exit code.
      */
     private static final class FrameStats {
         int requests;
+        int missing;
         int failures;
     }
 
@@ -149,6 +154,7 @@ public class EdgarService {
             long fundsSkipped,
             int quartersPersisted,
             int frameRequests,
+            int framesMissing,
             int frameFailures) {
     }
 
@@ -180,15 +186,27 @@ public class EdgarService {
      * than duplicating.
      */
     public SyncResult syncFrames(int startYear) throws Exception {
+        return syncFrames(startYear, LocalDate.now(MarketTime.MARKET));
+    }
+
+    /**
+     * {@link #syncFrames(int)} as of {@code today}, so tests can pin the date. Quarterly frames are
+     * only requested for calendar quarters that ended before {@code today}: SEC has no frame for a
+     * quarter still in progress, so asking for one is a guaranteed 404 per concept. Annual frames are
+     * still requested for the current year, because SEC aligns fiscal years that end mid-year to it.
+     */
+    SyncResult syncFrames(int startYear, LocalDate today) throws Exception {
         Map<Long, Asset> assetMap = loadAssetMap();
         long fundsSkipped = assetRepository.countByIsFund(true);
-        int currentYear = LocalDate.now(MarketTime.MARKET).getYear();
+        int currentYear = today.getYear();
         FrameStats stats = new FrameStats();
 
         // Phase 1: Collect all quarterly frames in the window
         Map<String, Quarter> collected = new HashMap<>();
         for (int y = startYear; y <= currentYear; y++) {
             for (int q = 1; q <= 4; q++) {
+                if (!quarterEnded(y, q, today))
+                    break;
                 collectFrames("CY" + y + "Q" + q, assetMap, collected, stats);
             }
         }
@@ -208,7 +226,12 @@ public class EdgarService {
         persistCollected(collected);
 
         return new SyncResult(startYear, currentYear, assetMap.size(), fundsSkipped, collected.size(),
-                stats.requests, stats.failures);
+                stats.requests, stats.missing, stats.failures);
+    }
+
+    /** Whether calendar quarter {@code quarter} of {@code year} ended before {@code today}. */
+    static boolean quarterEnded(int year, int quarter, LocalDate today) {
+        return YearMonth.of(year, quarter * 3).atEndOfMonth().isBefore(today);
     }
 
     // --- Private implementation ---
@@ -310,6 +333,9 @@ public class EdgarService {
                             setQuarterField(quarter, fc.fieldName, value);
                         }
                     }
+                } catch (HttpClientErrorException.NotFound e) {
+                    stats.missing++;
+                    log.debug("No frame for concept {} ({}) for {}", fc.fieldName, tag, period);
                 } catch (Exception e) {
                     stats.failures++;
                     log.warn("Error collecting concept {} ({}) for {}: {}", fc.fieldName, tag, period,
@@ -377,6 +403,9 @@ public class EdgarService {
                             data.fields.put(fc.fieldName, value);
                         }
                     }
+                } catch (HttpClientErrorException.NotFound e) {
+                    stats.missing++;
+                    log.debug("No annual frame for {} ({}) for CY{}", fc.fieldName, tag, year);
                 } catch (Exception e) {
                     stats.failures++;
                     log.warn("Error collecting annual {} ({}) for CY{}: {}", fc.fieldName, tag, year,
