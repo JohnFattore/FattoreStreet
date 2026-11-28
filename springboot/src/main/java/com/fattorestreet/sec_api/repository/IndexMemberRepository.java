@@ -17,16 +17,26 @@ public interface IndexMemberRepository extends JpaRepository<IndexMember, Long> 
             + "LEFT JOIN FETCH l.asset")
     List<IndexMember> findAllWithListingAndAsset();
 
-    List<IndexMember> findByMarketIndex_CodeOrderByPercentDesc(String code);
+    /**
+     * Members of one index, heaviest weight first, with {@code listing}, {@code listing.asset} and
+     * {@code marketIndex} fetch-joined into the same query. Callers map every member's listing, so a
+     * plain derived query would lazy-load each listing separately (one query per member).
+     */
+    @Query("SELECT im FROM IndexMember im "
+            + "JOIN FETCH im.listing l "
+            + "JOIN FETCH im.marketIndex mi "
+            + "LEFT JOIN FETCH l.asset "
+            + "WHERE mi.code = :code "
+            + "ORDER BY im.percent DESC")
+    List<IndexMember> findByIndexCodeWithListingAndAsset(@Param("code") String code);
 
     @Query("SELECT DISTINCT im.listing.ticker FROM IndexMember im WHERE im.marketIndex.code = :code")
     List<String> findTickersByIndexCode(@Param("code") String code);
 
     /**
-     * Tickers of one index, heaviest weight first. A projection rather than
-     * {@link #findByMarketIndex_CodeOrderByPercentDesc}, because callers outside a transaction
-     * cannot walk the lazy {@code listing} association -- and ordering matters wherever a caller
-     * takes only the first N names.
+     * Tickers of one index, heaviest weight first. A projection rather than entities, because
+     * callers outside a transaction cannot walk the lazy {@code listing} association -- and
+     * ordering matters wherever a caller takes only the first N names.
      */
     @Query("SELECT im.listing.ticker FROM IndexMember im WHERE im.marketIndex.code = :code "
             + "ORDER BY im.percent DESC")

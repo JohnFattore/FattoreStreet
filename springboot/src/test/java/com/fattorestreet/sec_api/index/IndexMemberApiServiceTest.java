@@ -133,7 +133,7 @@ class IndexMemberApiServiceTest {
         IndexMember orphan = new IndexMember();
         orphan.setId(13L);
         orphan.setListing(null);
-        when(indexMemberRepository.findByMarketIndex_CodeOrderByPercentDesc("FAT50"))
+        when(indexMemberRepository.findByIndexCodeWithListingAndAsset("FAT50"))
                 .thenReturn(List.of(member(14L, msft, "Fattore 50", BigDecimal.TEN), orphan));
         when(metricsRepository.findAllByYear(CURRENT_YEAR)).thenReturn(List.of());
 
@@ -145,7 +145,7 @@ class IndexMemberApiServiceTest {
 
     @Test
     void listByIndexCode_unknownCodeReturnsEmpty() {
-        when(indexMemberRepository.findByMarketIndex_CodeOrderByPercentDesc("NOPE")).thenReturn(List.of());
+        when(indexMemberRepository.findByIndexCodeWithListingAndAsset("NOPE")).thenReturn(List.of());
         when(metricsRepository.findAllByYear(CURRENT_YEAR)).thenReturn(List.of());
 
         assertTrue(service.listByIndexCode("NOPE").isEmpty());

@@ -44,7 +44,7 @@ public class IndexMemberApiService {
 
     @Transactional(readOnly = true)
     public List<IndexMemberRow> listByIndexCode(String code) {
-        List<IndexMember> members = indexMemberRepository.findByMarketIndex_CodeOrderByPercentDesc(code);
+        List<IndexMember> members = indexMemberRepository.findByIndexCodeWithListingAndAsset(code);
         int currentYear = Year.now(MarketTime.MARKET).getValue();
         Map<Long, ListingIndexMetrics> byListingId = metricsRepository.findAllByYear(currentYear).stream()
                 .filter(m -> m.getListing() != null && m.getListing().getId() != null)

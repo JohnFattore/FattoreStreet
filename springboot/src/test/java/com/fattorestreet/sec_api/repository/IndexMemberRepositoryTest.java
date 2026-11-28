@@ -84,11 +84,35 @@ class IndexMemberRepositoryTest {
 
     @Test
     void findByMarketIndexCode_ordersByPercentDesc() {
-        List<IndexMember> members = repository.findByMarketIndex_CodeOrderByPercentDesc("FAT50");
+        List<IndexMember> members = repository.findByIndexCodeWithListingAndAsset("FAT50");
 
         assertEquals(2, members.size());
         assertEquals(0, members.get(0).getPercent().compareTo(new BigDecimal("8.5")));
         assertEquals(0, members.get(1).getPercent().compareTo(new BigDecimal("7.25")));
+    }
+
+    @Test
+    void findByIndexCodeWithListingAndAsset_fetchJoinsAssociations() {
+        List<IndexMember> members = repository.findByIndexCodeWithListingAndAsset("FAT50");
+        // Detach everything: any association left as a proxy can no longer load.
+        em.clear();
+
+        for (IndexMember im : members) {
+            assertTrue(Hibernate.isInitialized(im.getListing()), "listing must be fetch-joined");
+            assertTrue(Hibernate.isInitialized(im.getListing().getAsset()), "asset must be fetch-joined");
+            assertTrue(Hibernate.isInitialized(im.getMarketIndex()), "marketIndex must be fetch-joined");
+        }
+        assertEquals(List.of("AAPL", "MSFT"), members.stream().map(im -> im.getListing().getTicker()).toList());
+        assertEquals("Fattore 50", members.get(0).getMarketIndex().getDisplayName());
+    }
+
+    @Test
+    void findByIndexCodeWithListingAndAsset_keepsMembersWithoutAsset() {
+        List<IndexMember> members = repository.findByIndexCodeWithListingAndAsset("FAT100");
+
+        assertEquals(1, members.size());
+        assertEquals("ORPH", members.get(0).getListing().getTicker());
+        assertNull(members.get(0).getListing().getAsset());
     }
 
     @Test
@@ -103,7 +127,7 @@ class IndexMemberRepositoryTest {
         em.flush();
         em.clear();
 
-        assertTrue(repository.findByMarketIndex_CodeOrderByPercentDesc("FAT50").isEmpty());
-        assertEquals(1, repository.findByMarketIndex_CodeOrderByPercentDesc("FAT100").size());
+        assertTrue(repository.findByIndexCodeWithListingAndAsset("FAT50").isEmpty());
+        assertEquals(1, repository.findByIndexCodeWithListingAndAsset("FAT100").size());
     }
 }
